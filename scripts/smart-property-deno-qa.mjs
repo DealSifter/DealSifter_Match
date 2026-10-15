@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
-const root=process.cwd(),baselineSha='6dbb16397f531137e357ed4c1d884d9fc37ee792',stage=resolve('.cache/smart-property-deno-baseline'),directory='qa/smart-property-enrichment/final-integration';
+const root=process.cwd(),baselineSha=process.env.SMART_PROPERTY_BASELINE||'6dbb16397f531137e357ed4c1d884d9fc37ee792',stage=resolve(process.env.SMART_PROPERTY_BASELINE?'.cache/smart-property-deno-ux-baseline':'.cache/smart-property-deno-baseline'),directory=process.env.SMART_PROPERTY_QA_DIRECTORY||'qa/smart-property-enrichment/final-integration';
 mkdirSync(stage,{recursive:true});
 execFileSync('git',['archive','--format=tar',`--output=${resolve('.cache/smart-property-deno-baseline.tar')}`,baselineSha,'supabase'],{windowsHide:true});
 execFileSync('tar',['-xf',resolve('.cache/smart-property-deno-baseline.tar'),'-C',stage],{windowsHide:true});
@@ -17,7 +17,7 @@ function check(cwd,newFunction){
  });
  return {exitCode,diagnostics};
 }
-const baseline=process.argv.includes('--refresh-current')?JSON.parse(readFileSync(`${directory}/deno-baseline-comparison.json`,'utf8')).baseline:check(stage,false),current=check(root,true),identity=item=>JSON.stringify([item.code,item.path,item.sourceLine]);
+const baseline=process.argv.includes('--refresh-current')?JSON.parse(readFileSync(`${directory}/deno-baseline-comparison.json`,'utf8')).baseline:check(stage,Boolean(process.env.SMART_PROPERTY_BASELINE)),current=check(root,true),identity=item=>JSON.stringify([item.code,item.path,item.sourceLine]);
 const bag=new Map();for(const item of baseline.diagnostics){const key=identity(item);bag.set(key,(bag.get(key)??0)+1);}
 const introduced=[];for(const item of current.diagnostics){const key=identity(item),count=bag.get(key)??0;if(count)bag.set(key,count-1);else introduced.push(item);}
 const closure=JSON.parse(readFileSync(`${directory}/backend-dependency-closure.json`,'utf8'));

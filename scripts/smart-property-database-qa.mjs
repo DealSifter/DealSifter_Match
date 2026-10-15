@@ -43,6 +43,43 @@ try{
  await pass('legacy-zero-not-backfilled',async()=>assert.equal((await db.query('select rehab from properties where id=$1',[p])).rows[0].rehab,'0'));
  await pass('new-optional-blanks-are-null',async()=>{const id='44444444-4444-4444-8444-444444444444';await db.query('insert into properties(id,owner_id) values($1,$2)',[id,a]);const row=(await db.query('select rehab,beds,baths from properties where id=$1',[id])).rows[0];assert.deepEqual(row,{rehab:null,beds:null,baths:null});});
  await pass('unpublished-facts-not-public',async()=>{await db.query('update properties set publish_to_showcase=false where id=$1',[p]);assert.equal((await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[p]])).rows.length,0);});
- await writeFile('qa/smart-property-enrichment/security-validation.json',JSON.stringify({pass:true,mode:'LOCAL_REAL_POSTGRES_PGLITE',productionWrites:0,checks},null,2)+'\n');
+ if(process.env.SMART_PROPERTY_UX_BATCH_QA==='1'){
+  const {runPropertyFactReview}=await import('../supabase/functions/_shared/property-fact-reconciliation/runtime.ts');
+  const batchId='55555555-5555-4555-8555-555555555555',mixedId='66666666-6666-4666-8666-666666666666';
+  await db.exec("reset role;set role service_role;set request.jwt.claim.role='service_role';");
+  await db.query('insert into properties(id,owner_id,beds,baths,rehab) values($1,$3,null,null,null),($2,$3,4,null,null)',[batchId,mixedId,a]);
+  const candidate=(field,value,unit=null)=>({field,originalValue:value,value,unit,sourceType:'PUBLIC_PARCEL_GIS',sourceId:'qa-county',sourceFamily:'COUNTY_GIS:00000',evidenceStatus:'PUBLIC_RECORD',freshness:'FRESH'});
+  const additions=[candidate('apn','000-TEST'),candidate('owner','QA OWNER'),candidate('assessedValue',120000,'USD'),candidate('propertyTax',2000,'USD'),candidate('zoning','R1'),candidate('yearBuilt',1980),candidate('subdivision','QA SUBDIVISION'),candidate('legalDescription','QA LEGAL')];
+  let mutations=0,acquisitions=0;
+  const dependencies=(id,evidence)=>({userId:a,loadOwnedProperty:async wanted=>wanted===id?{id,owner_id:a,address:'100 QA Street',city:'QA',state:'NC',zip:'27614',type:'SFR',...(id===mixedId?{lot:5000,beds:4}:{})}:null,
+   loadReview:async()=>{const result=await db.query('select state,revision from property_fact_reviews where property_id=$1 and owner_id=$2',[id,a]);const row=result.rows[0];return row?{...row,revision:Number(row.revision)}:null;},
+   acquire:async()=>{acquisitions++;return evidence;},store:async(_id,owner,revision,state,publicFacts,notify)=>{mutations++;const result=await db.query('select ds_store_property_fact_review($1,$2,$3,$4::jsonb,$5::jsonb,$6) revision',[id,owner,revision,JSON.stringify(state),JSON.stringify(publicFacts),notify]);return Number(result.rows[0].revision);}});
+  const deps=dependencies(batchId,additions),first=await runPropertyFactReview({propertyId:batchId,action:'CHECK',cacheOnly:true},deps);
+  const decisions=Object.values(first.snapshot.rows).filter(row=>row.bulkCandidateId).map(row=>({field:row.field,action:'ACCEPT_EXTERNAL_VALUE',candidateId:row.bulkCandidateId}));
+  await pass('eight-complement-one-transaction-persist-and-reload',async()=>{
+   const before=mutations,lookupBefore=acquisitions;
+   const applied=await runPropertyFactReview({propertyId:batchId,action:'DECIDE',revision:first.revision,evidenceHash:first.snapshot.evidenceHash,decisions},deps);
+   assert.equal(decisions.length,8);assert.equal(mutations-before,1);assert.equal(acquisitions,lookupBefore);assert.equal(applied.snapshot.summary.pending,0);
+   const reloaded=await runPropertyFactReview({propertyId:batchId,action:'READ'},deps);assert.equal(Object.values(reloaded.snapshot.rows).filter(row=>row.decision?.action==='ACCEPT_EXTERNAL_VALUE').length,8);assert.equal(reloaded.snapshot.rows.apn.originalValue,null);assert.equal(reloaded.snapshot.rows.apn.effective.sourceType,'PUBLIC_PARCEL_GIS');
+  });
+  await pass('invalid-batch-has-zero-partial-writes',async()=>{
+   const current=await runPropertyFactReview({propertyId:batchId,action:'READ'},deps),before=mutations;
+   await assert.rejects(runPropertyFactReview({propertyId:batchId,action:'DECIDE',revision:current.revision,evidenceHash:current.snapshot.evidenceHash,decisions:[{field:'apn',action:'REVIEW_LATER'},{field:'beds',action:'ACCEPT_EXTERNAL_VALUE',candidateId:'invalid'}]},deps),/INELIGIBLE/);
+   assert.equal(mutations,before);assert.equal((await deps.loadReview()).revision,current.revision);
+  });
+  const mixedEvidence=[...additions.slice(0,5),candidate('lotArea',7000,'SQFT'),candidate('beds',3),candidate('baths',2)],mixedDeps=dependencies(mixedId,mixedEvidence);
+  const mixed=await runPropertyFactReview({propertyId:mixedId,action:'CHECK',cacheOnly:true},mixedDeps);
+  await pass('mixed-eight-decisions-atomic-provenance-and-defer',async()=>{
+   const choices=Object.values(mixed.snapshot.rows).filter(row=>row.pending).map(row=>row.field==='lotArea'?{field:row.field,action:'KEEP_MY_VALUE'}:row.field==='baths'?{field:row.field,action:'REVIEW_LATER'}:{field:row.field,action:'ACCEPT_EXTERNAL_VALUE',candidateId:row.candidates[0].candidateId});
+   const before=mutations,lookupBefore=acquisitions;const result=await runPropertyFactReview({propertyId:mixedId,action:'DECIDE',revision:mixed.revision,evidenceHash:mixed.snapshot.evidenceHash,decisions:choices},mixedDeps);
+   assert.equal(choices.length,8);assert.equal(mutations-before,1);assert.equal(acquisitions,lookupBefore);assert.equal(result.snapshot.summary.pending,0);assert.equal(result.snapshot.rows.lotArea.effective.value,5000);assert.equal(result.snapshot.rows.beds.effective.value,3);assert.equal(result.snapshot.rows.beds.originalValue,4);assert.equal(result.snapshot.rows.baths.decision.action,'REVIEW_LATER');
+   const raw=(await db.query('select beds,baths,rehab from properties where id=$1',[mixedId])).rows[0];assert.deepEqual(raw,{beds:4,baths:null,rehab:null});
+  });
+  await pass('same-evidence-post-apply-check-does-not-notify-again',async()=>{
+   const checked=await runPropertyFactReview({propertyId:mixedId,action:'CHECK',cacheOnly:true},mixedDeps);assert.equal(checked.snapshot.summary.pending,0);
+   assert.equal((await db.query("select count(*)::int n from notifications where payload->>'property_id'=$1",[mixedId])).rows[0].n,1);
+  });
+ }
+ await writeFile(`${process.env.SMART_PROPERTY_QA_DIRECTORY||'qa/smart-property-enrichment'}/security-validation.json`,JSON.stringify({pass:true,mode:'LOCAL_REAL_POSTGRES_PGLITE',productionWrites:0,checks},null,2)+'\n');
  console.log(JSON.stringify({pass:true,checks:checks.length}));
 }finally{await db.close();}

@@ -51,6 +51,9 @@ Deno.serve(async req=>{
     if(addressMismatch)rows=rows.filter(candidate=>!candidate.sourceFamily?.startsWith('COUNTY_GIS:'));
     parcels=parcels.filter(entry=>parcelMatchesPropertyAddress(property,entry.parcel.situsAddress));
     if(parcels.length){const fresh=candidatesFromAuthorizedBundle({publicParcels:parcels});const families=new Set(fresh.map(c=>c.sourceFamily));rows=[...rows.filter(c=>!families.has(c.sourceFamily)),...fresh];}
+    // A publisher edit or signed parcel receipt can reuse the already-authorized provider evidence.
+    // Do not run the runtime-entitlement/cache orchestration again for the same property's cache-only update.
+    if(body.cacheOnly===true&&sameIdentity)return rows;
     try{const access=await loadMaxxisRuntimeAccessContext(userId,authClient as unknown as Parameters<typeof loadMaxxisRuntimeAccessContext>[1],String(property.id));
      if(access.ok){const plan=access.context.plan==='ENTERPRISE'?'ENTERPRISE':access.context.plan==='PRO'?'PRO':'FREE';
       const cached=await getPropertyEvidenceForAuthenticatedUser({propertyId:property.id},authHeader,userId,String(property.id),false,{plan,bucket:'chat'});

@@ -1,0 +1,58 @@
+﻿{
+    "observedAt":  "2026-10-15T23:19:19.6290548Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  84,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075972484,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "maxxis-provider-message-draft",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075982113,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "maxxis-deal-workflow",
+                          "version":  16,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075976156,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  10,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075996113,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "property-fact-review",
+                          "version":  1,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075991142,
+                          "verify_jwt":  true
+                      }
+                  ]
+}

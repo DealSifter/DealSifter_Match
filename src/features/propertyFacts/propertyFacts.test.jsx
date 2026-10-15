@@ -10,6 +10,7 @@ import {buildPropertyCardFacts} from './cardFacts';
 import {factCopy} from './copy';
 import {optionalPropertyNumber} from '../../lib/optionalPropertyNumber';
 import {reconcilePropertyFacts} from '../../../supabase/functions/_shared/property-fact-reconciliation/model.ts';
+import {Modal} from '../../components/ui/Modal';
 
 afterEach(cleanup);
 const property={id:'33333333-3333-4333-8333-333333333333',owner_id:'owner',address:'100 QA Street',city:'QA City',state:'NC',zip:'27614',type:'SFR',lot:5000,sqft:1760,beds:3,baths:2,rehab:null};
@@ -37,8 +38,9 @@ describe('effective display isolation',()=>{
   expect(buildPortfolioPropertyFacts(property).summary.find(row=>row.id==='rehab').value).toBe('—');
   expect(buildPropertyCardFacts({...property,rehab:0}).find(row=>row.field==='rehab').label).toContain('0');
  });
- it('opens the exact portfolio conflict only for the owner',()=>{
-  const open=vi.fn(),value={facts:{[property.id]:{lotArea:{value:null,state:'CONFLICTED'}}},ownedProperties:new Map([[property.id,property]]),open};
+ it('opens the exact portfolio conflict only for the owner',async()=>{
+  const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000)]);
+  const open=vi.fn(),value={facts:{[property.id]:{lotArea:{value:null,state:'CONFLICTED'}}},records:{[property.id]:{snapshot}},ownedProperties:new Map([[property.id,property]]),open};
   const {rerender}=render(<PropertyFactReviewContext.Provider value={value}><PortfolioPropertyFacts item={property} language="en"/></PropertyFactReviewContext.Provider>);
   fireEvent.click(screen.getByRole('button',{name:'Review facts: Lot area'}));expect(open).toHaveBeenCalledWith(property.id,'lotArea');
   rerender(<PropertyFactReviewContext.Provider value={{...value,ownedProperties:new Map()}}><PortfolioPropertyFacts item={property} language="en"/></PropertyFactReviewContext.Provider>);
@@ -49,34 +51,33 @@ describe('effective display isolation',()=>{
 describe('reusable Property Fact Review',()=>{
  it('opens from the portfolio without a field-specific deep link',async()=>{
   const snapshot=await reconcilePropertyFacts(property,[]);
-  render(<PropertyFactReview request={{propertyId:property.id,field:''}} property={property} record={{snapshot,revision:1}} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/>);
-  expect(screen.getByRole('dialog')).toBe(document.activeElement);
+  render(<Modal onClose={()=>{}}><PropertyFactReview request={{propertyId:property.id,field:''}} property={property} record={{snapshot,revision:1}} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/></Modal>);
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
   expect(screen.getByRole('status').textContent).toContain('0 additional facts');
  });
  it.each([['pt-BR','Revisar dados do imóvel'],['es-ES','Revisar datos de la propiedad'],['en-US','Review property facts']])('uses the app locale %s',async(language,title)=>{
   const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000)]);
-  render(<PropertyFactReview request={{propertyId:property.id,field:'lotArea'}} property={property} record={{snapshot,revision:1}} language={language} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/>);
-  expect(screen.getByRole('heading',{name:title})).toBeTruthy();
+  render(<Modal ariaLabel={title} onClose={()=>{}}><PropertyFactReview request={{propertyId:property.id,field:'lotArea'}} property={property} record={{snapshot,revision:1}} language={language} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/></Modal>);
+  expect(screen.getByRole('dialog',{name:title})).toBeTruthy();
   expect(screen.getByRole('dialog').textContent).toContain(factCopy(language.split('-')[0]).keep);
  });
  it.each(['pt','en','es'])('localizes the same review, permits explicit choice, defers and restores focus: %s',async language=>{
-  const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000),candidate('apn','000-TEST')]),copy=factCopy(language),onSubmit=vi.fn(async()=>{}),onClose=vi.fn();
+  const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000),candidate('apn','000-TEST')]),copy=factCopy(language),onSubmit=vi.fn(async()=>({snapshot,revision:2})),onClose=vi.fn();
   const origin=document.createElement('button');document.body.appendChild(origin);origin.focus();
-  const view=render(<PropertyFactReview request={{propertyId:property.id,field:'lotArea'}} property={property} record={{snapshot,revision:1}} language={language} onSubmit={onSubmit} onClose={onClose} onCheck={()=>{}}/>);
-  expect(screen.getByRole('dialog').getAttribute('aria-label')).not.toBe('');
-  expect(screen.getByRole('heading',{name:copy.title})).toBeTruthy();
-  const article=document.querySelector('[data-field="lotArea"]');expect(document.activeElement).toBe(article);
-  fireEvent.keyDown(article,{key:'Tab',shiftKey:true});expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  const view=render(<Modal ariaLabel={copy.title} onClose={onClose}><PropertyFactReview request={{propertyId:property.id,field:'lotArea'}} property={property} record={{snapshot,revision:1}} language={language} onSubmit={onSubmit} onClose={onClose} onCheck={()=>{}}/></Modal>);
+  const article=document.querySelector('[data-field="lotArea"]');await waitFor(()=>expect(document.activeElement).toBe(article));
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
   const keep=[...article.querySelectorAll('input')][0];fireEvent.click(keep);
-  const apply=screen.getByRole('button',{name:copy.apply});apply.focus();fireEvent.keyDown(apply,{key:'Tab'});expect(document.activeElement).toBe(screen.getByRole('dialog').querySelector('header button'));fireEvent.click(apply);
+  const apply=screen.getByRole('button',{name:copy.apply});fireEvent.click(apply);
   await waitFor(()=>expect(onSubmit).toHaveBeenCalledWith('DECIDE',{decisions:[{field:'lotArea',action:'KEEP_MY_VALUE'}]}));
-  const footer=screen.getByRole('dialog').querySelector('footer');fireEvent.click([...footer.querySelectorAll('button')].find(button=>button.textContent===copy.later));
+  const footer=screen.getByRole('dialog').querySelector('footer');await waitFor(()=>expect(onClose).toHaveBeenCalled());fireEvent.click([...footer.querySelectorAll('button')].find(button=>button.textContent===copy.later));
   await waitFor(()=>expect(onSubmit).toHaveBeenCalledWith('DEFER',{}));
   view.unmount();expect(document.activeElement).toBe(origin);origin.remove();expect(onClose).toHaveBeenCalled();
  });
  it('preserves stale errors and does not close after a rejected save',async()=>{
   const snapshot=await reconcilePropertyFacts(property,[candidate('apn','000-TEST')]),onClose=vi.fn();
-  render(<PropertyFactReview request={{propertyId:property.id}} property={property} record={{snapshot,revision:1}} onClose={onClose} onSubmit={async()=>{throw new Error('FACT_REVIEW_STALE');}} onCheck={()=>{}} error="FACT_REVIEW_STALE"/>);
-  expect(screen.getByRole('alert').textContent).toContain('changed');fireEvent.click(screen.getByRole('button',{name:'Accept all non-conflicting additions'}));await new Promise(resolve=>setTimeout(resolve,0));expect(onClose).not.toHaveBeenCalled();
+  render(<PropertyFactReview request={{propertyId:property.id}} property={property} record={{snapshot,revision:1}} onClose={onClose} onSubmit={async()=>{throw new Error('FACT_REVIEW_STALE');}} onCheck={()=>{}}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Select additions'}));fireEvent.click(screen.getByRole('button',{name:'Apply and return'}));
+  await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain('changed'));expect(onClose).not.toHaveBeenCalled();expect(screen.getByRole('radio',{name:/Public GIS/}).checked).toBe(true);
  });
 });

@@ -33,6 +33,7 @@
             "exclusionReason": null
           },
           "currentValue": 49658.399999999994,
+          "currentUserMaintained": false,
           "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
           "projection": {
             "field": "lotArea",
@@ -176,6 +177,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "a33b1dfe1eaa090f04d8079864dddf1ad2c4e249089deb36929841a2c6275f5e",
           "projection": {
             "field": "apn",
@@ -237,6 +239,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "5abe386f67741fc8b595eb934377ab6eb92144cafa381cc385b62002aae78568",
           "projection": {
             "field": "owner",
@@ -298,6 +301,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "bbc8622ee23920f4f0ba5682bd4a02fc22841bba2260204d5e8286dede367136",
           "projection": {
             "field": "assessedValue",
@@ -360,6 +364,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "51d56b2b8db7e0cb4402c4da8a6f875dee05d72f26cc8cd080993d0f9f5a2543",
           "projection": {
             "field": "propertyTax",
@@ -422,6 +427,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "62592c0065e44bfe28158dbf5fbb3bb4433084cf5120e1348ed1cbe7c81f0ef1",
           "projection": {
             "field": "zoning",
@@ -500,6 +506,7 @@
             "exclusionReason": null
           },
           "currentValue": "LAND",
+          "currentUserMaintained": false,
           "evidenceHash": "837a9a1e317565c55c31714781c033f55ddc1c39c701e0c7a7ecba96cf7c2d62",
           "projection": {
             "field": "propertyType",
@@ -583,6 +590,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "2b892d622373ec6757fd62173f1523fe1319f1e2b1f5d10a3f71e8184a3e0457",
           "projection": {
             "field": "buildingArea",
@@ -645,6 +653,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "77e4c8e90c4b8194d5cc3e583d64175c3072abc118cd7278730f51d4aae1d687",
           "projection": {
             "field": "yearBuilt",
@@ -707,6 +716,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "639d8c36797e94f503a1fea3396ccf642c6970a3637d77ab52b4a80ecb6f753b",
           "projection": {
             "field": "beds",
@@ -769,6 +779,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "d2742db4ccc185e4dc6540be844459f39cae5b2633e3ed40a8f124d4acbccb44",
           "projection": {
             "field": "baths",
@@ -831,6 +842,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "4a354004e54a1a07cf8b35f1abd870637d893928a7776b66e78c98d950f74e9f",
           "projection": {
             "field": "subdivision",
@@ -892,6 +904,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "e80571af46af0164ae1e96980dcb003ba9262d705ae96910903ba4fec93d430f",
           "projection": {
             "field": "legalDescription",
@@ -949,11 +962,11 @@
         }
       },
       "summary": {
-        "complements": 0,
         "conflicts": 1,
+        "complements": 0,
         "pending": 1
       },
-      "checkedAt": "2026-10-15T14:26:36.236Z",
+      "checkedAt": "2026-10-15T22:58:32.385Z",
       "resolvedPropertyType": "LAND"
     },
     "kept": {
@@ -988,6 +1001,7 @@
             "exclusionReason": null
           },
           "currentValue": 49658.399999999994,
+          "currentUserMaintained": false,
           "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
           "projection": {
             "field": "lotArea",
@@ -1128,7 +1142,7 @@
             "freshness": "UNKNOWN",
             "year": null,
             "by": "22222222-2222-4222-8222-222222222222",
-            "at": "2026-10-15T14:26:36.431Z",
+            "at": "2026-10-15T22:58:32.448Z",
             "originalValue": "1.14 ac"
           },
           "pending": false,
@@ -1151,6 +1165,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "a33b1dfe1eaa090f04d8079864dddf1ad2c4e249089deb36929841a2c6275f5e",
           "projection": {
             "field": "apn",
@@ -1212,6 +1227,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "5abe386f67741fc8b595eb934377ab6eb92144cafa381cc385b62002aae78568",
           "projection": {
             "field": "owner",
@@ -1273,6 +1289,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "bbc8622ee23920f4f0ba5682bd4a02fc22841bba2260204d5e8286dede367136",
           "projection": {
             "field": "assessedValue",
@@ -1335,6 +1352,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "51d56b2b8db7e0cb4402c4da8a6f875dee05d72f26cc8cd080993d0f9f5a2543",
           "projection": {
             "field": "propertyTax",
@@ -1397,6 +1415,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "62592c0065e44bfe28158dbf5fbb3bb4433084cf5120e1348ed1cbe7c81f0ef1",
           "projection": {
             "field": "zoning",
@@ -1475,6 +1494,7 @@
             "exclusionReason": null
           },
           "currentValue": "LAND",
+          "currentUserMaintained": false,
           "evidenceHash": "837a9a1e317565c55c31714781c033f55ddc1c39c701e0c7a7ecba96cf7c2d62",
           "projection": {
             "field": "propertyType",
@@ -1558,6 +1578,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "2b892d622373ec6757fd62173f1523fe1319f1e2b1f5d10a3f71e8184a3e0457",
           "projection": {
             "field": "buildingArea",
@@ -1620,6 +1641,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "77e4c8e90c4b8194d5cc3e583d64175c3072abc118cd7278730f51d4aae1d687",
           "projection": {
             "field": "yearBuilt",
@@ -1682,6 +1704,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "639d8c36797e94f503a1fea3396ccf642c6970a3637d77ab52b4a80ecb6f753b",
           "projection": {
             "field": "beds",
@@ -1744,6 +1767,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "d2742db4ccc185e4dc6540be844459f39cae5b2633e3ed40a8f124d4acbccb44",
           "projection": {
             "field": "baths",
@@ -1806,6 +1830,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "4a354004e54a1a07cf8b35f1abd870637d893928a7776b66e78c98d950f74e9f",
           "projection": {
             "field": "subdivision",
@@ -1867,6 +1892,7 @@
           "originalValue": null,
           "currentCandidate": null,
           "currentValue": null,
+          "currentUserMaintained": false,
           "evidenceHash": "e80571af46af0164ae1e96980dcb003ba9262d705ae96910903ba4fec93d430f",
           "projection": {
             "field": "legalDescription",
@@ -1924,11 +1950,11 @@
         }
       },
       "summary": {
-        "complements": 0,
         "conflicts": 0,
+        "complements": 0,
         "pending": 0
       },
-      "checkedAt": "2026-10-15T14:26:36.236Z",
+      "checkedAt": "2026-10-15T22:58:32.385Z",
       "resolvedPropertyType": "LAND"
     }
   }

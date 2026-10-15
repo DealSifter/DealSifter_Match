@@ -1,0 +1,197 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "lint": {
+    "command": "node node_modules/eslint/bin/eslint.js src/ --max-warnings=0",
+    "exitCode": 0
+  },
+  "contractsTypecheck": {
+    "command": "node node_modules/typescript/bin/tsc -p tsconfig.contracts.json",
+    "exitCode": 0
+  },
+  "deno": {
+    "legacyBaseline": 50,
+    "current": 50,
+    "newErrors": 0
+  },
+  "fullTests": {
+    "baseline": "8c5e57aa652c90084a937aa7044df29833112c6c",
+    "startedAt": "2026-10-15T22:50:36.581Z",
+    "finishedAt": "2026-10-15T23:03:13.807Z",
+    "exitCode": 0,
+    "total": 2173,
+    "passed": 2173,
+    "failed": 0,
+    "files": 233,
+    "suites": 494,
+    "groups": {
+      "targeted": {
+        "total": 68,
+        "passed": 68
+      },
+      "reconciliation": {
+        "total": 33,
+        "passed": 33
+      },
+      "map": {
+        "total": 12,
+        "passed": 12
+      }
+    },
+    "userDirtyQaPreserved": true,
+    "failures": [],
+    "pass": true
+  },
+  "testFiles": 233,
+  "build": {
+    "pass": true,
+    "baseline": "fb1e0412b37649118e97d05349342d9772b444d0",
+    "delta": [
+      "src/App.jsx",
+      "src/components/cards/PropertyCard.jsx",
+      "src/components/matches/PortfolioPropertyFacts.jsx",
+      "src/features/propertyFacts/PropertyFactReview.jsx",
+      "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "src/features/propertyFacts/cardFacts.js",
+      "src/features/propertyFacts/copy.js",
+      "src/features/propertyFacts/propertyFacts.css",
+      "src/features/propertyFacts/propertyFacts.test.jsx",
+      "src/pages/Onboarding.jsx",
+      "src/services/propertyFactReviewService.js",
+      "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+      "src/features/propertyFacts/FactReviewIndicator.jsx",
+      "src/features/propertyFacts/PropertyFactNotificationSync.jsx",
+      "src/features/propertyFacts/editReviewDraft.js",
+      "src/features/propertyFacts/reviewProjection.test.js",
+      "src/features/propertyFacts/reviewStabilization.test.jsx",
+      "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js"
+    ],
+    "startedAt": "2026-10-15T23:00:36.280Z",
+    "finishedAt": "2026-10-15T23:07:57.824Z",
+    "modernAndLegacy": true,
+    "sentryUpload": false,
+    "mode": "COMPLETE_CURRENT_INTEGRATION_ISOLATED_BUILD"
+  },
+  "migration": "NONE",
+  "financialEnginesChanged": false,
+  "reportsChanged": false,
+  "changedTrackedRuntimeFiles": [
+    "src/App.jsx",
+    "src/components/cards/PropertyCard.jsx",
+    "src/components/matches/PortfolioPropertyFacts.jsx",
+    "src/features/propertyFacts/PropertyFactReview.jsx",
+    "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+    "src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+    "src/features/propertyFacts/cardFacts.js",
+    "src/features/propertyFacts/copy.js",
+    "src/features/propertyFacts/propertyFacts.css",
+    "src/features/propertyFacts/propertyFacts.test.jsx",
+    "src/pages/Onboarding.jsx",
+    "src/services/propertyFactReviewService.js",
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+    "supabase/functions/property-fact-review/index.ts"
+  ],
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from null",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from undefined",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from \"\"",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from \"  \"",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from \"\\t\"",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from false",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from undefined",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from {}",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from null",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from null",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics does not manufacture zero from -1",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics preserves explicit zero 0",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics preserves explicit zero \"0\"",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics preserves explicit zero \"0.00\"",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/propertyFacts.test.jsx",
+      "name": "optional property input semantics supports currency grouping and integer fields",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection keeps LAND locked even when a competing type is visible",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation blank/unknown versus recorded zero and calculated tax estimates remain distinct",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation LAND lock, applicability and finite fields preserved",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation engines/reports are not migrated to effective facts",
+      "status": "passed"
+    }
+  ]
+}

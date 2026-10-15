@@ -1,11 +1,13 @@
 param([Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{40}$')][string]$CodeSha,
- [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel')][string]$OnlyFunction)
+ [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel')][string]$OnlyFunction,
+ [string]$QaDirectory='qa/smart-property-enrichment/final-integration')
 $ErrorActionPreference='Stop'
 $integrationRemote=& git ls-remote origin refs/heads/fix/production-real-defects
 if($LASTEXITCODE-ne 0 -or ($integrationRemote-split '\s+')[0]-ne $CodeSha){throw 'EXPECTED_PUSHED_CODE_SHA_REQUIRED'}
-$integrationClosure=Get-Content -LiteralPath 'qa/smart-property-enrichment/final-integration/backend-dependency-closure.json' -Raw|ConvertFrom-Json
+$integrationClosure=Get-Content -LiteralPath (Join-Path $QaDirectory 'backend-dependency-closure.json') -Raw|ConvertFrom-Json
 $integrationSlugs=@($integrationClosure.affectedFunctions|ForEach-Object {$_.function}|Sort-Object)
 $integrationExpected=@('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel')
+if($QaDirectory-ne 'qa/smart-property-enrichment/final-integration'){if(!$OnlyFunction){throw 'EXPLICIT_SINGLE_FUNCTION_REQUIRED'};$integrationExpected=@($OnlyFunction)}
 if(($integrationSlugs-join ',')-ne ($integrationExpected-join ',')){throw 'UNEXPECTED_BACKEND_CLOSURE'}
 $integrationStage=Join-Path (Get-Location).Path '.cache/smart-property-backend'
 $null=New-Item -ItemType Directory -Path $integrationStage -Force
@@ -14,7 +16,7 @@ $integrationArchive=Join-Path (Get-Location).Path '.cache/smart-property-backend
 if($LASTEXITCODE-ne 0){throw 'IMMUTABLE_BACKEND_ARCHIVE_FAILED'}
 & tar -xf $integrationArchive -C $integrationStage
 if($LASTEXITCODE-ne 0){throw 'IMMUTABLE_BACKEND_STAGE_FAILED'}
-$integrationReceiptPath='qa/smart-property-enrichment/final-integration/backend-deploy.json'
+$integrationReceiptPath=Join-Path $QaDirectory 'backend-deploy.json'
 $integrationSteps=@()
 foreach($integrationSlug in $integrationSlugs){
  if($OnlyFunction-and $integrationSlug-ne $OnlyFunction){continue}

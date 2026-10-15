@@ -1,0 +1,105 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "page1Preserved": true,
+  "sameModalShell": true,
+  "nestedModal": 0,
+  "independentDrawer": 0,
+  "returnsToPage1": true,
+  "unsavedPage1EditsPreserved": true,
+  "cases": [
+    {
+      "device": "desktop",
+      "language": "pt-BR"
+    },
+    {
+      "device": "desktop",
+      "language": "en-US"
+    },
+    {
+      "device": "desktop",
+      "language": "es-ES"
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR"
+    },
+    {
+      "device": "mobile",
+      "language": "en-US"
+    },
+    {
+      "device": "mobile",
+      "language": "es-ES"
+    }
+  ],
+  "reducedMotion": "animation none verified in all six browser cases",
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection shows accepted values in the form without relabeling them as publisher input on unchanged save",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence selects eight complements locally and applies all in one confirmed persistence call",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence keeps selections on save failure and does not report a false success",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not disable cached decisions during a pending optional refresh",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence returns locally without network and ignores refresh completion after unmount",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not call onReturn after an in-flight explicit save completes on an unmounted page",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence renders no duplicate confirmed/resolved field cards despite stale summary counts",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence uses one accessible yellow icon, clickable only inside the edit modal",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence keeps the reviewed source selected across ordinal-ID renumbering and sends only the strict API fields",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not silently apply a subset of choices after material evidence changes",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not duplicate a source label or leak its internal enum: RentCast",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not duplicate a source label or leak its internal enum: PUBLIC_PARCEL_GIS",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence derives neutral/conflict notifications from the same actionable list and clears resolved attention",
+      "status": "passed"
+    }
+  ]
+}

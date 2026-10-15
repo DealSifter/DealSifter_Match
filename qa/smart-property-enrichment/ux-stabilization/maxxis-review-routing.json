@@ -1,0 +1,36 @@
+{
+  "pass": true,
+  "scope": "STATIC_CTA_WIRING_PLUS_REAL_APP_OWNER_EVENT_BROWSER_CONTROL",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "proactiveCTA": "Existing factReview.open unchanged",
+  "chatStructuredCTA": "Existing factReview.open unchanged",
+  "destination": "Existing Onboarding Edit Modal, Page 2, requested field",
+  "freeformMutations": 0,
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "name": "non-blocking owner review repository opens/queues only client state, without a mandatory READ/CHECK or independent drawer",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation Maxxis honors adopted publisher fact deterministically: pt",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation Maxxis honors adopted publisher fact deterministically: en",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation Maxxis honors adopted publisher fact deterministically: es",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "authorized review runtime and budget boundaries owner mismatch stops before evidence/read sidecars",
+      "status": "passed"
+    }
+  ]
+}

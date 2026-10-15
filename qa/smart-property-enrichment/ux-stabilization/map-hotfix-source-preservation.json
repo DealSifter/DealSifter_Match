@@ -1,0 +1,22 @@
+{
+  "baseline": "8c5e57aa652c90084a937aa7044df29833112c6c",
+  "files": [
+    {
+      "path": "src/features/parcel/mapLifetime.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/mapSelectionCamera.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/map/MapSelectionCamera.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/pages/MapView.jsx",
+      "unchanged": true
+    }
+  ],
+  "pass": true
+}

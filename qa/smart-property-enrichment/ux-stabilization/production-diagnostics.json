@@ -1,0 +1,240 @@
+﻿{
+    "at":  "2026-10-15T21:57:47.7918136Z",
+    "productionWrites":  0,
+    "database":  {
+                     "reviewShape":  [
+                                         {
+                                             "rows":  [
+                                                          {
+                                                              "field":  "apn",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "beds",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "baths",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "owner",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "zoning",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "lotArea",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "yearBuilt",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "propertyTax",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "subdivision",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "buildingArea",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "propertyType",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "assessedValue",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "legalDescription",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          }
+                                                      ],
+                                             "summary":  {
+                                                             "pending":  0,
+                                                             "conflicts":  0,
+                                                             "complements":  0
+                                                         },
+                                             "revision":  5
+                                         },
+                                         {
+                                             "rows":  [
+                                                          {
+                                                              "field":  "apn",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "beds",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "baths",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "REVIEW_LATER",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "owner",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "zoning",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "lotArea",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "yearBuilt",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "propertyTax",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "subdivision",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "buildingArea",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "propertyType",
+                                                              "state":  "NO_ACTION",
+                                                              "pending":  false,
+                                                              "decision":  "KEEP_MY_VALUE",
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "assessedValue",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          },
+                                                          {
+                                                              "field":  "legalDescription",
+                                                              "state":  "UNAVAILABLE",
+                                                              "pending":  false,
+                                                              "decision":  null,
+                                                              "candidateCount":  0
+                                                          }
+                                                      ],
+                                             "summary":  {
+                                                             "pending":  0,
+                                                             "conflicts":  0,
+                                                             "complements":  0
+                                                         },
+                                             "revision":  4
+                                         }
+                                     ],
+                     "missingReadColumns":  null
+                 },
+    "databaseErrors":  {
+                           "result":  [
+
+                                      ]
+                       },
+    "functionStatus":  {
+                           "result":  [
+                                          {
+                                              "max_ms":  1359.0,
+                                              "requests":  6,
+                                              "status":  "400"
+                                          },
+                                          {
+                                              "max_ms":  2924.0,
+                                              "requests":  3,
+                                              "status":  "409"
+                                          },
+                                          {
+                                              "max_ms":  79887.0,
+                                              "requests":  27,
+                                              "status":  "200"
+                                          },
+                                          {
+                                              "max_ms":  512.0,
+                                              "requests":  3,
+                                              "status":  "401"
+                                          }
+                                      ]
+                       }
+}

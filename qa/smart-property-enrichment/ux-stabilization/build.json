@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "baseline": "fb1e0412b37649118e97d05349342d9772b444d0",
+  "delta": [
+    "src/App.jsx",
+    "src/components/cards/PropertyCard.jsx",
+    "src/components/matches/PortfolioPropertyFacts.jsx",
+    "src/features/propertyFacts/PropertyFactReview.jsx",
+    "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+    "src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+    "src/features/propertyFacts/cardFacts.js",
+    "src/features/propertyFacts/copy.js",
+    "src/features/propertyFacts/propertyFacts.css",
+    "src/features/propertyFacts/propertyFacts.test.jsx",
+    "src/pages/Onboarding.jsx",
+    "src/services/propertyFactReviewService.js",
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+    "src/features/propertyFacts/FactReviewIndicator.jsx",
+    "src/features/propertyFacts/PropertyFactNotificationSync.jsx",
+    "src/features/propertyFacts/editReviewDraft.js",
+    "src/features/propertyFacts/reviewProjection.test.js",
+    "src/features/propertyFacts/reviewStabilization.test.jsx",
+    "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js"
+  ],
+  "startedAt": "2026-10-15T23:00:36.280Z",
+  "finishedAt": "2026-10-15T23:07:57.824Z",
+  "modernAndLegacy": true,
+  "sentryUpload": false,
+  "mode": "COMPLETE_CURRENT_INTEGRATION_ISOLATED_BUILD"
+}

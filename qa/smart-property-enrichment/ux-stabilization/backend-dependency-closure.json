@@ -1,0 +1,23 @@
+{
+  "baseline": "8c5e57aa652c90084a937aa7044df29833112c6c",
+  "changedSharedModules": [
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/property-fact-review/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "property-fact-review",
+      "reasons": [
+        "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js",
+        "supabase/functions/property-fact-review/index.ts"
+      ]
+    }
+  ],
+  "includesTypeOnlyEdges": true
+}

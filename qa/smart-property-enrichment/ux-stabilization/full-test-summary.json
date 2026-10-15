@@ -1,0 +1,28 @@
+{
+  "baseline": "8c5e57aa652c90084a937aa7044df29833112c6c",
+  "startedAt": "2026-10-15T22:50:36.581Z",
+  "finishedAt": "2026-10-15T23:03:13.807Z",
+  "exitCode": 0,
+  "total": 2173,
+  "passed": 2173,
+  "failed": 0,
+  "files": 233,
+  "suites": 494,
+  "groups": {
+    "targeted": {
+      "total": 68,
+      "passed": 68
+    },
+    "reconciliation": {
+      "total": 33,
+      "passed": 33
+    },
+    "map": {
+      "total": 12,
+      "passed": 12
+    }
+  },
+  "userDirtyQaPreserved": true,
+  "failures": [],
+  "pass": true
+}

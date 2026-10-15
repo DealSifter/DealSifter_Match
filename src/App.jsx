@@ -1,8 +1,8 @@
 import React, { Activity, useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import './App.css';
 import {PropertyFactReviewProvider} from './features/propertyFacts/PropertyFactReviewProvider';
+import {PropertyFactNotificationSync} from './features/propertyFacts/PropertyFactNotificationSync';
 import {notifyPropertySaved,openPropertyFactReview} from './services/propertyFactReviewService';
-import {factCopy} from './features/propertyFacts/copy';
 import {useLang} from './i18n/translations';
 import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
@@ -3913,11 +3913,6 @@ export default function App() {
     });
   }, [ownerUnlockNotifications]);
 
-  useEffect(()=>{
-    const notices=(ownerUnlockNotifications||[]).filter(item=>item.type==='property_data');
-    const copy=factCopy(enrichmentLanguage);
-    setSystemNotifications(prev=>{const rest=(prev||[]).filter(item=>item.source!=='property_fact_review');return [...notices.map(item=>({id:`property-facts-${item.id}`,source:'property_fact_review',notificationId:item.id,propertyId:item.propertyId,field:item.payload?.field||'',read:item.read,title:copy.title,message:copy.summary(Number(item.payload?.complements)||0,Number(item.payload?.conflicts)||0),createdAt:item.createdAt})),...rest].slice(0,100);});
-  },[ownerUnlockNotifications,enrichmentLanguage]);
 
   const reciprocalUnlockSignal = useMemo(() => {
     const entries = (ownerUnlockNotifications || [])
@@ -5943,7 +5938,8 @@ export default function App() {
         canStart={Boolean(authSession && dashboardHydrationReady && lgpdConsentChecked && !requireSignupConsent)}
         onboardingComplete={Boolean(isAdmin || registeredProfileScopes.size > 0)}
       >
-      <PropertyFactReviewProvider userId={supabaseUserId||''} properties={propertyPortfolio||[]} publicProperties={globalShowcaseProperties||[]} inventoryVersion={globalFeedRefreshTick}>
+      <PropertyFactReviewProvider userId={supabaseUserId||''} properties={propertyPortfolio||[]} publicProperties={globalShowcaseProperties||[]} inventoryVersion={globalFeedRefreshTick} onOpenEditor={openOnboardingTab}>
+      <PropertyFactNotificationSync notifications={ownerUnlockNotifications} setNotifications={setSystemNotifications} language={enrichmentLanguage}/>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         {isAppShellBooting ? (
           <AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter" />
@@ -5982,17 +5978,8 @@ export default function App() {
             <GuideTipOverlay page={page} setPage={setPage} isFreePlan={isFreePlan} />
             <Suspense fallback={null}>
               {(() => {
-                const shouldHoldDataHydration = Boolean(
-                  authSession
-                  && isSupabaseConfigured
-                  && supabaseUserId
-                  && !dashboardHydrationReady
-                );
-                if (keepAlivePageIds.has(page) && shouldHoldDataHydration && !visitedKeepAlivePages.has(page)) {
-                  return (
-                    <AppLoadingScreen message="Loading your DealSifter data..." label="Loading DealSifter data" />
-                  );
-                }
+                // Keep the authenticated shell/module mounted during background hydration.
+                // Initial authentication keeps the standard animated-logo splash above.
 
                 const mountedKeepAlivePages = (authSession ? ['dashboard', 'matches', 'onboarding'] : [])
                   .filter((pageId) => pageId === page || visitedKeepAlivePages.has(pageId));

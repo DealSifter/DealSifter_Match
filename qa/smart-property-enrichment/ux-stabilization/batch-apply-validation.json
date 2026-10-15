@@ -1,0 +1,51 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "mutationsPerNormalApply": 1,
+  "perRadioMutations": 0,
+  "providerRequeries": 0,
+  "eightComplementControls": 6,
+  "mixedDecisions": "five complements, two conflicts, one defer in one SQL transaction",
+  "databaseChecks": [
+    {
+      "name": "eight-complement-one-transaction-persist-and-reload",
+      "pass": true
+    },
+    {
+      "name": "invalid-batch-has-zero-partial-writes",
+      "pass": true
+    },
+    {
+      "name": "mixed-eight-decisions-atomic-provenance-and-defer",
+      "pass": true
+    }
+  ],
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "name": "non-blocking owner review repository recognizes a previously committed retry without making another write",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "name": "non-blocking owner review repository rebinds a same-evidence retry to the exact source after ordinal IDs changed",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection accepts the exact reviewed sources after JSONB reorders object keys and ordinal display IDs change",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence selects eight complements locally and applies all in one confirmed persistence call",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not silently apply a subset of choices after material evidence changes",
+      "status": "passed"
+    }
+  ]
+}

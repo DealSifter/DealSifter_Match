@@ -1,0 +1,26 @@
+{
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "mode": "REAL_APP_EXPLICIT_MOCK_AUTH_BACKEND_JSONB_KEY_ORDER",
+  "background30sPollClock": "CONTROLLED_TO_ISOLATE_REVIEW_REQUESTS",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "en-US",
+      "standaloneButtons": 3,
+      "reviewOpenRequests": [
+        {
+          "action": "READ",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 0
+        }
+      ],
+      "publicQueriesBeforeOpen": 2,
+      "publicQueriesAfterOpen": 3,
+      "genericLoaderFlashes": 0,
+      "startupObservedMs": 10486,
+      "mode": "PRE_FIX_PUBLISHED_FRONTEND"
+    }
+  ]
+}

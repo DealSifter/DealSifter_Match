@@ -1,41 +1,52 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {createPortal} from 'react-dom';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {factCopy,factSource,factValue} from './copy';
-import {candidateCanBeAccepted} from '../../../supabase/functions/_shared/property-fact-reconciliation/model.ts';
+import {actionableReview,candidateCanBeAccepted,reviewCandidateIdentity} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
 import './propertyFacts.css';
-export function PropertyFactReview({request,record,property,onClose,onSubmit,onCheck,language='en',loading=false,error=''}){
- const copy=factCopy(language),dialogRef=useRef(null),[choices,setChoices]=useState({});
- const snapshot=record?.snapshot;
- useEffect(()=>{const timer=setTimeout(()=>setChoices({}),0);return()=>clearTimeout(timer);},[record?.revision]);
- useEffect(()=>{const previous=document.activeElement,dialog=dialogRef.current;const priorOverflow=document.body.style.overflow;document.body.style.overflow='hidden';dialog?.focus();
-  const row=request?.field?dialog?.querySelector(`[data-field="${request.field}"]`):null;row?.scrollIntoView?.({block:'center'});row?.focus();
-  return()=>{document.body.style.overflow=priorOverflow;previous?.focus?.();};},[request?.propertyId,request?.field]);
- useEffect(()=>{if(!snapshot||!request?.field)return;const row=dialogRef.current?.querySelector(`[data-field="${request.field}"]`);row?.scrollIntoView?.({block:'center'});row?.focus();},[snapshot,request?.field]);
- const submit=async(action,values={})=>{try{await onSubmit(action,values);if(action==='DEFER'||action==='DECIDE')onClose();}catch{/* error remains in the drawer */}};
- return createPortal(<div className="property-fact-review-backdrop"><section className="property-fact-review" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="property-review-title" tabIndex={-1} onKeyDown={event=>{
-  if(event.key==='Escape'){event.preventDefault();if(!loading)onClose();}
-  if(event.key==='Tab'){const items=[...dialogRef.current.querySelectorAll('button,input,select,textarea,a[href],[tabindex="0"]')].filter(item=>!item.disabled&&!item.closest('fieldset[disabled]'));if(!items.length){event.preventDefault();return;}const index=items.indexOf(document.activeElement);if(event.shiftKey&&index<=0){event.preventDefault();items.at(-1).focus();}else if(!event.shiftKey&&(index<0||index===items.length-1)){event.preventDefault();items[0].focus();}}
- }}>
-  <header><div><h2 id="property-review-title">{copy.title}</h2><p>{[property?.address,property?.city,property?.state].filter(Boolean).join(', ')}</p></div><button type="button" aria-label={copy.later} disabled={loading} onClick={onClose}>×</button></header>
-  <div className="property-fact-review-body">
-   {loading&&!snapshot?<p role="status">{copy.loading}</p>:null}{error?<p role="alert">{/STALE|FACTS_CHANGED/.test(error)?copy.stale:copy.error}</p>:null}
-   {snapshot?<><p role="status">{copy.summary(snapshot.summary.complements,snapshot.summary.conflicts)}</p><p className="property-fact-qualified">{copy.qualified}</p>
-    <button type="button" disabled={loading||!Object.values(snapshot.rows).some(row=>row.pending&&row.bulkCandidateId)} onClick={()=>submit('ACCEPT_ALL')}>{copy.bulk}</button>
-    {Object.values(snapshot.rows).filter(row=>row.candidates.length||row.pending||row.effective.adopted).map(row=><article tabIndex={-1} data-field={row.field} key={row.field} className={row.state==='REVIEW_REQUIRED'?'property-fact-conflict':''}>
-     <h3>{copy.fields[row.field]}</h3><p>{row.state==='CONFIRMED'?`✓ ${copy.confirmed}`:row.pending?row.state==='REVIEW_REQUIRED'?`⚠ ${copy.conflict}`:copy.complement:copy.reviewed}</p>
-     <p><strong>{row.currentCandidate?factSource(row.currentCandidate.sourceType,language):copy.current}: </strong>{row.currentValue===null?copy.empty:factValue({value:row.currentValue,unit:row.projection.unit},row.field,language)}</p>
-     {row.originalValue!=null?<small>{copy.current}: {String(row.originalValue)}</small>:null}
-     {row.decision?.action==='REVIEW_LATER'?<p>{copy.deferred}</p>:null}
-     <fieldset disabled={loading||row.state==='NOT_APPLICABLE'}><legend>{copy.review}</legend>
-      {row.currentValue!==null?<label><input type="radio" name={row.field} checked={choices[row.field]?.action==='KEEP_MY_VALUE'} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'KEEP_MY_VALUE'}}))}/>{copy.keep}: {factValue({value:row.currentValue,unit:row.projection.unit},row.field,language)}</label>:null}
-      {row.candidates.map(candidate=><label key={candidate.candidateId}><input type="radio" name={row.field} checked={choices[row.field]?.candidateId===candidate.candidateId} disabled={!candidateCanBeAccepted(row,candidate,snapshot.resolvedPropertyType)} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'ACCEPT_EXTERNAL_VALUE',candidateId:candidate.candidateId}}))}/>
-       <span>{copy.accept}: {factValue({value:candidate.normalizedValue,unit:candidate.normalizedUnit},row.field,language)} · {factSource(candidate.sourceType,language)}{candidate.sourceAuthority&&candidate.sourceAuthority!=='PUBLISHER'?` · ${candidate.sourceAuthority}`:''}
-        {candidate.metadata?.year?` · ${candidate.metadata.year}`:''}{candidate.freshness==='STALE_USABLE'?` · ${copy.staleSource}`:''}{row.projection.outliers.some(c=>c.candidateId===candidate.candidateId)?` · ${copy.outlier}`:''}
-       </span></label>)}
-      <label><input type="radio" name={row.field} checked={choices[row.field]?.action==='REVIEW_LATER'} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'REVIEW_LATER'}}))}/>{copy.later}</label>
-     </fieldset><small>{copy.original}</small>
-    </article>)}{!snapshot.summary.pending?<p>{copy.quiet}</p>:null}</>:null}
+
+// Page content only. The existing Edit Property Modal owns overlay, header, close and focus trap.
+export function PropertyFactReview({request,record,property,onReturn,onClose,onSubmit,onCheck,onLoad,language='en'}){
+ const copy=factCopy(language),rootRef=useRef(null),alive=useRef(false),saving=useRef(false);
+ const [choices,setChoices]=useState({}),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[refreshError,setRefreshError]=useState(false);
+ const snapshot=record?.snapshot,view=useMemo(()=>actionableReview(snapshot),[snapshot]);
+ useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
+ useEffect(()=>{if(record||!onLoad||!property?.id)return;let active=true;void onLoad(property.id).catch(()=>{if(active)setRefreshError(true);});return()=>{active=false;};},[record,onLoad,property?.id]);
+ useEffect(()=>{const timer=setTimeout(()=>{const row=request?.field?rootRef.current?.querySelector(`[data-field="${request.field}"]`):null;(row||rootRef.current)?.focus();row?.scrollIntoView?.({block:'nearest'});},20);return()=>clearTimeout(timer);},[request?.field]);
+ const finish=onReturn||onClose||(()=>{});
+ const submit=async(action,values={})=>{
+  if(saving.current)return;saving.current=true;setBusy(true);setError('');
+  try{const result=await onSubmit(action,values);if(!result?.snapshot||!Number.isFinite(result.revision))throw new Error('REVIEW_SAVE_FAILED');if(alive.current)finish(result);}
+  catch(failure){if(alive.current)setError(/STALE|FACTS_CHANGED/.test(failure.message)?copy.stale:copy.error);}
+  finally{saving.current=false;if(alive.current)setBusy(false);}
+ };
+ const refresh=async()=>{if(refreshing)return;setRefreshing(true);setRefreshError(false);try{await onCheck();}catch{if(alive.current)setRefreshError(true);}finally{if(alive.current)setRefreshing(false);}};
+ const selected=Object.values(choices).flatMap(choice=>{
+  const row=view.items.find(item=>item.field===choice.field&&item.evidenceHash===choice.version);if(!row)return [];
+  if(choice.action!=='ACCEPT_EXTERNAL_VALUE')return [{field:choice.field,action:choice.action}];
+  const candidate=row.candidates.find(item=>reviewCandidateIdentity(item)===choice.identity);
+  return candidate?[{field:choice.field,action:choice.action,candidateId:candidate.candidateId}]:[];
+ });
+ const outdated=selected.length!==Object.keys(choices).length;
+ const additions=view.items.filter(row=>row.kind==='COMPLEMENT'&&row.bulkCandidateId&&row.candidates.some(candidate=>candidate.candidateId===row.bulkCandidateId&&candidateCanBeAccepted(row,candidate,snapshot.resolvedPropertyType)));
+ return <div className="property-fact-review-page" ref={rootRef} tabIndex={-1} data-testid="property-review-page2" aria-busy={busy}>
+  <div className="property-fact-review-summary"><p role="status">{copy.summary(view.summary.complements,view.summary.conflicts)}</p><button type="button" onClick={()=>finish()}>{copy.back}</button></div>
+  {error||outdated?<p role="alert" className="property-fact-error">{outdated?copy.stale:error}</p>:null}
+  {refreshError?<small role="status">{copy.refreshError}</small>:null}
+  {additions.length?<button type="button" disabled={busy} onClick={()=>setChoices(prev=>({...prev,...Object.fromEntries(additions.map(row=>[row.field,{field:row.field,action:'ACCEPT_EXTERNAL_VALUE',version:row.evidenceHash,identity:reviewCandidateIdentity(row.candidates.find(candidate=>candidate.candidateId===row.bulkCandidateId))}]))}))}>{copy.bulk}</button>:null}
+  <div className="property-fact-review-items">
+   {view.items.map(row=><article key={row.field} data-field={row.field} tabIndex={-1} className={row.kind==='CONFLICT'?'property-fact-conflict':''}>
+    <h4>{copy.fields[row.field]}</h4>
+    <div className="property-fact-current"><span>{copy.yourData}</span><strong>{row.currentValue==null?copy.empty:factValue({value:row.currentValue,unit:row.projection.unit},row.field,language)}</strong></div>
+    <fieldset disabled={busy}><legend className="property-fact-sr-only">{copy.review}: {copy.fields[row.field]}</legend>
+     {row.currentValue!=null?<label><input type="radio" name={`review-${row.field}`} checked={choices[row.field]?.action==='KEEP_MY_VALUE'&&choices[row.field]?.version===row.evidenceHash} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'KEEP_MY_VALUE',version:row.evidenceHash}}))}/><span>{copy.keep}</span></label>:null}
+     {row.candidates.map(candidate=><label key={candidate.candidateId}>
+      <input type="radio" name={`review-${row.field}`} checked={choices[row.field]?.identity===reviewCandidateIdentity(candidate)&&choices[row.field]?.version===row.evidenceHash} disabled={!candidateCanBeAccepted(row,candidate,snapshot.resolvedPropertyType)} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'ACCEPT_EXTERNAL_VALUE',identity:reviewCandidateIdentity(candidate),version:row.evidenceHash}}))}/>
+      <span><span className="property-fact-source">{factSource(candidate.sourceType,language)}{candidate.metadata?.year?` · ${candidate.metadata.year}`:''}</span><strong>{factValue({value:candidate.normalizedValue,unit:candidate.normalizedUnit},row.field,language)}</strong>{typeof candidate.sourceAuthority==='string'&&candidate.sourceAuthority!==factSource(candidate.sourceType,language)&&!(/^[A-Z0-9_:.-]+$/).test(candidate.sourceAuthority)?<small>{candidate.sourceAuthority}</small>:null}{candidate.freshness==='STALE_USABLE'?<small>{copy.staleSource}</small>:null}</span>
+     </label>)}
+     <label><input type="radio" name={`review-${row.field}`} checked={choices[row.field]?.action==='REVIEW_LATER'&&choices[row.field]?.version===row.evidenceHash} onChange={()=>setChoices(prev=>({...prev,[row.field]:{field:row.field,action:'REVIEW_LATER',version:row.evidenceHash}}))}/><span>{copy.later}</span></label>
+    </fieldset>
+   </article>)}
   </div>
-  <footer><button type="button" disabled={loading} onClick={()=>onCheck()}>{copy.check}</button><button type="button" disabled={loading} onClick={()=>snapshot?submit('DEFER'):onClose()}>{copy.later}</button><button type="button" disabled={loading||!Object.keys(choices).length} onClick={()=>submit('DECIDE',{decisions:Object.values(choices)})}>{copy.apply}</button></footer>
- </section></div>,document.body);
+  {!view.items.length?<p>{copy.quiet}</p>:<details><summary>{copy.sources}</summary><p>{copy.qualified}</p></details>}
+  <footer><button type="button" disabled={refreshing} onClick={()=>void refresh()}>{copy.check}</button><button type="button" disabled={busy||!view.items.length} onClick={()=>void submit('DEFER')}>{copy.later}</button><button type="button" disabled={busy||outdated||!selected.length} onClick={()=>void submit('DECIDE',{decisions:selected})}>{copy.apply}</button></footer>
+ </div>;
 }

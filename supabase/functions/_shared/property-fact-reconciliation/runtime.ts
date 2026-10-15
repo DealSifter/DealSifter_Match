@@ -1,5 +1,6 @@
 import type {CandidateInput} from '../parcel-evidence-consensus/types.ts';
 import {reconcilePropertyFacts,applyFactDecisions,publicEffectiveFacts,shouldNotify,REVIEW_FIELDS,type ReviewSnapshot,type ReviewField,type ReviewAction} from './model.ts';
+import {reviewCandidateIdentity} from './reviewProjection.js';
 type Stored={state:ReviewSnapshot;revision:number};
 type Dependencies={userId:string;loadOwnedProperty:(id:string,userId:string)=>Promise<Record<string,unknown>|null>;loadReview:(id:string,userId:string)=>Promise<Stored|null>;
  acquire:(property:Record<string,unknown>,previous:ReviewSnapshot|null,receipt:unknown,force:boolean)=>Promise<CandidateInput[]>;
@@ -25,7 +26,14 @@ export async function runPropertyFactReview(input:unknown,deps:Dependencies){
    if(!Array.isArray(body.decisions))throw new Error('INVALID_DECISION');
    actions=body.decisions.map(item=>{if(!item||typeof item!=='object'||Array.isArray(item))throw new Error('INVALID_DECISION');const row=item as Record<string,unknown>;
     if(Object.keys(row).some(k=>!['field','action','candidateId'].includes(k)))throw new Error('INVALID_DECISION');
-    return {field:String(row.field) as ReviewField,action:String(row.action) as ReviewAction,candidateId:typeof row.candidateId==='string'?row.candidateId:undefined};});
+    const field=String(row.field) as ReviewField,action=String(row.action) as ReviewAction;
+    let candidateId=typeof row.candidateId==='string'?row.candidateId:undefined;
+    if(action==='ACCEPT_EXTERNAL_VALUE'){
+     const reviewed=previous.state.rows[field]?.candidates.find(candidate=>candidate.candidateId===candidateId);
+     const matching=reviewed?current.rows[field]?.candidates.find(candidate=>reviewCandidateIdentity(candidate)===reviewCandidateIdentity(reviewed)):null;
+     if(!matching)throw new Error('INELIGIBLE_CANDIDATE');candidateId=matching.candidateId;
+    }
+    return {field,action,candidateId};});
   }else if(action==='ACCEPT_ALL')actions=REVIEW_FIELDS.filter(field=>current.rows[field].pending&&current.rows[field].bulkCandidateId).map(field=>({field,action:'ACCEPT_EXTERNAL_VALUE',candidateId:current.rows[field].bulkCandidateId!}));
   else actions=REVIEW_FIELDS.filter(field=>current.rows[field].pending).map(field=>({field,action:'REVIEW_LATER'}));
   next=applyFactDecisions(current,actions,deps.userId);

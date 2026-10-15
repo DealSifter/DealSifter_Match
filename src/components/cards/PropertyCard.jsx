@@ -17,12 +17,14 @@ import { LocalizedNarrative } from '../ui/LocalizedNarrative';
 import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
 import {buildPropertyCardFacts} from '../../features/propertyFacts/cardFacts';
 import {useLang} from '../../i18n/translations';
+import {actionableReview} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
   const factReview=usePropertyFactReview();
   const cardFacts=buildPropertyCardFacts(property,factReview?.facts?.[property.id]||property.effectiveFacts||{},useLang());
   const canReviewFacts=Boolean(factReview?.ownedProperties.has(String(property.id)));
+  const reviewConflicts=new Set(actionableReview(factReview?.records?.[property.id]?.snapshot).items.filter(row=>row.kind==='CONFLICT').map(row=>row.field));
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
   // Card do perfil está em stand by (esmaecido)?
@@ -717,7 +719,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                   ? label.split(' / ').map((part, idx, arr) => (
                       <span key={idx}>{part}{idx < arr.length - 1 ? <> / <wbr /></> : ''}</span>
                     ))
-                  : conflict&&canReviewFacts?<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();factReview.open(property.id,field);}} aria-label={`${sub}: ${label}`} style={{border:0,background:'transparent',color:'inherit',font:'inherit',cursor:'pointer',minHeight:44}}>{label} ⚠</button>:label
+                  : conflict&&canReviewFacts&&reviewConflicts.has(field)?<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();factReview.open(property.id,field);}} aria-label={`${sub}: ${label}`} style={{border:0,background:'transparent',color:'inherit',font:'inherit',cursor:'pointer',minHeight:44}}>{label} ⚠</button>:label
                 }
               </div>
               <div style={{ fontSize: 9, color: C.t3, fontWeight: 600, textTransform: 'uppercase', marginTop: 1 }}>{sub}</div>

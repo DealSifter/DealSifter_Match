@@ -1,0 +1,30 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "duplicateConfirmedRows": 0,
+  "duplicateSourceLabels": 0,
+  "sourceValueVisible": true,
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection shows the Gable material lot conflict with a visible publisher value, RentCast candidate and source",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence renders no duplicate confirmed/resolved field cards despite stale summary counts",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not duplicate a source label or leak its internal enum: RentCast",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence does not duplicate a source label or leak its internal enum: PUBLIC_PARCEL_GIS",
+      "status": "passed"
+    }
+  ]
+}

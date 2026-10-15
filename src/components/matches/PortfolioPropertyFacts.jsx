@@ -5,12 +5,14 @@ import { buildPortfolioPropertyFacts } from './portfolioPropertyFactsModel';
 import './PortfolioPropertyFacts.css';
 import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
 import {factCopy} from '../../features/propertyFacts/copy';
+import {actionableReview} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
 
 export function PortfolioPropertyFacts({ item, labels, language }) {
   const review=usePropertyFactReview(),copy=factCopy(language);
   const facts = buildPortfolioPropertyFacts(item, labels, language, review?.facts[item.id]||{});
-  const canReview=review?.ownedProperties.has(String(item.id));
-  const display=fact=>fact.conflict&&canReview?<button type="button" aria-label={`${copy.review}: ${fact.label}`} onClick={()=>review.open(item.id,fact.field)}>{fact.value} ⚠</button>:fact.value;
+  const canReview=!item.dealClosed&&review?.ownedProperties.has(String(item.id));
+  const conflicts=new Set(actionableReview(review?.records?.[item.id]?.snapshot).items.filter(row=>row.kind==='CONFLICT').map(row=>row.field));
+  const display=fact=>fact.conflict&&canReview&&conflicts.has(fact.field)?<button type="button" aria-label={`${copy.review}: ${fact.label}`} onClick={()=>review.open(item.id,fact.field)}>{fact.value} ⚠</button>:fact.value;
   const rooms = facts.details.filter(fact=>fact.id==='beds'||fact.id==='baths');
   return <div className="portfolio-property-facts">
     <div className="portfolio-property-summary" data-testid="matches-property-summary">
@@ -35,6 +37,5 @@ export function PortfolioPropertyFacts({ item, labels, language }) {
         <div className="portfolio-property-detail-value">{display(fact)}</div>
       </div>)}
     </div>
-    {canReview?<button type="button" className="portfolio-fact-review-action" onClick={()=>review.open(item.id)}>{copy.review}</button>:null}
   </div>;
 }

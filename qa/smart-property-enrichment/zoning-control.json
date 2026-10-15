@@ -7,6 +7,7 @@
       "originalValue": null,
       "currentCandidate": null,
       "currentValue": null,
+      "currentUserMaintained": false,
       "evidenceHash": "7dcfd793c8a2132c21229f226d0a8dbcb59bb7848c603b6138aed9e2608da039",
       "projection": {
         "field": "zoning",
@@ -143,6 +144,7 @@
         "exclusionReason": null
       },
       "currentValue": "PUBLIC FACT",
+      "currentUserMaintained": false,
       "evidenceHash": "7dcfd793c8a2132c21229f226d0a8dbcb59bb7848c603b6138aed9e2608da039",
       "projection": {
         "field": "zoning",
@@ -260,7 +262,7 @@
         "freshness": "UNKNOWN",
         "year": null,
         "by": "22222222-2222-4222-8222-222222222222",
-        "at": "2026-10-15T14:26:36.966Z",
+        "at": "2026-10-15T22:58:32.652Z",
         "originalValue": null
       },
       "pending": false,

@@ -1,0 +1,46 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "falseConflicts": 0,
+  "missingComparisonValues": 0,
+  "missingComparisonSources": 0,
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: beds=4",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: propertyType=SFR",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: lotArea=1.13",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: lotArea=1.06",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection suppresses a stale one-conflict summary when its competing source is missing",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection never warns for unqualified, unknown or unusable sources",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence renders no duplicate confirmed/resolved field cards despite stale summary counts",
+      "status": "passed"
+    }
+  ],
+  "diagnostic": "A legacy one-conflict summary without competing evidence was reproduced. The projection recomputes zero actionable rows and suppresses the false warning."
+}

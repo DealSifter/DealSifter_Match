@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "genericFullPageLoaderFlashes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "standardAnimatedLogo": "Existing index.html/App.css animation unchanged; no replacement loader added.",
+  "authBootstrapPreserved": true,
+  "baselineObservedFlashCount": 0,
+  "note": "The old branch was identified in source; the synthetic baseline did not reproduce a visible flash. No positive baseline flash or production percentile is claimed."
+}

@@ -1,0 +1,51 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "standaloneButtons": 0,
+  "complementWarnings": 0,
+  "conflictOnly": true,
+  "cases": [
+    {
+      "device": "desktop",
+      "language": "pt-BR"
+    },
+    {
+      "device": "desktop",
+      "language": "en-US"
+    },
+    {
+      "device": "desktop",
+      "language": "es-ES"
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR"
+    },
+    {
+      "device": "mobile",
+      "language": "en-US"
+    },
+    {
+      "device": "mobile",
+      "language": "es-ES"
+    }
+  ],
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection treats eight provider-only facts as neutral complements, never user conflicts",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence uses one accessible yellow icon, clickable only inside the edit modal",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence derives neutral/conflict notifications from the same actionable list and clears resolved attention",
+      "status": "passed"
+    }
+  ]
+}

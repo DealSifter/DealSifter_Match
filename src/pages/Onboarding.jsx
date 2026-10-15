@@ -54,6 +54,10 @@ import {optionalPropertyNumber} from '../lib/optionalPropertyNumber';
 import {usePropertyFactReview} from '../features/propertyFacts/PropertyFactReviewContext';
 import {factCopy} from '../features/propertyFacts/copy';
 import {useLang} from '../i18n/translations';
+import {PropertyFactReview} from '../features/propertyFacts/PropertyFactReview';
+import {FactReviewIndicator} from '../features/propertyFacts/FactReviewIndicator';
+import {actionableReview} from '../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
+import {overlayEffectiveDraft,publisherEditValue} from '../features/propertyFacts/editReviewDraft';
 
 
 export function Onboarding({
@@ -82,7 +86,10 @@ export function Onboarding({
 }) {
   const t = useT('onboarding').onboarding;
   const propertyFacts=usePropertyFactReview();
-  const propertyFactCopy=factCopy(useLang());
+  const propertyFactLanguage=useLang(),propertyFactCopy=factCopy(propertyFactLanguage);
+  const [propertyEditPage,setPropertyEditPage]=useState('edit');
+  const [propertyReviewField,setPropertyReviewField]=useState('');
+  const effectiveDraftBaseline=useRef({});
   const [isGeocodeSaving, setIsGeocodeSaving] = useState(false);
   const [geocodeNotice, setGeocodeNotice] = useState('');
   const geocodeAttention = 'var(--geocode-attention)';
@@ -1939,10 +1946,11 @@ export function Onboarding({
     });
   };
 
-  const startEditProperty = (p) => {
-    if(propertyFacts)void propertyFacts.check(p.id).catch(()=>null);
+  const startEditProperty = useCallback((p) => {
+    setPropertyEditPage('edit');
+    setPropertyReviewField('');
     setEditingPropertyId(p.id);
-    setPropertyEditDraft({
+    const draft={
       address: p.address || '',
       city: p.city || '',
       zip: p.zip || '',
@@ -1959,8 +1967,17 @@ export function Onboarding({
       primaryProfile: p.primaryProfile || '',
       markets: normalizeMarkets(p.markets),
       hideStreetAddressOnCard: isTruthyFlag(p.hideStreetAddressOnCard ?? p.hide_street_address_on_card, false),
-    });
-  };
+    };
+    const effective=overlayEffectiveDraft(draft,propertyFacts?.records[p.id]?.snapshot);
+    effectiveDraftBaseline.current=effective.baseline;setPropertyEditDraft(effective.draft);
+  },[propertyFacts?.records]);
+
+  useEffect(()=>{
+    const requested=propertyFacts?.request;if(!requested)return;
+    const property=propertyPortfolio.find(record=>String(record.id)===requested.propertyId);
+    if(!property||!propertyFacts.ownedProperties.has(requested.propertyId))return;
+    startEditProperty(property);setPropertyReviewField(requested.field||'');setPropertyEditPage('review');propertyFacts.consumeRequest();
+  },[propertyFacts,propertyPortfolio,startEditProperty]);
 
   const saveEditProperty = async (id) => {
     if (isGeocodeSaving) return;
@@ -1986,11 +2003,11 @@ export function Onboarding({
             price: numericPrice,
             capRate,
             rehab,
-            beds,
-            baths,
-            sqft: propertyEditDraft.sqft,
-            lot: propertyEditDraft.lot,
-            type: propertyEditDraft.type || prop.type,
+            beds: publisherEditValue('beds',propertyEditDraft,prop,effectiveDraftBaseline.current)===prop.beds?prop.beds:beds,
+            baths: publisherEditValue('baths',propertyEditDraft,prop,effectiveDraftBaseline.current)===prop.baths?prop.baths:baths,
+            sqft: publisherEditValue('sqft',propertyEditDraft,prop,effectiveDraftBaseline.current),
+            lot: publisherEditValue('lot',propertyEditDraft,prop,effectiveDraftBaseline.current),
+            type: publisherEditValue('type',propertyEditDraft,prop,effectiveDraftBaseline.current) || prop.type,
             objective: propertyEditDraft.objective || prop.objective,
             description: propertyEditDraft.description || prop.description,
             primaryProfile: normalizePrimaryProfileScope(propertyEditDraft.primaryProfile || prop.primaryProfile),
@@ -4283,11 +4300,12 @@ export function Onboarding({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 'normal' : 'nowrap',
-                              display: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? '-webkit-box' : 'block',
+                              display: 'flex',alignItems:'center',gap:4,
                               WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {p.address} · {p.city} · {formatCompactUsd(p.price || 0)} · {p.images?.length || 0} img
+                              <span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{p.address} · {p.city} · {formatCompactUsd(p.price || 0)} · {p.images?.length || 0} img</span>
+                              {!p.dealClosed&&propertyFacts?.ownedProperties.has(String(p.id))&&actionableReview(propertyFacts.records[p.id]?.snapshot).summary.conflicts>0?<FactReviewIndicator language={propertyFactLanguage}/>:null}
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
@@ -4368,8 +4386,8 @@ export function Onboarding({
                                 );
                               })()}
                               {!p.dealClosed ? (
-                                <button type="button" disabled={isGeocodeSaving} className={!hasValidPropertyGeocode(p) ? 'geocode-edit-required' : undefined} onClick={() => startEditProperty(p)} title={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} aria-label={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} style={{ background: 'none', border: 'none', cursor: 'pointer', color: !hasValidPropertyGeocode(p) ? geocodeAttention : editingPropertyId === p.id ? C.accent : C.t3, padding: '0 6px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
-                                  <Icon name="edit" size={14} color={!hasValidPropertyGeocode(p) ? geocodeAttention : editingPropertyId === p.id ? C.accent : C.t3} />
+                                <button type="button" data-testid={`property-edit-${p.id}`} disabled={isGeocodeSaving} className={[!hasValidPropertyGeocode(p)?'geocode-edit-required':'',actionableReview(propertyFacts?.records[p.id]?.snapshot).summary.conflicts?'property-fact-edit-attention':''].filter(Boolean).join(' ')} onClick={() => startEditProperty(p)} title={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} aria-label={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} style={{ background: 'none', border: 'none', cursor: 'pointer', color: !hasValidPropertyGeocode(p) ? geocodeAttention : editingPropertyId === p.id ? C.accent : C.t3, padding: '0 6px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
+                                  <Icon name="edit" size={14} color={!hasValidPropertyGeocode(p) ? geocodeAttention : actionableReview(propertyFacts?.records[p.id]?.snapshot).summary.conflicts?C.gold:editingPropertyId === p.id ? C.accent : C.t3} />
                                 </button>
                               ) : null}
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -4394,7 +4412,6 @@ export function Onboarding({
                             </div>
                           </div>
                           {!hasValidPropertyGeocode(p) ? <div role="status" style={{ color: geocodeAttention, fontSize: 11, lineHeight: 1.4, padding: '0 0 8px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{p.geocodeStatus === 'pending' ? t.geocodePendingNotice : t.geocodeDraftNotice}</div> : !p.publishToShowcase ? <div style={{ color: C.success, fontSize: 11, paddingBottom: 8 }}>{t.geocodeValidStatus}</div> : null}
-                          {propertyFacts?.ownedProperties.has(String(p.id))?<div style={{padding:'0 0 8px'}}><button type="button" className="property-fact-review-link" onClick={()=>propertyFacts.open(p.id)}>{propertyFactCopy.review}{propertyFacts.records[p.id]?.snapshot?.summary.pending?` · ${propertyFactCopy.summary(propertyFacts.records[p.id].snapshot.summary.complements,propertyFacts.records[p.id].snapshot.summary.conflicts)}`:''}</button></div>:null}
                           {INLINE_EDIT_ENABLED && editingPropertyId === p.id && (
                             <div style={{ paddingBottom: 8 }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(84px, 0.8fr) minmax(118px, 1.1fr)', gap: 6, paddingBottom: 8, width: '100%', minWidth: 0 }}>
@@ -5052,9 +5069,19 @@ export function Onboarding({
       ) : null}
 
       {editingPropertyRecord ? (
-        <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
-          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.editProperty || 'Edit Property'}</h3>
+        <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080} ariaLabel={t.editProperty || 'Edit Property'}>
+          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800,display:'flex',alignItems:'center',gap:8 }}>
+            {propertyEditPage==='review'?propertyFactCopy.title:t.editProperty || 'Edit Property'}
+            {actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.conflicts>0?<FactReviewIndicator language={propertyFactLanguage} onClick={()=>setPropertyEditPage(page=>page==='review'?'edit':'review')}/>:propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.complements>0?<button type="button" onClick={()=>setPropertyEditPage('review')} style={{border:0,background:'transparent',color:C.accent,fontSize:12,cursor:'pointer'}}>{propertyFactCopy.newFacts(actionableReview(propertyFacts.records[editingPropertyRecord.id].snapshot).summary.complements)}</button>:null}
+          </h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} · {editingPropertyRecord.city}</p>
+          {propertyEditPage==='review'?<PropertyFactReview key={editingPropertyRecord.id} request={{propertyId:editingPropertyRecord.id,field:propertyReviewField}} property={editingPropertyRecord} record={propertyFacts?.records[editingPropertyRecord.id]} language={propertyFactLanguage} onLoad={propertyFacts?.read} onCheck={()=>propertyFacts.check(editingPropertyRecord.id,{force:true})} onSubmit={(action,values)=>propertyFacts.mutate(editingPropertyRecord.id,action,values)} onReturn={result=>{
+            if(result?.snapshot){const prior=propertyFacts?.records[editingPropertyRecord.id]?.snapshot;
+              const changed={rows:Object.fromEntries(Object.entries(result.snapshot.rows).filter(([field,row])=>row.decision?.at!==prior?.rows[field]?.decision?.at))};
+              const effective=overlayEffectiveDraft(propertyEditDraft,changed,effectiveDraftBaseline.current);effectiveDraftBaseline.current=effective.baseline;setPropertyEditDraft(effective.draft);}
+            setPropertyEditPage('edit');
+          }}/>:null}
+          <div hidden={propertyEditPage!=='edit'} data-testid="property-edit-page1">
           <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
@@ -5204,6 +5231,7 @@ export function Onboarding({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingPropertyId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
             <button disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</button>
+          </div>
           </div>
         </Modal>
       ) : null}

@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 process.env.E2E_SUPABASE_URL = 'https://cyeipfskwwisbbayyaca.supabase.co';
 const { setupMockSupabase } = await import('../e2e/support/mockSupabase.js');
-const output = 'qa/map-navigation-cleanup';
+const output = process.env.MAP_QA_DIRECTORY||'qa/map-navigation-cleanup';
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];

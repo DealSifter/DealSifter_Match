@@ -3,7 +3,7 @@ import { chromium, expect } from '@playwright/test';
 process.env.E2E_SUPABASE_URL='https://cyeipfskwwisbbayyaca.supabase.co';
 const {setupMockSupabase}=await import('../e2e/support/mockSupabase.js');
 const {loginAs}=await import('../e2e/support/appActions.js');
-const output='qa/map-navigation-cleanup'; await mkdir(output,{recursive:true});
+const output=process.env.MAP_QA_DIRECTORY||'qa/map-navigation-cleanup'; await mkdir(output,{recursive:true});
 const baseURL=process.env.MAP_QA_BASE_URL||'http://127.0.0.1:4180';
 const productionAssets=baseURL==='https://dealsiftermatch.vercel.app';
 const suffix=productionAssets?'production-synthetic':'full-app';
@@ -36,17 +36,19 @@ try {
     const guide=page.getByRole('dialog',{name:/DealSifter Guide/i});if(await guide.isVisible())await guide.getByRole('button',{name:/Close guide/i}).click();
     const transitions=[];
     for(const module of ['dashboard','matches','pricing','dashboard','matches']) {
+      const mapEntryStarted=Date.now();
       await navigate(page,'mapview');
       const pin=page.locator('.leaflet-marker-icon.map-pin-wrapper').first();await expect(pin).toBeVisible({timeout:60000});
+      const mapEntryObservedMs=Date.now()-mapEntryStarted;
       await pin.click(); await expect(page.locator('.ds-property-leaflet-popup')).toBeVisible();
       // Alternate leaving during and after the camera animation.
       if(transitions.length%2===0)await page.waitForTimeout(700);
       const nativeZoomInFlight=transitions.length%2===1;
       if(nativeZoomInFlight){await page.locator('.leaflet-control-zoom-in').click();await page.waitForTimeout(75);}
-      await navigate(page,module);
+      const exitStarted=Date.now();await navigate(page,module);const moduleEntryObservedMs=Date.now()-exitStarted;
       await page.waitForTimeout(400);
       expect(await page.evaluate(()=>localStorage.getItem('ds_last_error_boundary'))).toBeNull();
-      transitions.push({from:'mapview',to:module,pinSelected:true,nativeZoomInFlight});
+      transitions.push({from:'mapview',to:module,pinSelected:true,nativeZoomInFlight,mapEntryObservedMs,moduleEntryObservedMs});
     }
     expect(errors).toEqual([]);await page.screenshot({path:`${output}/${device}-${suffix}.png`});
     results.push({device,transitions,errors});await context.close();

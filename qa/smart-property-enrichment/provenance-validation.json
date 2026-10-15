@@ -7,6 +7,7 @@
       "originalValue": null,
       "currentCandidate": null,
       "currentValue": null,
+      "currentUserMaintained": false,
       "evidenceHash": "bf66ca9070d424d621d911237cf800518db05fcb123b8052eae914a410e47d2e",
       "projection": {
         "field": "apn",
@@ -143,6 +144,7 @@
         "exclusionReason": null
       },
       "currentValue": "PUBLIC FACT",
+      "currentUserMaintained": false,
       "evidenceHash": "bf66ca9070d424d621d911237cf800518db05fcb123b8052eae914a410e47d2e",
       "projection": {
         "field": "apn",
@@ -260,7 +262,7 @@
         "freshness": "UNKNOWN",
         "year": null,
         "by": "22222222-2222-4222-8222-222222222222",
-        "at": "2026-10-15T14:26:36.907Z",
+        "at": "2026-10-15T22:58:32.607Z",
         "originalValue": null
       },
       "pending": false,

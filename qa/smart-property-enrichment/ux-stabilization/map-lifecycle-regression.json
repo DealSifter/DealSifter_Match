@@ -1,0 +1,272 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "sourcePreservation": {
+    "baseline": "8c5e57aa652c90084a937aa7044df29833112c6c",
+    "files": [
+      {
+        "path": "src/features/parcel/mapLifetime.js",
+        "unchanged": true
+      },
+      {
+        "path": "src/features/parcel/mapSelectionCamera.js",
+        "unchanged": true
+      },
+      {
+        "path": "src/components/map/MapSelectionCamera.jsx",
+        "unchanged": true
+      },
+      {
+        "path": "src/pages/MapView.jsx",
+        "unchanged": true
+      }
+    ],
+    "pass": true
+  },
+  "nativeCases": [
+    {
+      "device": "desktop",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "native-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "native-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    }
+  ],
+  "fullAppTransitions": [
+    {
+      "device": "desktop",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 4070,
+          "moduleEntryObservedMs": 1188
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 846,
+          "moduleEntryObservedMs": 783
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 471,
+          "moduleEntryObservedMs": 777
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 350,
+          "moduleEntryObservedMs": 780
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 1000,
+          "moduleEntryObservedMs": 1010
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 5247,
+          "moduleEntryObservedMs": 1019
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 1974,
+          "moduleEntryObservedMs": 1013
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 1181,
+          "moduleEntryObservedMs": 798
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 1890,
+          "moduleEntryObservedMs": 3814
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 10861,
+          "moduleEntryObservedMs": 1637
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "lateCallbacks": 0,
+  "parcelLensRegressions": 0,
+  "tests": [
+    {
+      "file": "/src/features/parcel/mapLifetime.test.js",
+      "name": "owned Leaflet CSS animation teardown compatibility makes the queued native zoom completion inert before the pane is removed",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapLifetime.test.js",
+      "name": "owned Leaflet CSS animation teardown compatibility leaves live zoom animations and unrelated map state unchanged",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera uses Z15 for every PIN and Z17 only for phones, Z16 for other devices",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera keeps popup in usable map space for 390 x 786",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera keeps popup in usable map space for 1280 x 842",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera keeps popup in usable map space for 768 x 966",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera keeps popup in usable map space for 844 x 332",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera projects the point to the same screen slot at both zoom levels",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera reserves space for the entire lens above the footer on a small phone",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera cancels previous movements without accumulating popup/camera listeners",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera does not call stop/focus after the parent removes the Leaflet map",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/parcel/mapSelectionCamera.test.js",
+      "name": "single device-aware map selection camera stops a live camera once and removes its listener on early frame cancellation",
+      "status": "passed"
+    }
+  ],
+  "note": "Existing native Leaflet lifetime cases run against the unmodified map sources; ten app transitions run against the final compiled frontend."
+}

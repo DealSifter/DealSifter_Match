@@ -7,6 +7,7 @@
       "originalValue": null,
       "currentCandidate": null,
       "currentValue": null,
+      "currentUserMaintained": false,
       "evidenceHash": "db06a80e32942dd2e95bd82c6afbeab7a1a6fb767c1fe4f35f4f22b781d0de0d",
       "projection": {
         "field": "legalDescription",
@@ -143,6 +144,7 @@
         "exclusionReason": null
       },
       "currentValue": "PUBLIC FACT",
+      "currentUserMaintained": false,
       "evidenceHash": "db06a80e32942dd2e95bd82c6afbeab7a1a6fb767c1fe4f35f4f22b781d0de0d",
       "projection": {
         "field": "legalDescription",
@@ -260,7 +262,7 @@
         "freshness": "UNKNOWN",
         "year": null,
         "by": "22222222-2222-4222-8222-222222222222",
-        "at": "2026-10-15T14:26:37.033Z",
+        "at": "2026-10-15T22:58:32.697Z",
         "originalValue": null
       },
       "pending": false,

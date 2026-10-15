@@ -1,0 +1,40 @@
+{
+  "pass": true,
+  "scope": "Synthetic login-to-dashboard observations on this host; not production percentiles and not a network-controlled speed comparison.",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "observations": [
+    {
+      "device": "desktop",
+      "language": "pt-BR",
+      "startupObservedMs": 11394
+    },
+    {
+      "device": "desktop",
+      "language": "en-US",
+      "startupObservedMs": 10875
+    },
+    {
+      "device": "desktop",
+      "language": "es-ES",
+      "startupObservedMs": 10464
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR",
+      "startupObservedMs": 12052
+    },
+    {
+      "device": "mobile",
+      "language": "en-US",
+      "startupObservedMs": 16056
+    },
+    {
+      "device": "mobile",
+      "language": "es-ES",
+      "startupObservedMs": 10662
+    }
+  ],
+  "rootReviewBlockingRemoved": true,
+  "ownerBatchReads": 1,
+  "perPropertyWarmupChecks": 0
+}

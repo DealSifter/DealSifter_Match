@@ -1,0 +1,33 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "neutralComplement": true,
+  "conflictWarning": true,
+  "resolvedSuppressed": true,
+  "sameEvidenceLoop": 0,
+  "actualNotificationClick": "Desktop English browser case opens existing Edit Modal Page 2",
+  "otherLocaleEntry": "Owner-scoped event routes to same editor",
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence derives neutral/conflict notifications from the same actionable list and clears resolved attention",
+      "status": "passed"
+    },
+    {
+      "file": "/supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "name": "effective property fact reconciliation same hash does not nag after keep/defer; refresh timestamps are not material",
+      "status": "passed"
+    }
+  ],
+  "databaseChecks": [
+    {
+      "name": "same-evidence-notification-dedup",
+      "pass": true
+    },
+    {
+      "name": "same-evidence-post-apply-check-does-not-notify-again",
+      "pass": true
+    }
+  ]
+}

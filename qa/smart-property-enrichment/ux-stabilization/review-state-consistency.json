@@ -1,0 +1,114 @@
+{
+  "pass": true,
+  "scope": "LOCAL_DETERMINISTIC_AND_REAL_FRONTEND_SYNTHETIC_AUTH",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "singleProjection": "actionableReview",
+  "tests": [
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection shares the exact persisted field contract",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection shows the Gable material lot conflict with a visible publisher value, RentCast candidate and source",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: beds=4",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: propertyType=SFR",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: lotArea=1.13",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection does not warn for identical/normalized/minor values: lotArea=1.06",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection suppresses a stale one-conflict summary when its competing source is missing",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection treats eight provider-only facts as neutral complements, never user conflicts",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection saves eight complement decisions and does not render them again",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection accepts the exact reviewed sources after JSONB reorders object keys and ordinal display IDs change",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection suppresses keep/accept/defer for the same evidence, and reopens materially new evidence",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection keeps LAND locked even when a competing type is visible",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection reopens materially changed evidence for an explicitly accepted complement without rewriting its original null",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection never warns for unqualified, unknown or unusable sources",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewProjection.test.js",
+      "name": "single actionable review projection shows accepted values in the form without relabeling them as publisher input on unchanged save",
+      "status": "passed"
+    },
+    {
+      "file": "/src/features/propertyFacts/reviewStabilization.test.jsx",
+      "name": "inline page responsiveness and persistence derives neutral/conflict notifications from the same actionable list and clears resolved attention",
+      "status": "passed"
+    }
+  ],
+  "cases": [
+    {
+      "device": "desktop",
+      "language": "pt-BR"
+    },
+    {
+      "device": "desktop",
+      "language": "en-US"
+    },
+    {
+      "device": "desktop",
+      "language": "es-ES"
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR"
+    },
+    {
+      "device": "mobile",
+      "language": "en-US"
+    },
+    {
+      "device": "mobile",
+      "language": "es-ES"
+    }
+  ]
+}
