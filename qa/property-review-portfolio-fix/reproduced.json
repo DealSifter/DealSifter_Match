@@ -1,0 +1,14 @@
+{
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "mode": "REAL_APP_EXPLICIT_MOCK_AUTH_AND_BACKEND",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "pt-BR",
+      "reproduced": true,
+      "error": "O.focus is not a function"
+    }
+  ]
+}

@@ -47,6 +47,18 @@ describe('effective display isolation',()=>{
 });
 
 describe('reusable Property Fact Review',()=>{
+ it('opens from the portfolio without a field-specific deep link',async()=>{
+  const snapshot=await reconcilePropertyFacts(property,[]);
+  render(<PropertyFactReview request={{propertyId:property.id,field:''}} property={property} record={{snapshot,revision:1}} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/>);
+  expect(screen.getByRole('dialog')).toBe(document.activeElement);
+  expect(screen.getByRole('status').textContent).toContain('0 additional facts');
+ });
+ it.each([['pt-BR','Revisar dados do imóvel'],['es-ES','Revisar datos de la propiedad'],['en-US','Review property facts']])('uses the app locale %s',async(language,title)=>{
+  const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000)]);
+  render(<PropertyFactReview request={{propertyId:property.id,field:'lotArea'}} property={property} record={{snapshot,revision:1}} language={language} onClose={()=>{}} onSubmit={async()=>{}} onCheck={()=>{}}/>);
+  expect(screen.getByRole('heading',{name:title})).toBeTruthy();
+  expect(screen.getByRole('dialog').textContent).toContain(factCopy(language.split('-')[0]).keep);
+ });
  it.each(['pt','en','es'])('localizes the same review, permits explicit choice, defers and restores focus: %s',async language=>{
   const snapshot=await reconcilePropertyFacts(property,[candidate('lotArea',7000),candidate('apn','000-TEST')]),copy=factCopy(language),onSubmit=vi.fn(async()=>{}),onClose=vi.fn();
   const origin=document.createElement('button');document.body.appendChild(origin);origin.focus();

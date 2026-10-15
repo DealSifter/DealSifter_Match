@@ -3,7 +3,7 @@ import {promisify} from 'node:util';
 import {mkdir,copyFile,writeFile} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {loadEnv} from 'vite';
-const run=promisify(execFile),workspace=process.cwd(),stage=resolve('.cache/smart-property-release'),directory='qa/smart-property-enrichment/final-integration';
+const run=promisify(execFile),workspace=process.cwd(),stage=resolve('.cache/smart-property-release'),directory=process.env.SMART_PROPERTY_QA_DIRECTORY||'qa/smart-property-enrichment/final-integration';
 await mkdir(stage,{recursive:true});await mkdir(directory,{recursive:true});
 const git=async(...args)=>(await run('git',args,{maxBuffer:4*1024*1024})).stdout.trim();
 const baseline=await git('rev-parse','HEAD'),archive=resolve('.cache/smart-property-release.tar');

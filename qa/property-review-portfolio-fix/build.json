@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "baseline": "ae5508b9cf285896dcb667620877d9fab5c80163",
+  "delta": [
+    "src/features/propertyFacts/PropertyFactReview.jsx",
+    "src/features/propertyFacts/copy.js",
+    "src/features/propertyFacts/propertyFacts.test.jsx"
+  ],
+  "startedAt": "2026-10-15T20:07:28.746Z",
+  "finishedAt": "2026-10-15T20:17:06.046Z",
+  "modernAndLegacy": true,
+  "sentryUpload": false,
+  "mode": "COMPLETE_CURRENT_INTEGRATION_ISOLATED_BUILD"
+}

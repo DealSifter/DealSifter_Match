@@ -8,7 +8,7 @@ export function PropertyFactReview({request,record,property,onClose,onSubmit,onC
  const snapshot=record?.snapshot;
  useEffect(()=>{const timer=setTimeout(()=>setChoices({}),0);return()=>clearTimeout(timer);},[record?.revision]);
  useEffect(()=>{const previous=document.activeElement,dialog=dialogRef.current;const priorOverflow=document.body.style.overflow;document.body.style.overflow='hidden';dialog?.focus();
-  const row=request?.field&&dialog?.querySelector(`[data-field="${request.field}"]`);row?.scrollIntoView?.({block:'center'});row?.focus();
+  const row=request?.field?dialog?.querySelector(`[data-field="${request.field}"]`):null;row?.scrollIntoView?.({block:'center'});row?.focus();
   return()=>{document.body.style.overflow=priorOverflow;previous?.focus?.();};},[request?.propertyId,request?.field]);
  useEffect(()=>{if(!snapshot||!request?.field)return;const row=dialogRef.current?.querySelector(`[data-field="${request.field}"]`);row?.scrollIntoView?.({block:'center'});row?.focus();},[snapshot,request?.field]);
  const submit=async(action,values={})=>{try{await onSubmit(action,values);if(action==='DEFER'||action==='DECIDE')onClose();}catch{/* error remains in the drawer */}};
