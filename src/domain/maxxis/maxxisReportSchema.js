@@ -33,7 +33,7 @@ const PROPERTY_KEYS = Object.freeze([
   'propertyUserNotes', 'maxxisPropertySummary', 'maxxisAnalyticalCommentary',
   'resolvedAnalysisPropertyType', 'resolvedAnalysisStrategy', 'providerPropertyType',
   'propertyTypeConflict', 'materialPropertyFeatures', 'fieldProvenance', 'reportFieldVisibility',
-  'canonicalPropertyFacts', 'resolvedLotDimensions',
+  'canonicalPropertyFacts', 'resolvedLotDimensions', 'parcelReportState',
   'propertyTypeConflictCode', 'providerPropertyTypeFamily', 'localizedPropertyUserNotes', 'propertyUserNotesOriginal',
   'localizedDescription', 'localizedOwnerNotes',
   'acquisitionCosts', 'holdingCosts', 'financingCosts', 'sellingCosts', 'noi',

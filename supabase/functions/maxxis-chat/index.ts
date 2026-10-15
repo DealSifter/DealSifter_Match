@@ -823,9 +823,10 @@ Deno.serve(async (req) => {
       const evidence=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',
         {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,parcelEvidenceReceipt:body.parcelEvidenceReceipt});
       if(evidence.type==='canonical_property_evidence'){
-        const fact= evidence.readModel?buildPropertyFactLookupAnswer(message,language,{propertyFacts:{canonicalPropertyFacts:evidence.readModel},publicParcelState:evidence.publicParcelState}):null;
+        const fact= evidence.readModel?buildPropertyFactLookupAnswer(message,language,{propertyFacts:{canonicalPropertyFacts:evidence.readModel},effectivePropertyFacts:evidence.effectiveFacts,publicParcelState:evidence.publicParcelState}):null;
         const text=fact?.text||(language==='pt'?'O imóvel não está disponível neste contexto autorizado.':language==='es'?'La propiedad no está disponible en este contexto autorizado.':'The property is unavailable in this authorized context.');
-        return response({message:text,answer:text,type:'text',data:null,actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',secondPass:false}},200,origin,requestId);
+        const reviewField=earlyPropertyFact.fields.includes('lotSizeSqft')?'lotArea':earlyPropertyFact.fields.includes('assessorId')?'apn':earlyPropertyFact.fields.includes('zoning')?'zoning':'';
+        return response({message:text,answer:text,type:'text',data:evidence.canReview?{propertyId:propertyContextId,reviewField}:null,actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',secondPass:false}},200,origin,requestId);
       }
     }
     const requestedCapability = inferMaxxisRuntimeCapability({

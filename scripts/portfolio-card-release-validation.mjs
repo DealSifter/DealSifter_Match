@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { loadEnv } from 'vite';
 const run=promisify(execFile),workspace=process.cwd(),stage=resolve(workspace,'.cache/portfolio-card-release');
 const directory=process.env.PORTFOLIO_QA_DIRECTORY||'qa/portfolio-card-labels';
@@ -10,8 +10,8 @@ const {stdout:baseline}=await run('git',['rev-parse','HEAD']);
 const archive=resolve(workspace,'.cache/portfolio-card-release.tar');
 await run('git',['archive','--format=tar',`--output=${archive}`,'HEAD','src','public','supabase/functions/_shared','index.html','vite.config.js','package.json','scripts/check-build-env.mjs']);
 await run('tar',['-xf',archive,'-C',stage]);
-const delta=['src/components/matches/MatchesPortfolio.jsx','src/components/matches/PortfolioPropertyFacts.jsx','src/components/matches/PortfolioPropertyFacts.css','src/components/matches/portfolioPropertyFactsModel.js','src/components/matches/PortfolioPropertyFacts.test.jsx','src/components/matches/propertyReleaseExport.test.js','src/i18n/translations.js'];
-for(const file of delta)await copyFile(resolve(workspace,file),resolve(stage,file));
+const delta=process.env.PORTFOLIO_RELEASE_DELTA?.split(';').filter(Boolean)||['src/components/matches/MatchesPortfolio.jsx','src/components/matches/PortfolioPropertyFacts.jsx','src/components/matches/PortfolioPropertyFacts.css','src/components/matches/portfolioPropertyFactsModel.js','src/components/matches/PortfolioPropertyFacts.test.jsx','src/components/matches/propertyReleaseExport.test.js','src/i18n/translations.js'];
+for(const file of delta){await mkdir(dirname(resolve(stage,file)),{recursive:true});await copyFile(resolve(workspace,file),resolve(stage,file));}
 const env={...process.env,...loadEnv('production',workspace,'VITE_'),VITE_APP_RELEASE:'local'},startedAt=new Date().toISOString();
 try{
   await run(process.execPath,[resolve(stage,'scripts/check-build-env.mjs')],{cwd:stage,env});

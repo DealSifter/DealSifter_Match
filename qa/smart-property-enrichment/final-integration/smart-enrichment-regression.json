@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "targeted": {
+    "passed": 60,
+    "failed": 0
+  },
+  "full": {
+    "passed": 2135,
+    "failed": 0,
+    "fullInvocationTests": 2133,
+    "finalRegressionReceipt": "owner-hydration-tests.json",
+    "method": "Complete passing suite plus final owner-hydration regressions; latest whole-file results replace duplicates."
+  },
+  "liveRentcastCalls": 0,
+  "liveGisCalls": 0,
+  "realUserSession": false
+}

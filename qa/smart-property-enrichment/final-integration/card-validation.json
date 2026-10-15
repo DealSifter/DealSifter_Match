@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "tests": [
+    {
+      "file": "src/components/matches/PortfolioPropertyFacts.test.jsx",
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "file": "src/features/propertyFacts/propertyFacts.test.jsx",
+      "passed": 22,
+      "failed": 0
+    }
+  ],
+  "realProductionSession": false
+}

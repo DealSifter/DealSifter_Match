@@ -1,0 +1,173 @@
+{
+  "pass": true,
+  "lifetime": {
+    "mode": "REAL_REACT_LEAFLET_UNMOUNT_MOCK_AUTH",
+    "productionAuthentication": false,
+    "results": [
+      {
+        "device": "desktop",
+        "state": "idle",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "desktop",
+        "state": "selected-pin",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "desktop",
+        "state": "in-flight-pin",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "desktop",
+        "state": "fractional-zoom",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "desktop",
+        "state": "active-lens",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "desktop",
+        "state": "native-zoom",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "idle",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "selected-pin",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "in-flight-pin",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "fractional-zoom",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "active-lens",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "state": "native-zoom",
+        "passed": true,
+        "diagnostics": [],
+        "errors": []
+      }
+    ]
+  },
+  "app": {
+    "mode": "LOCAL_FULL_APP_MOCK_AUTH",
+    "productionUserSession": false,
+    "realBackendWrites": 0,
+    "results": [
+      {
+        "device": "desktop",
+        "transitions": [
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": true
+          },
+          {
+            "from": "mapview",
+            "to": "pricing",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          },
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": true
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          }
+        ],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "transitions": [
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": true
+          },
+          {
+            "from": "mapview",
+            "to": "pricing",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          },
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": true
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": false
+          }
+        ],
+        "errors": []
+      }
+    ]
+  },
+  "realAuthenticatedProductionSession": false
+}

@@ -109,7 +109,7 @@ function NavBtn({
   );
 }
 
-function SwipeableNotificationItem({
+export function SwipeableNotificationItem({
   item,
   children,
   onClick,
@@ -124,26 +124,28 @@ function SwipeableNotificationItem({
   const reset = () => {
     dragRef.current.active = false;
     dragRef.current.pointerId = null;
-    dragRef.current.moved = false;
     setDragX(0);
     setIsDragging(false);
   };
 
   const onPointerDown = (e) => {
     if (disabled) return;
+    if (e.target.closest?.('button,a,input,select,textarea')) return;
     dragRef.current.active = true;
     dragRef.current.startX = e.clientX;
     dragRef.current.pointerId = e.pointerId;
     dragRef.current.moved = false;
-    setIsDragging(true);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
   const onPointerMove = (e) => {
     if (disabled || !dragRef.current.active) return;
     if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
     const dx = e.clientX - dragRef.current.startX;
-    if (Math.abs(dx) > 6) dragRef.current.moved = true;
+    if (Math.abs(dx) > 6 && !dragRef.current.moved) {
+      dragRef.current.moved = true;
+      setIsDragging(true);
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
     setDragX(Math.max(-120, Math.min(120, dx)));
   };
 
@@ -162,6 +164,12 @@ function SwipeableNotificationItem({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={reset}
+      onClickCapture={(event) => {
+        if (!dragRef.current.moved) return;
+        dragRef.current.moved = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       onClick={() => {
         if (disabled) return;
         if (dragRef.current.moved) return;
@@ -368,7 +376,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const openSystemNotification = (item) => {
     if (!item || item.id === 'empty-system') return;
     markSystemNotificationRead(item);
-    if (item.source === 'support_notification') {
+    if (['support_notification','property_fact_review'].includes(item.source)) {
       onOpenChatNotification(item);
       setAppMenuOpen(false);
       setAppNotifOpen(false);
@@ -603,7 +611,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                               })
                             ) : (
                               (visibleSystemNotifications?.length ? visibleSystemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => {
-                                const clickable = item.source === 'support_notification';
+                                const clickable = ['support_notification','property_fact_review'].includes(item.source);
                                 return (
                                   <SwipeableNotificationItem
                                     key={item.id}
@@ -833,17 +841,17 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                 onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
                               >
                                 <div
-                                  role={item.source === 'support_notification' ? 'button' : undefined}
-                                  tabIndex={item.source === 'support_notification' ? 0 : undefined}
-                                  onClick={() => item.source === 'support_notification' && openSystemNotification(item)}
+                                  role={['support_notification','property_fact_review'].includes(item.source) ? 'button' : undefined}
+                                  tabIndex={['support_notification','property_fact_review'].includes(item.source) ? 0 : undefined}
+                                  onClick={() => ['support_notification','property_fact_review'].includes(item.source) && openSystemNotification(item)}
                                   onKeyDown={(e) => {
-                                    if (item.source !== 'support_notification') return;
+                                    if (!['support_notification','property_fact_review'].includes(item.source)) return;
                                     if (e.key === 'Enter' || e.key === ' ') {
                                       e.preventDefault();
                                       openSystemNotification(item);
                                     }
                                   }}
-                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: item.source === 'support_notification' ? 'pointer' : 'default', position: 'relative' }}
+                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: ['support_notification','property_fact_review'].includes(item.source) ? 'pointer' : 'default', position: 'relative' }}
                                 >
                                   {item.id !== 'empty-system' ? (
                                     <button

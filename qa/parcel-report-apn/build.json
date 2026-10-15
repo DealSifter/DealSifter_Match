@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "baseline": "1e8b3b0aeed778fce1a7f80d27db4c74241cd08c",
+  "delta": [
+    "src/components/matches/MatchesPortfolio.jsx",
+    "src/components/matches/portfolioPropertyFactsModel.js",
+    "src/components/matches/PortfolioPropertyFacts.test.jsx",
+    "src/services/propertyReportParcelService.js",
+    "src/services/propertyReportParcelService.test.js",
+    "src/domain/maxxis/propertyReleaseEvidence.js",
+    "src/domain/maxxis/propertyReleaseEvidence.test.js",
+    "src/domain/maxxis/maxxisReportSchema.js",
+    "src/features/maxxis/export/maxxisReportPdf.js",
+    "src/features/parcel/parcelEvidenceReceipt.js",
+    "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+    "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+    "supabase/functions/_shared/public-parcel/reportEvidence.test.ts",
+    "supabase/functions/public-parcel/index.ts"
+  ],
+  "startedAt": "2026-10-15T01:40:46.781Z",
+  "finishedAt": "2026-10-15T13:22:19.907Z",
+  "modernAndLegacy": true,
+  "sentryUpload": false,
+  "unrelatedEnrichmentChangesExcluded": true
+}

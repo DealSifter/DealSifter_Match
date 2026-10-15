@@ -8,7 +8,7 @@ import {PARCEL_SOURCES} from '../public-parcel/registry.ts';
 import {normalizeParcel} from '../public-parcel/arcgis.ts';
 import {classifyMaxxisConversationIntent} from '../../../../src/features/maxxis/routing/maxxisConversationIntent.js';
 import type {CandidateInput} from '../parcel-evidence-consensus/types.ts';
-const qa='qa/canonical-evidence-maxxis';
+const qa='qa/smart-property-enrichment/canonical-regression';
 const artifact=(name:string,data:unknown)=>{mkdirSync(qa,{recursive:true});writeFileSync(`${qa}/${name}.json`,JSON.stringify({fixtureOnly:true,data},null,2)+'\n');};
 const candidate=(field:CandidateInput['field'],value:unknown,family='PUBLISHER',extra:Partial<CandidateInput>={}):CandidateInput=>({field,originalValue:value,
  sourceType:family==='PUBLISHER'?'USER_PROVIDED':family==='RENTCAST'?'RENTCAST':'PUBLIC_PARCEL_GIS',sourceId:family,sourceFamily:family,

@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "unchangedSourceFiles": [
+    "supabase/functions/_shared/maxxis/dealMetrics.ts",
+    "supabase/functions/_shared/maxxis/landMetrics.ts",
+    "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+    "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts"
+  ],
+  "effectiveFactsCalculationConsumers": 0,
+  "coveredBy": "full-tests-final.json"
+}

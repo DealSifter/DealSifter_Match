@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "device": "desktop",
+      "pdfPages": 1,
+      "publicApnPresentOnFirstPage": true,
+      "syntheticBackend": true
+    },
+    {
+      "device": "phone",
+      "pdfPages": 1,
+      "publicApnPresentOnFirstPage": true,
+      "syntheticBackend": true
+    }
+  ],
+  "realUserSession": false
+}

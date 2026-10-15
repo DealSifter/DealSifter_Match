@@ -1,0 +1,22 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "refresh": true,
+    "logoutLoginStorage": "OWNER_SCOPED_SERVER_SIDECAR",
+    "decision": {
+      "action": "KEEP_MY_VALUE",
+      "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
+      "candidateId": "evidence-7",
+      "value": 49658.399999999994,
+      "source": "USER_PROVIDED",
+      "sourceId": "dealSifter",
+      "unit": "SQFT",
+      "status": "USER_PROVIDED",
+      "freshness": "UNKNOWN",
+      "year": null,
+      "by": "22222222-2222-4222-8222-222222222222",
+      "at": "2026-10-15T14:26:37.636Z",
+      "originalValue": "1.14 ac"
+    }
+  }
+}

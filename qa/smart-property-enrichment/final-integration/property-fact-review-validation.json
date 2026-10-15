@@ -1,0 +1,165 @@
+{
+  "pass": true,
+  "ui": {
+    "mode": "REAL_REACT_COMPONENT_SYNTHETIC_EVIDENCE",
+    "liveGisCalls": 0,
+    "liveRentcastCalls": 0,
+    "realUserSession": false,
+    "productionWrites": 0,
+    "results": [
+      {
+        "language": "pt",
+        "device": "desktop",
+        "geometry": {
+          "x": 760,
+          "y": 0,
+          "width": 520,
+          "height": 900
+        },
+        "layout": "RIGHT_DRAWER",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      },
+      {
+        "language": "pt",
+        "device": "mobile",
+        "geometry": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "layout": "FULL_SCREEN_SHEET",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      },
+      {
+        "language": "en",
+        "device": "desktop",
+        "geometry": {
+          "x": 760,
+          "y": 0,
+          "width": 520,
+          "height": 900
+        },
+        "layout": "RIGHT_DRAWER",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      },
+      {
+        "language": "en",
+        "device": "mobile",
+        "geometry": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "layout": "FULL_SCREEN_SHEET",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      },
+      {
+        "language": "es",
+        "device": "desktop",
+        "geometry": {
+          "x": 760,
+          "y": 0,
+          "width": 520,
+          "height": 900
+        },
+        "layout": "RIGHT_DRAWER",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      },
+      {
+        "language": "es",
+        "device": "mobile",
+        "geometry": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "layout": "FULL_SCREEN_SHEET",
+        "bulkLeavesConflictUnresolved": true,
+        "explicitKeep": true,
+        "originalPreserved": true,
+        "focusRestored": true,
+        "escape": true,
+        "horizontalOverflow": false,
+        "errors": []
+      }
+    ]
+  },
+  "app": {
+    "frontend": "http://127.0.0.1:4180",
+    "mode": "REAL_APP_MOCK_AUTH_BACKEND_REAL_RECONCILIATION_RUNTIME",
+    "results": [
+      {
+        "device": "desktop",
+        "requests": [
+          "READ",
+          "DECIDE",
+          "READ",
+          "READ"
+        ],
+        "checks": 0,
+        "writes": 1,
+        "notificationClick": true,
+        "exactFieldDeepLink": true,
+        "persistedAfterRefresh": true,
+        "persistedAfterLogoutLogin": true,
+        "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+        "realUserSession": false,
+        "realBackendWrites": 0,
+        "errors": []
+      },
+      {
+        "device": "mobile",
+        "requests": [
+          "READ",
+          "DECIDE",
+          "READ",
+          "READ"
+        ],
+        "checks": 0,
+        "writes": 1,
+        "notificationClick": false,
+        "exactFieldDeepLink": true,
+        "persistedAfterRefresh": true,
+        "persistedAfterLogoutLogin": true,
+        "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+        "realUserSession": false,
+        "realBackendWrites": 0,
+        "errors": []
+      }
+    ]
+  },
+  "unitReceipt": "review-ui-tests.json"
+}

@@ -14,7 +14,7 @@ export async function issueParcelEvidenceReceipt(result:ParcelResult,point:Point
   if(matches.length!==1)return null;
   const parcel=matches[0],source=PARCEL_SOURCES.find(s=>s.sourceId===parcel.source);
   if(!source||!productionSourceAllowed(source))return null;
-  const fields=['apn','assessorAcres','gisAcres','lotSqft','geometryCalculatedSqft','geometryCalculatedAcres','ownerName','assessedValue','assessedYear','propertyTax','propertyTaxYear','zoning'];
+  const fields=['apn','situsAddress','assessorAcres','gisAcres','lotSqft','geometryCalculatedSqft','geometryCalculatedAcres','ownerName','assessedValue','assessedYear','propertyTax','propertyTaxYear','zoning'];
   // Geometry membership is server-attested; do not transfer a potentially huge polygon or unrelated legal/contact attributes.
   const selected:Record<string,unknown>={source:parcel.source,sourceAuthority:parcel.sourceAuthority,
     sourceUrl:parcel.sourceUrl,licenseStatus:parcel.licenseStatus,licenseUrl:parcel.licenseUrl,usageNotes:parcel.usageNotes,

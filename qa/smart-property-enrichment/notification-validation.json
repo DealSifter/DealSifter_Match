@@ -1,0 +1,7 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "onePropertyOneNotification": true,
+    "fieldFocus": "lotArea"
+  }
+}

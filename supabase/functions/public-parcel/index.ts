@@ -9,6 +9,7 @@ import type { ProviderResult } from '../_shared/public-parcel/types.ts';
 import { parcelOperationAllowed } from '../_shared/public-parcel/lens.ts';
 import { createParcelUpstreamFetch } from '../_shared/public-parcel/upstreamBudget.ts';
 import { issueParcelEvidenceReceipt } from '../_shared/public-parcel/evidenceReceipt.ts';
+import { resolveReportParcelEvidence, validateReportParcelRequest } from '../_shared/public-parcel/reportEvidence.ts';
 
 const url = Deno.env.get('SUPABASE_URL') || '';
 const anon = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('ANON_KEY') || '';
@@ -43,21 +44,30 @@ Deno.serve(async req => {
   const flags = resolveFeatureFlags({ userId: user.id, environment, remoteConfig: remoteFlags() });
   if (!flags.public_parcel_intelligence) return reply({ status: 'DISABLED', parcels: [], reason: 'FEATURE_FLAG_OFF' }, 200, origin);
   try {
-    if (Number(req.headers.get('content-length')) > 4096) return reply({ error: 'QUERY_TOO_LARGE' }, 413, origin);
+    if (Number(req.headers.get('content-length')) > 24576) return reply({ error: 'QUERY_TOO_LARGE' }, 413, origin);
     const reader = req.body?.getReader(); const chunks: Uint8Array[] = []; let bytes = 0;
     if (!reader) return reply({ error: 'INVALID_QUERY' }, 400, origin);
     while (true) { const chunk = await reader.read(); if (chunk.done) break; bytes += chunk.value.length;
-      if (bytes > 4096) { await reader.cancel(); return reply({ error: 'QUERY_TOO_LARGE' }, 413, origin); } chunks.push(chunk.value); }
+      if (bytes > 24576) { await reader.cancel(); return reply({ error: 'QUERY_TOO_LARGE' }, 413, origin); } chunks.push(chunk.value); }
     const body = new Uint8Array(bytes); let offset = 0; chunks.forEach(chunk => { body.set(chunk, offset); offset += chunk.length; });
     const input = new TextDecoder().decode(body);
     let parsed: unknown;
     try { parsed = JSON.parse(input); } catch { return reply({ error: 'INVALID_QUERY_JSON' }, 400, origin); }
-    const query = validateParcelQuery(parsed);
-    if (!parcelOperationAllowed(query.operation, flags)) return reply({ status: 'DISABLED', parcels: [], reason: 'INTERNAL_GRID_ONLY' }, 200, origin);
+    const reportRequest=parsed&&typeof parsed==='object'&&(parsed as Record<string,unknown>).operation==='report-evidence';
+    if(reportRequest)validateReportParcelRequest(parsed);
+    else if(bytes>4096)return reply({error:'QUERY_TOO_LARGE'},413,origin);
+    const query = reportRequest?null:validateParcelQuery(parsed);
+    if (query&&!parcelOperationAllowed(query.operation, flags)) return reply({ status: 'DISABLED', parcels: [], reason: 'INTERNAL_GRID_ONLY' }, 200, origin);
     if (!serviceKey) return reply({ error: 'RATE_LIMIT_UNAVAILABLE' }, 503, origin);
     const limit = await admin!.rpc('ds_consume_edge_rate_limit', { p_subject_id: user.id, p_operation: 'public_parcel', p_window_seconds: 60, p_max_requests: 20 });
     const decision = Array.isArray(limit.data) ? limit.data[0] : limit.data;
     if (limit.error || decision?.allowed !== true) return reply({ error: limit.error ? 'RATE_LIMIT_UNAVAILABLE' : 'RATE_LIMITED' }, limit.error ? 503 : 429, origin);
+    if(reportRequest)return reply(await resolveReportParcelEvidence({input:parsed,userId:user.id,secret:serviceKey,enabled:flags.public_parcel_intelligence,
+      loadPublicProperty:async propertyId=>{
+        const {data,error}=await client.rpc('ds_get_public_property_details',{p_property_id:propertyId}).maybeSingle();
+        if(error)throw new Error('PROPERTY_DETAILS_UNAVAILABLE');return data&&typeof data==='object'&&!Array.isArray(data)?data as Record<string,unknown>:null;
+      }}),200,origin);
+    if(!query)throw new Error('INVALID_QUERY');
     const resolver = new PublicParcelResolver({ cache,
       resolveCounty: (point, signal) => counties.resolve(point, signal),
       resolveBoundsCounties: (bounds, signal) => counties.resolveBounds(bounds, signal),

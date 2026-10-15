@@ -1,0 +1,44 @@
+{
+  "frontend": "http://127.0.0.1:4180",
+  "mode": "REAL_APP_MOCK_AUTH_BACKEND_REAL_RECONCILIATION_RUNTIME",
+  "results": [
+    {
+      "device": "desktop",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": true,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": false,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    }
+  ]
+}

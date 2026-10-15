@@ -1,0 +1,18 @@
+{
+  "fixtureOnly": true,
+  "runtimeImportCount": 7,
+  "approvedConsumers": [
+    "src\\features\\propertyFacts\\cardFacts.js",
+    "supabase\\functions\\property-fact-review\\index.ts",
+    "supabase\\functions\\_shared\\maxxis\\canonicalEvidenceProjection.ts",
+    "supabase\\functions\\_shared\\maxxis\\canonicalEvidenceTool.ts",
+    "supabase\\functions\\_shared\\maxxis\\consensusFactAnswer.ts",
+    "supabase\\functions\\_shared\\property-fact-reconciliation\\model.ts",
+    "supabase\\functions\\_shared\\property-fact-reconciliation\\runtime.ts"
+  ],
+  "inspectedRuntimeFiles": 469,
+  "propertyFactSidecars": true,
+  "publisherValueOverwrites": 0,
+  "reportConsumption": 0,
+  "financialConsumption": 0
+}

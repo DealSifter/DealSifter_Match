@@ -126,6 +126,13 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         if(error||!data?.deal_assumptions)return null;
         const inputs=data.deal_assumptions;return {...(inputs.activeScenario?.propertyId===propertyId?inputs.activeScenario.assumptions||{}:{}),...inputs};
       },
+      loadReconciledFacts:async(propertyId,userId)=>{
+        const reader=authenticated.client as unknown as {from:(name:string)=>any;rpc:(name:string,args:Record<string,unknown>)=>Promise<{data:any;error:unknown}>};
+        const own=await reader.from('property_fact_reviews').select('state').eq('property_id',propertyId).eq('owner_id',userId).maybeSingle();
+        if(!own.error&&own.data?.state?.rows)return {facts:Object.fromEntries(Object.entries(own.data.state.rows).map(([field,row])=>[field,(row as {effective:unknown}).effective])),owner:true};
+        const publicResult=await reader.rpc('ds_public_effective_property_facts',{p_property_ids:[propertyId]});
+        return !publicResult.error&&publicResult.data?.[0]?.facts?{facts:publicResult.data[0].facts,owner:false}:null;
+      },
       loadCachedProvider:propertyId=>getPropertyEvidenceForAuthenticatedUser({propertyId},authHeader,authenticated.userId,context.propertyId,false,
         {plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'})});
   }

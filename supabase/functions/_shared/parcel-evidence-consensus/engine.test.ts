@@ -22,7 +22,7 @@ const area = (value: number, family = 'PUBLISHER', options: Partial<CandidateInp
 const lot = (values: CandidateInput[]) => compute(values).fields.lotArea;
 const gable = [area(1.14), area(23854, 'RENTCAST', { unit: 'SQFT', evidenceStatus: 'VERIFIED_RECORD' })];
 const three = [...gable, area(1.23, 'COUNTY_GIS:fixture', { evidenceStatus: 'PUBLIC_RECORD' })];
-const artifactRoot = existsSync('supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts') ? 'qa/canonical-evidence-maxxis/consensus-regression' : 'qa/parcel-evidence-consensus';
+const artifactRoot = existsSync('supabase/functions/_shared/property-fact-reconciliation/model.ts') ? 'qa/smart-property-enrichment/consensus-regression' : existsSync('supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts') ? 'qa/canonical-evidence-maxxis/consensus-regression' : 'qa/parcel-evidence-consensus';
 const artifact = (name: string, value: unknown) => {
   const path = artifactRoot; mkdirSync(path, { recursive: true });
   writeFileSync(`${path}/${name}.json`, JSON.stringify({ fixtureOnly: true, ...value as object }, null, 2) + '\n');
@@ -273,9 +273,9 @@ describe('read-only adapters and production isolation', () => {
     const consumers = [...walk('src'), ...walk('supabase/functions')].filter(path => /\.(ts|tsx|js|jsx)$/.test(path)
       && !/parcel-evidence-consensus|\.(test|spec)\./.test(path));
     const hits = consumers.filter(path => /(?:from\s*|import\s*\()['"][^'"]*parcel-evidence-consensus/.test(readFileSync(path, 'utf8')));
-    const approved=['canonicalEvidenceProjection.ts','canonicalEvidenceTool.ts','consensusFactAnswer.ts'];
-    expect(hits.every(path=>approved.some(name=>path.endsWith(name)))).toBe(true);
-    expect(hits).toHaveLength(3);
-    artifact('phase3-consumer-validation', { runtimeImportCount: hits.length, approvedConsumers: hits, inspectedRuntimeFiles: consumers.length, propertyWrites: 0, reportConsumption: 0, financialConsumption: 0, noNewEndpoint: true });
+    const approved=['canonicalEvidenceProjection.ts','canonicalEvidenceTool.ts','consensusFactAnswer.ts','property-fact-reconciliation/model.ts','property-fact-reconciliation/runtime.ts','property-fact-review/index.ts','propertyFacts/cardFacts.js'];
+    expect(hits.every(path=>approved.some(name=>path.replaceAll('\\','/').endsWith(name)))).toBe(true);
+    expect(hits).toHaveLength(7);
+    artifact('consumer-validation', { runtimeImportCount: hits.length, approvedConsumers: hits, inspectedRuntimeFiles: consumers.length, propertyFactSidecars:true,publisherValueOverwrites:0,reportConsumption:0,financialConsumption:0 });
   });
 });

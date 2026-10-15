@@ -19,11 +19,11 @@ try{
       const {PortfolioDetail}=await import('/src/components/matches/MatchesPortfolio.jsx');
       const {setLang}=await import('/src/i18n/translations.js');setLang(language);
       const image='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="720" height="180"><rect width="720" height="180" fill="#86b8b3"/><path d="M200 80L360 15L520 80V180H200Z" fill="#cba87b"/></svg>');
-      const item={id:'qa-portfolio-property',type:'SFR',objective:'Sell',price:90000,capRate:null,rehab:35000,beds:3,baths:2,sqft:1760,zip:'72204',lot:5000,address:'QA portfolio property',images:[image]};
+      const item={id:'qa-portfolio-property',type:'SFR',objective:'Sell',price:90000,capRate:null,rehab:35000,beds:3,baths:2,sqft:1760,zip:'72204',assessorId:'000-TEST-001',lot:5000,address:'QA portfolio property',images:[image]};
       (module.createRoot||module.default.createRoot)(document.getElementById('root')).render(React.createElement(PortfolioDetail,{item,owner:{name:'QA owner'},onBack:()=>{}}));
     },{language,theme});
     const facts=page.locator('.portfolio-property-facts');await expect(facts).toBeVisible({timeout:60000});
-    const fields=['price','capRate','rehab','type','strategy','beds','baths','buildingArea','zip','lot'];
+    const fields=['price','capRate','rehab','type','strategy','beds','baths','buildingArea','apn','lot'];
     for(const field of fields){
       const fact=facts.locator(`[data-fact="${field}"]`);await expect(fact).toHaveCount(1);
       expect((await fact.locator('.portfolio-property-label').innerText()).trim().length).toBeGreaterThan(0);
@@ -31,7 +31,8 @@ try{
     await expect(facts.getByText('$35K',{exact:true})).toHaveCount(1);
     await expect(facts.locator('[data-fact="buildingArea"]')).toContainText('sqft');
     await expect(facts.locator('[data-fact="lot"]')).toContainText('sqft');
-    await expect(facts.locator('[data-fact="zip"]')).toContainText('72204');
+    await expect(facts.locator('[data-fact="zip"]')).toHaveCount(0);
+    await expect(facts.locator('[data-fact="apn"]')).toContainText('000-TEST-001');
     await expect(facts.locator('[data-fact-group="rooms"]')).toHaveCount(1);
     await expect(facts.locator('[data-fact-group="rooms"] svg')).toHaveCount(2);
     const beds=await facts.locator('[data-fact="beds"]').boundingBox(),baths=await facts.locator('[data-fact="baths"]').boundingBox();

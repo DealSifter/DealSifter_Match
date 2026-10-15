@@ -1,0 +1,117 @@
+{
+  "mode": "REAL_REACT_COMPONENT_SYNTHETIC_EVIDENCE",
+  "liveGisCalls": 0,
+  "liveRentcastCalls": 0,
+  "realUserSession": false,
+  "productionWrites": 0,
+  "results": [
+    {
+      "language": "pt",
+      "device": "desktop",
+      "geometry": {
+        "x": 760,
+        "y": 0,
+        "width": 520,
+        "height": 900
+      },
+      "layout": "RIGHT_DRAWER",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "language": "pt",
+      "device": "mobile",
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "layout": "FULL_SCREEN_SHEET",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "language": "en",
+      "device": "desktop",
+      "geometry": {
+        "x": 760,
+        "y": 0,
+        "width": 520,
+        "height": 900
+      },
+      "layout": "RIGHT_DRAWER",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "language": "en",
+      "device": "mobile",
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "layout": "FULL_SCREEN_SHEET",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "language": "es",
+      "device": "desktop",
+      "geometry": {
+        "x": 760,
+        "y": 0,
+        "width": 520,
+        "height": 900
+      },
+      "layout": "RIGHT_DRAWER",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "language": "es",
+      "device": "mobile",
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "layout": "FULL_SCREEN_SHEET",
+      "bulkLeavesConflictUnresolved": true,
+      "explicitKeep": true,
+      "originalPreserved": true,
+      "focusRestored": true,
+      "escape": true,
+      "horizontalOverflow": false,
+      "errors": []
+    }
+  ]
+}

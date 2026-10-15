@@ -1,0 +1,28 @@
+{
+  "baseline": "1e8b3b0",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+    "supabase/functions/_shared/public-parcel/reportEvidence.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/public-parcel/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/public-parcel/evidenceReceipt.ts"
+      ]
+    },
+    {
+      "function": "public-parcel",
+      "changedDependencies": [
+        "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+        "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+        "supabase/functions/public-parcel/index.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

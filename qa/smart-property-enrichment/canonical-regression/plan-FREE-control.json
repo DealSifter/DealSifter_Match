@@ -1,0 +1,8 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "publicAvailable": true,
+    "privateProviderCache": "locked",
+    "newPricing": false
+  }
+}

@@ -1,0 +1,903 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "model": {
+      "version": "CANONICAL_PROPERTY_FACTS_V1",
+      "identity": {
+        "address": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "city": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "state": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "zip": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "formattedAddress": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "latitude": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "longitude": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "physical": {
+        "propertyType": {
+          "value": "LAND",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_VALUE",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "KNOWN",
+          "providerEvidence": null,
+          "provenance": {
+            "selected": "PROPERTY_APP_VALUE",
+            "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+          }
+        },
+        "beds": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "baths": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "livingAreaSqft": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "lotSizeSqft": {
+          "value": 49658.4,
+          "status": "CALCULATED",
+          "source": "LOT_SIZE_CONVERSION",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "KNOWN",
+          "providerEvidence": null,
+          "provenance": {
+            "resolvedSqft": 49658.4,
+            "resolvedAcres": 1.14,
+            "lotSizeSqft": 49658.4,
+            "lotSizeAcres": 1.14,
+            "sourceUnit": "ACRES",
+            "source": "PROPERTY_APP_LOT_ACRES",
+            "evidenceStatus": "USER_PROVIDED",
+            "confidence": null,
+            "sourceAcres": {
+              "value": 1.14,
+              "unit": "ACRES",
+              "status": "USER_PROVIDED",
+              "source": "PROPERTY_APP_LOT_ACRES",
+              "confidence": null,
+              "rank": 3
+            },
+            "sourceSqft": {
+              "value": 49658.4,
+              "unit": "SQFT",
+              "status": "CALCULATED",
+              "source": "LOT_SIZE_CONVERSION",
+              "confidence": null,
+              "rank": 1
+            },
+            "conflict": null,
+            "acresStatus": "USER_PROVIDED",
+            "sqftStatus": "CALCULATED"
+          }
+        },
+        "lotSizeAcres": {
+          "value": 1.14,
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_LOT_ACRES",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "KNOWN",
+          "providerEvidence": null,
+          "provenance": {
+            "resolvedSqft": 49658.4,
+            "resolvedAcres": 1.14,
+            "lotSizeSqft": 49658.4,
+            "lotSizeAcres": 1.14,
+            "sourceUnit": "ACRES",
+            "source": "PROPERTY_APP_LOT_ACRES",
+            "evidenceStatus": "USER_PROVIDED",
+            "confidence": null,
+            "sourceAcres": {
+              "value": 1.14,
+              "unit": "ACRES",
+              "status": "USER_PROVIDED",
+              "source": "PROPERTY_APP_LOT_ACRES",
+              "confidence": null,
+              "rank": 3
+            },
+            "sourceSqft": {
+              "value": 49658.4,
+              "unit": "SQFT",
+              "status": "CALCULATED",
+              "source": "LOT_SIZE_CONVERSION",
+              "confidence": null,
+              "rank": 1
+            },
+            "conflict": null,
+            "acresStatus": "USER_PROVIDED",
+            "sqftStatus": "CALCULATED"
+          }
+        },
+        "yearBuilt": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "hoaFee": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "financial": {
+        "askingPrice": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "rehab": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "capRate": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        },
+        "noi": {
+          "value": null,
+          "status": "NOT_APPLICABLE",
+          "semanticState": "NOT_APPLICABLE",
+          "source": "CANONICAL_SUBJECT_APPLICABILITY",
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "providerEvidence": null
+        }
+      },
+      "parcel": {
+        "county": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "stateFips": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "countyFips": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "assessorId": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "legalDescription": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "subdivision": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "zoning": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "ownership": {
+        "ownerName": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "ownerType": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "ownerOccupied": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "ownerMailingAddress": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "ownershipRecordPresent": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "tax": {
+        "assessedValue": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "assessmentYear": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "annualPropertyTax": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "propertyTaxYear": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "sales": {
+        "lastSalePrice": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "lastSaleDate": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "saleHistory": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "notes": {
+        "userNotes": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "features": {
+        "garage": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "pool": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "stories": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "units": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "fireplace": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "roof": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "hvac": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "architecture": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "exterior": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "view": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        },
+        "propertyFeatures": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null,
+          "semanticState": "UNKNOWN",
+          "providerEvidence": null
+        }
+      },
+      "valuationReferences": {
+        "providerEstimate": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null
+        },
+        "recentSalesMarketEstimate": {
+          "value": null,
+          "status": "UNKNOWN",
+          "source": null,
+          "retrievedAt": null,
+          "effectiveDate": null,
+          "confidence": null,
+          "conflict": null
+        }
+      },
+      "resolvedLotDimensions": {
+        "resolvedSqft": 49658.4,
+        "resolvedAcres": 1.14,
+        "lotSizeSqft": 49658.4,
+        "lotSizeAcres": 1.14,
+        "sourceUnit": "ACRES",
+        "source": "PROPERTY_APP_LOT_ACRES",
+        "evidenceStatus": "USER_PROVIDED",
+        "confidence": null,
+        "sourceAcres": {
+          "value": 1.14,
+          "unit": "ACRES",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_LOT_ACRES",
+          "confidence": null,
+          "rank": 3
+        },
+        "sourceSqft": {
+          "value": 49658.4,
+          "unit": "SQFT",
+          "status": "CALCULATED",
+          "source": "LOT_SIZE_CONVERSION",
+          "confidence": null,
+          "rank": 1
+        },
+        "conflict": null,
+        "acresStatus": "USER_PROVIDED",
+        "sqftStatus": "CALCULATED"
+      },
+      "provenance": {
+        "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+      },
+      "conflicts": [],
+      "analyticalEvidence": {
+        "version": "CANONICAL_EVIDENCE_PROJECTION_V1",
+        "fields": {
+          "lotArea": {
+            "field": "lotArea",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "apn": {
+            "field": "apn",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "owner": {
+            "field": "owner",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "assessedValue": {
+            "field": "assessedValue",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "propertyTax": {
+            "field": "propertyTax",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "zoning": {
+            "field": "zoning",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "propertyType": {
+            "field": "propertyType",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PUBLISHER",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-1",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "propertyType",
+                "originalValue": "Single Family",
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-2",
+                "normalizedValue": "SFR",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PUBLISHER",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-1",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "propertyType",
+                "originalValue": "Single Family",
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-2",
+                "normalizedValue": "SFR",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "PUBLISHER",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              },
+              {
+                "sourceId": "RENTCAST",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+            "requiresQualification": true
+          }
+        },
+        "resolvedAnalysisPropertyType": "LAND",
+        "legacyConsumersMigrated": false,
+        "reportConsumption": 0,
+        "financialConsumption": 0
+      }
+    },
+    "financialMigration": false
+  }
+}

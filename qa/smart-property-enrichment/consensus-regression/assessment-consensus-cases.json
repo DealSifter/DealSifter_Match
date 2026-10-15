@@ -1,0 +1,163 @@
+{
+  "fixtureOnly": true,
+  "sameYear": {
+    "field": "assessedValue",
+    "status": "CONSISTENT",
+    "candidates": [
+      {
+        "field": "assessedValue",
+        "originalValue": 0,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "USD",
+        "metadata": {
+          "year": 2024,
+          "concept": "ASSESSED_VALUE"
+        },
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-1",
+        "normalizedValue": 0,
+        "normalizedUnit": "USD",
+        "normalizedAcres": null,
+        "specialization": "RELEVANT",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "assessedValue",
+        "originalValue": 0,
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "USD",
+        "metadata": {
+          "year": 2024,
+          "concept": "ASSESSED_VALUE"
+        },
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-2",
+        "normalizedValue": 0,
+        "normalizedUnit": "USD",
+        "normalizedAcres": null,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "GIS",
+      "PUBLISHER"
+    ],
+    "agreementCluster": [
+      "evidence-1",
+      "evidence-2"
+    ],
+    "outliers": [],
+    "supportingSources": [
+      "GIS",
+      "PUBLISHER"
+    ],
+    "conflictingSources": [],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "GIS",
+        "status": "SINGLE_SOURCE"
+      },
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "SINGLE_SOURCE"
+      }
+    ],
+    "provisionalResolvedValue": 0,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "USD",
+    "resolutionBasis": "AGREEING_INDEPENDENT_FAMILY_MEDIAN",
+    "reasonCode": "INDEPENDENT_SOURCES_AGREE",
+    "materialConflict": false,
+    "unresolvedReason": null
+  },
+  "differentYear": {
+    "field": "assessedValue",
+    "status": "INSUFFICIENT_EVIDENCE",
+    "candidates": [
+      {
+        "field": "assessedValue",
+        "originalValue": 0,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "USD",
+        "metadata": {
+          "year": 2025,
+          "concept": "ASSESSED_VALUE"
+        },
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-1",
+        "normalizedValue": 0,
+        "normalizedUnit": "USD",
+        "normalizedAcres": null,
+        "specialization": "RELEVANT",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "assessedValue",
+        "originalValue": 0,
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "USD",
+        "metadata": {
+          "year": 2024,
+          "concept": "ASSESSED_VALUE"
+        },
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-2",
+        "normalizedValue": 0,
+        "normalizedUnit": "USD",
+        "normalizedAcres": null,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "GIS",
+      "PUBLISHER"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "GIS",
+        "status": "INSUFFICIENT_EVIDENCE"
+      },
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "INSUFFICIENT_EVIDENCE"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "USD",
+    "resolutionBasis": null,
+    "reasonCode": "NON_EQUIVALENT_OR_UNKNOWN_FISCAL_CONTEXT",
+    "materialConflict": false,
+    "unresolvedReason": "NON_EQUIVALENT_OR_UNKNOWN_FISCAL_CONTEXT"
+  }
+}

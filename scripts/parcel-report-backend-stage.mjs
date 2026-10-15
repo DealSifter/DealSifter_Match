@@ -1,0 +1,16 @@
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {mkdir,copyFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const run=promisify(execFile),workspace=process.cwd(),stage=resolve('.cache/parcel-report-backend'),directory='qa/parcel-report-apn';
+await mkdir(stage,{recursive:true});
+const archive=resolve('.cache/parcel-report-backend.tar');
+await run('git',['archive','--format=tar',`--output=${archive}`,'HEAD','supabase','scripts/p0-backend-dependency-closure.mjs']);
+await run('tar',['-xf',archive,'-C',stage]);
+const changed=['supabase/functions/_shared/public-parcel/evidenceReceipt.ts','supabase/functions/_shared/public-parcel/reportEvidence.ts','supabase/functions/public-parcel/index.ts'];
+for(const file of changed)await copyFile(resolve(file),resolve(stage,file));
+const audit=await run(process.execPath,[resolve(stage,'scripts/p0-backend-dependency-closure.mjs')],{cwd:stage,env:{...process.env,P0_BASELINE_SHA:'1e8b3b0',P0_QA_OUTPUT_DIR:resolve(workspace,directory),P0_CHANGED_MODULES:changed.join(';')}});
+const closure=JSON.parse(audit.stdout);
+if(JSON.stringify(closure.affectedFunctions.map(item=>item.function))!==JSON.stringify(['maxxis-chat','public-parcel']))throw new Error('UNEXPECTED_BACKEND_DEPENDENCY_CLOSURE');
+await writeFile(`${directory}/backend-stage.json`,JSON.stringify({isolated:true,unrelatedEnrichmentExcluded:true,migrationsApplied:0,changed,affectedFunctions:['maxxis-chat','public-parcel']},null,2)+'\n');
+console.log('ISOLATED_BACKEND_CLOSURE_PASS: maxxis-chat, public-parcel');

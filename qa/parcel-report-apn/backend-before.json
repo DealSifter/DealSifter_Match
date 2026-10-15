@@ -1,0 +1,37 @@
+﻿{
+    "observedAt":  "2026-10-15T01:45:44.8508834Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  83,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792004275729,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  9,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792004273477,
+                          "verify_jwt":  true
+                      }
+                  ]
+}

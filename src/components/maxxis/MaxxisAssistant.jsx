@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLang } from '../../i18n/translations';
+import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
+import {factCopy} from '../../features/propertyFacts/copy';
 import { getSafeLang, localizePresentationText } from '../../services/chatTranslation';
 import { buildDegradedEvidenceContinuation } from '../../features/maxxis/intelligence/degradedEvidenceContinuation';
 import { prepareReportNarrativePresentation } from '../../features/maxxis/presentation/reportNarrativePresentation';
@@ -228,6 +230,8 @@ function readDevMaxxisAttentionOverrides() {
 }
 
 export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenReportSelector = null, onOpenProvider = null, onOpenFeedCard = null, onSelectPropertyContext = null, propertyCandidates = [], propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
+  const factReview=usePropertyFactReview();
+  const factNoticeSeen=useRef(new Set());
   const language = getSafeLang(useLang());
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -2838,6 +2842,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     stageProactiveBubble,
   ]);
 
+  useEffect(()=>{
+    const notice=factReview?.notice;if(!notice||!enabled||!proactiveEnabled||open||loading||pendingProviderUnlock||pendingProviderMessageSend||input.trim())return;
+    if(maxxisAttentionInputs.userTyping||maxxisAttentionInputs.criticalModalOpen||maxxisAttentionInputs.formSubmitting||maxxisAttentionInputs.onboardingSaving||maxxisAttentionInputs.navigationTransition||maxxisAttentionInputs.sensitiveTransactionActive||maxxisAttentionInputs.mobileKeyboardOpen||maxxisAttentionInputs.mobileViewportCongested||proactiveBubble||pendingProactiveBubble)return;
+    const key=`${sessionKey}:${notice.propertyId}:${notice.evidenceHash}`;if(factNoticeSeen.current.has(key))return;
+    const copy=factCopy(language),signal={id:key,code:'PROPERTY_FACT_REVIEW',propertyId:notice.propertyId,field:notice.field,dedupeKey:key,entityType:'PROPERTY',priority:'P1'};
+    if(stageProactiveBubble({id:`property-facts:${key}`,signal,message:{text:copy.notice(notice.summary.complements,notice.summary.conflicts),ctaLabel:copy.review}},{autoDismissMs:0}))factNoticeSeen.current.add(key);
+  },[factReview,sessionKey,enabled,proactiveEnabled,open,loading,input,pendingProviderUnlock,pendingProviderMessageSend,maxxisAttentionInputs,proactiveBubble,pendingProactiveBubble,stageProactiveBubble,language]);
+
   const appendSmartProviderMessage = (sourceMessage, introductoryText = '') => {
     const payload = smartActionSourcePayload(sourceMessage);
     const data = payload?.data?.sourceData || payload?.data || null;
@@ -2941,6 +2953,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   const handleDismissProactiveBubble = () => {
+    if(proactiveBubble?.signal?.code==='PROPERTY_FACT_REVIEW'){void factReview?.defer(proactiveBubble.signal.propertyId).catch(()=>null);dismissProactiveBubble();return;}
     const currentBubble = dismissProactiveBubble();
     if (!currentBubble) return;
     markMaxxisProactiveSignalDismissed(proactiveSessionRef.current, currentBubble.signal);
@@ -2958,6 +2971,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const handleClickProactiveBubble = () => {
     const currentBubble = consumeProactiveBubble();
     if (!currentBubble) return;
+    if(currentBubble.signal?.code==='PROPERTY_FACT_REVIEW'){factReview?.dismissNotice();void factReview?.open(currentBubble.signal.propertyId,currentBubble.signal.field);return;}
     if (currentBubble.signal?.code === 'CONTEXTUAL_INSIGHT'
       && !contextualTriggers.some((current) => current.dedupeKey === currentBubble.signal.dedupeKey)) return;
     void trackProductEvent('maxxis_proactive_bubble_clicked', {
@@ -3402,6 +3416,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onEditAnalysisGaps={handleEditAnalysisGaps}
                   activeAnalysisGapId={activeAnalysisGapId}
                 />
+                {message.role==='assistant'&&typeof message.data?.reviewField==='string'&&factReview?.ownedProperties.has(String(message.data.propertyId))?<button type="button" className="maxxis-smart-action-chip" onClick={()=>factReview.open(message.data.propertyId,message.data.reviewField)}>{factCopy(language).review}</button>:null}
                 {message.data?.proactiveTrigger && smartActions.length > 0 ? (
                   <button type="button" className="maxxis-smart-action-chip" onClick={() => {
                     const trigger = message.data.proactiveTrigger;

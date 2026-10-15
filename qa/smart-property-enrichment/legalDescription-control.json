@@ -1,0 +1,281 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "before": {
+      "field": "legalDescription",
+      "state": "COMPLEMENT_AVAILABLE",
+      "originalValue": null,
+      "currentCandidate": null,
+      "currentValue": null,
+      "evidenceHash": "db06a80e32942dd2e95bd82c6afbeab7a1a6fb767c1fe4f35f4f22b781d0de0d",
+      "projection": {
+        "field": "legalDescription",
+        "consensusState": "SINGLE_SOURCE",
+        "analyticalUsability": "SINGLE_SOURCE",
+        "value": "PUBLIC FACT",
+        "unit": null,
+        "range": null,
+        "provisional": false,
+        "candidates": [
+          {
+            "field": "legalDescription",
+            "originalValue": "PUBLIC FACT",
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "GIS",
+            "sourceFamily": "GIS",
+            "sourceAuthority": "GIS",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "declaredSourceFamily": "GIS",
+            "candidateId": "evidence-6",
+            "normalizedValue": "PUBLIC FACT",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "UNSPECIFIED",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          {
+            "field": "legalDescription",
+            "originalValue": null,
+            "unit": null,
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "UNAVAILABLE",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-7",
+            "normalizedValue": null,
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "CONTEXTUAL",
+            "comparable": false,
+            "exclusionReason": "UNAVAILABLE"
+          }
+        ],
+        "supportingCandidates": [
+          {
+            "field": "legalDescription",
+            "originalValue": "PUBLIC FACT",
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "GIS",
+            "sourceFamily": "GIS",
+            "sourceAuthority": "GIS",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "declaredSourceFamily": "GIS",
+            "candidateId": "evidence-6",
+            "normalizedValue": "PUBLIC FACT",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "UNSPECIFIED",
+            "comparable": true,
+            "exclusionReason": null
+          }
+        ],
+        "conflictingCandidates": [],
+        "outliers": [],
+        "sourceFreshness": [
+          {
+            "sourceId": "GIS",
+            "freshness": "UNKNOWN",
+            "retrievedAt": null,
+            "sourceUpdatedAt": null
+          },
+          {
+            "sourceId": "dealSifter",
+            "freshness": "UNKNOWN",
+            "retrievedAt": null,
+            "sourceUpdatedAt": null
+          }
+        ],
+        "resolutionBasis": "OBSERVED_SOURCE_VALUE",
+        "reasonCode": "ONE_INDEPENDENT_SOURCE",
+        "requiresQualification": true
+      },
+      "candidates": [
+        {
+          "field": "legalDescription",
+          "originalValue": "PUBLIC FACT",
+          "sourceType": "PUBLIC_PARCEL_GIS",
+          "sourceId": "GIS",
+          "sourceFamily": "GIS",
+          "sourceAuthority": "GIS",
+          "evidenceStatus": "PUBLIC_RECORD",
+          "declaredSourceFamily": "GIS",
+          "candidateId": "evidence-6",
+          "normalizedValue": "PUBLIC FACT",
+          "normalizedUnit": null,
+          "normalizedAcres": null,
+          "specialization": "UNSPECIFIED",
+          "comparable": true,
+          "exclusionReason": null
+        }
+      ],
+      "bulkCandidateId": "evidence-6",
+      "decision": null,
+      "pending": true,
+      "effective": {
+        "value": null,
+        "unit": null,
+        "state": "UNAVAILABLE",
+        "sourceType": null
+      }
+    },
+    "accepted": {
+      "field": "legalDescription",
+      "state": "COMPLEMENT_AVAILABLE",
+      "originalValue": null,
+      "currentCandidate": {
+        "field": "legalDescription",
+        "originalValue": "PUBLIC FACT",
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "GIS",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "PUBLIC_RECORD",
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-6",
+        "normalizedValue": "PUBLIC FACT",
+        "normalizedUnit": null,
+        "normalizedAcres": null,
+        "specialization": "UNSPECIFIED",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      "currentValue": "PUBLIC FACT",
+      "evidenceHash": "db06a80e32942dd2e95bd82c6afbeab7a1a6fb767c1fe4f35f4f22b781d0de0d",
+      "projection": {
+        "field": "legalDescription",
+        "consensusState": "SINGLE_SOURCE",
+        "analyticalUsability": "SINGLE_SOURCE",
+        "value": "PUBLIC FACT",
+        "unit": null,
+        "range": null,
+        "provisional": false,
+        "candidates": [
+          {
+            "field": "legalDescription",
+            "originalValue": "PUBLIC FACT",
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "GIS",
+            "sourceFamily": "GIS",
+            "sourceAuthority": "GIS",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "declaredSourceFamily": "GIS",
+            "candidateId": "evidence-6",
+            "normalizedValue": "PUBLIC FACT",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "UNSPECIFIED",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          {
+            "field": "legalDescription",
+            "originalValue": null,
+            "unit": null,
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "UNAVAILABLE",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-7",
+            "normalizedValue": null,
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "CONTEXTUAL",
+            "comparable": false,
+            "exclusionReason": "UNAVAILABLE"
+          }
+        ],
+        "supportingCandidates": [
+          {
+            "field": "legalDescription",
+            "originalValue": "PUBLIC FACT",
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "GIS",
+            "sourceFamily": "GIS",
+            "sourceAuthority": "GIS",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "declaredSourceFamily": "GIS",
+            "candidateId": "evidence-6",
+            "normalizedValue": "PUBLIC FACT",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "UNSPECIFIED",
+            "comparable": true,
+            "exclusionReason": null
+          }
+        ],
+        "conflictingCandidates": [],
+        "outliers": [],
+        "sourceFreshness": [
+          {
+            "sourceId": "GIS",
+            "freshness": "UNKNOWN",
+            "retrievedAt": null,
+            "sourceUpdatedAt": null
+          },
+          {
+            "sourceId": "dealSifter",
+            "freshness": "UNKNOWN",
+            "retrievedAt": null,
+            "sourceUpdatedAt": null
+          }
+        ],
+        "resolutionBasis": "OBSERVED_SOURCE_VALUE",
+        "reasonCode": "ONE_INDEPENDENT_SOURCE",
+        "requiresQualification": true
+      },
+      "candidates": [
+        {
+          "field": "legalDescription",
+          "originalValue": "PUBLIC FACT",
+          "sourceType": "PUBLIC_PARCEL_GIS",
+          "sourceId": "GIS",
+          "sourceFamily": "GIS",
+          "sourceAuthority": "GIS",
+          "evidenceStatus": "PUBLIC_RECORD",
+          "declaredSourceFamily": "GIS",
+          "candidateId": "evidence-6",
+          "normalizedValue": "PUBLIC FACT",
+          "normalizedUnit": null,
+          "normalizedAcres": null,
+          "specialization": "UNSPECIFIED",
+          "comparable": true,
+          "exclusionReason": null
+        }
+      ],
+      "bulkCandidateId": "evidence-6",
+      "decision": {
+        "action": "ACCEPT_EXTERNAL_VALUE",
+        "evidenceHash": "db06a80e32942dd2e95bd82c6afbeab7a1a6fb767c1fe4f35f4f22b781d0de0d",
+        "candidateId": "evidence-6",
+        "value": "PUBLIC FACT",
+        "source": "PUBLIC_PARCEL_GIS",
+        "sourceId": "GIS",
+        "unit": null,
+        "status": "PUBLIC_RECORD",
+        "freshness": "UNKNOWN",
+        "year": null,
+        "by": "22222222-2222-4222-8222-222222222222",
+        "at": "2026-10-15T14:26:37.033Z",
+        "originalValue": null
+      },
+      "pending": false,
+      "effective": {
+        "value": "PUBLIC FACT",
+        "unit": null,
+        "state": "AVAILABLE",
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "GIS",
+        "status": "PUBLIC_RECORD",
+        "freshness": "UNKNOWN",
+        "year": null,
+        "adopted": true,
+        "userConfirmed": false
+      }
+    }
+  }
+}

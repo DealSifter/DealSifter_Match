@@ -36,7 +36,7 @@ const C = Object.freeze({
 const COPY = Object.freeze({
   en: {
     locale: 'en',
-    generated: 'Generated', page: 'Page', unavailable: 'Unavailable', recordUnavailable: 'Not available in the current external record.', notVerified: 'Not verified', published: 'Published',
+    generated: 'Generated', page: 'Page', unavailable: 'Unavailable', recordUnavailable: 'Not available in the current external record.', parcelMismatch: 'Parcel/address mismatch — verify the PIN.', apnConflict: 'Conflicting APNs — verification required.', notVerified: 'Not verified', published: 'Published',
     reportSubtitle: 'Intelligent property analysis', releaseSubtitle: 'Real Opportunities. Real Connections.', tagline: 'Real Data. Smarter Decisions.',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Property Overview', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Executive Summary',
@@ -82,7 +82,7 @@ const COPY = Object.freeze({
   },
   pt: {
     locale: 'pt',
-    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', recordUnavailable: 'Não disponível no registro externo atual.', notVerified: 'Não verificado', published: 'Publicado',
+    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', recordUnavailable: 'Não disponível no registro externo atual.', parcelMismatch: 'Parcela/endereço divergentes — verifique o PIN.', apnConflict: 'APNs divergentes — requer verificação.', notVerified: 'Não verificado', published: 'Publicado',
     reportSubtitle: 'Análise inteligente do imóvel', releaseSubtitle: 'Oportunidades reais. Conexões reais.', tagline: 'Dados reais. Decisões mais inteligentes.',
     property: 'RELATÓRIO DO IMÓVEL', pro: 'RELATÓRIO DE ANÁLISE MAXXIS', deal: 'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO',
     PROPERTY_OVERVIEW: 'Visão geral do imóvel', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumo executivo',
@@ -128,7 +128,7 @@ const COPY = Object.freeze({
   },
   es: {
     locale: 'es',
-    generated: 'Generado', page: 'Página', unavailable: 'No disponible', recordUnavailable: 'No disponible en el registro externo actual.', notVerified: 'No verificado', published: 'Publicado',
+    generated: 'Generado', page: 'Página', unavailable: 'No disponible', recordUnavailable: 'No disponible en el registro externo actual.', parcelMismatch: 'Parcela/dirección divergentes — revisa el PIN.', apnConflict: 'APN en conflicto — requiere verificación.', notVerified: 'No verificado', published: 'Publicado',
     reportSubtitle: 'Análisis inteligente de la propiedad', releaseSubtitle: 'Oportunidades reales. Conexiones reales.', tagline: 'Datos reales. Decisiones más inteligentes.',
     property: 'INFORME DE LA PROPIEDAD', pro: 'INFORME DE ANÁLISIS MAXXIS', deal: 'INFORME MAXXIS DE INTELIGENCIA DEL NEGOCIO',
     PROPERTY_OVERVIEW: 'Resumen de la propiedad', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumen ejecutivo',
@@ -751,6 +751,7 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
     ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null,
     fact('propertyTaxYear', property.propertyTaxYear)].filter(Boolean).join(' · ');
   const materialFeatures = array(property.materialPropertyFeatures).map((item) => typeof item === 'string' ? item : item?.name || item?.label).filter(Boolean).join(' · ');
+  const apnFallback=property.parcelReportState==='PARCEL_ADDRESS_MISMATCH'?t.parcelMismatch:property.parcelReportState==='APN_CONFLICT'?t.apnConflict:t.recordUnavailable;
   const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
   const characteristicFacts = isLand
     ? [[t.type, property.resolvedAnalysisPropertyType || property.type], [t.strategy, property.resolvedAnalysisStrategy || property.objective], [t.lotAcres, property.lotSizeAcres],
@@ -765,7 +766,7 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const facts = [
     [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.ownershipRecord, fact('ownershipRecordPresent', property.ownershipRecordPresent)], [t.latestSale, latestSale]]],
     [t.facts, characteristicFacts],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId) ?? t.recordUnavailable], [t.legalDescription, fact('legalDescription', property.legalDescription)], [t.subdivision, fact('subdivision', property.subdivision)], [t.zoning, fact('zoning', property.zoning)], [t.assessedValue, assessed], [t.propertyTax, propertyTax]]],
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId) ?? apnFallback], [t.legalDescription, fact('legalDescription', property.legalDescription)], [t.subdivision, fact('subdivision', property.subdivision)], [t.zoning, fact('zoning', property.zoning)], [t.assessedValue, assessed], [t.propertyTax, propertyTax]]],
   ].map(([title, entries]) => [title, entries.filter(([, entry]) => entry !== null && entry !== undefined && entry !== ''
     && (!Array.isArray(entry) || entry.length > 0))]);
   const rowOptions = {

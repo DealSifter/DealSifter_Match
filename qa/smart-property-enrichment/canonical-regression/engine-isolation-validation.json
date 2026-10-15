@@ -1,0 +1,9 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "changedBehavior": false,
+    "legacyLotAcres": 1.14,
+    "consensusLotResolved": null,
+    "migratedEngines": 0
+  }
+}

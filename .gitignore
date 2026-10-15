@@ -40,3 +40,5 @@ src/**/*.bak
 .codex-deploy/
 qa-artifacts/
 test-results/
+# Local build stages, operator receipts and private diagnostic fixtures.
+.cache/

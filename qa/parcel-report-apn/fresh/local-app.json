@@ -1,0 +1,38 @@
+{
+  "mode": "REAL_APP_FRONTEND_WITH_SYNTHETIC_AUTH_BACKEND",
+  "frontend": "http://127.0.0.1:4180",
+  "realBackendWrites": 0,
+  "realUserSession": false,
+  "results": [
+    {
+      "device": "desktop",
+      "errors": [],
+      "roomGroups": 1,
+      "roomsOnSameLine": true,
+      "blankLabels": 0,
+      "duplicatedRehab": 0,
+      "completeUnits": true,
+      "l1Downloaded": true,
+      "simulatedFreeAccount": true,
+      "apnFlow": true,
+      "reportEvidenceCalls": 2,
+      "freshSessionNoPriorMap": true,
+      "pointQueries": 1
+    },
+    {
+      "device": "phone",
+      "errors": [],
+      "roomGroups": 1,
+      "roomsOnSameLine": true,
+      "blankLabels": 0,
+      "duplicatedRehab": 0,
+      "completeUnits": true,
+      "l1Downloaded": true,
+      "simulatedFreeAccount": true,
+      "apnFlow": true,
+      "reportEvidenceCalls": 2,
+      "freshSessionNoPriorMap": true,
+      "pointQueries": 1
+    }
+  ]
+}

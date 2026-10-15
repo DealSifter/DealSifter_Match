@@ -1,5 +1,9 @@
 import React, { Activity, useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import './App.css';
+import {PropertyFactReviewProvider} from './features/propertyFacts/PropertyFactReviewProvider';
+import {notifyPropertySaved,openPropertyFactReview} from './services/propertyFactReviewService';
+import {factCopy} from './features/propertyFacts/copy';
+import {useLang} from './i18n/translations';
 import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
@@ -374,7 +378,7 @@ const toNumberOrZero = (value) => {
 };
 
 const toNumberOrNull = (value) => {
-  if (value === '' || value == null) return null;
+  if (value == null || typeof value==='string'&&!value.trim()) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 };
@@ -467,14 +471,14 @@ const mapLocalPropertyToDb = (property, userId) => {
     state: String(property?.state || '').trim() || (markets[0] ? String(markets[0]).trim() : null),
     zip: String(property?.zip || '').trim() || null,
     price: toNumberOrZero(property?.price),
-    beds: toIntegerOrZero(property?.beds),
-    baths: toIntegerOrZero(property?.baths),
+    beds: property?.beds==null||String(property.beds).trim()===''?null:toIntegerOrZero(property.beds),
+    baths: property?.baths==null||String(property.baths).trim()===''?null:toIntegerOrZero(property.baths),
     sqft: String(property?.sqft || '').trim() || null,
     improvement: String(property?.improvement || '').trim() || null,
     lot: String(property?.lot || '').trim() || null,
     deal_tag: String(property?.dealTag || '').trim() || null,
     objective: String(property?.objective || '').trim() || null,
-    rehab: toNumberOrZero(property?.rehab),
+    rehab: toNumberOrNull(property?.rehab),
     cap_rate: toNumberOrNull(property?.capRate),
     description: String(property?.description || '').trim() || null,
     markets,
@@ -511,14 +515,14 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   state: row.state || '',
   zip: row.zip || '',
   price: row.price ?? 0,
-  beds: row.beds ?? 0,
-  baths: row.baths ?? 0,
+  beds: row.beds ?? null,
+  baths: row.baths ?? null,
   sqft: row.sqft || '',
   improvement: row.improvement || '',
   lot: row.lot || '',
   dealTag: row.deal_tag || '',
   objective: row.objective || '',
-  rehab: row.rehab ?? 0,
+  rehab: row.rehab ?? null,
   capRate: row.cap_rate ?? null,
   description: row.description || '',
   markets: normalizeStringArray(row.markets),
@@ -746,6 +750,7 @@ const MobilePortraitGuard = ({ copy }) => (
 );
 
 export default function App() {
+  const enrichmentLanguage=useLang();
   const propertyWriteQueueRef = useRef(Promise.resolve());
   const enqueuePropertyWrite = useCallback((write) => {
     const pending = propertyWriteQueueRef.current.catch(() => {}).then(write);
@@ -3714,6 +3719,7 @@ export default function App() {
       .select('id,lat,lng,geocode_status,geocode_source,geocode_confidence,geocode_input,geocoded_at,is_active,publish_to_showcase'));
     if (error) throw error;
     if (!Array.isArray(data) || data.length !== records.length) throw new Error('PROPERTY_SAVE_NOT_CONFIRMED');
+    if(!publish&&records.length===1)notifyPropertySaved(supabaseUserId,records[0].id);
     const persisted = new Map(data.map((row) => [String(row.id), row]));
     return records.map((record) => {
       const row = persisted.get(String(record.id));
@@ -3907,6 +3913,12 @@ export default function App() {
     });
   }, [ownerUnlockNotifications]);
 
+  useEffect(()=>{
+    const notices=(ownerUnlockNotifications||[]).filter(item=>item.type==='property_data');
+    const copy=factCopy(enrichmentLanguage);
+    setSystemNotifications(prev=>{const rest=(prev||[]).filter(item=>item.source!=='property_fact_review');return [...notices.map(item=>({id:`property-facts-${item.id}`,source:'property_fact_review',notificationId:item.id,propertyId:item.propertyId,field:item.payload?.field||'',read:item.read,title:copy.title,message:copy.summary(Number(item.payload?.complements)||0,Number(item.payload?.conflicts)||0),createdAt:item.createdAt})),...rest].slice(0,100);});
+  },[ownerUnlockNotifications,enrichmentLanguage]);
+
   const reciprocalUnlockSignal = useMemo(() => {
     const entries = (ownerUnlockNotifications || [])
       .filter((notification) => ['unlock', 'exclusive'].includes(String(notification.type || '')))
@@ -4017,7 +4029,7 @@ export default function App() {
   const deleteSystemNotification = (notification) => {
     const id = String(notification?.id || '');
     if (!id || id === 'empty-system') return;
-    if (notification?.source === 'support_notification' && notification?.notificationId) {
+    if (['support_notification','property_fact_review'].includes(notification?.source) && notification?.notificationId) {
       deleteOwnerUnlockNotification(notification.notificationId).catch((error) => {
         console.error('Failed to delete support notification.', error);
       });
@@ -4027,7 +4039,7 @@ export default function App() {
 
   const deleteAllSystemNotifications = () => {
     (systemNotifications || []).forEach((notification) => {
-      if (notification?.source === 'support_notification' && notification?.notificationId) {
+      if (['support_notification','property_fact_review'].includes(notification?.source) && notification?.notificationId) {
         deleteOwnerUnlockNotification(notification.notificationId).catch((error) => {
           console.error('Failed to delete support notification.', error);
         });
@@ -4037,6 +4049,7 @@ export default function App() {
   };
 
   const openChatFromNotification = (notification) => {
+    if(notification?.source==='property_fact_review'){void markOwnerUnlockNotificationAsRead(notification.notificationId);openPropertyFactReview(supabaseUserId,notification.propertyId,notification.field);return;}
     if (notification?.source === 'support_notification') {
       setSettingsInitialTab('communication');
       setSettingsInitialView('support');
@@ -5930,6 +5943,7 @@ export default function App() {
         canStart={Boolean(authSession && dashboardHydrationReady && lgpdConsentChecked && !requireSignupConsent)}
         onboardingComplete={Boolean(isAdmin || registeredProfileScopes.size > 0)}
       >
+      <PropertyFactReviewProvider userId={supabaseUserId||''} properties={propertyPortfolio||[]} publicProperties={globalShowcaseProperties||[]} inventoryVersion={globalFeedRefreshTick}>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         {isAppShellBooting ? (
           <AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter" />
@@ -6168,6 +6182,7 @@ export default function App() {
 
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
+      </PropertyFactReviewProvider>
       </GuideTipsProvider>
     </ThemeProvider>
   );

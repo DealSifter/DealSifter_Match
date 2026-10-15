@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "lint": {
+    "fullCommand": "npx --no-install eslint src/ --max-warnings=0",
+    "fullExitCode": 0,
+    "finalDeltaCommand": "npx --no-install eslint src/features/propertyFacts src/components/layout/Navbar.jsx src/components/layout/NotificationGesture.test.jsx src/features/maxxis/access/ReportExperienceSelector.test.jsx --max-warnings=0",
+    "finalDeltaExitCode": 0
+  },
+  "contracts": {
+    "command": "npx --no-install tsc -p tsconfig.contracts.json",
+    "exitCode": 0
+  },
+  "backendTypes": "See deno-baseline-comparison.json: unchanged legacy errors are NOT represented as a clean broad typecheck.",
+  "recordedFrom": "Actual local command completions; complete lint followed by final changed-file lint and contracts recheck."
+}

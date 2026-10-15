@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "fullTests": 2135,
+  "fullInvocationTests": 2133,
+  "targetedTests": 60,
+  "mapTests": 78,
+  "browserReviewCases": 6,
+  "mapLifetimeCases": 12,
+  "mapAppTransitions": 10,
+  "postgresChecks": 21,
+  "newDenoErrors": 0,
+  "legacyDenoErrors": 50,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "reason": "No legitimate authenticated real user session available; automated browser authentication is explicitly simulated."
+}

@@ -1,0 +1,111 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "gable": {
+      "field": "lotArea",
+      "consensusState": "MATERIAL_CONFLICT",
+      "analyticalUsability": "CONFLICTED",
+      "value": null,
+      "unit": "SQFT",
+      "range": null,
+      "provisional": false,
+      "candidates": [
+        {
+          "field": "lotArea",
+          "originalValue": 1.14,
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "PUBLISHER",
+          "sourceFamily": "PUBLISHER",
+          "sourceAuthority": "PUBLISHER",
+          "evidenceStatus": "USER_PROVIDED",
+          "unit": "ACRES",
+          "declaredSourceFamily": "PUBLISHER",
+          "candidateId": "evidence-1",
+          "normalizedValue": 49658.399999999994,
+          "normalizedUnit": "SQFT",
+          "normalizedAcres": 1.14,
+          "specialization": "CONTEXTUAL",
+          "comparable": true,
+          "exclusionReason": null
+        },
+        {
+          "field": "lotArea",
+          "originalValue": 23854,
+          "sourceType": "RENTCAST",
+          "sourceId": "RENTCAST",
+          "sourceFamily": "RENTCAST",
+          "sourceAuthority": "RENTCAST",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "unit": "SQFT",
+          "declaredSourceFamily": "RENTCAST",
+          "candidateId": "evidence-2",
+          "normalizedValue": 23854,
+          "normalizedUnit": "SQFT",
+          "normalizedAcres": 0.5476124885215794,
+          "specialization": "RELEVANT",
+          "comparable": true,
+          "exclusionReason": null
+        }
+      ],
+      "supportingCandidates": [],
+      "conflictingCandidates": [
+        {
+          "field": "lotArea",
+          "originalValue": 1.14,
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "PUBLISHER",
+          "sourceFamily": "PUBLISHER",
+          "sourceAuthority": "PUBLISHER",
+          "evidenceStatus": "USER_PROVIDED",
+          "unit": "ACRES",
+          "declaredSourceFamily": "PUBLISHER",
+          "candidateId": "evidence-1",
+          "normalizedValue": 49658.399999999994,
+          "normalizedUnit": "SQFT",
+          "normalizedAcres": 1.14,
+          "specialization": "CONTEXTUAL",
+          "comparable": true,
+          "exclusionReason": null
+        },
+        {
+          "field": "lotArea",
+          "originalValue": 23854,
+          "sourceType": "RENTCAST",
+          "sourceId": "RENTCAST",
+          "sourceFamily": "RENTCAST",
+          "sourceAuthority": "RENTCAST",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "unit": "SQFT",
+          "declaredSourceFamily": "RENTCAST",
+          "candidateId": "evidence-2",
+          "normalizedValue": 23854,
+          "normalizedUnit": "SQFT",
+          "normalizedAcres": 0.5476124885215794,
+          "specialization": "RELEVANT",
+          "comparable": true,
+          "exclusionReason": null
+        }
+      ],
+      "outliers": [],
+      "sourceFreshness": [
+        {
+          "sourceId": "PUBLISHER",
+          "freshness": "UNKNOWN",
+          "retrievedAt": null,
+          "sourceUpdatedAt": null
+        },
+        {
+          "sourceId": "RENTCAST",
+          "freshness": "UNKNOWN",
+          "retrievedAt": null,
+          "sourceUpdatedAt": null
+        }
+      ],
+      "resolutionBasis": null,
+      "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+      "requiresQualification": true
+    },
+    "legacyAcres": 1.14,
+    "rowsWritten": 0
+  }
+}

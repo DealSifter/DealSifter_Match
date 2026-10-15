@@ -1,0 +1,30 @@
+{
+  "originalHotfix": "0f3e6d8fcf8ab91e31b7a7452ec4ea0f36aae6aa",
+  "files": [
+    {
+      "file": "src/features/parcel/mapLifetime.js",
+      "unchanged": true,
+      "sha256": "09d7010c61374a432f089d497f3baba76120774f0581df112700d53b5ce6602a"
+    },
+    {
+      "file": "src/features/parcel/mapSelectionCamera.js",
+      "unchanged": true,
+      "sha256": "b8369bbbec562294f7c0ba19aeba59dfba87234605e76f7f89dfcc6df7bf16d9"
+    },
+    {
+      "file": "src/components/map/MapSelectionCamera.jsx",
+      "unchanged": true,
+      "sha256": "e10be43639dc0ceb8fbea73d7c2c45da207ac65c32275ffb8ce850923f4f5b56"
+    },
+    {
+      "file": "src/pages/MapView.jsx",
+      "unchanged": true,
+      "sha256": "61589f8e129a7ee43e881188bd8fa0884ed2fb949e446da485e76ef94bc6f01b"
+    }
+  ],
+  "sourceBehaviorChanges": 0,
+  "testsPending": false,
+  "tests": 78,
+  "passed": 78,
+  "currentSourceRechecked": true
+}

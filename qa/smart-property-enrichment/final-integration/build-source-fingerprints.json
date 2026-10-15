@@ -1,0 +1,205 @@
+{
+  "pass": true,
+  "files": [
+    {
+      "file": "src/App.jsx",
+      "sha256": "e3b420f9f6636e23706ad496a00aa03659f8b3338cd80cc1a5b1f072a46bbb98"
+    },
+    {
+      "file": "src/components/cards/PropertyCard.jsx",
+      "sha256": "155329d2932dd14c68a757246bafbece925e00345b5580f0837eb76f460c20d8"
+    },
+    {
+      "file": "src/components/layout/Navbar.jsx",
+      "sha256": "e400123c00c4502cf7a71bbb1fc976970deebc6082ef55cbfc380bf0cb5a3e23"
+    },
+    {
+      "file": "src/components/matches/MatchesPortfolio.jsx",
+      "sha256": "39d566640f78772993658345fdbd759dd7e5b83357b38d8cad762570c7bf2d38"
+    },
+    {
+      "file": "src/components/matches/PortfolioPropertyFacts.css",
+      "sha256": "6376c682adb61103ab2a24fbb2907fa099db3e10d68278ccaf5b842e82d3ecab"
+    },
+    {
+      "file": "src/components/matches/PortfolioPropertyFacts.jsx",
+      "sha256": "ddcbcdace7edfc53c7a774f3a798e471402d253b605b3452cec6543f30324e92"
+    },
+    {
+      "file": "src/components/matches/PortfolioPropertyFacts.test.jsx",
+      "sha256": "5b6fa170807fc38ea25eaafdeb3000d0c2c349f786154115b7aae218a6da22ba"
+    },
+    {
+      "file": "src/components/matches/portfolioPropertyFactsModel.js",
+      "sha256": "9cc24fe0fb20cfd0ff681261c17363ee00dad7bce96bf264fd0d0dbd1c579a00"
+    },
+    {
+      "file": "src/components/maxxis/MaxxisAssistant.jsx",
+      "sha256": "fceb235ad75d1b452d80d4c349efe74e59b2eb4864ce9dc2d246ff8359e2ea9b"
+    },
+    {
+      "file": "src/domain/maxxis/maxxisReportSchema.js",
+      "sha256": "a8d2f43018de374dde9340cfb2e4000f26cc861715c247e04665b20e4df97525"
+    },
+    {
+      "file": "src/domain/maxxis/propertyReleaseEvidence.js",
+      "sha256": "63cf696fb3038089a70e285096b3f37a9442df5c15d6665313a1613d7a9569f9"
+    },
+    {
+      "file": "src/domain/maxxis/propertyReleaseEvidence.test.js",
+      "sha256": "a870701eae386c977b729267e5b3878f1b56762916173bd1b791e9c5acfe8f54"
+    },
+    {
+      "file": "src/features/maxxis/access/ReportExperienceSelector.test.jsx",
+      "sha256": "640a1712e3b8ea83177102719a5a8e464d76e835388c7f3de8b21012349e04f8"
+    },
+    {
+      "file": "src/features/maxxis/export/maxxisReportPdf.js",
+      "sha256": "c434570cb9e0059a895cfe495d2eff6647aab43355961965bda6c2a0d3913aa6"
+    },
+    {
+      "file": "src/features/parcel/parcelEvidenceReceipt.js",
+      "sha256": "635d3a483e18e993dd68fd42ecc2838f64563ac289d4b6b803d4e702e4280aaf"
+    },
+    {
+      "file": "src/pages/Onboarding.jsx",
+      "sha256": "cad9f52a3382997e428e51937f35d0980da62b1cadf2fa733a45d23d9756158e"
+    },
+    {
+      "file": "src/services/feedStateService.js",
+      "sha256": "b819598c43987e0bf409a541df6b510cb45958be67b63f1bec95d7230bf1bc69"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/canonicalEvidenceIntegration.test.ts",
+      "sha256": "629a3369034e40a00a0e8e558a446ef6ee55aba5d6e7002b7c9c02d8334f446f"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+      "sha256": "664f4f4eab8986658ebde59435eb4f19168bf124d911163b4db38c461852073e"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+      "sha256": "8aece303ccd3662c45c9f883fce9070ba66d01f435fd7d91eeeb7dd1e7f4ec2a"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+      "sha256": "0bbc12de090d3035f041e8ab9fc0d62b266c1bdd46531e92cfe78c7dba97c3b2"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+      "sha256": "f2eda4f39765345922fc5f5aa6fc6dbadb9113afc92c8f0e52724b2824fc6bbd"
+    },
+    {
+      "file": "supabase/functions/_shared/maxxis/types.ts",
+      "sha256": "bf2d43e7e38ad3fe6c4d94388c17f5fa0ac1b4d7cd1317211aebfe12d0a3ff4f"
+    },
+    {
+      "file": "supabase/functions/_shared/parcel-evidence-consensus/adapters.ts",
+      "sha256": "56f650c90a6936f60b128da729c57ed6d186b109a9c0ab33c65ecf408fc8d02c"
+    },
+    {
+      "file": "supabase/functions/_shared/parcel-evidence-consensus/engine.test.ts",
+      "sha256": "273770e89ee3afa21af9b6f8a87f3b2ffdd66c554e43420205b570b605d0da62"
+    },
+    {
+      "file": "supabase/functions/_shared/parcel-evidence-consensus/engine.ts",
+      "sha256": "4b8868a6cc3ad8364947e29132d7a1ea8e14a2cc007666331f617167e27e9a73"
+    },
+    {
+      "file": "supabase/functions/_shared/parcel-evidence-consensus/types.ts",
+      "sha256": "79d41b29ec1013950a3d4065a4f18766bb756ce2483364e32efcc853c6a1bb40"
+    },
+    {
+      "file": "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+      "sha256": "08d54fa60abc0b69bb7423e10960413b0135cb19083e124a1c4b093ac83bebf5"
+    },
+    {
+      "file": "src/components/layout/NotificationGesture.test.jsx",
+      "sha256": "8b0a043d075058e4f1d95d32da8d9c4ed687add4f7b1941130fa58ac6e30b0a3"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReview.jsx",
+      "sha256": "2208e42e08ebf5681c76839e5afc9afc4cae91eda84770f9cb9488e304545904"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReviewContext.js",
+      "sha256": "bfff5859ad53eeecf3d56e698f3c9171106e7eae711e2c93b2668ea117027a6b"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "sha256": "e0849446d71b3618a8160d2e012374c6e7ae4720cd4e542f4d7e640785cf4d96"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "sha256": "6960a907f870dac4ded6eef8a903173b0cbfdd5fafbe99dc2a6e2374fa4e7f69"
+    },
+    {
+      "file": "src/features/propertyFacts/cardFacts.js",
+      "sha256": "6375a7bb62ab4b458139983682d9d16292510fff5bc6c3705944a2c27c1f268c"
+    },
+    {
+      "file": "src/features/propertyFacts/copy.js",
+      "sha256": "38f4dea06c86823bd5bbde904df386ce93a95cccdec1c25aae4e158e726f4a0b"
+    },
+    {
+      "file": "src/features/propertyFacts/propertyFacts.css",
+      "sha256": "935988247ff6b1f39bd2d919c83fafe15e1842556cbe047e13f1c20858d8c4a2"
+    },
+    {
+      "file": "src/features/propertyFacts/propertyFacts.test.jsx",
+      "sha256": "662a1ee4c99557e059701cb409f8ee22de61ee34974e00922198c5116e7dd8e8"
+    },
+    {
+      "file": "src/lib/optionalPropertyNumber.js",
+      "sha256": "0d9b412a212a3d75003f54ca383a49080aa66bfd3302787844195f638ed7b235"
+    },
+    {
+      "file": "src/services/propertyFactReviewService.js",
+      "sha256": "d2d8755be49cfbd21017d13335508e7dd2bf9458bf51386cc2767e45113d5e84"
+    },
+    {
+      "file": "src/services/propertyFactReviewService.test.js",
+      "sha256": "98ec236efe5b4ee66809b9237a9f486341e69622171fc16a321cf52818fdfc11"
+    },
+    {
+      "file": "src/services/propertyReportParcelService.js",
+      "sha256": "a5ca1c0b9b68b12053f4faf7368d87922f01a8dc047f3a0df5c1fdce74973caa"
+    },
+    {
+      "file": "src/services/propertyReportParcelService.test.js",
+      "sha256": "9cc5fec65d701579ced2313131345f602b237572594572be5c373a96467a8853"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/acquisition.test.ts",
+      "sha256": "59f8594340b48a480415f4a93df09e737a0b288073b4153370addfa718008399"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/acquisition.ts",
+      "sha256": "e2939289731831e5020b4853e563864af5291deef735f051005903545190ae39"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "sha256": "f8acd1c5f79423d759d3a06cd108982e3d929bab0ef3f50678ac363b0e7621e7"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/presentation.js",
+      "sha256": "c9d3894b0f2ec0d04d71e73ffa79dac18b66dd5563a475bef9a88db1d70398cc"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "sha256": "6d81dcd52932a69a05ad619bb5db908d747285f84fc08a3d832e719edaf4d0f6"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+      "sha256": "2da123f83d3025d66fe84ab5a8a09f99c80bdbcf67f97c4c7c41c1e145de4d8a"
+    },
+    {
+      "file": "supabase/functions/_shared/public-parcel/reportEvidence.test.ts",
+      "sha256": "601e6046489ab714e30d2e6e70530a7c13757abbdd586677afa1a93fb8836689"
+    },
+    {
+      "file": "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+      "sha256": "3b1c69d443ca4492d8d1ebad54ef2e1d43f3e50ace11f5477760016a34e31335"
+    }
+  ]
+}

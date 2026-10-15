@@ -1,0 +1,80 @@
+{
+  "baseline": "6dbb16397f531137e357ed4c1d884d9fc37ee792",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+    "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+    "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts",
+    "supabase/functions/_shared/maxxis/types.ts",
+    "supabase/functions/_shared/parcel-evidence-consensus/adapters.ts",
+    "supabase/functions/_shared/parcel-evidence-consensus/engine.ts",
+    "supabase/functions/_shared/parcel-evidence-consensus/types.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/acquisition.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/presentation.js",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+    "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+    "supabase/functions/_shared/public-parcel/reportEvidence.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/maxxis-chat/index.ts",
+    "supabase/functions/property-fact-review/index.ts",
+    "supabase/functions/public-parcel/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+        "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/adapters.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/engine.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/types.ts",
+        "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/presentation.js",
+        "supabase/functions/maxxis-chat/index.ts"
+      ]
+    },
+    {
+      "function": "maxxis-deal-workflow",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/types.ts"
+      ]
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/types.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/adapters.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/engine.ts",
+        "supabase/functions/_shared/parcel-evidence-consensus/types.ts",
+        "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/acquisition.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+        "supabase/functions/property-fact-review/index.ts"
+      ]
+    },
+    {
+      "function": "public-parcel",
+      "changedDependencies": [
+        "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+        "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+        "supabase/functions/public-parcel/index.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

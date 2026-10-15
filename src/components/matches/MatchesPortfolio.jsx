@@ -22,6 +22,7 @@ import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { fetchPropertyIntelligence, isPropertyIntelligenceId } from '../../services/propertyIntelligenceService';
+import { fetchPropertyReportParcelEvidence } from '../../services/propertyReportParcelService';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
 import { ReportExperienceSelector } from '../../features/maxxis/access/ReportExperienceSelector';
@@ -480,6 +481,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   const [exportMode, setExportMode] = useState('');
   const [isPreparingExport, setIsPreparingExport] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [reportParcelEvidence, setReportParcelEvidence] = useState(null);
+  useEffect(()=>{
+    let current=true;
+    const load=()=>fetchPropertyReportParcelEvidence(item?.id).then(result=>{if(current)setReportParcelEvidence(result);}).catch(()=>{if(current)setReportParcelEvidence(null);});
+    const acquired=event=>{if(event.detail?.propertyId===item?.id)void load();};
+    void load();window.addEventListener('ds:parcel-evidence-ready',acquired);
+    return()=>{current=false;window.removeEventListener('ds:parcel-evidence-ready',acquired);};
+  },[item?.id]);
+  const parcelEvidenceForItem=reportParcelEvidence?.propertyId===item?.id?reportParcelEvidence:null;
+  const portfolioFactsItem=useMemo(()=>mergePropertyReleaseEvidence(item,null,parcelEvidenceForItem),[item,parcelEvidenceForItem]);
 
   useEffect(() => {
     const openRequestedReport = (event) => {
@@ -784,9 +795,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       });
     }))).filter(Boolean);
     const baseProperty = { ...buildCurrentReportProperty({ images: reportImages }), address: item?.address || title };
-    const cachedOrAuthorizedEvidence = isPropertyIntelligenceId(item?.id)
-      ? await fetchPropertyIntelligence(item.id).catch(() => null) : null;
-    const property = mergePropertyReleaseEvidence(baseProperty, cachedOrAuthorizedEvidence);
+    const [cachedOrAuthorizedEvidence,publicParcelEvidence] = isPropertyIntelligenceId(item?.id)
+      ? await Promise.all([fetchPropertyIntelligence(item.id).catch(() => null),fetchPropertyReportParcelEvidence(item.id,{acquire:true}).catch(() => null)]) : [null,null];
+    const property = mergePropertyReleaseEvidence(baseProperty, cachedOrAuthorizedEvidence, publicParcelEvidence);
     const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, property });
     const exportEntitlement = resolveReportExportEntitlement({
       plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, channel: 'PDF',
@@ -1029,7 +1040,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       </div>
 
       <div style={{ padding:10, display:"grid", gap:8 }}>
-          <PortfolioPropertyFacts item={item} labels={matchesT} language={getLang()} />
+          <PortfolioPropertyFacts item={portfolioFactsItem} labels={matchesT} language={getLang()} />
 
           {metaChips.length ? (
             <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>

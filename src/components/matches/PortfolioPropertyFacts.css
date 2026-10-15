@@ -10,6 +10,8 @@
 .portfolio-property-room { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; color:var(--t1); }
 .portfolio-property-room .portfolio-property-label { font-size:12px; text-transform:none; letter-spacing:normal; color:var(--t1); }
 .portfolio-property-room svg { flex-shrink:0; }
+.portfolio-fact-review-action,.portfolio-property-detail-value button { min-height:40px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--t1); padding:6px 10px; cursor:pointer; font:inherit; }
+.portfolio-property-detail-value button { color:var(--t1); border-color:#c78312; }
 @container(min-width:520px) { .portfolio-property-rooms { grid-column:auto; } }
 @media(max-width:480px) {
   .portfolio-property-details { grid-template-columns:minmax(0,1fr); }

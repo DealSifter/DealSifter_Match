@@ -1,0 +1,1935 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "before": {
+      "version": 1,
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "publisherUpdatedAt": null,
+      "identityHash": "9a128443fc2577d5c12f5fb6e15e30b5cdc408781272df53e3c0407ab6e7333a",
+      "publisherHash": "9de799fd9547d83643e4b6c137135bf9ec54763694687de030fd159284228a22",
+      "evidenceHash": "302b69433f8bd0fccbc873e486b767af944bcbe69eb939e6de266af127807b53",
+      "rows": {
+        "lotArea": {
+          "field": "lotArea",
+          "state": "REVIEW_REQUIRED",
+          "originalValue": "1.14 ac",
+          "currentCandidate": {
+            "field": "lotArea",
+            "originalValue": "1.14 ac",
+            "value": 1.14,
+            "unit": "ACRES",
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "USER_PROVIDED",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-7",
+            "normalizedValue": 49658.399999999994,
+            "normalizedUnit": "SQFT",
+            "normalizedAcres": 1.14,
+            "specialization": "CONTEXTUAL",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          "currentValue": 49658.399999999994,
+          "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
+          "projection": {
+            "field": "lotArea",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "value": null,
+            "unit": "SQFT",
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "lotArea",
+                "originalValue": "1.14 ac",
+                "value": 1.14,
+                "unit": "ACRES",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-7",
+                "normalizedValue": 49658.399999999994,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 1.14,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "lotArea",
+                "originalValue": 23854,
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "unit": "SQFT",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-8",
+                "normalizedValue": 23854,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 0.5476124885215794,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [
+              {
+                "field": "lotArea",
+                "originalValue": "1.14 ac",
+                "value": 1.14,
+                "unit": "ACRES",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-7",
+                "normalizedValue": 49658.399999999994,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 1.14,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "lotArea",
+                "originalValue": 23854,
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "unit": "SQFT",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-8",
+                "normalizedValue": 23854,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 0.5476124885215794,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              },
+              {
+                "sourceId": "RENTCAST",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+            "requiresQualification": true
+          },
+          "candidates": [
+            {
+              "field": "lotArea",
+              "originalValue": 23854,
+              "sourceType": "RENTCAST",
+              "sourceId": "RENTCAST",
+              "sourceFamily": "RENTCAST",
+              "sourceAuthority": "RENTCAST",
+              "evidenceStatus": "PUBLIC_RECORD",
+              "unit": "SQFT",
+              "declaredSourceFamily": "RENTCAST",
+              "candidateId": "evidence-8",
+              "normalizedValue": 23854,
+              "normalizedUnit": "SQFT",
+              "normalizedAcres": 0.5476124885215794,
+              "specialization": "RELEVANT",
+              "comparable": true,
+              "exclusionReason": null
+            }
+          ],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": true,
+          "effective": {
+            "value": null,
+            "unit": "SQFT",
+            "state": "CONFLICTED",
+            "sourceType": null
+          }
+        },
+        "apn": {
+          "field": "apn",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "a33b1dfe1eaa090f04d8079864dddf1ad2c4e249089deb36929841a2c6275f5e",
+          "projection": {
+            "field": "apn",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "apn",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-1",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "owner": {
+          "field": "owner",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "5abe386f67741fc8b595eb934377ab6eb92144cafa381cc385b62002aae78568",
+          "projection": {
+            "field": "owner",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "owner",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-9",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "assessedValue": {
+          "field": "assessedValue",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "bbc8622ee23920f4f0ba5682bd4a02fc22841bba2260204d5e8286dede367136",
+          "projection": {
+            "field": "assessedValue",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "assessedValue",
+                "originalValue": null,
+                "value": null,
+                "unit": "USD",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-2",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "propertyTax": {
+          "field": "propertyTax",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "51d56b2b8db7e0cb4402c4da8a6f875dee05d72f26cc8cd080993d0f9f5a2543",
+          "projection": {
+            "field": "propertyTax",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "propertyTax",
+                "originalValue": null,
+                "value": null,
+                "unit": "USD",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-10",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "zoning": {
+          "field": "zoning",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "62592c0065e44bfe28158dbf5fbb3bb4433084cf5120e1348ed1cbe7c81f0ef1",
+          "projection": {
+            "field": "zoning",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "zoning",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-14",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "propertyType": {
+          "field": "propertyType",
+          "state": "NO_ACTION",
+          "originalValue": "LAND",
+          "currentCandidate": {
+            "field": "propertyType",
+            "originalValue": "LAND",
+            "unit": null,
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "USER_PROVIDED",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-11",
+            "normalizedValue": "LAND",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "CONTEXTUAL",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          "currentValue": "LAND",
+          "evidenceHash": "837a9a1e317565c55c31714781c033f55ddc1c39c701e0c7a7ecba96cf7c2d62",
+          "projection": {
+            "field": "propertyType",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "value": "LAND",
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-11",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "supportingCandidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-11",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": "OBSERVED_SOURCE_VALUE",
+            "reasonCode": "ONE_INDEPENDENT_SOURCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": "LAND",
+            "unit": null,
+            "state": "AVAILABLE",
+            "sourceType": "USER_PROVIDED",
+            "status": "USER_PROVIDED",
+            "year": null,
+            "adopted": false
+          }
+        },
+        "buildingArea": {
+          "field": "buildingArea",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "2b892d622373ec6757fd62173f1523fe1319f1e2b1f5d10a3f71e8184a3e0457",
+          "projection": {
+            "field": "buildingArea",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "buildingArea",
+                "originalValue": null,
+                "value": null,
+                "unit": "SQFT",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-5",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "yearBuilt": {
+          "field": "yearBuilt",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "77e4c8e90c4b8194d5cc3e583d64175c3072abc118cd7278730f51d4aae1d687",
+          "projection": {
+            "field": "yearBuilt",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "yearBuilt",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-13",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "beds": {
+          "field": "beds",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "639d8c36797e94f503a1fea3396ccf642c6970a3637d77ab52b4a80ecb6f753b",
+          "projection": {
+            "field": "beds",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "beds",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-4",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "baths": {
+          "field": "baths",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "d2742db4ccc185e4dc6540be844459f39cae5b2633e3ed40a8f124d4acbccb44",
+          "projection": {
+            "field": "baths",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "baths",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-3",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "subdivision": {
+          "field": "subdivision",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "4a354004e54a1a07cf8b35f1abd870637d893928a7776b66e78c98d950f74e9f",
+          "projection": {
+            "field": "subdivision",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "subdivision",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-12",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "legalDescription": {
+          "field": "legalDescription",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "e80571af46af0164ae1e96980dcb003ba9262d705ae96910903ba4fec93d430f",
+          "projection": {
+            "field": "legalDescription",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "legalDescription",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-6",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        }
+      },
+      "summary": {
+        "complements": 0,
+        "conflicts": 1,
+        "pending": 1
+      },
+      "checkedAt": "2026-10-15T14:26:36.236Z",
+      "resolvedPropertyType": "LAND"
+    },
+    "kept": {
+      "version": 1,
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "publisherUpdatedAt": null,
+      "identityHash": "9a128443fc2577d5c12f5fb6e15e30b5cdc408781272df53e3c0407ab6e7333a",
+      "publisherHash": "9de799fd9547d83643e4b6c137135bf9ec54763694687de030fd159284228a22",
+      "evidenceHash": "302b69433f8bd0fccbc873e486b767af944bcbe69eb939e6de266af127807b53",
+      "rows": {
+        "lotArea": {
+          "field": "lotArea",
+          "state": "REVIEW_REQUIRED",
+          "originalValue": "1.14 ac",
+          "currentCandidate": {
+            "field": "lotArea",
+            "originalValue": "1.14 ac",
+            "value": 1.14,
+            "unit": "ACRES",
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "USER_PROVIDED",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-7",
+            "normalizedValue": 49658.399999999994,
+            "normalizedUnit": "SQFT",
+            "normalizedAcres": 1.14,
+            "specialization": "CONTEXTUAL",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          "currentValue": 49658.399999999994,
+          "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
+          "projection": {
+            "field": "lotArea",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "value": null,
+            "unit": "SQFT",
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "lotArea",
+                "originalValue": "1.14 ac",
+                "value": 1.14,
+                "unit": "ACRES",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-7",
+                "normalizedValue": 49658.399999999994,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 1.14,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "lotArea",
+                "originalValue": 23854,
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "unit": "SQFT",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-8",
+                "normalizedValue": 23854,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 0.5476124885215794,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [
+              {
+                "field": "lotArea",
+                "originalValue": "1.14 ac",
+                "value": 1.14,
+                "unit": "ACRES",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-7",
+                "normalizedValue": 49658.399999999994,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 1.14,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              },
+              {
+                "field": "lotArea",
+                "originalValue": 23854,
+                "sourceType": "RENTCAST",
+                "sourceId": "RENTCAST",
+                "sourceFamily": "RENTCAST",
+                "sourceAuthority": "RENTCAST",
+                "evidenceStatus": "PUBLIC_RECORD",
+                "unit": "SQFT",
+                "declaredSourceFamily": "RENTCAST",
+                "candidateId": "evidence-8",
+                "normalizedValue": 23854,
+                "normalizedUnit": "SQFT",
+                "normalizedAcres": 0.5476124885215794,
+                "specialization": "RELEVANT",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              },
+              {
+                "sourceId": "RENTCAST",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+            "requiresQualification": true
+          },
+          "candidates": [
+            {
+              "field": "lotArea",
+              "originalValue": 23854,
+              "sourceType": "RENTCAST",
+              "sourceId": "RENTCAST",
+              "sourceFamily": "RENTCAST",
+              "sourceAuthority": "RENTCAST",
+              "evidenceStatus": "PUBLIC_RECORD",
+              "unit": "SQFT",
+              "declaredSourceFamily": "RENTCAST",
+              "candidateId": "evidence-8",
+              "normalizedValue": 23854,
+              "normalizedUnit": "SQFT",
+              "normalizedAcres": 0.5476124885215794,
+              "specialization": "RELEVANT",
+              "comparable": true,
+              "exclusionReason": null
+            }
+          ],
+          "bulkCandidateId": null,
+          "decision": {
+            "action": "KEEP_MY_VALUE",
+            "evidenceHash": "5af08fad1836df7019ad6eb0b6e673bf0d8b0246640337bf78f57bba8e81de96",
+            "candidateId": "evidence-7",
+            "value": 49658.399999999994,
+            "source": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "unit": "SQFT",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN",
+            "year": null,
+            "by": "22222222-2222-4222-8222-222222222222",
+            "at": "2026-10-15T14:26:36.431Z",
+            "originalValue": "1.14 ac"
+          },
+          "pending": false,
+          "effective": {
+            "value": 49658.399999999994,
+            "unit": "SQFT",
+            "state": "AVAILABLE",
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN",
+            "year": null,
+            "adopted": true,
+            "userConfirmed": true
+          }
+        },
+        "apn": {
+          "field": "apn",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "a33b1dfe1eaa090f04d8079864dddf1ad2c4e249089deb36929841a2c6275f5e",
+          "projection": {
+            "field": "apn",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "apn",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-1",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "owner": {
+          "field": "owner",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "5abe386f67741fc8b595eb934377ab6eb92144cafa381cc385b62002aae78568",
+          "projection": {
+            "field": "owner",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "owner",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-9",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "assessedValue": {
+          "field": "assessedValue",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "bbc8622ee23920f4f0ba5682bd4a02fc22841bba2260204d5e8286dede367136",
+          "projection": {
+            "field": "assessedValue",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "assessedValue",
+                "originalValue": null,
+                "value": null,
+                "unit": "USD",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-2",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "propertyTax": {
+          "field": "propertyTax",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "51d56b2b8db7e0cb4402c4da8a6f875dee05d72f26cc8cd080993d0f9f5a2543",
+          "projection": {
+            "field": "propertyTax",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "propertyTax",
+                "originalValue": null,
+                "value": null,
+                "unit": "USD",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-10",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "zoning": {
+          "field": "zoning",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "62592c0065e44bfe28158dbf5fbb3bb4433084cf5120e1348ed1cbe7c81f0ef1",
+          "projection": {
+            "field": "zoning",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "zoning",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-14",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "propertyType": {
+          "field": "propertyType",
+          "state": "NO_ACTION",
+          "originalValue": "LAND",
+          "currentCandidate": {
+            "field": "propertyType",
+            "originalValue": "LAND",
+            "unit": null,
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "sourceFamily": "PUBLISHER",
+            "sourceAuthority": "PUBLISHER",
+            "evidenceStatus": "USER_PROVIDED",
+            "declaredSourceFamily": "PUBLISHER",
+            "candidateId": "evidence-11",
+            "normalizedValue": "LAND",
+            "normalizedUnit": null,
+            "normalizedAcres": null,
+            "specialization": "CONTEXTUAL",
+            "comparable": true,
+            "exclusionReason": null
+          },
+          "currentValue": "LAND",
+          "evidenceHash": "837a9a1e317565c55c31714781c033f55ddc1c39c701e0c7a7ecba96cf7c2d62",
+          "projection": {
+            "field": "propertyType",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "value": "LAND",
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-11",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "supportingCandidates": [
+              {
+                "field": "propertyType",
+                "originalValue": "LAND",
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "USER_PROVIDED",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-11",
+                "normalizedValue": "LAND",
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": true,
+                "exclusionReason": null
+              }
+            ],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": "OBSERVED_SOURCE_VALUE",
+            "reasonCode": "ONE_INDEPENDENT_SOURCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": "LAND",
+            "unit": null,
+            "state": "AVAILABLE",
+            "sourceType": "USER_PROVIDED",
+            "status": "USER_PROVIDED",
+            "year": null,
+            "adopted": false
+          }
+        },
+        "buildingArea": {
+          "field": "buildingArea",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "2b892d622373ec6757fd62173f1523fe1319f1e2b1f5d10a3f71e8184a3e0457",
+          "projection": {
+            "field": "buildingArea",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "buildingArea",
+                "originalValue": null,
+                "value": null,
+                "unit": "SQFT",
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-5",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "yearBuilt": {
+          "field": "yearBuilt",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "77e4c8e90c4b8194d5cc3e583d64175c3072abc118cd7278730f51d4aae1d687",
+          "projection": {
+            "field": "yearBuilt",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "yearBuilt",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-13",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "beds": {
+          "field": "beds",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "639d8c36797e94f503a1fea3396ccf642c6970a3637d77ab52b4a80ecb6f753b",
+          "projection": {
+            "field": "beds",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "beds",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-4",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "baths": {
+          "field": "baths",
+          "state": "NOT_APPLICABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "d2742db4ccc185e4dc6540be844459f39cae5b2633e3ed40a8f124d4acbccb44",
+          "projection": {
+            "field": "baths",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "baths",
+                "originalValue": null,
+                "value": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-3",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "NOT_APPLICABLE",
+            "sourceType": null
+          }
+        },
+        "subdivision": {
+          "field": "subdivision",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "4a354004e54a1a07cf8b35f1abd870637d893928a7776b66e78c98d950f74e9f",
+          "projection": {
+            "field": "subdivision",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "subdivision",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-12",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        },
+        "legalDescription": {
+          "field": "legalDescription",
+          "state": "UNAVAILABLE",
+          "originalValue": null,
+          "currentCandidate": null,
+          "currentValue": null,
+          "evidenceHash": "e80571af46af0164ae1e96980dcb003ba9262d705ae96910903ba4fec93d430f",
+          "projection": {
+            "field": "legalDescription",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [
+              {
+                "field": "legalDescription",
+                "originalValue": null,
+                "unit": null,
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "sourceFamily": "PUBLISHER",
+                "sourceAuthority": "PUBLISHER",
+                "evidenceStatus": "UNAVAILABLE",
+                "declaredSourceFamily": "PUBLISHER",
+                "candidateId": "evidence-6",
+                "normalizedValue": null,
+                "normalizedUnit": null,
+                "normalizedAcres": null,
+                "specialization": "CONTEXTUAL",
+                "comparable": false,
+                "exclusionReason": "UNAVAILABLE"
+              }
+            ],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [
+              {
+                "sourceId": "dealSifter",
+                "freshness": "UNKNOWN",
+                "retrievedAt": null,
+                "sourceUpdatedAt": null
+              }
+            ],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
+          },
+          "candidates": [],
+          "bulkCandidateId": null,
+          "decision": null,
+          "pending": false,
+          "effective": {
+            "value": null,
+            "unit": null,
+            "state": "UNAVAILABLE",
+            "sourceType": null
+          }
+        }
+      },
+      "summary": {
+        "complements": 0,
+        "conflicts": 0,
+        "pending": 0
+      },
+      "checkedAt": "2026-10-15T14:26:36.236Z",
+      "resolvedPropertyType": "LAND"
+    }
+  }
+}

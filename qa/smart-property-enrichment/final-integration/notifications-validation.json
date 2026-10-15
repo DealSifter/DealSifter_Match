@@ -1,0 +1,67 @@
+{
+  "pass": true,
+  "tests": [
+    {
+      "file": "src/services/propertyFactReviewService.test.js",
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "file": "src/components/layout/NotificationGesture.test.jsx",
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "passed": 24,
+      "failed": 0
+    }
+  ],
+  "deepLink": [
+    {
+      "device": "desktop",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": true,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": false,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    }
+  ],
+  "groupingAndDedup": [
+    {
+      "name": "same-evidence-notification-dedup",
+      "pass": true
+    }
+  ],
+  "realProductionSession": false
+}

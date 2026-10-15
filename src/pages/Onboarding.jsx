@@ -50,6 +50,10 @@ import {
   getMissingRequiredProfile,
 } from '../domain/profile/onboardingProfileValidation';
 import { trackProductEvent } from '../lib/productAnalytics';
+import {optionalPropertyNumber} from '../lib/optionalPropertyNumber';
+import {usePropertyFactReview} from '../features/propertyFacts/PropertyFactReviewContext';
+import {factCopy} from '../features/propertyFacts/copy';
+import {useLang} from '../i18n/translations';
 
 
 export function Onboarding({
@@ -77,6 +81,8 @@ export function Onboarding({
   initialProfileTab = 'personal',
 }) {
   const t = useT('onboarding').onboarding;
+  const propertyFacts=usePropertyFactReview();
+  const propertyFactCopy=factCopy(useLang());
   const [isGeocodeSaving, setIsGeocodeSaving] = useState(false);
   const [geocodeNotice, setGeocodeNotice] = useState('');
   const geocodeAttention = 'var(--geocode-attention)';
@@ -1934,18 +1940,19 @@ export function Onboarding({
   };
 
   const startEditProperty = (p) => {
+    if(propertyFacts)void propertyFacts.check(p.id).catch(()=>null);
     setEditingPropertyId(p.id);
     setPropertyEditDraft({
       address: p.address || '',
       city: p.city || '',
       zip: p.zip || '',
-      price: p.price ? Number(p.price).toLocaleString('en-US') : '',
-      capRate: p.capRate ? String(p.capRate) : '',
-      rehab: p.rehab ? Number(p.rehab).toLocaleString('en-US') : '',
-      beds: p.beds ? String(p.beds) : '',
-      baths: p.baths ? String(p.baths) : '',
-      sqft: p.sqft || '',
-      lot: p.lot || '',
+      price: p.price!=null ? Number(p.price).toLocaleString('en-US') : '',
+      capRate: p.capRate!=null ? String(p.capRate) : '',
+      rehab: p.rehab!=null ? Number(p.rehab).toLocaleString('en-US') : '',
+      beds: p.beds!=null ? String(p.beds) : '',
+      baths: p.baths!=null ? String(p.baths) : '',
+      sqft: p.sqft ?? '',
+      lot: p.lot ?? '',
       type: p.type || '',
       objective: p.objective || '',
       description: p.description || '',
@@ -1964,10 +1971,10 @@ export function Onboarding({
       && !isTruthyFlag(currentRecord.publishToShowcase, true)
     );
     const numericPrice = parseCurrencyInput(propertyEditDraft.price);
-    const rehab = parseCurrencyInput(propertyEditDraft.rehab);
-    const capRate = Number(propertyEditDraft.capRate) || 0;
-    const beds = Number(propertyEditDraft.beds) || 0;
-    const baths = Number(propertyEditDraft.baths) || 0;
+    const rehab = optionalPropertyNumber(propertyEditDraft.rehab,{currency:true});
+    const capRate = optionalPropertyNumber(propertyEditDraft.capRate);
+    const beds = optionalPropertyNumber(propertyEditDraft.beds,{integer:true});
+    const baths = optionalPropertyNumber(propertyEditDraft.baths,{integer:true});
     const nextMarkets = normalizeMarkets(propertyEditDraft.markets);
     if (!currentRecord) return;
     const prop = currentRecord;
@@ -1981,8 +1988,8 @@ export function Onboarding({
             rehab,
             beds,
             baths,
-            sqft: propertyEditDraft.sqft || prop.sqft,
-            lot: propertyEditDraft.lot || prop.lot,
+            sqft: propertyEditDraft.sqft,
+            lot: propertyEditDraft.lot,
             type: propertyEditDraft.type || prop.type,
             objective: propertyEditDraft.objective || prop.objective,
             description: propertyEditDraft.description || prop.description,
@@ -2080,8 +2087,8 @@ export function Onboarding({
       sqft: portfolioSqft,
       lot: portfolioLot,
       objective: portfolioObjective,
-      rehab: parseCurrencyInput(portfolioRehab),
-      capRate: Number(portfolioCapRate),
+      rehab: optionalPropertyNumber(portfolioRehab,{currency:true}),
+      capRate: optionalPropertyNumber(portfolioCapRate),
       markets: normalizeMarkets(portfolioMarkets),
       description: portfolioDescription,
       images: portfolioImages,
@@ -4387,6 +4394,7 @@ export function Onboarding({
                             </div>
                           </div>
                           {!hasValidPropertyGeocode(p) ? <div role="status" style={{ color: geocodeAttention, fontSize: 11, lineHeight: 1.4, padding: '0 0 8px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{p.geocodeStatus === 'pending' ? t.geocodePendingNotice : t.geocodeDraftNotice}</div> : !p.publishToShowcase ? <div style={{ color: C.success, fontSize: 11, paddingBottom: 8 }}>{t.geocodeValidStatus}</div> : null}
+                          {propertyFacts?.ownedProperties.has(String(p.id))?<div style={{padding:'0 0 8px'}}><button type="button" className="property-fact-review-link" onClick={()=>propertyFacts.open(p.id)}>{propertyFactCopy.review}{propertyFacts.records[p.id]?.snapshot?.summary.pending?` · ${propertyFactCopy.summary(propertyFacts.records[p.id].snapshot.summary.complements,propertyFacts.records[p.id].snapshot.summary.conflicts)}`:''}</button></div>:null}
                           {INLINE_EDIT_ENABLED && editingPropertyId === p.id && (
                             <div style={{ paddingBottom: 8 }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(84px, 0.8fr) minmax(118px, 1.1fr)', gap: 6, paddingBottom: 8, width: '100%', minWidth: 0 }}>
@@ -4414,7 +4422,7 @@ export function Onboarding({
                                                   </div>
                                                   <div style={{ position: 'relative', minWidth: 0 }}>
                                                     <span style={portfolioFieldLabelStyle}>{t.labelUsdRehabShort}</span>
-                                                    <input value={propertyEditDraft.rehab || ''} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, rehab: formatCurrencyInput(e.target.value) }))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle()} />
+                                                    <input value={propertyEditDraft.rehab ?? ''} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, rehab: formatCurrencyInput(e.target.value) }))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle()} />
                                                   </div>
                                                   <div style={{ position: 'relative', minWidth: 0 }}>
                                                     <span style={portfolioFieldLabelStyle}>{t.labelBedsShort}</span>
@@ -5072,7 +5080,7 @@ export function Onboarding({
             </div>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelUsdRehabShort}</span>
-              <input value={propertyEditDraft.rehab || ''} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, rehab: formatCurrencyInput(e.target.value) }))} inputMode="decimal" style={portfolioFieldInputStyle({ textAlign: 'right' })} />
+              <input value={propertyEditDraft.rehab ?? ''} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, rehab: formatCurrencyInput(e.target.value) }))} inputMode="decimal" style={portfolioFieldInputStyle({ textAlign: 'right' })} />
             </div>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelBedsShort}</span>

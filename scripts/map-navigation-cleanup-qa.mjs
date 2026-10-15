@@ -54,8 +54,14 @@ try {
         await page.evaluate(()=>{window.__cleanupMap.stop();window.__cleanupMap.options.zoomSnap=0;window.__cleanupMap.setView([35.92113,-78.58355],15.5,{animate:false});});
       }
       if(state==='native-zoom') {
-        await page.evaluate(()=>{window.__cleanupMap.setZoom(window.__cleanupMap.getZoom()+1,{animate:true});});
-        await page.waitForFunction(()=>window.__cleanupMap._animatingZoom===true);
+        // Observe and leave in the SAME native animation task; a later polling
+        // round-trip can miss the short CSS animation under a loaded QA host.
+        await page.evaluate(()=>new Promise((resolve,reject)=>{
+          const map=window.__cleanupMap,timer=setTimeout(()=>reject(new Error('NATIVE_ZOOM_DID_NOT_START')),5000);
+          map.once('zoomanim',()=>{clearTimeout(timer);window.__cleanupNativeZoomInFlight=map._animatingZoom===true;window.__renderCleanupModule(false);resolve();});
+          map.setZoom(map.getZoom()+1,{animate:true});
+        }));
+        expect(await page.evaluate(()=>window.__cleanupNativeZoomInFlight)).toBe(true);
       }
       await page.evaluate(()=>window.__renderCleanupModule(false));
       // Covers the native CSS-zoom timer as well as immediate passive cleanup.

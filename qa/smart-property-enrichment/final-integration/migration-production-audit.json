@@ -1,0 +1,71 @@
+﻿{
+    "mode":  "Audit",
+    "at":  "2026-10-15T13:42:28.4361104Z",
+    "productionWrites":  false,
+    "before":  {
+                   "latestMigration":  "20261013000001",
+                   "optionalColumns":  [
+                                           {
+                                               "type":  "integer",
+                                               "column":  "baths",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           },
+                                           {
+                                               "type":  "integer",
+                                               "column":  "beds",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           },
+                                           {
+                                               "type":  "numeric",
+                                               "column":  "rehab",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           }
+                                       ],
+                   "migrationHistory":  [
+                                            {
+                                                "name":  "property_geocode_publication_guard",
+                                                "version":  "20261013000001"
+                                            }
+                                        ],
+                   "reviewTableExists":  false,
+                   "historyTableExists":  false,
+                   "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text])))",
+                   "targetMigrationPresent":  false
+               },
+    "after":  {
+                  "latestMigration":  "20261013000001",
+                  "optionalColumns":  [
+                                          {
+                                              "type":  "integer",
+                                              "column":  "baths",
+                                              "default":  "0",
+                                              "nullable":  "NO"
+                                          },
+                                          {
+                                              "type":  "integer",
+                                              "column":  "beds",
+                                              "default":  "0",
+                                              "nullable":  "NO"
+                                          },
+                                          {
+                                              "type":  "numeric",
+                                              "column":  "rehab",
+                                              "default":  "0",
+                                              "nullable":  "NO"
+                                          }
+                                      ],
+                  "migrationHistory":  [
+                                           {
+                                               "name":  "property_geocode_publication_guard",
+                                               "version":  "20261013000001"
+                                           }
+                                       ],
+                  "reviewTableExists":  false,
+                  "historyTableExists":  false,
+                  "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text])))",
+                  "targetMigrationPresent":  false
+              }
+}

@@ -449,6 +449,7 @@ export type MaxxisResponse = {
   message: string;
   type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_evidence' | 'deal_insight' | 'property_comparison' | 'deal_copilot_overview';
   data: null
+    | {propertyId:string;reviewField:string}
     | { properties: MaxxisPropertyResult[]; personalized?: boolean; profileAvailable?: boolean; profileSuggestions?: ProfileDriftSuggestion[] }
     | { services: MaxxisServiceResult[] }
     | { profile: MaxxisInvestmentProfile | null; complete: boolean }

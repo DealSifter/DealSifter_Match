@@ -1,0 +1,18 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "originalRehab": null,
+    "recordedTax": {
+      "value": 0,
+      "unit": "USD",
+      "state": "AVAILABLE",
+      "sourceType": "PUBLIC_PARCEL_GIS",
+      "sourceId": "GIS",
+      "status": "PUBLIC_RECORD",
+      "freshness": "UNKNOWN",
+      "year": 2025,
+      "adopted": true,
+      "userConfirmed": false
+    }
+  }
+}

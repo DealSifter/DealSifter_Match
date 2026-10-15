@@ -1,0 +1,14 @@
+{
+  "isolated": true,
+  "unrelatedEnrichmentExcluded": true,
+  "migrationsApplied": 0,
+  "changed": [
+    "supabase/functions/_shared/public-parcel/evidenceReceipt.ts",
+    "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+    "supabase/functions/public-parcel/index.ts"
+  ],
+  "affectedFunctions": [
+    "maxxis-chat",
+    "public-parcel"
+  ]
+}

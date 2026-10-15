@@ -72,3 +72,6 @@ verify_jwt = true
 
 [functions.public-parcel]
 verify_jwt = true
+
+[functions.property-fact-review]
+verify_jwt = true

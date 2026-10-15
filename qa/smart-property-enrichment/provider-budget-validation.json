@@ -1,0 +1,8 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "newLiveRentcastCalls": 0,
+    "automatedLiveGisCalls": 0,
+    "cacheOnlyWarmupLimit": 16
+  }
+}

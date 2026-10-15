@@ -14,9 +14,15 @@ import { formatCompactUsd } from '../../lib/formatMoney';
 import { getBlurredStreetAddressLine, getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import { LocalizedNarrative } from '../ui/LocalizedNarrative';
+import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
+import {buildPropertyCardFacts} from '../../features/propertyFacts/cardFacts';
+import {useLang} from '../../i18n/translations';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
+  const factReview=usePropertyFactReview();
+  const cardFacts=buildPropertyCardFacts(property,factReview?.facts?.[property.id]||property.effectiveFacts||{},useLang());
+  const canReviewFacts=Boolean(factReview?.ownedProperties.has(String(property.id)));
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
   // Card do perfil está em stand by (esmaecido)?
@@ -700,12 +706,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         <div style={{
           display: 'grid', gridTemplateColumns: isMobileLayout ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 4, marginBottom: 8,
         }}>
-          {[
-            { icon: 'home',     label: property.beds > 0 || property.baths > 0 ? `${property.beds || 0} bd / ${property.baths || 0} ba` : '—',      sub: t.bdba  },
-            { icon: 'maximize', label: property.sqft || 'N/A',                                   sub: 'SQFT'  },
-            { icon: 'maximize', label: property.lot || 'N/A',                                    sub: t.lot  },
-            { icon: 'tool',     label: property.rehab > 0 ? fmtPrice(property.rehab) : '$0',    sub: t.estimatedRehab },
-          ].map(({ label, sub }) => (
+          {cardFacts.map(({ label, sub, field, conflict }) => (
             <div key={sub} style={{
               padding: '3px 4px', borderRadius: 8, textAlign: 'center',
               background: C.alpha(C.t1, 0.04), border: `1px solid ${C.border}`,
@@ -716,7 +717,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                   ? label.split(' / ').map((part, idx, arr) => (
                       <span key={idx}>{part}{idx < arr.length - 1 ? <> / <wbr /></> : ''}</span>
                     ))
-                  : label
+                  : conflict&&canReviewFacts?<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();factReview.open(property.id,field);}} aria-label={`${sub}: ${label}`} style={{border:0,background:'transparent',color:'inherit',font:'inherit',cursor:'pointer',minHeight:44}}>{label} ⚠</button>:label
                 }
               </div>
               <div style={{ fontSize: 9, color: C.t3, fontWeight: 600, textTransform: 'uppercase', marginTop: 1 }}>{sub}</div>

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { ReportExperienceSelector } from './ReportExperienceSelector';
+import { PortfolioPropertyFacts } from '../../../components/matches/PortfolioPropertyFacts';
 const source=readFileSync(new URL('./ReportExperienceSelector.jsx',import.meta.url),'utf8');
 const css=readFileSync(new URL('./ReportExperienceSelector.css',import.meta.url),'utf8');
 const modalSource=readFileSync(new URL('../../../components/ui/Modal.jsx',import.meta.url),'utf8');
@@ -78,7 +79,9 @@ describe('Report Experience Selector',()=>{
     expect(portfolioSource).toContain('continueDisabled={!exportMode}');
   });
   it('lays unlocked portfolio property facts out in two columns',()=>{
-    expect(portfolioSource).toContain('data-testid="matches-property-detail-grid"');
-    expect(portfolioSource).toContain('gridTemplateColumns:"repeat(2, minmax(0, 1fr))"');
+    const html=renderToStaticMarkup(<PortfolioPropertyFacts item={{type:'SFR',beds:3,baths:2}} language="en"/>);
+    const factsCss=readFileSync(new URL('../../../components/matches/PortfolioPropertyFacts.css',import.meta.url),'utf8');
+    expect(html).toContain('data-testid="matches-property-detail-grid"');
+    expect(factsCss).toMatch(/\.portfolio-property-details\s*\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   });
 });

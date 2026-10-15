@@ -1,0 +1,75 @@
+{
+  "fixtureOnly": true,
+  "result": {
+    "field": "lotArea",
+    "status": "MATERIAL_CONFLICT",
+    "candidates": [
+      {
+        "field": "lotArea",
+        "originalValue": 1.14,
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-1",
+        "normalizedValue": 49658.399999999994,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1.14,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "lotArea",
+        "originalValue": 23854,
+        "sourceType": "RENTCAST",
+        "sourceId": "rentcast",
+        "sourceFamily": "RENTCAST",
+        "sourceAuthority": "RENTCAST",
+        "evidenceStatus": "VERIFIED_RECORD",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "SQFT",
+        "declaredSourceFamily": "RENTCAST",
+        "candidateId": "evidence-2",
+        "normalizedValue": 23854,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 0.5476124885215794,
+        "specialization": "RELEVANT",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "PUBLISHER",
+      "RENTCAST"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [
+      "PUBLISHER",
+      "RENTCAST"
+    ],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "SINGLE_SOURCE"
+      },
+      {
+        "sourceFamily": "RENTCAST",
+        "status": "SINGLE_SOURCE"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "SQFT",
+    "resolutionBasis": null,
+    "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+    "materialConflict": true,
+    "unresolvedReason": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER"
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "pass": true,
+  "kind": "ADDITIVE",
+  "productionApplied": false,
+  "historyConflicts": 0,
+  "localPostgresChecks": [
+    {
+      "name": "backend-owned-state-save",
+      "pass": true
+    },
+    {
+      "name": "same-evidence-notification-dedup",
+      "pass": true
+    },
+    {
+      "name": "stale-revision-rejected",
+      "pass": true
+    },
+    {
+      "name": "wrong-owner-rejected",
+      "pass": true
+    },
+    {
+      "name": "private-metadata-in-public-projection-rejected",
+      "pass": true
+    },
+    {
+      "name": "nested-private-payload-rejected",
+      "pass": true
+    },
+    {
+      "name": "missing-value-rejected",
+      "pass": true
+    },
+    {
+      "name": "missing-state-rejected",
+      "pass": true
+    },
+    {
+      "name": "nested-source-metadata-rejected",
+      "pass": true
+    },
+    {
+      "name": "missing-state-identity-rejected",
+      "pass": true
+    },
+    {
+      "name": "user-b-private-state-isolated",
+      "pass": true
+    },
+    {
+      "name": "user-b-history-isolated",
+      "pass": true
+    },
+    {
+      "name": "client-cannot-forge-backend-state",
+      "pass": true
+    },
+    {
+      "name": "owner-state-and-history-readable",
+      "pass": true
+    },
+    {
+      "name": "owner-cannot-direct-write-decisions",
+      "pass": true
+    },
+    {
+      "name": "anonymous-public-facts-without-private-metadata",
+      "pass": true
+    },
+    {
+      "name": "anonymous-private-state-denied",
+      "pass": true
+    },
+    {
+      "name": "hidden-address-parcel-identifiers-remain-private",
+      "pass": true
+    },
+    {
+      "name": "legacy-zero-not-backfilled",
+      "pass": true
+    },
+    {
+      "name": "new-optional-blanks-are-null",
+      "pass": true
+    },
+    {
+      "name": "unpublished-facts-not-public",
+      "pass": true
+    }
+  ],
+  "productionMetadataAudit": {
+    "mode": "Audit",
+    "at": "2026-10-15T13:42:28.4361104Z",
+    "productionWrites": false,
+    "before": {
+      "latestMigration": "20261013000001",
+      "optionalColumns": [
+        {
+          "type": "integer",
+          "column": "baths",
+          "default": "0",
+          "nullable": "NO"
+        },
+        {
+          "type": "integer",
+          "column": "beds",
+          "default": "0",
+          "nullable": "NO"
+        },
+        {
+          "type": "numeric",
+          "column": "rehab",
+          "default": "0",
+          "nullable": "NO"
+        }
+      ],
+      "migrationHistory": [
+        {
+          "name": "property_geocode_publication_guard",
+          "version": "20261013000001"
+        }
+      ],
+      "reviewTableExists": false,
+      "historyTableExists": false,
+      "notificationConstraint": "CHECK ((type = ANY (ARRAY['unlock'::text, 'exclusive'::text, 'spotlight_expired'::text, 'support'::text])))",
+      "targetMigrationPresent": false
+    },
+    "after": {
+      "latestMigration": "20261013000001",
+      "optionalColumns": [
+        {
+          "type": "integer",
+          "column": "baths",
+          "default": "0",
+          "nullable": "NO"
+        },
+        {
+          "type": "integer",
+          "column": "beds",
+          "default": "0",
+          "nullable": "NO"
+        },
+        {
+          "type": "numeric",
+          "column": "rehab",
+          "default": "0",
+          "nullable": "NO"
+        }
+      ],
+      "migrationHistory": [
+        {
+          "name": "property_geocode_publication_guard",
+          "version": "20261013000001"
+        }
+      ],
+      "reviewTableExists": false,
+      "historyTableExists": false,
+      "notificationConstraint": "CHECK ((type = ANY (ARRAY['unlock'::text, 'exclusive'::text, 'spotlight_expired'::text, 'support'::text])))",
+      "targetMigrationPresent": false
+    }
+  },
+  "existingRowsRewritten": 0
+}

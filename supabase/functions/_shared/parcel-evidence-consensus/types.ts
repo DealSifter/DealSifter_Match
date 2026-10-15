@@ -2,7 +2,8 @@ import type { EvidenceStatus } from '../property-data/types.ts';
 import type { EvidenceFreshnessState } from '../property-data/cacheFreshness.ts';
 
 export const CONSENSUS_FIELDS = ['lotArea', 'apn', 'owner', 'assessedValue', 'propertyTax', 'zoning', 'propertyType',
-  'buildingArea', 'yearBuilt', 'currentRent', 'marketRent', 'occupancy', 'condition', 'saleRecord', 'lotGeometry'] as const;
+  'buildingArea', 'yearBuilt', 'currentRent', 'marketRent', 'occupancy', 'condition', 'saleRecord', 'lotGeometry',
+  'beds', 'baths', 'subdivision', 'legalDescription'] as const;
 export type ConsensusField = typeof CONSENSUS_FIELDS[number];
 export type ConsensusStatus = 'CONSISTENT' | 'MINOR_VARIANCE' | 'MATERIAL_CONFLICT' | 'OUTLIER_DETECTED'
   | 'INSUFFICIENT_EVIDENCE' | 'SINGLE_SOURCE' | 'NOT_APPLICABLE' | 'UNAVAILABLE';

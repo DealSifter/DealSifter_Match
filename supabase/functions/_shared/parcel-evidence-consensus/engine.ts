@@ -3,7 +3,7 @@ import { DEFAULT_CONSENSUS_POLICY, specialization, type ConsensusPolicy } from '
 import { CONSENSUS_FIELDS, type CandidateInput, type ConsensusField, type ConsensusStatus,
   type EvidenceCandidate, type FieldEvidenceConsensus, type ParcelEvidenceConsensus } from './types.ts';
 
-const numericFields = new Set<ConsensusField>(['lotArea', 'buildingArea', 'assessedValue', 'propertyTax', 'yearBuilt', 'currentRent', 'marketRent']);
+const numericFields = new Set<ConsensusField>(['lotArea', 'buildingArea', 'assessedValue', 'propertyTax', 'yearBuilt', 'currentRent', 'marketRent', 'beds', 'baths']);
 const temporalFields = new Set<ConsensusField>(['assessedValue', 'propertyTax']);
 const safeText = (value: string) => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toUpperCase();
 const compareText = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
@@ -21,6 +21,8 @@ function normalize(input: CandidateInput): EvidenceCandidate {
         if (candidate.unit === 'ACRES' && candidate.field === 'lotArea') value *= SQFT_PER_ACRE;
         else if (candidate.unit !== 'SQFT') { value = null; reason = 'UNSUPPORTED_AREA_UNIT'; }
         if (value === 0 && candidate.field === 'lotArea') { value = null; reason = 'INVALID_ZERO_LOT_AREA'; }
+      } else if (candidate.field === 'beds' || candidate.field === 'baths') {
+        if (raw > 100 || candidate.field === 'beds' && !Number.isInteger(raw)) { value = null; reason = 'INVALID_ROOM_COUNT'; }
       } else if (candidate.field !== 'yearBuilt') {
         unit = 'USD';
         if (candidate.unit !== 'USD') { value = null; reason = 'UNSUPPORTED_MONETARY_UNIT'; }

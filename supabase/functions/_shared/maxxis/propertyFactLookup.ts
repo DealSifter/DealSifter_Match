@@ -1,5 +1,6 @@
 import { canonicalFactValue } from './canonicalFactSemantics.ts';
 import { formatConsensusFactAnswer } from './consensusFactAnswer.ts';
+import {factCopy,factValue,factSource} from '../property-fact-reconciliation/presentation.js';
 type Language = 'en' | 'pt' | 'es';
 type LookupIntent = Readonly<{ fields: readonly string[]; strategyGuidance: boolean }>;
 
@@ -149,8 +150,17 @@ export function buildPropertyFactLookupAnswer(message: unknown, languageInput: u
   const language: Language = ['pt', 'es'].includes(String(languageInput)) ? languageInput as Language : 'en';
   const snapshot = record(snapshotInput), canonical=record(record(snapshot.propertyFacts).canonicalPropertyFacts), projection=record(canonical.analyticalEvidence);
   const projected=new Set(['lotSizeSqft','assessorId','ownership','assessedValue','annualPropertyTax','zoning','propertyType']);
-  const lines = intent.fields.filter(field=>!projection.fields||!projected.has(field)).map((field) => formatFact(field, canonicalFact(snapshot, field), language));
-  if(projection.fields)lines.unshift(formatConsensusFactAnswer(projection.fields,intent.fields,language,projection.resolvedAnalysisPropertyType,snapshot.publicParcelState==='AVAILABLE'));
+  const effective=record(snapshot.effectivePropertyFacts),effectiveAliases:Record<string,string>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType',yearBuilt:'yearBuilt',livingAreaSqft:'buildingArea',subdivision:'subdivision'};
+  const effectiveFields=new Set<string>();const lines:string[]=[];
+  for(const field of intent.fields){const key=effectiveAliases[field],fact=record(effective[key]);
+    if(fact.state==='AVAILABLE'&&(fact.adopted||fact.status==='USER_CONFIRMED'||fact.sourceType!=='USER_PROVIDED'||projection.fields?.[key]?.analyticalUsability!=='CONFLICTED')){
+      effectiveFields.add(field);const copy=factCopy(language) as {fields:Record<string,string>;source:string;staleSource:string},value=factValue(fact,key,language).replace(/[<>&]/g,(char:string)=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[char]!));
+      const chosen=language==='pt'?'Valor atualmente adotado no cadastro':language==='es'?'Valor actualmente adoptado en el registro':'Current value adopted in the listing';
+      lines.push(`${copy.fields[key]}: ${value}${typeof fact.year==='number'?` · ${fact.year}`:''}. ${chosen}. ${copy.source}: ${factSource(fact.sourceType,language)}.${fact.freshness==='STALE_USABLE'?` ${copy.staleSource}.`:''}`);
+    }
+  }
+  lines.push(...intent.fields.filter(field=>!effectiveFields.has(field)&&(!projection.fields||!projected.has(field))).map((field) => formatFact(field, canonicalFact(snapshot, field), language)));
+  if(projection.fields&&intent.fields.some(field=>projected.has(field)&&!effectiveFields.has(field)))lines.unshift(formatConsensusFactAnswer(projection.fields,intent.fields.filter(field=>!effectiveFields.has(field)),language,projection.resolvedAnalysisPropertyType,snapshot.publicParcelState==='AVAILABLE'));
   if (intent.strategyGuidance) lines.push(guidance(snapshot, language));
   return Object.freeze({ intent, text: lines.join('\n\n') });
 }

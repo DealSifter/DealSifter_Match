@@ -1,0 +1,90 @@
+{
+  "pass": true,
+  "refreshAndLogin": [
+    {
+      "device": "desktop",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": true,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "requests": [
+        "READ",
+        "DECIDE",
+        "READ",
+        "READ"
+      ],
+      "checks": 0,
+      "writes": 1,
+      "notificationClick": false,
+      "exactFieldDeepLink": true,
+      "persistedAfterRefresh": true,
+      "persistedAfterLogoutLogin": true,
+      "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+      "realUserSession": false,
+      "realBackendWrites": 0,
+      "errors": []
+    }
+  ],
+  "postgres": [
+    {
+      "name": "backend-owned-state-save",
+      "pass": true
+    },
+    {
+      "name": "stale-revision-rejected",
+      "pass": true
+    },
+    {
+      "name": "wrong-owner-rejected",
+      "pass": true
+    },
+    {
+      "name": "missing-state-rejected",
+      "pass": true
+    },
+    {
+      "name": "missing-state-identity-rejected",
+      "pass": true
+    },
+    {
+      "name": "user-b-private-state-isolated",
+      "pass": true
+    },
+    {
+      "name": "user-b-history-isolated",
+      "pass": true
+    },
+    {
+      "name": "client-cannot-forge-backend-state",
+      "pass": true
+    },
+    {
+      "name": "owner-state-and-history-readable",
+      "pass": true
+    },
+    {
+      "name": "owner-cannot-direct-write-decisions",
+      "pass": true
+    },
+    {
+      "name": "anonymous-private-state-denied",
+      "pass": true
+    }
+  ],
+  "mode": "SYNTHETIC_BROWSER_AUTH_AND_LOCAL_POSTGRES"
+}

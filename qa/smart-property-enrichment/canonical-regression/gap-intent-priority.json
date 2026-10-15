@@ -1,0 +1,6 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "directQuestionsOverrideGap": true
+  }
+}

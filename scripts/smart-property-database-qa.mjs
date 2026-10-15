@@ -1,0 +1,48 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {PGlite} from '../.cache/smart-property-pglite/node_modules/@electric-sql/pglite/dist/index.js';
+const db=new PGlite(),a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222',p='33333333-3333-4333-8333-333333333333';
+const checks=[];async function pass(name,fn){await fn();checks.push({name,pass:true});}
+try{
+ await db.exec(`create role authenticated;create role anon;create role service_role bypassrls;
+ create schema auth;create table auth.users(id uuid primary key);
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function public.ds_is_current_user_admin() returns boolean language sql stable as $$select false$$;
+ grant usage on schema public,auth to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;
+ create table public.properties(id uuid primary key,owner_id uuid references auth.users,rehab numeric not null default 0,beds integer not null default 0,baths integer not null default 0,is_active boolean default true,publish_to_showcase boolean default true,deal_closed boolean default false,hide_street_address_on_card boolean default false,updated_at timestamptz default now());
+ alter table public.properties enable row level security;create policy property_read on public.properties for select to authenticated using(owner_id=auth.uid());grant select on public.properties to authenticated;
+ create table public.notifications(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users,type text constraint notifications_type_check check(type in ('unlock','exclusive','spotlight_expired','support')),payload jsonb default '{}',read_at timestamptz,created_at timestamptz default now());
+ alter table public.notifications enable row level security;create policy notif_read on public.notifications for select to authenticated using(user_id=auth.uid());grant select on public.notifications to authenticated;grant all on public.properties,public.notifications to service_role;
+ insert into auth.users values('${a}'),('${b}');insert into public.properties(id,owner_id,rehab) values('${p}','${a}',0);`);
+ await db.exec(await readFile('supabase/migrations/20261014213000_smart_property_fact_review.sql','utf8'));
+ const state={propertyId:p,evidenceHash:'a'.repeat(64),rows:{lotArea:{state:'REVIEW_REQUIRED'}},summary:{complements:1,conflicts:1}},pub={lotArea:{value:null,unit:'SQFT',state:'CONFLICTED',sourceType:null,status:'UNKNOWN',freshness:'UNKNOWN'}};
+ const store=async(owner,revision,publicFacts=pub)=>db.query('select ds_store_property_fact_review($1,$2,$3,$4::jsonb,$5::jsonb,true) as revision',[p,owner,revision,JSON.stringify(state),JSON.stringify(publicFacts)]);
+ await db.exec(`set role service_role;set request.jwt.claim.role='service_role';`);
+ await pass('backend-owned-state-save',async()=>assert.equal((await store(a,0)).rows[0].revision,1));
+ await pass('same-evidence-notification-dedup',async()=>{await store(a,1);assert.equal((await db.query('select count(*)::int n from notifications')).rows[0].n,1);});
+ await pass('stale-revision-rejected',()=>assert.rejects(store(a,0),/FACT_REVIEW_STALE/));
+ await pass('wrong-owner-rejected',()=>assert.rejects(store(b,0),/PROPERTY_OWNER_REQUIRED/));
+ await pass('private-metadata-in-public-projection-rejected',()=>assert.rejects(store(a,2,{lotArea:{...pub.lotArea,by:a}}),/INVALID_PUBLIC_FACTS/));
+ await pass('nested-private-payload-rejected',()=>assert.rejects(store(a,2,{lotArea:{...pub.lotArea,value:{email:'private@example.test'}}}),/INVALID_PUBLIC_FACTS/));
+ await pass('missing-value-rejected',()=>assert.rejects(store(a,2,{lotArea:{state:'AVAILABLE'}}),/INVALID_PUBLIC_FACTS/));
+ await pass('missing-state-rejected',()=>assert.rejects(store(a,2,{lotArea:{value:42}}),/INVALID_PUBLIC_FACTS/));
+ await pass('nested-source-metadata-rejected',()=>assert.rejects(store(a,2,{lotArea:{...pub.lotArea,sourceType:{email:'private@example.test'}}}),/INVALID_PUBLIC_FACTS/));
+ await pass('missing-state-identity-rejected',async()=>{await assert.rejects(db.query('select ds_store_property_fact_review($1,$2,2,$3::jsonb,$4::jsonb,false)',[p,a,'{}',JSON.stringify(pub)]),/INVALID_FACT_STATE/);});
+ await db.exec(`reset role;set role authenticated;set request.jwt.claim.role='authenticated';set request.jwt.claim.sub='${b}';`);
+ await pass('user-b-private-state-isolated',async()=>assert.equal((await db.query('select count(*)::int n from property_fact_reviews')).rows[0].n,0));
+ await pass('user-b-history-isolated',async()=>assert.equal((await db.query('select count(*)::int n from property_fact_review_history')).rows[0].n,0));
+ await pass('client-cannot-forge-backend-state',()=>assert.rejects(store(a,2),/permission denied/));
+ await db.exec(`set request.jwt.claim.sub='${a}';`);
+ await pass('owner-state-and-history-readable',async()=>{assert.equal((await db.query('select count(*)::int n from property_fact_reviews')).rows[0].n,1);assert.equal((await db.query('select count(*)::int n from property_fact_review_history')).rows[0].n,2);});
+ await pass('owner-cannot-direct-write-decisions',()=>assert.rejects(db.query("update property_fact_reviews set state='{}'"),/permission denied/));
+ await db.exec("reset role;set request.jwt.claim.sub='';set role anon;");
+ await pass('anonymous-public-facts-without-private-metadata',async()=>{const result=(await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[p]])).rows;assert.deepEqual(result[0].facts,pub);assert.ok(!JSON.stringify(result).includes(a));});
+ await pass('anonymous-private-state-denied',()=>assert.rejects(db.query('select * from property_fact_reviews'),/permission denied/));
+ await db.exec('reset role;');
+ await pass('hidden-address-parcel-identifiers-remain-private',async()=>{await db.query("update property_fact_reviews set public_facts=public_facts||'{\"apn\":{\"value\":\"PRIVATE-APN\",\"state\":\"AVAILABLE\"}}'::jsonb");await db.query('update properties set hide_street_address_on_card=true where id=$1',[p]);await db.exec('set role anon;');const result=(await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[p]])).rows;assert.ok(!JSON.stringify(result).includes('PRIVATE-APN'));await db.exec('reset role;');});
+ await pass('legacy-zero-not-backfilled',async()=>assert.equal((await db.query('select rehab from properties where id=$1',[p])).rows[0].rehab,'0'));
+ await pass('new-optional-blanks-are-null',async()=>{const id='44444444-4444-4444-8444-444444444444';await db.query('insert into properties(id,owner_id) values($1,$2)',[id,a]);const row=(await db.query('select rehab,beds,baths from properties where id=$1',[id])).rows[0];assert.deepEqual(row,{rehab:null,beds:null,baths:null});});
+ await pass('unpublished-facts-not-public',async()=>{await db.query('update properties set publish_to_showcase=false where id=$1',[p]);assert.equal((await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[p]])).rows.length,0);});
+ await writeFile('qa/smart-property-enrichment/security-validation.json',JSON.stringify({pass:true,mode:'LOCAL_REAL_POSTGRES_PGLITE',productionWrites:0,checks},null,2)+'\n');
+ console.log(JSON.stringify({pass:true,checks:checks.length}));
+}finally{await db.close();}

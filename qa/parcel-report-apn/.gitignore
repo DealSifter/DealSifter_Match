@@ -1,0 +1,5 @@
+# Keep real property/cadastral data and derived artifacts local.
+private*
+*.pdf
+*.png
+*.log

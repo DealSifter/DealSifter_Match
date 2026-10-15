@@ -96,6 +96,8 @@ export function candidatesFromAuthorizedBundle(bundle: AuthorizedConsensusBundle
     add('assessedValue', 'assessedValue', parcel.assessedValue, 'PUBLIC_ASSESSOR', 'USD', { year: parcel.assessedYear, concept: 'ASSESSED_VALUE' });
     add('propertyTax', 'propertyTax', parcel.propertyTax, 'PUBLIC_TAX', 'USD', { year: parcel.propertyTaxYear, concept: 'ANNUAL_RECORDED_TAX' });
     add('zoning', 'zoning', parcel.zoning, source.role === 'ZONING' ? 'PUBLIC_ZONING' : 'PUBLIC_PARCEL_GIS');
+    add('subdivision','subdivision',parcel.subdivision,'PUBLIC_PARCEL_GIS');
+    add('legalDescription','legalDescription',parcel.legalDescription,'PUBLIC_PARCEL_GIS');
   }
   rows.push(...bundle.additionalCandidates ?? []);
   return rows;

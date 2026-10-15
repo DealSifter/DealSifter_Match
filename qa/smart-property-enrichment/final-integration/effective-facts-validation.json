@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "tests": [
+    {
+      "file": "src/features/propertyFacts/propertyFacts.test.jsx",
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/acquisition.test.ts",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "passed": 24,
+      "failed": 0
+    }
+  ],
+  "realProductionSession": false
+}
