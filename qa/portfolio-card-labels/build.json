@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "baseline": "fecc065cadea9a30147de2e0306d4f11e7c7f8ca",
+  "delta": [
+    "src/components/matches/MatchesPortfolio.jsx",
+    "src/components/matches/PortfolioPropertyFacts.jsx",
+    "src/components/matches/PortfolioPropertyFacts.css",
+    "src/components/matches/portfolioPropertyFactsModel.js",
+    "src/components/matches/PortfolioPropertyFacts.test.jsx",
+    "src/i18n/translations.js"
+  ],
+  "startedAt": "2026-10-15T00:10:11.788Z",
+  "finishedAt": "2026-10-15T00:15:42.223Z",
+  "modernAndLegacy": true,
+  "sentryUpload": false,
+  "unrelatedEnrichmentChangesExcluded": true
+}

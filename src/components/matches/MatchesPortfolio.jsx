@@ -14,6 +14,7 @@ import { SmartImage } from '../ui/SmartImage';
 import { ExclusivityBadge } from '../ui/ExclusivityBadge';
 import { CardStatusIcon } from '../ui/CardStatusIndicators';
 import { PortfolioContactPanel } from './PortfolioContactPanel';
+import { PortfolioPropertyFacts } from './PortfolioPropertyFacts';
 import { CARD_STATUS } from '../ui/cardStatusTokens';
 import { buildDisplayContacts } from '../../lib/contactPriority';
 import { normalizeProfileScope, resolveScopedProfile } from '../../lib/profileScopeResolver';
@@ -517,11 +518,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     if (typeof v !== "number") return "-";
     return `$${Number(v || 0).toLocaleString('en-US')}`;
   };
-  const fmtCompactMoney = (v) => {
-    const n = Number(v || 0);
-    if (!Number.isFinite(n)) return "-";
-    return formatCompactUsd(n);
-  };
 
   const normalizeExportText = (value) => {
     const raw = String(value ?? '');
@@ -946,23 +942,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     }
   };
 
-  const detailGroups = [
-    [
-      [matchesT.type, item.type || "-"],
-      [matchesT.strategy, item.objective || "-"],
-      [matchesT.capRate, item.capRate ? `${item.capRate}%` : "-"],
-    ],
-    [
-      [matchesT.beds, item.beds > 0 ? item.beds : "-"],
-      [matchesT.baths, item.baths > 0 ? item.baths : "-"],
-      [matchesT.size, item.sqft || "-"],
-    ],
-    [
-      [matchesT.rehab, fmtCompactMoney(item.rehab || 0)],
-      [matchesT.zip, item.zip || "-"],
-      [matchesT.lot, item.lot || "-"],
-    ],
-  ];
 
   const metaChips = [
     item.improvement ? item.improvement : null,
@@ -1039,32 +1018,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       </div>
 
       <div style={{ padding:10, display:"grid", gap:8 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))", gap:8 }}>
-            <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.gold, 0.08) }}>
-              <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.price}</div>
-              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtCompactMoney(item.price)}</div>
-            </div>
-            <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.success, 0.08) }}>
-              <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.capRate}</div>
-              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{item.capRate ? `${item.capRate}%` : "-"}</div>
-            </div>
-            <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.accent, 0.08) }}>
-              <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.rehab}</div>
-              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtCompactMoney(item.rehab || 0)}</div>
-            </div>
-          </div>
-
-          <div data-testid="matches-property-detail-grid" style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", background:C.alpha(C.bg, 0.38), display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", columnGap:14, rowGap:6 }}>
-            {detailGroups.flat().map(([k, v]) => (
-              <div key={k} style={{ minWidth:0, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, paddingBottom:5, borderBottom:`1px solid ${C.alpha(C.border, 0.5)}` }}
-                onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.t1, 0.03)}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <div style={{ fontSize:10, color:C.t3, textTransform:"uppercase", letterSpacing:"0.4px", whiteSpace:"nowrap", flexShrink:0 }}>{k}</div>
-                <div style={{ fontSize:12, color:C.t1, fontWeight:800, textAlign:"right" }}>{v}</div>
-              </div>
-            ))}
-          </div>
+          <PortfolioPropertyFacts item={item} labels={matchesT} language={getLang()} />
 
           {metaChips.length ? (
             <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>

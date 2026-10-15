@@ -1,0 +1,66 @@
+{
+  "mode": "REAL_PORTFOLIO_DETAIL_COMPONENT_WITH_SYNTHETIC_DATA",
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "pt",
+      "theme": "light",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "language": "en",
+      "theme": "dark",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "language": "es",
+      "theme": "light",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "language": "pt",
+      "theme": "light",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "language": "en",
+      "theme": "dark",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "language": "es",
+      "theme": "light",
+      "fields": 10,
+      "duplicateFacts": 0,
+      "blankLabels": 0,
+      "horizontalOverflow": false,
+      "errors": []
+    }
+  ]
+}
