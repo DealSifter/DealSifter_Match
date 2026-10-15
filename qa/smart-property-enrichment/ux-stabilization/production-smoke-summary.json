@@ -1,0 +1,48 @@
+{
+  "pass": true,
+  "codeSha": "819af6faeada92fd4d1b7d7d6a178424db5f6e06",
+  "deploymentId": "dpl_9TKBqrzj1PBchSLnxVZeUPC3nZki",
+  "productionAlias": "https://dealsiftermatch.vercel.app",
+  "sourceShaVerified": true,
+  "aliasVerified": true,
+  "backendFunction": "property-fact-review",
+  "backendVersion": 2,
+  "otherFunctionsUnchanged": true,
+  "flagsUnchanged": true,
+  "migration": "NONE",
+  "schemaSecurityUnchanged": true,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "authenticatedProductionSmokeReason": "No legitimate real authenticated production session available. No impersonation or session generation attempted.",
+  "publishedFrontendMode": "REAL_APP_EXPLICIT_MOCK_AUTH_BACKEND_JSONB_KEY_ORDER",
+  "publishedFrontendReviewCases": 6,
+  "publishedFrontendReloadPersistenceCases": 6,
+  "publishedFrontendMapTransitions": 10,
+  "realBackendBrowserWrites": 0,
+  "anonymousApiBoundaryPass": true,
+  "preExistingUserChanges": [
+    {
+      "path": "qa/map-navigation-cleanup/desktop-full-app.png",
+      "preserved": true
+    },
+    {
+      "path": "qa/map-navigation-cleanup/desktop-production-synthetic.png",
+      "preserved": true
+    },
+    {
+      "path": "qa/map-navigation-cleanup/full-app.json",
+      "preserved": true
+    },
+    {
+      "path": "qa/map-navigation-cleanup/phone-full-app.png",
+      "preserved": true
+    },
+    {
+      "path": "qa/map-navigation-cleanup/phone-production-synthetic.png",
+      "preserved": true
+    },
+    {
+      "path": "qa/runtime-orchestration-hardening/land-state-persistence.json",
+      "preserved": true
+    }
+  ]
+}

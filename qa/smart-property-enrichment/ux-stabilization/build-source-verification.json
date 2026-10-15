@@ -1,0 +1,90 @@
+{
+  "pass": true,
+  "normalizedLineEndings": true,
+  "sourceHashes": [
+    {
+      "file": "src/App.jsx",
+      "sha256": "edf1486f21e3b2ec49ac33931a97323aa9f96d66c3d52586aef0047972181f8d"
+    },
+    {
+      "file": "src/components/cards/PropertyCard.jsx",
+      "sha256": "7f18240799894beaaa95a590dd1e92534fa2474333406858e50952101268d233"
+    },
+    {
+      "file": "src/components/matches/PortfolioPropertyFacts.jsx",
+      "sha256": "2bdc0a16f84cca8dd1e958b348045c8fb07ece0925bc62ed0e7f689a973a20e2"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReview.jsx",
+      "sha256": "7bbd8787904c4cdd93faa4e4a09e1a56be2d8687524f5fd0e0a5699752413565"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "sha256": "797d9b33cb7f8beae1fa34113e54097a893d446f5d2aaf5a63f568d648e17cc5"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactReviewProvider.test.jsx",
+      "sha256": "93b19c3ff32bb6d4ee8b209b50772d15ef2c934d972b4c4de194b086f3781b8e"
+    },
+    {
+      "file": "src/features/propertyFacts/cardFacts.js",
+      "sha256": "a8ae3a4fb313e0fbf5593861219b0cac38c87bb4637c499f14287f51a300bf55"
+    },
+    {
+      "file": "src/features/propertyFacts/copy.js",
+      "sha256": "dc13cd1f778779e46065021fe29f1b483c30c7c2f2661cf77cc11b41e5efa77a"
+    },
+    {
+      "file": "src/features/propertyFacts/propertyFacts.css",
+      "sha256": "71ca68113fe5b3109daaad7072d477628be672846b858cf930061a3ac3db7466"
+    },
+    {
+      "file": "src/features/propertyFacts/propertyFacts.test.jsx",
+      "sha256": "ef1ebefacab9d2793e073e053a2f4ce53af16aafa6decdf3ec89c20fe8021360"
+    },
+    {
+      "file": "src/pages/Onboarding.jsx",
+      "sha256": "7aff38d7962abac93c658730d01c482732f973eeded04126e9155c240c7536f9"
+    },
+    {
+      "file": "src/services/propertyFactReviewService.js",
+      "sha256": "86f7cddae51cf4f5b76a75a34f6e11ebc9a1c0cd70791395707439f8030b62ed"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "sha256": "1b91dc45cd7ce6cfbb40c27f1be0a8277610520b22e5262aac0b476e0b992cea"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/reconciliation.test.ts",
+      "sha256": "df6fa7fc9efbc6bc278c2f18d31d493fe6c3352ef012275a8d881b34ba7b5b4a"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+      "sha256": "0b9223f51fa2f9b085029012111221877d0b651e320295677bee08f95f640d2b"
+    },
+    {
+      "file": "src/features/propertyFacts/FactReviewIndicator.jsx",
+      "sha256": "570fa496be6b74b4b3da98143c6fa62f5a18e35fae68bbd95e374d055e9d1bad"
+    },
+    {
+      "file": "src/features/propertyFacts/PropertyFactNotificationSync.jsx",
+      "sha256": "b195f25676028212060d7717f3908b5a6665afa4639a1fc85d0d0d19ee8a94d3"
+    },
+    {
+      "file": "src/features/propertyFacts/editReviewDraft.js",
+      "sha256": "2f5b173c4c226f7d6150a07c9f86008717aff0898db81dc31ebb08d0f07d4381"
+    },
+    {
+      "file": "src/features/propertyFacts/reviewProjection.test.js",
+      "sha256": "58665192065225a217ae2ccdecde52694ea4d1b55c844f09216a87473688d5f1"
+    },
+    {
+      "file": "src/features/propertyFacts/reviewStabilization.test.jsx",
+      "sha256": "93793c2f6e34e7f08a03f5e2a8e3a63ebe235fe26cee0313837d580a99b6ce3e"
+    },
+    {
+      "file": "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js",
+      "sha256": "3378ea8272135d0421da357870cab630d6a78f43cbf9e4202d0d6ee0c574bce5"
+    }
+  ]
+}

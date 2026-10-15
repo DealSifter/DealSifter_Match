@@ -1,0 +1,17 @@
+﻿{
+    "pass":  true,
+    "observedAt":  "2026-10-15T23:30:47.5678471Z",
+    "function":  "property-fact-review",
+    "httpStatus":  200,
+    "archiveSha256":  "8788f1ea51d8d1737b749c4efa19f005d7d3ab4c00ce5366dfc5d1e9a2426693",
+    "markers":  {
+                    "materialCandidateIdentity":  true,
+                    "sharedActionableProjection":  true,
+                    "reviewedSnapshotRebinding":  true,
+                    "cacheOnlyIdentityFastPath":  true,
+                    "atomicStoreRpc":  true,
+                    "ownerGuard":  true
+                },
+    "productionUserSessionUsed":  false,
+    "propertyWrites":  0
+}

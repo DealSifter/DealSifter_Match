@@ -1,0 +1,327 @@
+{
+  "pass": true,
+  "total": 78,
+  "passed": 78,
+  "source": "same final complete suite",
+  "files": [
+    "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/src/lib/moduleResource.test.js",
+    "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/src/components/ui/RecoverableModule.test.jsx",
+    "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/src/features/parcel/mapLifetime.test.js",
+    "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/src/features/parcel/mapSelectionCamera.test.js",
+    "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/src/features/parcel/parcelLens.test.jsx"
+  ],
+  "tests": [
+    {
+      "name": "module transport and single-flight recovery shares prefetch and foreground work, then caches only a valid loaded module",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery uses exactly two bounded backoffs for transient failures",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery reports a persistent transport failure once and allows an explicit retry",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery does not repeat downloads while offline",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery does not retry a failed stylesheet as JS-only and render an unstyled module",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery preserves programming errors without relabeling or retries",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery rejects an invalid export without hanging Suspense or entering a retry loop",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery does not let an old failed prefetch erase a new retry",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery recognizes supported transport errors: ChunkLoadError: Loading chunk 12 failed",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery recognizes supported transport errors: Importing a module script failed.",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery recognizes supported transport errors: Unable to preload CSS for /assets/module.css",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery recognizes supported transport errors: error loading dynamically imported module",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery avoids speculative loading on a constrained connection: { saveData: true }",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery avoids speculative loading on a constrained connection: { effectiveType: '2g' }",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery avoids speculative loading on a constrained connection: { effectiveType: 'slow-2g' }",
+      "status": "passed"
+    },
+    {
+      "name": "module transport and single-flight recovery permits intent-only prefetch on normal connections",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract does not rewrite a missing asset into cacheable HTML: /assets/missing.js",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract does not rewrite a missing asset into cacheable HTML: /assets/old-module.css",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract does not rewrite a missing asset into cacheable HTML: /assets/map.png",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract preserves SPA navigation/deep links: /",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract preserves SPA navigation/deep links: /dashboard",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract preserves SPA navigation/deep links: /map",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract preserves SPA navigation/deep links: /matches",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract preserves SPA navigation/deep links: /auth/callback",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract keeps immutable real assets and explicitly prevents HTML route caching",
+      "status": "passed"
+    },
+    {
+      "name": "hosting route/cache contract overrides immutable caching only for missing assets after filesystem lookup",
+      "status": "passed"
+    },
+    {
+      "name": "scoped module recovery requires explicit reload for failed CSS rather than silently losing the module styles",
+      "status": "passed"
+    },
+    {
+      "name": "scoped module recovery shows loading without hiding sibling navigation; shares a prefetched result",
+      "status": "passed"
+    },
+    {
+      "name": "scoped module recovery recreates a rejected lazy type on manual retry without reloading the app",
+      "status": "passed"
+    },
+    {
+      "name": "scoped module recovery does not disguise a component runtime crash as stale cache",
+      "status": "passed"
+    },
+    {
+      "name": "scoped module recovery resets boundary state on a new key without recursively calling retry",
+      "status": "passed"
+    },
+    {
+      "name": "owned Leaflet CSS animation teardown compatibility makes the queued native zoom completion inert before the pane is removed",
+      "status": "passed"
+    },
+    {
+      "name": "owned Leaflet CSS animation teardown compatibility leaves live zoom animations and unrelated map state unchanged",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera uses Z15 for every PIN and Z17 only for phones, Z16 for other devices",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera keeps popup in usable map space for 390 x 786",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera keeps popup in usable map space for 1280 x 842",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera keeps popup in usable map space for 768 x 966",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera keeps popup in usable map space for 844 x 332",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera projects the point to the same screen slot at both zoom levels",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera reserves space for the entire lens above the footer on a small phone",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera cancels previous movements without accumulating popup/camera listeners",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera does not call stop/focus after the parent removes the Leaflet map",
+      "status": "passed"
+    },
+    {
+      "name": "single device-aware map selection camera stops a live camera once and removes its listener on early frame cancellation",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry uses a 0.20-mile diameter (0.10-mile radius), solid turquoise color and normalized bounds",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry supports multipolygon bounds and rejects invalid coordinates/geometries",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry includes intersecting nearby lots, not remote lots",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry includes parcels crossing the lens even when no vertex is within its radius",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry resolves only a unique real containing parcel, never coverage registration or ambiguous stacks",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel lens geometry retains the principal, deduplicates public neighbors and never exceeds the existing 120-result cap",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session issues zero requests while ineligible or with invalid point/unknown item",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session looks up only the selected point; activation makes exactly one fixed-radius neighbor query",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session has no viewport/zoom dependency: loaded lens survives arbitrary zoom-out and page switches with zero calls",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session reopens/reselects a cached contextual lens without repeated public requests",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session does not repeat a pending point lookup on duplicate popup events",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session refreshes expired inactive evidence but never destroys an active frozen lens automatically",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session switching PIN or explicit clear closes the lens and cancels stale requests",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session a failed neighbor query retains the loaded principal, while missing/ambiguous lookups never activate",
+      "status": "passed"
+    },
+    {
+      "name": "contextual parcel session keeps stale evidence labeled and never introduces financial/social/property writes",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation renders magnifier only for verified subject geometry; preserves normal image/feed/Match behavior: pt",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation renders magnifier only for verified subject geometry; preserves normal image/feed/Match behavior: en",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation renders magnifier only for verified subject geometry; preserves normal image/feed/Match behavior: es",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation displays unknown explicitly without converting it to zero: pt",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation displays unknown explicitly without converting it to zero: en",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation displays unknown explicitly without converting it to zero: es",
+      "status": "passed"
+    },
+    {
+      "name": "existing popup public-data page and internal QA isolation does not enable QA grid by ordinary parcel eligibility and requires its own server allowlist",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation uses the canonical validated PIN point and ID even when display payload aliases differ",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation does not depend on the property unlock state: false",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation does not depend on the property unlock state: true",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation requires a literal server-resolved feature gate: false",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation requires a literal server-resolved feature gate: true",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation requires a literal server-resolved feature gate: undefined",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation blocks private addresses even after paid unlock: hideStreetAddressOnCard",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation blocks private addresses even after paid unlock: hide_street_address_on_card",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation rejects missing coordinates/item IDs without a GIS request",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation joins the pending popup lookup and activates exactly once without an extra query",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation allows explicit retry after a negative result: SOURCE_TEMPORARILY_UNAVAILABLE",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation allows explicit retry after a negative result: PARCEL_NOT_FOUND",
+      "status": "passed"
+    },
+    {
+      "name": "payment-independent parcel access and explicit activation never opens or zooms stale requests after switching PINs",
+      "status": "passed"
+    }
+  ]
+}
