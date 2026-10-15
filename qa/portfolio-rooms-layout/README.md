@@ -25,3 +25,12 @@ After correction, both devices downloaded the real two-page PDF. Injected browse
 - `build.json` records the isolated modern/legacy build. It excludes the unrelated unfinished enrichment changes, backend changes, and pending migration.
 
 Production deployment and post-deploy evidence are recorded separately. Production browser checks use the actual published frontend with a fully mocked backend, not a real user session. Real authenticated user acceptance is **NOT_PERFORMED_NO_USER_SESSION**.
+
+## Published verification
+
+- Code commit: `6dbb16397f531137e357ed4c1d884d9fc37ee792`.
+- Production deployment: `dpl_Dm2hkkEgZiMHnNv9pFWAcqB1dhk9`, READY, source SHA and primary production alias verified.
+- Published-frontend full-app desktop/phone checks passed: room grouping, complete labels and units, no duplicate rehab, and real L1 PDF downloads with a simulated Free account. No JavaScript errors.
+- Anonymous production smoke passed: app and assets load, deep links and security/cache headers preserved, old assets fail with non-cacheable 404, anonymous parcel requests remain denied, zero startup GIS requests.
+- Backend deployments: none. Database migrations: none. Configuration or account privileges changed: none.
+- Incident facts, PDFs, and full-app screenshots are excluded from Git. Only non-sensitive receipts and synthetic layout screenshots are published.
