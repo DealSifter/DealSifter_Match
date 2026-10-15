@@ -11,3 +11,5 @@ Targeted regression suite: 3 files, 31 tests passed, including empty-field openi
 `local.json` and `production.json`, when present, record the real app's Portfolio button in desktop/mobile and Portuguese/English, backed by an explicit mock session/backend. They assert opening, correct localization, geometry, closing/reopening, restored focus, READ-only review requests and absence of app-boundary errors. They do not establish a real authenticated production-session test.
 
 `build.json` records the isolated modern/legacy build. `production-deployment.json` records the deployed runtime commit and production alias verification.
+
+Final result: production deployment `dpl_4SCsMwR52fnJyzXANPYQD9esvywx` is READY, with runtime commit `8c5e57aa652c90084a937aa7044df29833112c6c` and the `dealsiftermatch.vercel.app` alias both verified. All four post-deployment Portfolio scenarios passed on the published frontend, in addition to the four local scenarios and 31 targeted unit tests. Backend/database/flags remain unchanged. The temporary private diagnostic copy was removed.

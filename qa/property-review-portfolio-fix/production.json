@@ -1,0 +1,92 @@
+{
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "mode": "REAL_APP_EXPLICIT_MOCK_AUTH_AND_BACKEND",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "pt-BR",
+      "portfolioButton": true,
+      "emptyField": true,
+      "persistedSnapshot": true,
+      "localized": true,
+      "closeReopen": true,
+      "focusRestored": true,
+      "actions": [
+        "READ",
+        "READ"
+      ],
+      "errors": [],
+      "geometry": {
+        "x": 760,
+        "y": 0,
+        "width": 520,
+        "height": 900
+      }
+    },
+    {
+      "device": "desktop",
+      "language": "en-US",
+      "portfolioButton": true,
+      "emptyField": true,
+      "persistedSnapshot": true,
+      "localized": true,
+      "closeReopen": true,
+      "focusRestored": true,
+      "actions": [
+        "READ",
+        "READ"
+      ],
+      "errors": [],
+      "geometry": {
+        "x": 760,
+        "y": 0,
+        "width": 520,
+        "height": 900
+      }
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR",
+      "portfolioButton": true,
+      "emptyField": true,
+      "persistedSnapshot": true,
+      "localized": true,
+      "closeReopen": true,
+      "focusRestored": true,
+      "actions": [
+        "READ",
+        "READ"
+      ],
+      "errors": [],
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "device": "mobile",
+      "language": "en-US",
+      "portfolioButton": true,
+      "emptyField": true,
+      "persistedSnapshot": true,
+      "localized": true,
+      "closeReopen": true,
+      "focusRestored": true,
+      "actions": [
+        "READ",
+        "READ"
+      ],
+      "errors": [],
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      }
+    }
+  ]
+}
