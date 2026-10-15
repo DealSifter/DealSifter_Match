@@ -1,7 +1,7 @@
 {
   "pass": true,
   "kind": "ADDITIVE",
-  "productionApplied": false,
+  "productionApplied": true,
   "historyConflicts": 0,
   "localPostgresChecks": [
     {
@@ -160,5 +160,7 @@
       "targetMigrationPresent": false
     }
   },
-  "existingRowsRewritten": 0
+  "existingRowsRewritten": 0,
+  "productionReceipt": "migration-applied.json",
+  "productionVerification": "migration-verified.json"
 }

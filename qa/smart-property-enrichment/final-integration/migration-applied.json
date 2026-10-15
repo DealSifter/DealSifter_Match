@@ -1,0 +1,75 @@
+﻿{
+    "mode":  "Apply",
+    "at":  "2026-10-15T14:51:17.7453587Z",
+    "productionWrites":  true,
+    "before":  {
+                   "latestMigration":  "20261013000001",
+                   "optionalColumns":  [
+                                           {
+                                               "type":  "integer",
+                                               "column":  "baths",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           },
+                                           {
+                                               "type":  "integer",
+                                               "column":  "beds",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           },
+                                           {
+                                               "type":  "numeric",
+                                               "column":  "rehab",
+                                               "default":  "0",
+                                               "nullable":  "NO"
+                                           }
+                                       ],
+                   "migrationHistory":  [
+                                            {
+                                                "name":  "property_geocode_publication_guard",
+                                                "version":  "20261013000001"
+                                            }
+                                        ],
+                   "reviewTableExists":  false,
+                   "historyTableExists":  false,
+                   "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text])))",
+                   "targetMigrationPresent":  false
+               },
+    "after":  {
+                  "latestMigration":  "20261014213000",
+                  "optionalColumns":  [
+                                          {
+                                              "type":  "integer",
+                                              "column":  "baths",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          },
+                                          {
+                                              "type":  "integer",
+                                              "column":  "beds",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          },
+                                          {
+                                              "type":  "numeric",
+                                              "column":  "rehab",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          }
+                                      ],
+                  "migrationHistory":  [
+                                           {
+                                               "name":  "property_geocode_publication_guard",
+                                               "version":  "20261013000001"
+                                           },
+                                           {
+                                               "name":  "smart_property_fact_review",
+                                               "version":  "20261014213000"
+                                           }
+                                       ],
+                  "reviewTableExists":  true,
+                  "historyTableExists":  true,
+                  "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text, \u0027property_data\u0027::text])))",
+                  "targetMigrationPresent":  true
+              }
+}

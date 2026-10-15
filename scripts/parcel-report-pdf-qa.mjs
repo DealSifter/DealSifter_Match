@@ -2,7 +2,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {DOMMatrix,ImageData,Path2D} from '@napi-rs/canvas';
 Object.assign(globalThis,{DOMMatrix,ImageData,Path2D});
 const {getDocument}=await import('pdfjs-dist/legacy/build/pdf.mjs');
-const directory='qa/parcel-report-apn',mode=process.argv.includes('--production')?'production':'local',results=[];
+const directory=process.env.PORTFOLIO_QA_DIRECTORY||'qa/parcel-report-apn',mode=process.argv.includes('--production')?'production':'local',results=[];
 for(const device of ['desktop','phone']){
  const document=await getDocument({data:new Uint8Array(await readFile(`${directory}/${mode}-app-l1-${device}.pdf`)),isEvalSupported:false,useSystemFonts:true}).promise;
  const firstPage=await document.getPage(1),text=(await firstPage.getTextContent()).items.map(item=>item.str||'').join(' ');

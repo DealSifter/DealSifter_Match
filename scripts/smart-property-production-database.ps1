@@ -25,6 +25,12 @@ select jsonb_build_object(
  'historyTableExists',to_regclass('public.property_fact_review_history') is not null,
  'optionalColumns',(select jsonb_agg(jsonb_build_object('column',column_name,'type',data_type,'nullable',is_nullable,'default',column_default) order by column_name) from information_schema.columns where table_schema='public' and table_name='properties' and column_name in ('rehab','beds','baths')),
  'notificationConstraint',(select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.notifications'::regclass and conname='notifications_type_check'),
+ 'security',(select jsonb_agg(jsonb_build_object('table',c.relname,'rls',c.relrowsecurity,
+  'clientDirectWriteDenied',case when c.relname in ('property_fact_reviews','property_fact_review_history') then not has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE') else null end,
+  'anonDirectReadDenied',case when c.relname in ('property_fact_reviews','property_fact_review_history') then not has_table_privilege('anon',c.oid,'SELECT') else null end,
+  'policies',(select jsonb_agg(jsonb_build_object('name',policyname,'command',cmd,'roles',roles,'qual',qual)) from pg_policies where schemaname='public' and tablename=c.relname)) order by c.relname)
+  from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('property_fact_reviews','property_fact_review_history','notifications')),
+ 'clientStoreRpcExecuteDenied',case when to_regprocedure('public.ds_store_property_fact_review(uuid,uuid,bigint,jsonb,jsonb,boolean)') is not null then not has_function_privilege('authenticated','public.ds_store_property_fact_review(uuid,uuid,bigint,jsonb,jsonb,boolean)','EXECUTE') else null end,
  'migrationHistory',(select jsonb_agg(jsonb_build_object('version',version,'name',name) order by version) from supabase_migrations.schema_migrations where version>='20261012000000')
 ) as audit;
 '@

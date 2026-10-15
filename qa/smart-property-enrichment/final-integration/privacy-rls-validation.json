@@ -87,5 +87,82 @@
       "name": "unpublished-facts-not-public",
       "pass": true
     }
-  ]
+  ],
+  "productionCatalogVerified": true,
+  "productionSecurity": [
+    {
+      "rls": true,
+      "table": "notifications",
+      "policies": [
+        {
+          "name": "notifications_delete_own",
+          "qual": "(auth.uid() = user_id)",
+          "roles": [
+            "public"
+          ],
+          "command": "DELETE"
+        },
+        {
+          "name": "notifications_no_direct_insert",
+          "qual": null,
+          "roles": [
+            "public"
+          ],
+          "command": "INSERT"
+        },
+        {
+          "name": "notifications_select_own",
+          "qual": "(auth.uid() = user_id)",
+          "roles": [
+            "public"
+          ],
+          "command": "SELECT"
+        },
+        {
+          "name": "notifications_update_own_read_at",
+          "qual": "(auth.uid() = user_id)",
+          "roles": [
+            "public"
+          ],
+          "command": "UPDATE"
+        }
+      ],
+      "anonDirectReadDenied": null,
+      "clientDirectWriteDenied": null
+    },
+    {
+      "rls": true,
+      "table": "property_fact_review_history",
+      "policies": [
+        {
+          "name": "property_fact_history_read_owner",
+          "qual": "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_review_history.property_id) AND (p.owner_id = auth.uid())))))",
+          "roles": [
+            "authenticated"
+          ],
+          "command": "SELECT"
+        }
+      ],
+      "anonDirectReadDenied": true,
+      "clientDirectWriteDenied": true
+    },
+    {
+      "rls": true,
+      "table": "property_fact_reviews",
+      "policies": [
+        {
+          "name": "property_fact_reviews_read_owner",
+          "qual": "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_reviews.property_id) AND (p.owner_id = auth.uid())))))",
+          "roles": [
+            "authenticated"
+          ],
+          "command": "SELECT"
+        }
+      ],
+      "anonDirectReadDenied": true,
+      "clientDirectWriteDenied": true
+    }
+  ],
+  "clientStoreRpcExecuteDenied": true,
+  "realAuthenticatedProductionSmoke": "BLOCKED"
 }

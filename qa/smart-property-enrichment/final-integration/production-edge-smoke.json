@@ -1,0 +1,46 @@
+{
+  "pass": true,
+  "mode": "ANONYMOUS_AUTH_BOUNDARY_CORS_AND_EMPTY_PUBLIC_RPC",
+  "realAuthenticatedSession": false,
+  "propertyWrites": 0,
+  "providerCalls": 0,
+  "results": [
+    {
+      "function": "maxxis-chat",
+      "preflightStatus": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "function": "maxxis-deal-workflow",
+      "preflightStatus": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "preflightStatus": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "function": "property-fact-review",
+      "preflightStatus": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "function": "public-parcel",
+      "preflightStatus": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthenticatedStatus": 401
+    }
+  ],
+  "untrustedOriginStatus": 403,
+  "publicRpc": {
+    "status": 200,
+    "schemaCacheReady": true,
+    "propertyIdsRequested": 0,
+    "rowsReturned": 0
+  }
+}

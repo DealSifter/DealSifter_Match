@@ -1,0 +1,157 @@
+{
+  "pass": true,
+  "codeSha": "0f99ff8e180bf2c843e24b828845db3b186f7752",
+  "deploymentId": "dpl_8C5uZogzGLygShXy2AwWSr5yU8Ad",
+  "productionAliasVerified": true,
+  "backendVersions": [
+    {
+      "slug": "maxxis-chat",
+      "version": 84,
+      "status": "ACTIVE",
+      "updated_at": 1792075972484,
+      "verify_jwt": true
+    },
+    {
+      "slug": "maxxis-provider-message-draft",
+      "version": 19,
+      "status": "ACTIVE",
+      "updated_at": 1792075982113,
+      "verify_jwt": true
+    },
+    {
+      "slug": "maxxis-deal-workflow",
+      "version": 16,
+      "status": "ACTIVE",
+      "updated_at": 1792075976156,
+      "verify_jwt": true
+    },
+    {
+      "slug": "feature-flags",
+      "version": 19,
+      "status": "ACTIVE",
+      "updated_at": 1791950192694,
+      "verify_jwt": true
+    },
+    {
+      "slug": "public-parcel",
+      "version": 10,
+      "status": "ACTIVE",
+      "updated_at": 1792075996113,
+      "verify_jwt": true
+    },
+    {
+      "slug": "property-fact-review",
+      "version": 1,
+      "status": "ACTIVE",
+      "updated_at": 1792075991142,
+      "verify_jwt": true
+    }
+  ],
+  "flagsAndSecretsUnchanged": true,
+  "schemaSecurityVerified": true,
+  "publishedFrontendReviewCases": 2,
+  "publishedFrontendMapTransitions": 10,
+  "publishedFrontendL1ApnCases": 2,
+  "backendWritesInBrowserQa": 0,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "scope": "Published frontend assets with synthetic auth/backend; real anonymous Edge/CORS/empty-RPC checks; production schema metadata; no real user session.",
+  "review": {
+    "frontend": "https://dealsiftermatch.vercel.app",
+    "mode": "REAL_APP_MOCK_AUTH_BACKEND_REAL_RECONCILIATION_RUNTIME",
+    "results": [
+      {
+        "device": "desktop",
+        "requests": [
+          "READ",
+          "DECIDE",
+          "READ",
+          "READ"
+        ],
+        "checks": 0,
+        "writes": 1,
+        "notificationClick": true,
+        "exactFieldDeepLink": true,
+        "persistedAfterRefresh": true,
+        "persistedAfterLogoutLogin": true,
+        "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+        "realUserSession": false,
+        "realBackendWrites": 0,
+        "errors": []
+      },
+      {
+        "device": "mobile",
+        "requests": [
+          "READ",
+          "DECIDE",
+          "READ",
+          "READ"
+        ],
+        "checks": 0,
+        "writes": 1,
+        "notificationClick": false,
+        "exactFieldDeepLink": true,
+        "persistedAfterRefresh": true,
+        "persistedAfterLogoutLogin": true,
+        "backend": "SYNTHETIC_OWNER_SCOPED_RUNTIME",
+        "realUserSession": false,
+        "realBackendWrites": 0,
+        "errors": []
+      }
+    ]
+  },
+  "portfolio": {
+    "mode": "REAL_APP_FRONTEND_WITH_SYNTHETIC_AUTH_BACKEND",
+    "frontend": "https://dealsiftermatch.vercel.app",
+    "realBackendWrites": 0,
+    "realUserSession": false,
+    "results": [
+      {
+        "device": "desktop",
+        "errors": [],
+        "roomGroups": 1,
+        "roomsOnSameLine": true,
+        "blankLabels": 0,
+        "duplicatedRehab": 0,
+        "completeUnits": true,
+        "l1Downloaded": true,
+        "simulatedFreeAccount": true,
+        "apnFlow": true,
+        "reportEvidenceCalls": 2,
+        "freshSessionNoPriorMap": true,
+        "pointQueries": 1
+      },
+      {
+        "device": "phone",
+        "errors": [],
+        "roomGroups": 1,
+        "roomsOnSameLine": true,
+        "blankLabels": 0,
+        "duplicatedRehab": 0,
+        "completeUnits": true,
+        "l1Downloaded": true,
+        "simulatedFreeAccount": true,
+        "apnFlow": true,
+        "reportEvidenceCalls": 2,
+        "freshSessionNoPriorMap": true,
+        "pointQueries": 1
+      }
+    ]
+  },
+  "pdf": {
+    "results": [
+      {
+        "device": "desktop",
+        "pdfPages": 1,
+        "publicApnPresentOnFirstPage": true,
+        "syntheticBackend": true
+      },
+      {
+        "device": "phone",
+        "pdfPages": 1,
+        "publicApnPresentOnFirstPage": true,
+        "syntheticBackend": true
+      }
+    ],
+    "realUserSession": false
+  }
+}

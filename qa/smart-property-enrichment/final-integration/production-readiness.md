@@ -30,4 +30,4 @@ Leave additive sidecar/history tables and saved decisions intact during code rol
 
 ## Current status
 
-PENDING final validation and deployment receipts. This document is a plan, not a production-deploy PASS receipt.
+DEPLOYED / READY: 0f99ff8e180bf2c843e24b828845db3b186f7752; dpl_8C5uZogzGLygShXy2AwWSr5yU8Ad. Database, affected backend closure and production alias verified. Post-deploy published-asset and anonymous API checks PASS. Real authenticated production smoke remains BLOCKED; see FINAL_REPORT.md and production-smoke-summary.json.
