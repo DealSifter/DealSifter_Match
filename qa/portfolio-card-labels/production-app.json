@@ -1,0 +1,22 @@
+{
+  "mode": "REAL_APP_FRONTEND_WITH_SYNTHETIC_AUTH_BACKEND",
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "realBackendWrites": 0,
+  "realUserSession": false,
+  "results": [
+    {
+      "device": "desktop",
+      "errors": [],
+      "blankLabels": 0,
+      "duplicatedRehab": 0,
+      "completeUnits": true
+    },
+    {
+      "device": "phone",
+      "errors": [],
+      "blankLabels": 0,
+      "duplicatedRehab": 0,
+      "completeUnits": true
+    }
+  ]
+}
