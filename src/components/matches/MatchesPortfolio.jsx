@@ -479,6 +479,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   });
   const [exportMode, setExportMode] = useState('');
   const [isPreparingExport, setIsPreparingExport] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     const openRequestedReport = (event) => {
@@ -793,7 +794,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     const reportLanguage = getSafeLang(getLang());
     await prepareReportNarrativePresentation(schema, reportLanguage);
     const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement, language: reportLanguage });
-    if (rendered.state !== 'RENDERED' || rendered.document.pageCount !== 1) throw new Error('PROPERTY_RELEASE_RENDER_FAILED');
+    // L1 is a factual content tier, not a physical page limit. The shared
+    // containment renderer may preserve long notes on continuation pages.
+    if (rendered.state !== 'RENDERED' || !(rendered.document?.pageCount >= 1)) throw new Error('PROPERTY_RELEASE_RENDER_FAILED');
     const fileName = `${safeName || 'property_release'}.pdf`;
     if (!downloadMaxxisReportPdf(rendered.document, fileName)) throw new Error('PROPERTY_RELEASE_DOWNLOAD_FAILED');
     return fileName;
@@ -817,6 +820,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   };
 
   const handleOpenEmailCompose = () => {
+    setExportError('');
     if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
     setExportMode('');
     setActiveEmailRecipient('');
@@ -881,6 +885,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   };
 
   const handleConfirmEmailExport = async () => {
+    if (isPreparingExport) return;
+    setExportError('');
     const payload = {
       to: String(emailTo || '').trim(),
       cc: String(emailCc || '').trim(),
@@ -931,6 +937,11 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       if (emailAttachmentNotes.length) {
         bodySuffix = `\n\nATTACHMENTS READY TO INCLUDE IN EMAIL (manual attach):\n${emailAttachmentNotes.join('\n')}`;
       }
+    } catch {
+      // Keep the selected delivery options open for retry, rather than leaving
+      // a rejected event-handler promise and no explanation for the user.
+      setExportError(matchesT.exportFailed || 'The report could not be prepared. Please try again.');
+      return;
     } finally {
       setIsPreparingExport(false);
     }
@@ -1111,14 +1122,18 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 continueLabel={matchesT.exportContinue || 'Continue'}
                 preparingLabel={matchesT.exportPreparing || 'Preparing...'}
                 onBasicDownload={() => {
+                  setExportError('');
                   setExportMode('download'); setExportPdfLocal(true);
                   setExportPdfWithEmail(false); setExportPhotosWithEmail(false);
                 }}
                 onBasicEmail={() => {
+                  setExportError('');
                   setExportMode('email'); setExportPdfWithEmail(true); setExportPdfLocal(false);
                   if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
                 }}
               />
+
+              {exportError ? <div role="alert" style={{ fontSize: 12, color: C.t1, padding: 10, border: `1px solid ${C.border}`, borderRadius: 8 }}>{exportError}</div> : null}
 
               {exportMode === 'download' ? (
                 <>

@@ -20,6 +20,8 @@ describe('portfolio property fact presentation',()=>{
     const html=renderToStaticMarkup(<PortfolioPropertyFacts item={property} labels={labels} language={language}/>);
     for(const field of fields)expect(html.match(new RegExp(`data-fact="${field.id}"`,'g'))).toHaveLength(1);
     expect(html.match(/\$35K/g)).toHaveLength(1);expect(html).not.toContain('undefined');
+    expect(html.match(/data-fact-group="rooms"/g)).toHaveLength(1);
+    expect(html.match(/aria-hidden="true"/g)).toHaveLength(2);
   });
   it('uses complete dictionary labels even if a caller passes missing labels',()=>{
     const model=buildPortfolioPropertyFacts(property,{zip:undefined,lot:''},'pt');
@@ -46,6 +48,8 @@ describe('portfolio property fact presentation',()=>{
     expect(model.details.some(field=>['beds','baths','buildingArea'].includes(field.id))).toBe(false);
     expect(model.summary.find(field=>field.id==='rehab').value).toBe('N/A');
     expect(model.details.find(field=>field.id==='lot').value).toBe('5,000 sqft');
+    const html=renderToStaticMarkup(<PortfolioPropertyFacts item={{...property,type:'LAND'}} language="en"/>);
+    expect(html).not.toContain('data-fact-group="rooms"');
   });
   it('does not change the property record or financial inputs',()=>{
     const item=Object.freeze({...property});

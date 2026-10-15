@@ -1,0 +1,6 @@
+# Actual incident data and derived documents stay local, never in a push.
+l1-property-fixture.json
+*.pdf
+l1-page-*.png
+local-app-*.png
+production-app-*.png

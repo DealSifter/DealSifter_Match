@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "device": "desktop",
+      "pageCount": 2,
+      "addressPreserved": true,
+      "firstAndLastNotesPreserved": true,
+      "higherTierAnalysisAbsent": true
+    },
+    {
+      "device": "phone",
+      "pageCount": 2,
+      "addressPreserved": true,
+      "firstAndLastNotesPreserved": true,
+      "higherTierAnalysisAbsent": true
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
-const directory='qa/portfolio-card-labels';await mkdir(directory,{recursive:true});
+const directory=process.env.PORTFOLIO_QA_DIRECTORY||'qa/portfolio-card-labels';await mkdir(directory,{recursive:true});
 const browser=await chromium.launch({headless:true});const results=[];
 try{
   for(const [device,width,height] of [['desktop',1280,1000],['phone',390,844]])for(const language of ['pt','en','es']){
@@ -32,11 +32,15 @@ try{
     await expect(facts.locator('[data-fact="buildingArea"]')).toContainText('sqft');
     await expect(facts.locator('[data-fact="lot"]')).toContainText('sqft');
     await expect(facts.locator('[data-fact="zip"]')).toContainText('72204');
+    await expect(facts.locator('[data-fact-group="rooms"]')).toHaveCount(1);
+    await expect(facts.locator('[data-fact-group="rooms"] svg')).toHaveCount(2);
+    const beds=await facts.locator('[data-fact="beds"]').boundingBox(),baths=await facts.locator('[data-fact="baths"]').boundingBox();
+    expect(Math.abs(beds.y-baths.y)).toBeLessThan(2);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
     const overflow=await facts.locator('.portfolio-property-label,.portfolio-property-detail-value').evaluateAll(elements=>elements.filter(element=>element.scrollWidth>element.clientWidth+1).map(element=>element.textContent));
     expect(overflow).toEqual([]);expect(errors).toEqual([]);
     await page.screenshot({path:`${directory}/${device}-${language}-${theme}.png`,fullPage:true});
-    results.push({device,language,theme,fields:fields.length,duplicateFacts:0,blankLabels:0,horizontalOverflow:false,errors});
+    results.push({device,language,theme,fields:fields.length,roomGroups:1,roomsOnSameLine:true,duplicateFacts:0,blankLabels:0,horizontalOverflow:false,errors});
     await context.close();
   }
   await writeFile(`${directory}/visual-validation.json`,JSON.stringify({mode:'REAL_PORTFOLIO_DETAIL_COMPONENT_WITH_SYNTHETIC_DATA',realBackendWrites:0,results},null,2)+'\n');console.log(JSON.stringify(results));

@@ -1,0 +1,35 @@
+{
+  "mode": "REAL_COMPONENT_REAL_PDF_PUBLIC_PROPERTY_FACTS_MOCK_BACKEND_FREE_ACCOUNT",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "state": "RENDERED",
+      "pageCount": 2,
+      "continuations": 1,
+      "access": {
+        "PROPERTY_RELEASE": true,
+        "MAXXIS_ANALYSIS": false,
+        "DEAL_INTELLIGENCE": false
+      },
+      "reproducedError": [
+        "PROPERTY_RELEASE_RENDER_FAILED"
+      ]
+    },
+    {
+      "device": "phone",
+      "state": "RENDERED",
+      "pageCount": 2,
+      "continuations": 1,
+      "access": {
+        "PROPERTY_RELEASE": true,
+        "MAXXIS_ANALYSIS": false,
+        "DEAL_INTELLIGENCE": false
+      },
+      "reproducedError": [
+        "PROPERTY_RELEASE_RENDER_FAILED"
+      ]
+    }
+  ]
+}

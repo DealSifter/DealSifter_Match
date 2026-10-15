@@ -4,7 +4,8 @@ import {chromium} from '@playwright/test';
 const app='https://dealsiftermatch.vercel.app';const consensus=process.argv.includes('--parcel-consensus');const canonical=process.argv.includes('--canonical-evidence');
 const cleanup=process.argv.includes('--map-cleanup');
 const portfolio=process.argv.includes('--portfolio-cards');
-const directory=portfolio?'qa/portfolio-card-labels':cleanup?'qa/map-navigation-cleanup':canonical?'qa/canonical-evidence-maxxis':consensus?'qa/parcel-evidence-consensus':process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
+const rooms=process.argv.includes('--portfolio-rooms');
+const directory=rooms?'qa/portfolio-rooms-layout':portfolio?'qa/portfolio-card-labels':cleanup?'qa/map-navigation-cleanup':canonical?'qa/canonical-evidence-maxxis':consensus?'qa/parcel-evidence-consensus':process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
 const deployment=JSON.parse((await readFile(`${directory}/production-deployment.json`,'utf8')).replace(/^\uFEFF/,''));
 if(deployment.state!=='READY'||!deployment.sourceShaVerified||!deployment.aliasVerified)throw new Error('EXACT_READY_PRODUCTION_RELEASE_REQUIRED');
 const request=(url,options={})=>fetch(url,{...options,signal:AbortSignal.timeout(20000)});
@@ -58,11 +59,12 @@ if(cleanup){
  receipt.compiledNativeZoomGuard=map.includes('._animatingZoom=!1');
  receipt.pass=receipt.pass&&receipt.compiledMapUnloadGuard&&receipt.compiledNativeZoomGuard;
 }
-if(portfolio){
+if(portfolio||rooms){
  const pageName=names(main).find(name=>/^MatchesPage-(?!legacy).*\.js$/.test(name));
  if(!pageName)throw new Error('MATCHES_DEPENDENCY_REQUIRED');
  const response=await request(`${app}/assets/${pageName}`),body=await response.text();
  receipt.portfolioFacts={status:response.status,chunk:pageName,semanticFactIds:body.includes('data-fact'),singleFactPresentation:body.includes('portfolio-property-facts'),completeAreaField:body.includes('buildingArea')};
  receipt.pass=receipt.pass&&response.status===200&&receipt.portfolioFacts.semanticFactIds&&receipt.portfolioFacts.singleFactPresentation&&receipt.portfolioFacts.completeAreaField;
+ if(rooms){receipt.portfolioFacts.sharedRooms=body.includes('data-fact-group')&&body.includes('portfolio-property-rooms');receipt.portfolioFacts.l1Continuations=body.includes('PROPERTY_RELEASE_RENDER_FAILED')&&!/pageCount\s*!==?\s*1/.test(body);receipt.pass=receipt.pass&&receipt.portfolioFacts.sharedRooms&&receipt.portfolioFacts.l1Continuations;}
 }
 await writeFile(`${directory}/production-smoke.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');
