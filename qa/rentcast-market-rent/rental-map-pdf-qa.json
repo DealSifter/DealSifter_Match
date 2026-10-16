@@ -1,0 +1,91 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "perCompLookups": 0,
+  "realTileCalls": 0,
+  "mockTiles": 88,
+  "results": [
+    {
+      "language": "pt",
+      "pages": 7,
+      "mapPipeline": "EXISTING_ARV_RESOLVE_COMPARABLE_MAP",
+      "subjectMarker": "S",
+      "markers": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "mapTableIdMismatch": 0,
+      "mapTableOrderMismatch": 0,
+      "boundsPass": true,
+      "hasEstimate": true,
+      "hasAllRows": true,
+      "missingCoordinateCompIds": [],
+      "layoutContinuationCount": 0
+    },
+    {
+      "language": "en",
+      "pages": 7,
+      "mapPipeline": "EXISTING_ARV_RESOLVE_COMPARABLE_MAP",
+      "subjectMarker": "S",
+      "markers": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "mapTableIdMismatch": 0,
+      "mapTableOrderMismatch": 0,
+      "boundsPass": true,
+      "hasEstimate": true,
+      "hasAllRows": true,
+      "missingCoordinateCompIds": [],
+      "layoutContinuationCount": 0
+    },
+    {
+      "language": "es",
+      "pages": 7,
+      "mapPipeline": "EXISTING_ARV_RESOLVE_COMPARABLE_MAP",
+      "subjectMarker": "S",
+      "markers": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "mapTableIdMismatch": 0,
+      "mapTableOrderMismatch": 0,
+      "boundsPass": true,
+      "hasEstimate": true,
+      "hasAllRows": true,
+      "missingCoordinateCompIds": [],
+      "layoutContinuationCount": 0
+    }
+  ],
+  "levelControls": [
+    {
+      "reportType": "PROPERTY_RELEASE",
+      "pages": 1,
+      "expectedPages": 1,
+      "hasMainMarketEstimate": false,
+      "rentalMapPages": 0,
+      "rentalCompAddressesExposed": false,
+      "rangeExposed": false
+    },
+    {
+      "reportType": "MAXXIS_ANALYSIS",
+      "pages": 3,
+      "expectedPages": 3,
+      "hasMainMarketEstimate": true,
+      "rentalMapPages": 0,
+      "rentalCompAddressesExposed": false,
+      "rangeExposed": false
+    }
+  ],
+  "pass": true
+}

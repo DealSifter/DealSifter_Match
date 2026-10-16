@@ -1,0 +1,193 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": {
+    "version": "FINANCIAL_INPUT_READINESS_V1",
+    "propertyId": "11111111-1111-4111-8111-111111111111",
+    "incomeBasis": "MARKET_SCENARIO",
+    "readinessLevel": "INCOMPLETE",
+    "issues": {
+      "providerMarketRentEstimate": "AVAILABLE",
+      "propertyTax": "REQUIRED_VALUE_MISSING",
+      "insurance": "REQUIRED_VALUE_MISSING",
+      "hoa": "APPLICABILITY_UNCONFIRMED",
+      "vacancy": "ASSUMPTION_REQUIRED",
+      "propertyManagement": "APPLICABILITY_UNCONFIRMED",
+      "maintenance": "ASSUMPTION_REQUIRED",
+      "utilities": "APPLICABILITY_UNCONFIRMED",
+      "otherOperatingExpenses": "APPLICABILITY_UNCONFIRMED"
+    },
+    "income": {
+      "status": "AVAILABLE",
+      "inputs": [
+        "providerMarketRentEstimate"
+      ]
+    },
+    "operatingExpenses": {
+      "status": "INCOMPLETE",
+      "inputs": [
+        "propertyTax",
+        "insurance",
+        "hoa",
+        "vacancy",
+        "propertyManagement",
+        "maintenance",
+        "utilities",
+        "otherOperatingExpenses"
+      ]
+    },
+    "financing": {
+      "status": "NOT_EVALUATED",
+      "inputs": []
+    },
+    "missingCritical": [
+      "propertyTax",
+      "insurance",
+      "hoa",
+      "vacancy",
+      "propertyManagement",
+      "maintenance",
+      "utilities",
+      "otherOperatingExpenses"
+    ],
+    "missingOptional": [
+      "otherActualIncome"
+    ],
+    "estimatedInputs": [
+      "providerMarketRentEstimate"
+    ],
+    "assumedInputs": [],
+    "conflictedInputs": [],
+    "reasonCodes": [
+      "PROPERTY_TAX_MISSING",
+      "INSURANCE_MISSING",
+      "HOA_MISSING",
+      "VACANCY_ASSUMPTION_MISSING",
+      "MANAGEMENT_ASSUMPTION_MISSING",
+      "MAINTENANCE_ASSUMPTION_MISSING",
+      "UTILITIES_UNKNOWN",
+      "REQUIRED_INPUT_MISSING",
+      "MARKET_RENT_ESTIMATE_AVAILABLE",
+      "ESTIMATE_ONLY"
+    ],
+    "nextGap": "propertyTax",
+    "metrics": {
+      "NOI": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "operatingIncome",
+          "recurringOperatingExpenses"
+        ],
+        "calculationMigrated": false
+      },
+      "CAP_RATE": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses",
+          "explicitValueBasis"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "explicitValueBasis"
+        ],
+        "calculationMigrated": false
+      },
+      "CASH_FLOW": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses",
+          "debtService",
+          "recurringFinancingEffects"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "debtService",
+          "recurringFinancingEffects"
+        ],
+        "calculationMigrated": false
+      },
+      "COC": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses",
+          "annualPreTaxCashFlow",
+          "cashInvested"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "annualPreTaxCashFlow",
+          "cashInvested"
+        ],
+        "calculationMigrated": false
+      },
+      "DSCR": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses",
+          "debtService"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "debtService"
+        ],
+        "calculationMigrated": false
+      },
+      "ROI": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "explicitROIDefinition",
+          "definitionSpecificInputs"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "explicitROIDefinition",
+          "definitionSpecificInputs"
+        ],
+        "calculationMigrated": false
+      }
+    }
+  }
+}

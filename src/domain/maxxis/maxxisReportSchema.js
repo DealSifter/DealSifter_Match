@@ -1,6 +1,7 @@
 import { INTELLIGENCE_REPORT_TYPES } from '../intelligenceAccess';
 import { canonicalFactValue, resolveAnalysisPropertyType, resolveAnalysisStrategy, toKnownFiniteNumber } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import { calculateLandUnitMetrics } from '../../../supabase/functions/_shared/maxxis/landMetrics.ts';
+import {projectMarketRentReport} from '../../features/maxxis/export/marketRentReport';
 
 export const MAXXIS_REPORT_SCHEMA_VERSION = 'MAXXIS_REPORT_SCHEMA_V2';
 export const MAXXIS_REPORT_SOURCE_TYPES = Object.freeze([
@@ -522,6 +523,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
   const canonicalFocusMap = normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
     ? maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
       ? dealIntelligence?.canonicalInvestmentAnalysis?.focusMap : null;
+  const marketRent=projectMarketRentReport(normalizedType==='DEAL_INTELLIGENCE'
+    ?dealIntelligence?.valuationIntelligence?.rentalEvidence?.rentEstimate:maxxisAnalysis?.marketContext?.rentEstimate,property,normalizedType==='DEAL_INTELLIGENCE'?3:normalizedType==='MAXXIS_ANALYSIS'?2:1);
   return Object.freeze({
     type: 'maxxis_report_schema',
     version: MAXXIS_REPORT_SCHEMA_VERSION,
@@ -529,12 +532,13 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     resolvedUserLocale: ['en', 'pt', 'es'].includes(String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language))
       ? String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language) : null,
     sections,
-    pages: pagesFor(normalizedType),
+    pages: marketRent&&normalizedType==='DEAL_INTELLIGENCE'?Object.freeze([...pagesFor(normalizedType),Object.freeze({page:7,code:'MARKET_RENT',sections:['valuationEvidence','provenance']})]):pagesFor(normalizedType),
     structuredAnalysis: isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
       ? Object.freeze(structuredAnalysis) : null,
     presentation: Object.freeze({
       brand: 'DealSifter Match',
       design: 'PREMIUM_INVESTOR_REPORT_V2',
+      ...(marketRent?{marketRent}:{}),
       map: Object.freeze({
         status: finiteCoordinate(property?.latitude) !== null && finiteCoordinate(property?.longitude) !== null ? 'COORDINATES_AVAILABLE' : 'LOCATION_CONTEXT_ONLY',
         latitude: finiteCoordinate(property?.latitude),

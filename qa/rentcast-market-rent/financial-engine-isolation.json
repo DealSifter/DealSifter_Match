@@ -1,0 +1,115 @@
+{
+  "baseline": "e6f13b759238a21de1ca6b1367dd17ade46bc657",
+  "engines": [
+    {
+      "path": "supabase/functions/_shared/maxxis/dealMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/cachedArvEvaluation.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/rehabCostBenchmarks2026.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/sellerFinancingScenario.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/arvEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/arvVisualCompReview.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/recentSalesMarketEstimate.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/recordedSoldManualValidation.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldCache.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldCompEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldEvidenceService.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldManualValidation.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldMapper.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldProvider.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldSchema.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldTypes.ts",
+      "unchanged": true
+    }
+  ],
+  "migration": "NONE",
+  "migrationChanges": false,
+  "mapChanges": false,
+  "scopedReportExtension": [
+    "marketRentReport",
+    "shared ARV map viewport",
+    "conditional L3 Market Rent page",
+    "L2 main estimate"
+  ],
+  "pass": true
+}

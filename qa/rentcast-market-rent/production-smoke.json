@@ -1,0 +1,11 @@
+{
+  "state": "BLOCKED",
+  "reason": "NO_LEGITIMATE_REAL_USER_SESSION_AVAILABLE",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "newBillableCalls": 0,
+  "controlProperty": "7081 Kalanianaole Hwy, Honolulu, HI 96825",
+  "controlMarketRent": "BLOCKED",
+  "controlMarketRentRange": "BLOCKED",
+  "controlSubjectAttributes": "BLOCKED",
+  "fixtureNotProduction": true
+}

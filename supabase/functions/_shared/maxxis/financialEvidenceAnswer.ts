@@ -1,19 +1,23 @@
 import {buildFinancialInputReadiness,type FinancialMetric} from './financialReadiness.ts';
 import type {FinancialDomain,FinancialEvidenceStack,FinancialResolvedInput} from './financialEvidence.ts';
+import {formatFinancialEvidenceSource} from './financialEvidenceLabels.ts';
+import type {MarketRentResult} from '../property-data/marketRentService.ts';
 type Language='pt'|'en'|'es';
-export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean};
+export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean;marketScenario?:boolean};
 export function detectFinancialEvidenceQuestion(message:unknown):FinancialQuestion|null {
   const text=String(message??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   if(/\b(?:report|relatorio|pdf|export|reporte|informe|salvar|save|guardar|alterar|change|mude|assuma|assume|simule|simulate|simulacao|scenario|cenario|escenario)\b/.test(text)||/\b(?:what if|e se|y si)\b/.test(text))return null;
   // Numeric declarations belong to the existing user-input/gap workflow, not a read-only lookup.
   if(/\d/.test(text)&&!/[?¿]/.test(text)&&!/^\s*(?:qual|quanto|what|how|cual|cuanto|is|does|can|tem)\b/.test(text))return null;
-  if(/\b(?:what is|o que e|que es)\b/.test(text)&&!/(?:deste|desse|this property|esta propiedad|imovel)/.test(text))return null;
+  const marketQuestion=/\b(?:market rent|estimated rent|aluguel (?:de mercado|estimado)|alquiler (?:de mercado|estimado)|alugaria|alquilaria)\b/.test(text);
+  if(/\b(?:what is|o que e|que es)\b/.test(text)&&!/(?:deste|desse|this property|esta propiedad|imovel)/.test(text)&&!marketQuestion)return null;
   const metric=/\bnoi\b/.test(text)?'NOI':/\bcap rate\b/.test(text)?'CAP_RATE':/\bdscr\b/.test(text)?'DSCR':/\b(?:coc|cash on cash)\b/.test(text)?'COC':/\broi\b/.test(text)?'ROI':/\b(?:cash flow|fluxo de caixa|flujo de caja)\b/.test(text)?'CASH_FLOW':null;
   if(metric){
     // Readiness questions only. Existing stored/calculated metric lookups keep their legacy route.
     if(!/\b(?:falta|faltam|missing|need|ready|readiness|pronto|prontidao|can|calcular|calculate|calculo|calculation|posso|podemos|puede|podemos|listo)\b/.test(text))return null;
-    return {metric,listMissing:/\b(?:falta|faltam|missing|what.*need|que falta)\b/.test(text)};
+    return {metric,listMissing:/\b(?:falta|faltam|missing|what.*need|que falta|liste todos|list all)\b/.test(text),...(/\b(?:mercado|market|mercado)\b/.test(text)?{marketScenario:true}:{})};
   }
+  if(marketQuestion)return {domain:'providerMarketRentEstimate'};
   if(/\b(?:aluguel|rent|renta|alquiler)\b/.test(text))return {domain:/\b(?:mercado|market|estimad[oa]|estimate)\b/.test(text)?'providerMarketRentEstimate':/\b(?:premissa|assumption|supuesto|investidor|investor)\b/.test(text)?'investorRentAssumption':'currentContractRent'};
   if(/\b(?:property tax|annual tax|imposto predial|imposto anual|impuesto predial)\b/.test(text))return {domain:'propertyTax'};
   if(/\b(?:hoa|poa|condominio|asociacion)\b/.test(text))return {domain:'hoa'};
@@ -40,37 +44,56 @@ function describe(input:FinancialResolvedInput,lang:Language){
   if(input.value===null)return `${label}: ${t.missing}`;
   const amount=input.unit==='PERCENT'?`${input.value}%`:new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(input.value);
   const cadenceLabels={pt:{MONTHLY:'mês',QUARTERLY:'trimestre',SEMIANNUAL:'semestre',ANNUAL:'ano',ONE_TIME:'pontual',UNKNOWN:''},en:{MONTHLY:'month',QUARTERLY:'quarter',SEMIANNUAL:'half-year',ANNUAL:'year',ONE_TIME:'one-time',UNKNOWN:''},es:{MONTHLY:'mes',QUARTERLY:'trimestre',SEMIANNUAL:'semestre',ANNUAL:'año',ONE_TIME:'puntual',UNKNOWN:''}};
-  const declared={pt:'Declarado pelo publicador',en:'Publisher declaration',es:'Declarado por el publicador'};
-  const privateSource={pt:'Premissa privada',en:'Private assumption',es:'Supuesto privado'};
-  const publicSource={pt:'Registro público',en:'Public record',es:'Registro público'};
-  const authority=input.source?.sourceAuthority??'';
-  const sourceLabel=input.source?.sourceType==='USER_PROVIDED'?(input.assumption?privateSource[lang]:declared[lang])
-    :input.source?.sourceType==='RENTCAST'?'RentCast':/^[A-Z0-9_:]+$/.test(authority)?publicSource[lang]:authority;
-  const notes=[input.estimated?t.estimate:input.assumption?t.assumption:input.analyticalUsability==='ACTUAL_CONFIRMED'?t.confirmed:t.actual,
-    sourceLabel,input.source?.periodYear?String(input.source.periodYear):'',
-    ...(input.qualification.includes('STALE_EVIDENCE')?[t.stale]:[]),...(input.freshness==='UNKNOWN'?[t.unknownFreshness]:[]),
+  const notes=[formatFinancialEvidenceSource(input,lang),
     ...(input.cadence==='UNKNOWN'?[t.cadence]:[]),...(input.cadence==='ONE_TIME'?[t.oneTime]:[]),
     ...(input.conflictPreserved?[t.choice]:[])].filter(Boolean);
-  return `${label}: ${amount}${cadenceLabels[lang][input.cadence]?` / ${cadenceLabels[lang][input.cadence]}`:''}. ${notes.join(' · ')}.`;
+  const money=(value:number)=>new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(value);
+  const low=input.source?.metadata?.rangeLow,high=input.source?.metadata?.rangeHigh;
+  const range=input.domain==='providerMarketRentEstimate'&&typeof low==='number'&&typeof high==='number'
+    ?` ${lang==='pt'?'Faixa estimada':lang==='es'?'Rango estimado':'Estimated range'}: ${money(low)} – ${money(high)}.`:'';
+  const scope=input.source?.metadata?.scope==='UNIT'?` (${lang==='pt'?'por unidade':lang==='es'?'por unidad':'per unit'})`:'';
+  return `${label}${scope}: ${amount}${cadenceLabels[lang][input.cadence]?` / ${cadenceLabels[lang][input.cadence]}`:''}.${range} ${notes.join(' · ')}.`;
 }
-export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:FinancialEvidenceStack,language:string,context:Parameters<typeof buildFinancialInputReadiness>[1]={}){
+export const marketRentActionCopy=(language:string)=>language==='pt'?{label:'Consultar aluguel de mercado',prompt:'Qual o aluguel de mercado?'}:language==='es'?{label:'Consultar alquiler de mercado',prompt:'¿Cuál es el alquiler de mercado?'}:{label:'Check market rent',prompt:'What is the market rent?'};
+export function marketRentStateAnswer(result:MarketRentResult|undefined,language:string){
+  const lang=language==='pt'?'pt':language==='es'?'es':'en';
+  const messages:Record<string,[string,string,string]>={
+    NOT_QUERIED:['Ainda não consultei uma estimativa de aluguel de mercado para este imóvel.','I have not queried a market rent estimate for this property yet.','Aún no consulté una estimación de alquiler de mercado para este inmueble.'],
+    NO_RESULT:['O RentCast não conseguiu gerar uma estimativa de aluguel de mercado com os dados disponíveis.','RentCast could not produce a market rent estimate with the available data.','RentCast no pudo generar una estimación de alquiler de mercado con los datos disponibles.'],
+    PROVIDER_ERROR:['Não foi possível consultar o RentCast agora.','RentCast could not be queried right now.','No fue posible consultar RentCast ahora.'],
+    ENTITLEMENT_BLOCKED:['Seu acesso atual não autoriza esta consulta de inteligência.','Your current access does not authorize this intelligence query.','Su acceso actual no autoriza esta consulta de inteligencia.'],
+    USAGE_BLOCKED:['O limite de consultas do provedor foi atingido. Nenhuma nova consulta foi realizada.','The provider query budget has been reached. No new query was performed.','Se alcanzó el límite de consultas del proveedor. No se realizó una nueva consulta.'],
+    PROVIDER_DISABLED:['A consulta ao RentCast está indisponível no momento.','RentCast queries are currently unavailable.','La consulta a RentCast está deshabilitada por el momento.'],
+    RENT_AVM_REVIEW_REQUIRED:['Há uma divergência nos dados deste imóvel. Revise o campo indicado antes de consultar o aluguel de mercado.','Property inputs disagree. Review the indicated field before querying market rent.','Los datos del inmueble difieren. Revise el campo indicado antes de consultar el alquiler de mercado.'],
+    UNIT_CONTEXT_REQUIRED:['O RentCast estima aluguel por unidade, não pelo prédio inteiro. Informe as características de uma unidade antes da consulta.','RentCast estimates rent per unit, not for the whole building. Unit-level characteristics are required first.','RentCast estima alquiler por unidad, no del edificio completo. Primero se requieren las características de una unidad.'],
+    NOT_APPLICABLE:['O AVM de aluguel residencial não se aplica a terrenos.','Residential rent AVM does not apply to land.','El AVM de alquiler residencial no se aplica a terrenos.'],
+    UNSUPPORTED_TYPE:['Este tipo de imóvel não é compatível com o AVM de aluguel residencial.','This property type is unsupported by the residential rent AVM.','Este tipo de inmueble no es compatible con el AVM de alquiler residencial.'],
+    ADDRESS_REQUIRED:['É necessário um endereço completo e autorizado para esta consulta.','A complete authorized address is required for this query.','Se requiere una dirección completa y autorizada para esta consulta.'],
+    SUBJECT_CHANGED:['Os dados do imóvel mudaram durante a consulta. Confira o cadastro antes de tentar novamente.','Property inputs changed during the query. Review the property before trying again.','Los datos del inmueble cambiaron durante la consulta. Revise el registro antes de reintentar.'],
+    SUBJECT_UNAVAILABLE:['Não foi possível validar os dados atuais do imóvel.','Current property inputs could not be validated.','No fue posible validar los datos actuales del inmueble.']};
+  return (messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[lang==='pt'?0:lang==='es'?2:1];
+}
+export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:FinancialEvidenceStack,language:string,context:Parameters<typeof buildFinancialInputReadiness>[1]&{marketRent?:MarketRentResult}={}){
   const lang:Language=language==='pt'?'pt':language==='es'?'es':'en',t=COPY[lang];
   if(question.domain){
     const input=stack.inputs[question.domain];
+    if(question.domain==='providerMarketRentEstimate'&&input.value===null)return {answer:marketRentStateAnswer(context.marketRent,lang),readiness:null,input};
     const text=question.domain==='currentContractRent'&&input.value===null&&input.analyticalUsability!=='CONFLICTED'
       ?`${t.currentMissing}${stack.inputs.providerMarketRentEstimate.value!==null?` ${describe(stack.inputs.providerMarketRentEstimate,lang)}`:''}`:describe(input,lang);
     return {answer:text,readiness:null,input};
   }
   const metric=question.metric??'NOI';
-  const readiness=buildFinancialInputReadiness(stack,{...context,explicitRentalQuestion:metric!=='ROI'||context.explicitRentalQuestion===true});
+  const readiness=buildFinancialInputReadiness(stack,{...context,...(question.marketScenario?{incomeBasis:'MARKET_SCENARIO' as const}:{}),explicitRentalQuestion:metric!=='ROI'||context.explicitRentalQuestion===true});
   const evaluation=readiness.metrics[metric],level=evaluation.readinessLevel;
   const metricLabel=metric==='CAP_RATE'?'Cap Rate':metric==='CASH_FLOW'?(lang==='pt'?'Fluxo de caixa':lang==='es'?'Flujo de caja':'Cash flow'):metric==='COC'?'CoC':metric;
   const gap=metric==='ROI'?null:readiness.nextGap,missing=metric==='ROI'?[]:readiness.missingCritical;
-  const reasons=question.listMissing&&missing.length?`${t.missingList}: ${missing.map(d=>LABELS[lang][d]).join(', ')}.`:'';
+  const gapLabel=(domain:FinancialDomain)=>readiness.issues[domain]==='APPLICABILITY_UNCONFIRMED'
+    ?`${lang==='pt'?'Confirmar aplicabilidade':lang==='es'?'Confirmar aplicabilidad':'Confirm applicability'}: ${LABELS[lang][domain]}`:LABELS[lang][domain];
+  const reasons=question.listMissing&&missing.length?`${t.missingList}: ${missing.map(gapLabel).join('; ')}.`:'';
   const text=[`${metricLabel}: ${level==='BLOCKED_CONFLICT'?t.blocked:level==='INCOMPLETE'?t.incomplete:level==='NOT_APPLICABLE'?t.notApplicable:t.ready}`,
     readiness.estimatedInputs.length?readiness.estimatedInputs.map(d=>describe(stack.inputs[d],lang)).join('\n'):'',
     stack.inputs.currentContractRent.value===null&&stack.inputs.providerMarketRentEstimate.value!==null?t.scenario:'',reasons,
     ...(readiness.assumedInputs.length?[readiness.assumedInputs.map(d=>describe(stack.inputs[d],lang)).join('\n')]:[]),
-    metric!=='NOI'?FUTURE_INPUTS[lang][metric]:'',gap?`${t.next}: ${LABELS[lang][gap]}.`:''].filter(Boolean).join('\n\n');
+    metric!=='NOI'?FUTURE_INPUTS[lang][metric]:'',gap?`${t.next}: ${gapLabel(gap)}.`:''].filter(Boolean).join('\n\n');
   return {answer:text,readiness,input:null};
 }

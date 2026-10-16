@@ -1,0 +1,20 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": {
+    "addressFingerprint": "835733e529958f2202f67aa50b8ee36f90fc77cba3e67b9e678503369a232d4b",
+    "queryFingerprint": "e7302153c7d11cc96d9c5cf4cbf42a572de5de591fa029eefe8d71ed099cb890",
+    "request": {
+      "address": "7081 KALANIANAOLE HWY, Honolulu, HI, 96825",
+      "propertyType": "Single Family",
+      "bedrooms": 5,
+      "bathrooms": 3,
+      "squareFootage": 2333,
+      "maxRadius": 5,
+      "daysOld": 270,
+      "compCount": 20,
+      "lookupSubjectAttributes": true
+    }
+  }
+}

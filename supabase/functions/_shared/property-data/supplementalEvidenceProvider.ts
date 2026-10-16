@@ -1,9 +1,10 @@
-import { formatPropertyLookupAddress, validatePropertyLookupInput } from './address.ts';
+import { formatPropertyLookupAddress, validatePropertyLookupInput,rentCastAddressMatches } from './address.ts';
 import { createRentCastClient, type RentCastClient, type RentCastFetch } from './rentcast/rentcastClient.ts';
 import { mapListings, mapMarketData, mapRentEstimate } from './supplementalEvidenceMapper.ts';
 import type { SupplementalEvidenceProvider } from './supplementalEvidenceTypes.ts';
 import { asPropertyDataError, PropertyDataError, type PropertyDataMode } from './types.ts';
 import type { PropertyDataUsageGuard, PropertyDataUsageOperation, UsageReservation } from './usageGuard.ts';
+import {RENTCAST_MARKET_RENT_POLICY} from './rentAvmSubject.ts';
 
 export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenceProvider {
   constructor(private readonly options: { client: Pick<RentCastClient, 'searchSaleListings' | 'estimateRent' | 'searchRentalListings' | 'getMarketData'>;
@@ -39,8 +40,13 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   async getRentEstimate(input: Parameters<SupplementalEvidenceProvider['getRentEstimate']>[0]) {
     const lookup = validatePropertyLookupInput(input);
     return this.guarded('rent_estimate', lookup.propertyId, lookup.userId, async () => {
-      const response = await this.options.client.estimateRent({ address: formatPropertyLookupAddress(lookup), maxRadius: 5,
-        daysOld: 180, compCount: 20, lookupSubjectAttributes: true });
+      const response = await this.options.client.estimateRent({ address: formatPropertyLookupAddress(lookup), ...RENTCAST_MARKET_RENT_POLICY,
+        ...(input.propertyType?{propertyType:input.propertyType}:{}),...(input.bedrooms!=null?{bedrooms:input.bedrooms}:{}),
+        ...(input.bathrooms!=null?{bathrooms:input.bathrooms}:{}),...(input.squareFootage!=null?{squareFootage:input.squareFootage}:{}) });
+      const subject=response.data.subjectProperty as Record<string,unknown>|null;
+      if(subject&&!rentCastAddressMatches(lookup,{addressLine1:subject.addressLine1??lookup.street,
+        city:subject.city??lookup.city,state:subject.state??lookup.state,zipCode:subject.zipCode??lookup.zipCode}))
+        throw new PropertyDataError('ADDRESS_MISMATCH',{httpStatus:200,billableSuccess:true});
       return mapRentEstimate(response.data, input.queryFingerprint, this.now());
     });
   }

@@ -19,6 +19,21 @@ import { createSoldRecordDataProvider } from './soldProvider.ts';
 import { SupabaseSupplementalEvidenceCache } from './supplementalEvidenceCache.ts';
 import { SupplementalEvidenceService } from './supplementalEvidenceService.ts';
 import { createSupplementalEvidenceProvider } from './supplementalEvidenceProvider.ts';
+import {MarketRentService} from './marketRentService.ts';
+import type {RentAvmSubject} from './rentAvmSubject.ts';
+import {resolveCachedRentAvmSubject} from './marketRentSubjectContext.ts';
+
+export function createBackendMarketRentService(options:{supabaseAdmin:PropertyEvidenceBackendClient;getEnv:(name:string)=>string|undefined;
+  providerBudgetContext:ProviderBudgetContext;resolveSubject:()=>Promise<RentAvmSubject>;hasEntitlement:()=>Promise<boolean>;fetchImpl?:RentCastFetch}){
+  const config=readPropertyDataConfig(options.getEnv),flight=new SupabasePropertySingleFlight(options.supabaseAdmin);
+  return new MarketRentService({cache:new SupabaseSupplementalEvidenceCache(options.supabaseAdmin),singleFlight:flight,
+    resolveSubject:options.resolveSubject,hasEntitlement:options.hasEntitlement,enabled:config.mode==='live',
+    providerGate:work=>flight.run('rentcast:market-rent-rate-gate',async()=>{
+      const start=Date.now();try{return await work();}finally{const wait=250-(Date.now()-start);if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));}
+    }),
+    provider:createSupplementalEvidenceProvider({mode:config.mode,apiKey:config.apiKey,timeoutMs:config.timeoutMs,
+      usageGuard:usageGuard({supabaseAdmin:options.supabaseAdmin,getEnv:options.getEnv,context:options.providerBudgetContext}),fetchImpl:options.fetchImpl})});
+}
 
 export type PropertyEvidenceBackendClient = PropertyIntelligenceRpcClient
   & PropertyDataUsageRpcClient
@@ -131,5 +146,9 @@ export function createBackendSupplementalEvidenceService(options: {
       timeoutMs: config.timeoutMs, usageGuard: guardedUsage, fetchImpl: options.fetchImpl }),
     enabled: config.mode === 'live',
     singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
+    marketRent:options.providerBudgetContext?createBackendMarketRentService({...options,providerBudgetContext:options.providerBudgetContext,
+      resolveSubject:()=>resolveCachedRentAvmSubject(options.supabaseAdmin,options.providerBudgetContext!.propertyId),
+      // Upstream report family capability policy remains authoritative.
+      hasEntitlement:async()=>true}):undefined,
   });
 }

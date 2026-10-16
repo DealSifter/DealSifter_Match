@@ -6,6 +6,8 @@ import { supplementalQueryFingerprint, type SupplementalEvidenceCache } from './
 import type { SupplementalEvidence, SupplementalEvidenceFamily, SupplementalEvidenceProvider } from './supplementalEvidenceTypes.ts';
 import { cacheFreshness, type EvidenceFreshness } from './cacheFreshness.ts';
 import { isProviderUnavailableError } from './providerAvailability.ts';
+import type {MarketRentService} from './marketRentService.ts';
+import {RENTCAST_MARKET_RENT_POLICY} from './rentAvmSubject.ts';
 
 export type SupplementalEvidenceBundle = {
   propertyId: string;
@@ -19,7 +21,7 @@ export type SupplementalEvidenceBundle = {
 
 const FILTERS: Record<SupplementalEvidenceFamily, Record<string, unknown>> = {
   saleListings: { radius: 5, status: 'Active', limit: 50 },
-  rentEstimate: { maxRadius: 5, daysOld: 180, compCount: 20 },
+  rentEstimate: RENTCAST_MARKET_RENT_POLICY,
   rentalListings: { radius: 5, status: 'Active', limit: 50 },
   market: { geography: 'ZIP' },
 };
@@ -27,7 +29,7 @@ const FILTERS: Record<SupplementalEvidenceFamily, Record<string, unknown>> = {
 export class SupplementalEvidenceService {
   private readonly singleFlight: PropertySingleFlight;
   constructor(private readonly options: { repository: PropertyEvidenceRepository; cache: SupplementalEvidenceCache;
-    provider: SupplementalEvidenceProvider; singleFlight?: PropertySingleFlight; enabled?: boolean }) {
+    provider: SupplementalEvidenceProvider; singleFlight?: PropertySingleFlight; enabled?: boolean;marketRent?:MarketRentService }) {
     this.singleFlight = options.singleFlight || new InMemoryPropertySingleFlight();
   }
 
@@ -44,6 +46,13 @@ export class SupplementalEvidenceService {
   }
 
   private async load(input: { propertyId: string; userId?: string | null }, family: SupplementalEvidenceFamily, cacheOnly: boolean): Promise<{ evidence: SupplementalEvidence; cacheHit: boolean; freshness?: EvidenceFreshness } | null> {
+    if(family==='rentEstimate'){
+      // No legacy address-only acquisition/cache fallback, even if a future
+      // caller forgets the controlled application service or budget context.
+      if(!this.options.marketRent)return null;
+      const result=await this.options.marketRent.get({propertyId:validatePropertyId(input.propertyId),userId:input.userId??'',acquire:!cacheOnly});
+      return result.state==='AVAILABLE'&&result.evidence?{evidence:result.evidence,cacheHit:result.cacheHit===true,freshness:result.freshness}:null;
+    }
     const context = await this.context(input, family);
     const cached = await this.options.cache.get(context.propertyId, family, context.addressFingerprint, context.queryFingerprint);
     if (cached) return { evidence: cached.evidence, cacheHit: true, freshness: cacheFreshness(cached) };
@@ -56,7 +65,6 @@ export class SupplementalEvidenceService {
       if (rechecked) return { evidence: rechecked.evidence, cacheHit: true };
       const request = { ...context.lookup, queryFingerprint: context.queryFingerprint, propertyType: context.property.type };
       const evidence = family === 'saleListings' ? await this.options.provider.getSaleListings(request)
-        : family === 'rentEstimate' ? await this.options.provider.getRentEstimate(request)
         : family === 'rentalListings' ? await this.options.provider.getRentalListings(request)
         : await this.options.provider.getMarketData(request);
       const current = await this.options.repository.getById(context.propertyId, input.userId);

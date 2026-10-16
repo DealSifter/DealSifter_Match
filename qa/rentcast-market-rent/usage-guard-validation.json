@@ -1,0 +1,17 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": [
+    {
+      "id": "3d9ab625-02a9-4479-8659-2d84a3595c23",
+      "provider": "rentcast",
+      "operation": "rent_estimate",
+      "createdAt": "2026-10-16T00:00:00.000Z",
+      "status": "succeeded",
+      "billableSuccess": true,
+      "httpStatus": 200,
+      "errorCode": null
+    }
+  ]
+}

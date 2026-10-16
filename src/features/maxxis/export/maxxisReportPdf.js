@@ -9,6 +9,7 @@ import { getCachedPresentationText } from '../../../services/chatTranslation';
 import { reportNarrativeCacheKey, reportNarrativeProjection } from '../presentation/reportNarrativePresentation';
 import { formatLandDevelopmentAnswer } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 import { buildLandReportView } from './maxxisLandReportView';
+import {marketRentReportCopy,rentalReportMapPoints} from './marketRentReport';
 import {
   REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
   deduplicateAndBudgetItems,
@@ -859,7 +860,10 @@ function renderExecutive(doc, schema, t, accent, images, mapImage) {
       ? ` (${currency(recent.range.low, t)} – ${currency(recent.range.high, t)})` : ''}; ${recent.valuationCompCount || 0} ${t.recentSalesComps.toLowerCase()}.` : '';
   const primarySummary = summary.summary;
   const distinctPositive = positiveObservations(summary).find((item) => addsDistinctMeaning(item, primarySummary));
-  const summaryText = [primarySummary, distinctPositive ? `• ${distinctPositive}` : null, recentSummary].filter(Boolean).join('\n');
+  const rent=schema.presentation?.marketRent;
+  const rentCopy=marketRentReportCopy(t.locale);
+  const rentSummary=rent?`${rentCopy.title}${rent.scope==='UNIT'?` (${rentCopy.perUnit})`:''}: ${currency(rent.monthlyRentEstimate,t)}.`:'';
+  const summaryText = [rentSummary,primarySummary, distinctPositive ? `• ${distinctPositive}` : null, recentSummary].filter(Boolean).join('\n');
   propertyBottom(doc, property, t, accent, factGridBottom + 15, images, [], mapImage, {
     secondaryTitle: t.opportunity, secondaryText: summaryText,
   });
@@ -1347,7 +1351,49 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
     : array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent, { sectionId: 'page6RecommendedActions' });
   text(doc, t.disclaimer, W / 2, 773, { size: 6.7, color: C.muted, width: CONTENT, maxLines: 2, align: 'center' });
 }
-function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {
+function renderMarketRent(doc,schema,t,accent,rentalMap){
+  const view=schema.presentation?.marketRent;if(!view)return;
+  const usd=amount=>amount==null?t.unavailable:new Intl.NumberFormat(t.locale==='pt'?'pt-BR':t.locale==='es'?'es-US':'en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:2}).format(amount);
+  const copy=marketRentReportCopy(t.locale),rows=view.reportRentalComparables??[];
+  panel(doc,M,127,CONTENT,120,{fill:C.white,stroke:softColor(accent,.64)});
+  text(doc,`${copy.title}${view.scope==='UNIT'?` (${copy.perUnit})`:''}`,W/2,148,{size:11.6,bold:true,color:accent,align:'center'});
+  text(doc,usd(view.monthlyRentEstimate),W/2,178,{size:25,bold:true,align:'center'});
+  text(doc,[view.rentPerSqft?`${usd(view.rentPerSqft.value)} ${copy.perSqft}`:'',view.rentPerBedroom?`${usd(view.rentPerBedroom.value)} ${copy.perBed}`:''].filter(Boolean).join('   ·   '),W/2,199,{size:9,align:'center'});
+  if(view.rangeLow!=null&&view.rangeHigh!=null){
+    doc.setDrawColor(...C.line);doc.setLineWidth(4);doc.line(M+110,215,W-M-110,215);
+    const ratio=view.rangeHigh>view.rangeLow?Math.max(0,Math.min(1,(view.monthlyRentEstimate-view.rangeLow)/(view.rangeHigh-view.rangeLow))):.5;
+    doc.setFillColor(...accent);doc.circle(M+110+ratio*(CONTENT-220),215,4,'F');
+    text(doc,usd(view.rangeLow),M+13,219,{size:8});text(doc,usd(view.rangeHigh),W-M-13,219,{size:8,align:'right'});
+  }
+  const subject=view.subject;
+  text(doc,`${copy.subject}: ${subject.propertyType??t.unavailable} · ${value(subject.bedrooms,'–')} ${t.beds} · ${value(subject.bathrooms,'–')} ${t.baths} · ${value(subject.livingAreaSqft,'–')} sqft`,W/2,238,{size:8,align:'center',width:CONTENT-20});
+  if(rows.length){
+    panel(doc,M,257,CONTENT,206);heading(doc,`${copy.subject} (S) · ${copy.comps} (1–${rows.length})`,M+12,278,CONTENT-24,accent);
+    if(rentalMap)doc.addImage(rentalMap,'PNG',M+12,287,CONTENT-24,159);
+    else{
+      const points=rentalReportMapPoints(view);
+      if(points.length>1){
+        schematicComparableMap(doc,M+12,287,CONTENT-24,159,accent,t.mapArea);
+        const viewport=comparableMapViewport(points,900,330,65);
+        viewport.world.forEach(({x,y,item})=>{const px=M+12+(x-viewport.left)/900*(CONTENT-24),py=287+(y-viewport.top)/330*159;doc.setFillColor(...(item.marker==='S'?C.ink:accent));doc.circle(px,py,8,'F');text(doc,item.marker,px,py+3,{size:8,bold:true,color:C.white,align:'center'});});
+      }else text(doc,t.noMap,M+16,330,{size:9,width:CONTENT-32,color:C.muted});
+    }
+    text(doc,rentalMap?t.mapAttribution:t.coordinateMap,M+14,456,{size:6.7,color:C.muted});
+    panel(doc,M,475,CONTENT,254);heading(doc,copy.comps,M+12,497,CONTENT-24,accent);
+    text(doc,`${t.address} / ${t.bedsBaths} / sqft`,M+12,516,{size:7.5,bold:true,color:C.muted});
+    text(doc,`${copy.monthly} · ${copy.correlation} · ${copy.distance}`,W-M-12,516,{size:7.5,bold:true,color:C.muted,align:'right'});
+    rows.forEach(comp=>{
+      const y=541+(comp.number-1)*36;
+      text(doc,`${comp.number}. ${comp.address||t.unavailable}`,M+12,y,{size:8,bold:true,width:285,maxLines:1});
+      text(doc,`${value(comp.bedrooms,'–')} / ${value(comp.bathrooms,'–')} · ${value(comp.livingAreaSqft,'–')} sqft · ${comp.daysOld==null?'–':`${comp.daysOld} ${copy.days}`}`,M+26,y+13,{size:7.2,color:C.muted,width:280});
+      text(doc,`${usd(comp.monthlyRent)} · ${comp.providerCorrelation==null?'–':`${(comp.providerCorrelation*100).toFixed(1)}%`} · ${comp.distanceMiles==null?'–':`${comp.distanceMiles.toFixed(2)} mi`}`,W-M-12,y+5,{size:7.5,align:'right'});
+      doc.setDrawColor(...C.line);doc.line(M+12,y+23,W-M-12,y+23);
+    });
+  }else text(doc,copy.noComps,M+13,280,{size:10,width:CONTENT-26});
+  text(doc,[copy.qualification,view.freshness==='STALE_USABLE'?copy.stale:'',view.retrievedAt?`${copy.retrieved}: ${localizedDate(view.retrievedAt,t)}`:'',copy.calculated,view.missingCoordinateCompIds?.length?copy.missing:''].filter(Boolean).join('\n'),M+10,748,{size:7.4,color:C.muted,width:CONTENT-20,maxLines:5});
+}
+function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap,rentalMap) {
+  if(pageCode==='MARKET_RENT')return renderMarketRent(doc,schema,t,accent,rentalMap);
   if (pageCode === 'KEY_INSIGHTS_NEXT_STEPS' && schema.presentation?.landDevelopment) return renderDevelopmentSummary(doc, schema.presentation.landDevelopment, t, accent);
   if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images, mapImage);
@@ -1480,12 +1526,23 @@ async function resolveStreetMap(schema) {
   }
 }
 
-export async function resolveComparableMap(schema) {
+export function comparableMapViewport(all,width=900,height=330,padding=65){
+  let zoom=16,world=[];
+  for(;zoom>=1;zoom-=1){
+    world=all.map(item=>({...mapWorldPoint(Number(item.latitude),Number(item.longitude),zoom),item}));
+    const spanX=Math.max(...world.map(p=>p.x))-Math.min(...world.map(p=>p.x)),spanY=Math.max(...world.map(p=>p.y))-Math.min(...world.map(p=>p.y));
+    if(spanX<=width-padding*2&&spanY<=height-padding*2||zoom===1)break;
+  }
+  const left=(Math.min(...world.map(p=>p.x))+Math.max(...world.map(p=>p.x)))/2-width/2;
+  const top=(Math.min(...world.map(p=>p.y))+Math.max(...world.map(p=>p.y)))/2-height/2;
+  return {zoom,world,left,top,width,height,padding};
+}
+export async function resolveComparableMap(schema,options={}) {
   const property = section(schema, 'propertySummary') || {};
   const comparables = section(schema, 'comparableEvidence') || {};
   const landView = buildLandReportView(schema);
-  if (landView && !landView.mapsEligible.length) return null;
-  const all = [
+  if (!options.points&&landView && !landView.mapsEligible.length) return null;
+  const all = options.points??[
     { ...property, marker: 'S', markerTone: '#15384f' },
     ...array(landView ? landView.mapsEligible : comparables.used).map((item, index) => ({ ...item, marker: String(index + 1), markerTone: '#0d876f' })),
     ...array(landView ? [] : comparables.supporting).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + index + 1), markerTone: '#e6a416' })),
@@ -1495,17 +1552,7 @@ export async function resolveComparableMap(schema) {
   if (all.length < 2 || typeof document === 'undefined') return null;
   try {
     const width = 900; const height = 330; const padding = 65;
-    let zoom = 16; let world = [];
-    for (; zoom >= 10; zoom -= 1) {
-      world = all.map((item) => ({ ...mapWorldPoint(Number(item.latitude), Number(item.longitude), zoom), item }));
-      const spanX = Math.max(...world.map((point) => point.x)) - Math.min(...world.map((point) => point.x));
-      const spanY = Math.max(...world.map((point) => point.y)) - Math.min(...world.map((point) => point.y));
-      if (spanX <= width - padding * 2 && spanY <= height - padding * 2) break;
-    }
-    const minX = Math.min(...world.map((point) => point.x)); const maxX = Math.max(...world.map((point) => point.x));
-    const minY = Math.min(...world.map((point) => point.y)); const maxY = Math.max(...world.map((point) => point.y));
-    const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-    const left = center.x - width / 2; const top = center.y - height / 2;
+    const {zoom,world,left,top}=comparableMapViewport(all,width,height,padding);
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
     const context = canvas.getContext('2d'); if (!context) return null;
     context.fillStyle = '#eef4f6'; context.fillRect(0, 0, width, height);
@@ -1581,8 +1628,9 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     t.recentSalesValue = lang === 'pt' ? 'Estimativa pelas vendas anteriormente registradas' : lang === 'es' ? 'Estimación por ventas registradas anteriormente' : 'Estimate from previously recorded sales';
   }
   const assetsStartedAt = performanceNow();
-  const [images, mapImage, comparableMap] = await Promise.all([
+  const [images, mapImage, comparableMap,rentalMap] = await Promise.all([
     resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema), resolveComparableMap(schema),
+    schema.reportType==='DEAL_INTELLIGENCE'&&schema.presentation?.marketRent?.reportRentalComparables?.length?resolveComparableMap(schema,{points:rentalReportMapPoints(schema.presentation.marketRent)}):null,
   ]);
   const assetsMs = performanceNow() - assetsStartedAt;
   emitReportStage('pdf_assets_ready', { durationMs: Math.round(assetsMs * 10) / 10 });
@@ -1592,14 +1640,14 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     const pageStartedAt = performanceNow();
     emitReportStage(`pdf_page_${index + 1}_start`, { page: index + 1 });
     if (index) doc.addPage('a4', 'portrait');
-    const pageLabels = page.code === 'VALUATION_INTELLIGENCE' && buildLandReportView(schema, lang)
+    const pageLabels = page.code==='MARKET_RENT'?{...t,MARKET_RENT:marketRentReportCopy(lang).title}:page.code === 'VALUATION_INTELLIGENCE' && buildLandReportView(schema, lang)
       ? { ...t, VALUATION_INTELLIGENCE: lang === 'pt' ? 'Custos e desenvolvimento do terreno' : lang === 'es' ? 'Costos y desarrollo del terreno' : 'Land costs and development' } : t;
     const { accent } = pageHeader(doc, schema, page.code, pageLabels);
     // Preserve the original spacing between the page title and its first
     // section by moving the complete body down into the former footer margin.
     doc.saveGraphicsState();
     doc.setCurrentTransformationMatrix(doc.Matrix(1, 0, 0, 1, 0, -BODY_OFFSET));
-    renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
+    renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap,rentalMap);
     doc.restoreGraphicsState();
     const pageMs = Math.round((performanceNow() - pageStartedAt) * 10) / 10;
     perPageMs.push(pageMs);

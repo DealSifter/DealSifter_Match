@@ -38,6 +38,11 @@ function validEvidence(value: unknown, family: SupplementalEvidenceFamily): valu
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const evidence = value as Record<string, unknown>;
   const expected = { saleListings: 'sale_listings', rentEstimate: 'rent_estimate', rentalListings: 'rental_listings', market: 'market_data' }[family];
+  if(family==='rentEstimate'){
+    if(!['AVAILABLE','NO_RESULT','PROVIDER_ERROR'].includes(String(evidence.status)))return false;
+    if(evidence.status==='AVAILABLE'&&(typeof evidence.rent!=='number'||!Number.isFinite(evidence.rent)||evidence.rent<=0||evidence.rent*100>Number.MAX_SAFE_INTEGER))return false;
+    if(evidence.retryAfter!=null&&!Number.isFinite(Date.parse(String(evidence.retryAfter))))return false;
+  }
   return evidence.provider === 'rentcast' && evidence.evidenceType === expected && evidence.schemaVersion === 1
     && typeof evidence.queryFingerprint === 'string' && Number.isFinite(Date.parse(String(evidence.retrievedAt || '')));
 }

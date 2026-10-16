@@ -11,7 +11,8 @@ export type FinancialCandidate = {
   evidenceStatus:string; freshness:string; periodYear?:number|null; effectiveFrom?:string|null;
   retrievedAt?:string|null; sourceUpdatedAt?:string|null; userConfirmed?:boolean; userAccepted?:boolean;
   metadata?:{concept?:string; percentageBasis?:'SCHEDULED_RENT'|'EFFECTIVE_INCOME'; benchmarkName?:string;
-    geography?:string; year?:number; method?:string; approved?:boolean; referenceCount?:number; rangeLow?:number|null; rangeHigh?:number|null};
+    geography?:string; year?:number; method?:string; approved?:boolean; referenceCount?:number; rangeLow?:number|null; rangeHigh?:number|null;
+    scope?:'PROPERTY'|'UNIT';requestFingerprint?:string;subjectProperty?:Record<string,unknown>|null};
 };
 export type FinancialDecision = {candidateId:string; evidenceHash:string; currentEvidenceHash:string; action:'KEEP_MY_VALUE'|'ACCEPT_EXTERNAL_VALUE'|'REVIEW_LATER'};
 export type FinancialResolvedInput = {

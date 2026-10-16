@@ -3,6 +3,8 @@ import { InMemorySupplementalEvidenceCache } from './supplementalEvidenceCache.t
 import { RentCastSupplementalEvidenceProvider } from './supplementalEvidenceProvider.ts';
 import { SupplementalEvidenceService } from './supplementalEvidenceService.ts';
 import { InMemoryPropertyDataUsageGuard } from './usageGuard.ts';
+import {MarketRentService} from './marketRentService.ts';
+import {resolveRentAvmSubjectAttributes} from './rentAvmSubject.ts';
 
 const propertyId = '11111111-1111-4111-8111-111111111111';
 const property = { id: propertyId, type: 'Single Family', address: '100 Main St', city: 'Austin', state: 'TX',
@@ -28,8 +30,10 @@ function setup() {
   };
   const provider = new RentCastSupplementalEvidenceProvider({ client, usageGuard: new InMemoryPropertyDataUsageGuard(),
     now: () => new Date('2026-10-03T00:00:00.000Z') });
-  const service = new SupplementalEvidenceService({ repository: { getById: async () => property },
-    cache: new InMemorySupplementalEvidenceCache(() => new Date('2026-10-03T01:00:00.000Z')), provider });
+  const cache=new InMemorySupplementalEvidenceCache(() => new Date('2026-10-03T01:00:00.000Z'));
+  const service = new SupplementalEvidenceService({ repository: { getById: async () => property },cache,provider,
+    marketRent:new MarketRentService({cache,provider,enabled:true,now:()=>new Date('2026-10-03T01:00:00.000Z'),
+      resolveSubject:async()=>resolveRentAvmSubjectAttributes({property}),hasEntitlement:async()=>true}) });
   return { client, service };
 }
 

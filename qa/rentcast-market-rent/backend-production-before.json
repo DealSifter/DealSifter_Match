@@ -1,0 +1,72 @@
+﻿{
+    "observedAt":  "2026-10-16T20:52:52.2351238Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  87,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792178976589,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "maxxis-provider-message-draft",
+                          "version":  21,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792178982176,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "maxxis-deal-workflow",
+                          "version":  18,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792178979337,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "property-intelligence",
+                          "version":  13,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792159972972,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "arv-visual-comp-review",
+                          "version":  13,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792159948780,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  10,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792075996113,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "property-fact-review",
+                          "version":  5,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792178986444,
+                          "verify_jwt":  true
+                      }
+                  ]
+}

@@ -1,6 +1,15 @@
 import type { FinancialDomain, FinancialEvidenceStack, FinancialResolvedInput } from './financialEvidence.ts';
 export type FinancialReadinessLevel='READY_ACTUAL'|'READY_MIXED'|'READY_ASSUMPTION_HEAVY'|'INCOMPLETE'|'BLOCKED_CONFLICT'|'NOT_APPLICABLE';
 export type FinancialMetric='NOI'|'CAP_RATE'|'CASH_FLOW'|'COC'|'DSCR'|'ROI';
+export type FinancialInputIssue='REQUIRED_VALUE_MISSING'|'ASSUMPTION_REQUIRED'|'APPLICABILITY_UNCONFIRMED'|'CONFLICTED'|'NOT_APPLICABLE'|'AVAILABLE';
+const APPLICABILITY_DOMAINS:FinancialDomain[]=['hoa','propertyManagement','utilities','otherOperatingExpenses'];
+export function financialInputIssue(input:FinancialResolvedInput):FinancialInputIssue{
+  if(input.analyticalUsability==='CONFLICTED')return 'CONFLICTED';
+  if(input.analyticalUsability==='NOT_APPLICABLE')return 'NOT_APPLICABLE';
+  if(financialInputUsable(input))return 'AVAILABLE';
+  if(input.value===null&&APPLICABILITY_DOMAINS.includes(input.domain))return 'APPLICABILITY_UNCONFIRMED';
+  return ['vacancy','maintenance'].includes(input.domain)?'ASSUMPTION_REQUIRED':'REQUIRED_VALUE_MISSING';
+}
 export const OPERATING_EXPENSE_DOMAINS:FinancialDomain[]=['propertyTax','insurance','hoa','vacancy','propertyManagement','maintenance','utilities','otherOperatingExpenses'];
 export const FINANCIAL_METRIC_POLICY={NOI:['operatingIncome','recurringOperatingExpenses'],CAP_RATE:['NOI','explicitValueBasis'],
   CASH_FLOW:['NOI','debtService','recurringFinancingEffects'],COC:['annualPreTaxCashFlow','cashInvested'],DSCR:['NOI','debtService'],ROI:['explicitROIDefinition','definitionSpecificInputs']} as const;
@@ -36,7 +45,8 @@ export function buildFinancialInputReadiness(stack:FinancialEvidenceStack,contex
     const readinessLevel=metric==='ROI'?'INCOMPLETE':level==='NOT_APPLICABLE'||level==='BLOCKED_CONFLICT'?level:level==='INCOMPLETE'||future.length?'INCOMPLETE':level;
     return [metric,{readinessLevel,missingCritical:metric==='ROI'?future:[...missing,...future],conflictedInputs:metric==='ROI'?[]:conflicts,policy:FINANCIAL_METRIC_POLICY[metric],calculationMigrated:false}];
   }));
-  return {version:'FINANCIAL_INPUT_READINESS_V1',propertyId:stack.propertyId,incomeBasis:basis,readinessLevel:level,
+  const issues=Object.fromEntries(required.map(domain=>[domain,applicable?financialInputIssue(stack.inputs[domain]):'NOT_APPLICABLE'])) as Partial<Record<FinancialDomain,FinancialInputIssue>>;
+  return {version:'FINANCIAL_INPUT_READINESS_V1',propertyId:stack.propertyId,incomeBasis:basis,readinessLevel:level,issues,
     income:{status:!applicable?'NOT_APPLICABLE':incomeReady?'AVAILABLE':'INCOMPLETE',inputs:[incomeDomain,...(knownOtherIncome?['otherActualIncome']:[])]},
     operatingExpenses:{status:!applicable?'NOT_APPLICABLE':expenseInputs.some(i=>i.analyticalUsability==='CONFLICTED')?'BLOCKED_CONFLICT':expenseInputs.every(financialInputUsable)?'AVAILABLE':'INCOMPLETE',inputs:OPERATING_EXPENSE_DOMAINS},
     financing:{status:'NOT_EVALUATED',inputs:[]},missingCritical:missing,missingOptional:applicable&&stack.inputs.otherActualIncome.value===null?['otherActualIncome']:[],

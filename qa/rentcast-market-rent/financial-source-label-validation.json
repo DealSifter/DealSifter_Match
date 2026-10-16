@@ -1,0 +1,13 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": {
+    "locales": [
+      "pt",
+      "en",
+      "es"
+    ],
+    "contradictoryLabels": 0
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "baseline": "e6f13b759238a21de1ca6b1367dd17ade46bc657",
+  "full": {
+    "startedAt": "2026-10-16T21:28:14.183Z",
+    "finishedAt": "2026-10-16T21:34:48.516Z",
+    "exitCode": 0,
+    "total": 2470,
+    "passed": 2470,
+    "failed": 0,
+    "files": 241,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "targeted": {
+    "startedAt": "2026-10-16T21:27:37.868Z",
+    "finishedAt": "2026-10-16T21:28:11.889Z",
+    "exitCode": 0,
+    "total": 283,
+    "passed": 283,
+    "failed": 0,
+    "files": 6,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "staticPass": true,
+  "buildPass": true,
+  "newDenoErrors": 0,
+  "sourceBinding": true,
+  "isolation": true,
+  "rentalMapPdf": true,
+  "browserPass": true,
+  "mapPass": true,
+  "photoPass": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "sourceDigest": "0a017c0838ce6248915279c1c4feda7feb21b566e29c778c10e88d7a44427eef",
+  "pass": true
+}

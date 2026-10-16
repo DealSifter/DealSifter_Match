@@ -75,7 +75,8 @@ function validateLevel(schema) {
 }
 
 function validatePages(schema) {
-  const cap = { PROPERTY_RELEASE: 1, MAXXIS_ANALYSIS: 3, DEAL_INTELLIGENCE: 6 }[schema.reportType] || 0;
+  const rentPage=schema.reportType==='DEAL_INTELLIGENCE'&&Number(schema.presentation?.marketRent?.monthlyRentEstimate)>0&&schema.pages?.filter(page=>page.code==='MARKET_RENT').length===1;
+  const cap = { PROPERTY_RELEASE: 1, MAXXIS_ANALYSIS: 3, DEAL_INTELLIGENCE: rentPage?7:6 }[schema.reportType] || 0;
   return finding('EXPORT_PAGE_LIMIT', schema.pages?.length > 0 && schema.pages.length <= cap, 'Report page count must match its commercial level.');
 }
 

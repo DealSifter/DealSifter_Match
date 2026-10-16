@@ -1,0 +1,10 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": {
+    "applicationHardLimit": 45,
+    "unchanged": true,
+    "liveProviderCalls": 0
+  }
+}

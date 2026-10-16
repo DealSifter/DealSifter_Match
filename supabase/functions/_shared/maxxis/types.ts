@@ -474,7 +474,7 @@ export type MaxxisResponse = {
     model?: string;
     toolName?: string;
     arithmeticSource?: 'DETERMINISTIC_AREA_ENGINE';
-    providerCalls?: 0;
+    providerCalls?: number;
     financialArbitration?: false;
     secondPass: boolean;
     knowledgeVersion?: string;

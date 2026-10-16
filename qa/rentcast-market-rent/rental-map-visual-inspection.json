@@ -1,0 +1,25 @@
+{
+  "mode": "MANUAL_INSPECTION_OF_OFFLINE_FIXTURE_PDF_RASTERS_PLUS_PROGRAMMATIC_BOUNDS",
+  "locales": ["pt", "en", "es"],
+  "files": [
+    "honolulu-l3-pt-market-rent.png",
+    "honolulu-l3-en-market-rent.png",
+    "honolulu-l3-es-market-rent.png"
+  ],
+  "subjectMarkerDistinctAndReadable": true,
+  "rentalMarkers": 5,
+  "mapTableSameDataset": true,
+  "mapTableIdMismatch": 0,
+  "mapTableOrderMismatch": 0,
+  "mapClipping": 0,
+  "markerClipping": 0,
+  "footerOverlap": 0,
+  "tableOverlap": 0,
+  "unreadableMarkers": 0,
+  "rentPerSqftDisplayedToTwoDecimals": true,
+  "retrievalDateNotRepresentedAsOfficialVerification": true,
+  "basemap": "DETERMINISTIC_OFFLINE_MOCK_THROUGH_EXISTING_ARV_MAP_RENDERER",
+  "productionSmoke": false,
+  "liveProviderCalls": 0,
+  "pass": true
+}

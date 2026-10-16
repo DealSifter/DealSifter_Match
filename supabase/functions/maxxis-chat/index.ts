@@ -17,7 +17,7 @@ import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
 import { buildAreaAnalyticalAnswer, detectAreaAnalyticalQuestion } from '../_shared/maxxis/areaAnalyticalAnswer.ts';
-import { buildFinancialEvidenceAnswer, detectFinancialEvidenceQuestion } from '../_shared/maxxis/financialEvidenceAnswer.ts';
+import { buildFinancialEvidenceAnswer, detectFinancialEvidenceQuestion, marketRentActionCopy } from '../_shared/maxxis/financialEvidenceAnswer.ts';
 import { formatConsensusFactAnswer } from '../_shared/maxxis/consensusFactAnswer.ts';
 import { detectsDealScenario, formatDealScenarioAnswer, resolveDealScenario } from '../_shared/maxxis/scenarioEngine.ts';
 import { detectMarketReferenceIntent } from '../_shared/maxxis/marketReferenceIntent.ts';
@@ -822,14 +822,18 @@ Deno.serve(async (req) => {
     const financialQuestion=propertyContextId&&!body.requestedCapability&&!body.requestedReportLevel&&!bodyContext.propertyAnalysis?detectFinancialEvidenceQuestion(message):null;
     if(financialQuestion){
       const evidence=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',
-        {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,financialEvidence:true,parcelEvidenceReceipt:body.parcelEvidenceReceipt});
+        {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,financialEvidence:true,marketRentAcquisition:financialQuestion.domain==='providerMarketRentEstimate',parcelEvidenceReceipt:body.parcelEvidenceReceipt});
       if(evidence.type==='canonical_property_evidence'){
         const result=evidence.state==='available'&&evidence.financialEvidence?buildFinancialEvidenceAnswer(financialQuestion,evidence.financialEvidence,language,
-          {strategy:evidence.financialStrategy,propertyType:evidence.financialPropertyType}):null;
+          {strategy:evidence.financialStrategy,propertyType:evidence.financialPropertyType,marketRent:evidence.marketRent}):null;
         const text=result?.answer||(language==='pt'?'O imóvel não está disponível neste contexto autorizado.':language==='es'?'La propiedad no está disponible en este contexto autorizado.':'The property is unavailable in this authorized context.');
+        const marketAction=marketRentActionCopy(language);
+        const marketRent=evidence.state==='available'?evidence.marketRent:undefined;
+        const actions=marketRent?.state==='NOT_QUERIED'?[{id:'market-rent',...marketAction}]:[];
         return response({message:text,answer:text,type:'text',data:result?{propertyId:propertyContextId,financialReadiness:result.readiness,
+          ...((financialQuestion.domain==='providerMarketRentEstimate'||financialQuestion.marketScenario)&&marketRent?.state==='RENT_AVM_REVIEW_REQUIRED'?{reviewField:marketRent.reviewField}:{}),
           financialInput:result.input?{domain:result.input.domain,value:result.input.value,cadence:result.input.cadence,annualizedValue:result.input.annualizedValue,sourceClass:result.input.sourceClass,analyticalUsability:result.input.analyticalUsability}:null}:null,
-          actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',providerCalls:0,financialArbitration:false,secondPass:false}},200,origin,requestId);
+          actions,language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',providerCalls:marketRent?.providerCalls??0,financialArbitration:false,secondPass:false}},200,origin,requestId);
       }
     }
     // A request-scoped promise: no additional provider acquisition or repeated review reads.

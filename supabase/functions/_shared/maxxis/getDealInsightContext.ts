@@ -59,13 +59,15 @@ function listingSummary(value: any) {
     medianAskingPrice: medianNumber(prices), medianDaysOnMarket: medianNumber(dom),
     records: value.records.slice(0, 10) };
 }
-function rentSummary(value: any) {
+function rentSummary(value: any,freshness?:{state:string}) {
   if (!value) return null;
   return { evidenceType: value.evidenceType, provider: value.provider, retrievedAt: value.retrievedAt,
     status: value.status, provenance: value.provenance, rent: value.rent, rangeLow: value.rangeLow,
     rangeHigh: value.rangeHigh, subjectProperty: value.subjectProperty,
+    queryFingerprint:value.queryFingerprint,request:value.request,scope:value.scope,currency:value.currency,cadence:value.cadence,
+    freshness:freshness?.state??null,
     comparableCount: Array.isArray(value.comparables) ? value.comparables.length : 0,
-    comparables: Array.isArray(value.comparables) ? value.comparables.slice(0, 5) : [] };
+    comparables: Array.isArray(value.comparables) ? value.comparables.slice(0, 25) : [] };
 }
 
 export async function getDealInsightContextForAuthenticatedUser(
@@ -377,7 +379,8 @@ export async function getDealInsightContextForAuthenticatedUser(
       ['saleListings', 'SALE_LISTINGS'], ['rentEstimate', 'RENT_ESTIMATE'],
       ['rentalListings', 'RENTAL_COMPS'], ['market', 'MARKET_DATA'],
     ];
-    const families = familyPlan.filter(([, planFamily]) => activeProviderEvidencePlan.families[planFamily].cacheReadAllowed)
+    const families = familyPlan.filter(([family, planFamily]) => activeProviderEvidencePlan.families[planFamily].cacheReadAllowed
+      &&(family!=='rentEstimate'||Boolean(result.property?.address)))
       .map(([family]) => family);
     if (families.length) {
       const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
@@ -389,11 +392,16 @@ export async function getDealInsightContextForAuthenticatedUser(
         && activeProviderEvidencePlan.families[planFamily].providerCallAllowed).map(([family]) => family);
       // Cache-only levels never purchase missing market/listing/rental evidence.
       supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
-        families, cacheOnly: cacheOnly || providerFamilies.length === 0 });
+        families, cacheOnly: true });
       // If only a subset is provider-authorized, load the remainder cache-first and then only the authorized subset.
-      if (!cacheOnly && providerFamilies.length > 0 && providerFamilies.length < families.length) {
-        supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
+      if (!cacheOnly && providerFamilies.length > 0) {
+        const acquired = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
           families: providerFamilies, cacheOnly: false });
+        for(const family of providerFamilies){
+          supplementalEvidence[family]=acquired[family]??supplementalEvidence[family];
+          if(acquired.cacheHits[family]!=null)supplementalEvidence.cacheHits[family]=acquired.cacheHits[family];
+          if(acquired.freshness?.[family])supplementalEvidence.freshness![family]=acquired.freshness[family];
+        }
       }
     }
   }
@@ -530,7 +538,7 @@ export async function getDealInsightContextForAuthenticatedUser(
       : null,
     providerAvmCompatibility: recentSalesMarketEstimate?.providerAvmCompatibility || 'UNKNOWN',
     saleListings: listingSummary(supplementalEvidence?.saleListings),
-    rentEstimate: rentSummary(supplementalEvidence?.rentEstimate),
+    rentEstimate: rentSummary(supplementalEvidence?.rentEstimate,supplementalEvidence?.freshness?.rentEstimate),
     rentalListings: listingSummary(supplementalEvidence?.rentalListings),
     market: supplementalEvidence?.market || null,
     source: providerEvidenceState.valuation || providerEvidenceState.sold ? 'CACHED_OR_AUTHORIZED_PROVIDER_EVIDENCE' : 'UNAVAILABLE',
@@ -578,7 +586,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     recentSalesMarketEstimate,
     listingEvidence: listingSummary(supplementalEvidence?.saleListings),
     rentalEvidence: {
-      rentEstimate: rentSummary(supplementalEvidence?.rentEstimate),
+      rentEstimate: rentSummary(supplementalEvidence?.rentEstimate,supplementalEvidence?.freshness?.rentEstimate),
       rentalListings: listingSummary(supplementalEvidence?.rentalListings),
     },
     marketEvidence: supplementalEvidence?.market || null,

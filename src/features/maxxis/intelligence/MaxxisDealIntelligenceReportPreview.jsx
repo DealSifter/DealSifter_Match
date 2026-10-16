@@ -21,7 +21,8 @@ import {
   Wrench,
 } from "lucide-react";
 import officialDealSifterLogo from "../../../assets/maxxis/report-official-logo.png";
-import { resolveComparableMap } from "../export/maxxisReportPdf";
+import { resolveComparableMap,comparableMapViewport } from "../export/maxxisReportPdf";
+import {marketRentReportCopy,rentalReportMapPoints} from '../export/marketRentReport';
 import { explainMaxxisEvidenceState } from "./maxxisUserFacingEvidence";
 import { localizeMaxxisValue } from "../presentation/maxxisPresentationI18n";
 import { LocalizedNarrative } from '../../../components/ui/LocalizedNarrative';
@@ -274,11 +275,11 @@ function ReportHeader({ level, subtitle, copy }) {
   );
 }
 
-function ComparableMap({ schema, rows, copy }) {
+function ComparableMap({ schema, rows, copy,rentView=null }) {
   const [mapImage, setMapImage] = useState(null);
   useEffect(() => {
     let active = true;
-    const renderMap = () => resolveComparableMap(schema).then((result) => {
+    const renderMap = () => resolveComparableMap(schema,rentView?{points:rentalReportMapPoints(rentView)}:{}).then((result) => {
       if (active) setMapImage(result);
     });
     const idleId = typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
@@ -289,7 +290,7 @@ function ComparableMap({ schema, rows, copy }) {
       if (typeof window !== "undefined" && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
       else clearTimeout(idleId);
     };
-  }, [schema]);
+  }, [schema,rentView]);
   if (mapImage)
     return (
       <div className="maxxis-v2-comparable-map">
@@ -297,6 +298,15 @@ function ComparableMap({ schema, rows, copy }) {
         <small>{copy.mapAttribution}</small>
       </div>
     );
+  if(rentView){
+    const points=rentalReportMapPoints(rentView);
+    if(!points.length)return <p>{copy.unavailable}</p>;
+    const viewport=comparableMapViewport(points);
+    return <div className="maxxis-v2-relative-map" role="img" aria-label={copy.relative}>
+      {viewport.world.map(({x,y,item})=><span key={item.id} className={item.marker==='S'?'is-subject':'is-used'} style={{position:'absolute',left:`${(x-viewport.left)/viewport.width*100}%`,top:`${(y-viewport.top)/viewport.height*100}%`}}>{item.marker}</span>)}
+      <small>{copy.relative}</small>
+    </div>;
+  }
   return (
     <div
       className="maxxis-v2-relative-map"
@@ -304,15 +314,15 @@ function ComparableMap({ schema, rows, copy }) {
       aria-label={copy.relative}
     >
       <span className="is-subject">S</span>
-      {rows.map((item, index) => (
+      {(rentView?rows.filter(item=>item.latitude!=null&&item.longitude!=null):rows).map((item, index) => (
         <span
           key={item.compIdentifier || `${item.address}-${index}`}
-          className={`is-${item.status.toLowerCase()}`}
+          className={`is-${(item.status||'used').toLowerCase()}`}
           style={{
             "--comp-offset": `${Math.min(88, 18 + (item.distanceMiles || index + 1) * 18)}%`,
           }}
         >
-          {index + 1}
+          {item.number??index + 1}
         </span>
       ))}
       <small>{copy.relative}</small>
@@ -453,6 +463,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
         copy={copy}
         subtitle={level === 2 ? copy.reportPro : copy.release}
       />
+      {level===2&&schema.presentation?.marketRent?<p className="maxxis-v2-info-card">{marketRentReportCopy(copy.language).title}{schema.presentation.marketRent.scope==='UNIT'?` (${marketRentReportCopy(copy.language).perUnit})`:''}: {money(schema.presentation.marketRent.monthlyRentEstimate,copy.unavailable)}</p>:null}
       <div className="maxxis-v2-page-body">
         <section className="maxxis-v2-property-hero">
           {images[0] ? (
@@ -1246,7 +1257,29 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
   );
 }
 
+function MarketRentPage({page,schema,copy}){
+  const view=schema.presentation?.marketRent;if(!view)return null;
+  const t=marketRentReportCopy(copy.language),rows=view.reportRentalComparables??[];
+  const usd=value=>value==null?'–':new Intl.NumberFormat(copy.language==='pt'?'pt-BR':copy.language==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(value);
+  return <article className="maxxis-v2-page" data-report-page={page.page} data-report-section="MARKET_RENT">
+    <ReportHeader level={3} subtitle={t.title} copy={copy}/>
+    <div className="maxxis-v2-page-body">
+      <section className="maxxis-v2-info-card"><SectionTitle icon={DollarSign}>{t.title}{view.scope==='UNIT'?` (${t.perUnit})`:''}</SectionTitle><strong className="maxxis-v2-price">{usd(view.monthlyRentEstimate)}</strong>
+        <p>{view.rentPerSqft?`${usd(view.rentPerSqft.value)} ${t.perSqft}`:''} · {view.rentPerBedroom?`${usd(view.rentPerBedroom.value)} ${t.perBed}`:''}</p>
+        {view.rangeLow!=null&&view.rangeHigh!=null?<p>{t.range}: {usd(view.rangeLow)} — {usd(view.rangeHigh)}</p>:null}
+        <p>{t.subject}: {view.subject.propertyType} · {view.subject.bedrooms??'–'} / {view.subject.bathrooms??'–'} · {view.subject.livingAreaSqft??'–'} sqft</p>
+      </section>
+      {rows.length?<><ComparableMap schema={schema} rows={rows} copy={copy} rentView={view}/>
+        <section className="maxxis-v2-info-card"><SectionTitle icon={MapPin}>{t.comps}</SectionTitle><div className="maxxis-v2-table-wrap"><table><thead><tr><th>#</th><th>{copy.address}</th><th>{t.monthly}</th><th>{t.correlation}</th><th>{t.distance}</th></tr></thead><tbody>
+          {rows.map(comp=><tr key={comp.id}><td>{comp.number}</td><td>{comp.address}<small>{comp.bedrooms??'–'} / {comp.bathrooms??'–'} · {comp.livingAreaSqft??'–'} sqft</small></td><td>{usd(comp.monthlyRent)}</td><td>{comp.providerCorrelation==null?'–':`${(comp.providerCorrelation*100).toFixed(1)}%`}</td><td>{comp.distanceMiles==null?'–':`${comp.distanceMiles.toFixed(2)} mi`}</td></tr>)}
+        </tbody></table></div></section></>:<p>{t.noComps}</p>}
+      <p>{t.qualification} {view.freshness==='STALE_USABLE'?t.stale:''} {view.retrievedAt?`${t.retrieved}: ${localizedDate(view.retrievedAt,copy)}`:''}</p><small>{t.calculated}</small>
+      {view.missingCoordinateCompIds?.length?<p>{t.missing}</p>:null}
+    </div>
+  </article>;
+}
 function CanonicalReportPage({ page, schema, copy, level }) {
+  if(page.code==='MARKET_RENT')return <MarketRentPage page={page} schema={schema} copy={copy}/>;
   if (page.code === "PROPERTY_OVERVIEW" || page.code === "EXECUTIVE_SUMMARY_PROPERTY_CONTEXT") {
     return <PropertyOverview schema={schema} copy={copy} level={level} page={page.page} pageCode={page.code} />;
   }

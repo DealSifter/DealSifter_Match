@@ -987,6 +987,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
     const normalized = normalizeActionId(actionId);
     if (!normalized) return;
+    if(normalized==='market-rent'){
+      if(sourceMessage?.data?.propertyId!==currentMemoryPropertyId())return;
+      await submitMessage(language==='pt'?'Qual o aluguel de mercado?':language==='es'?'¿Cuál es el alquiler de mercado?':'What is the market rent?');
+      return;
+    }
     if (normalized === 'scenario-compare') {
       await submitMessage(language === 'pt' ? 'Compare o cenário atual com o anterior.'
         : language === 'es' ? 'Compara el escenario actual con el anterior.' : 'Compare the current scenario with the prior scenario.');

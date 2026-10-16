@@ -1,0 +1,16 @@
+{
+  "checks": [
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "output": ""
+    }
+  ],
+  "sourceDigest": "386b80d0984773e996f8cc4b53e55856b584ea8d53c367c4f1ae9f9994199a46",
+  "pass": true
+}

@@ -1,0 +1,9 @@
+{
+  "mockOnly": true,
+  "locales": {
+    "pt": "Registro do provedor · RentCast · 2023 · fonte única, sem confirmação independente",
+    "en": "Provider record · RentCast · 2023 · single source, without independent confirmation",
+    "es": "Registro del proveedor · RentCast · 2023 · fuente única, sin confirmación independiente"
+  },
+  "contradictoryLabels": 0
+}

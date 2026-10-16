@@ -40,8 +40,14 @@ export type RentEstimateEvidence = {
   schemaVersion: 1;
   retrievedAt: string;
   queryFingerprint: string;
-  status: 'AVAILABLE';
+  status: 'AVAILABLE' | 'NO_RESULT' | 'PROVIDER_ERROR';
   provenance: 'PROVIDER_ESTIMATE';
+  currency?: 'USD';
+  cadence?: 'MONTHLY';
+  scope?: 'PROPERTY' | 'UNIT';
+  request?: Record<string,unknown>;
+  retryAfter?: string;
+  unavailableReason?: 'UNIT_CONTEXT_REQUIRED';
   rent: number | null;
   rangeLow: number | null;
   rangeHigh: number | null;
@@ -86,7 +92,7 @@ export type SupplementalEvidence = ListingEvidence | RentEstimateEvidence | Mark
 
 export interface SupplementalEvidenceProvider {
   getSaleListings(input: PropertyLookupInput & { queryFingerprint: string; propertyType?: string | null }): Promise<ListingEvidence>;
-  getRentEstimate(input: PropertyLookupInput & { queryFingerprint: string }): Promise<RentEstimateEvidence>;
+  getRentEstimate(input: PropertyLookupInput & { queryFingerprint: string; propertyType?:string|null; bedrooms?:number; bathrooms?:number; squareFootage?:number }): Promise<RentEstimateEvidence>;
   getRentalListings(input: PropertyLookupInput & { queryFingerprint: string; propertyType?: string | null }): Promise<ListingEvidence>;
   getMarketData(input: PropertyLookupInput & { queryFingerprint: string }): Promise<MarketEvidence>;
 }

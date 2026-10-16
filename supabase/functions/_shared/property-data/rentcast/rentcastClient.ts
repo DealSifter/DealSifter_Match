@@ -44,6 +44,10 @@ export type RentCastValueEstimateInput = {
   daysOld: number;
   compCount: number;
   lookupSubjectAttributes: boolean;
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFootage?: number;
 };
 
 export type RentCastSoldSearchInput = {
@@ -226,6 +230,15 @@ export function createRentCastClient(options: {
       url.searchParams.set('daysOld', String(input.daysOld));
       url.searchParams.set('compCount', String(input.compCount));
       url.searchParams.set('lookupSubjectAttributes', String(input.lookupSubjectAttributes));
+      if(input.propertyType){
+        if(!['Single Family','Condo','Townhouse','Manufactured','Multi-Family','Apartment'].includes(input.propertyType))throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+        url.searchParams.set('propertyType',input.propertyType);
+      }
+      for(const key of ['bedrooms','bathrooms','squareFootage'] as const){
+        const value=input[key];if(value==null)continue;
+        if(!Number.isFinite(value)||value<0||key==='squareFootage'&&value===0)throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+        url.searchParams.set(key,String(value));
+      }
       return objectResult(url);
     },
     async searchRentalListings(input: RentCastListingSearchInput) {

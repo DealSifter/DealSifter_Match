@@ -54,7 +54,8 @@ export function buildFinancialEvidenceFromAuthorizedContext(context:{propertyId:
   const rent=context.cachedRent;
   if(rent?.evidence?.provider==='rentcast'&&rent.evidence.evidenceType==='rent_estimate'&&rent.evidence.status==='AVAILABLE'){
     candidates.push({id:'rentcast-market-rent',domain:'providerMarketRentEstimate',value:number(rent.evidence.rent),unit:'USD',cadence:'MONTHLY',evidenceClass:'PROVIDER_ESTIMATE',sourceType:'RENTCAST',sourceId:'rentcast',sourceFamily:'RENTCAST',sourceAuthority:'RentCast',evidenceStatus:'ESTIMATED',freshness:rent.freshness?.state??'UNKNOWN',retrievedAt:rent.evidence.retrievedAt??null,sourceUpdatedAt:null,
-      metadata:{referenceCount:Array.isArray(rent.evidence.comparables)?rent.evidence.comparables.length:0,rangeLow:number(rent.evidence.rangeLow),rangeHigh:number(rent.evidence.rangeHigh)}});
+      metadata:{referenceCount:Array.isArray(rent.evidence.comparables)?rent.evidence.comparables.length:0,rangeLow:number(rent.evidence.rangeLow),rangeHigh:number(rent.evidence.rangeHigh),
+        scope:rent.evidence.scope,requestFingerprint:rent.evidence.queryFingerprint,subjectProperty:rent.evidence.subjectProperty??null}});
   }
   // Existing authenticated private BUY_AND_HOLD scenario contract. Never read arbitrary public property keys as actual rent.
   const privateInputs=context.privateAssumptions??{},active=privateInputs.activeScenario;

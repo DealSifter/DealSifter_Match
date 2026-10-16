@@ -626,6 +626,7 @@ const DEAL_COPILOT_COPY = {
 };
 
 const ACTION_DEFINITIONS = {
+  'market-rent': {en:'Check market rent',pt:'Consultar aluguel de mercado',es:'Consultar alquiler de mercado'},
   'scenario-compare': {
     en: 'Compare scenarios', pt: 'Comparar cenários', es: 'Comparar escenarios',
   },

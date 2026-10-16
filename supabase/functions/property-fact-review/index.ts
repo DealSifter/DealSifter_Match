@@ -14,6 +14,9 @@ import type {ParcelResult} from '../_shared/public-parcel/types.ts';
 import type {CandidateInput} from '../_shared/parcel-evidence-consensus/types.ts';
 import {hasStablePropertyIdentity,parcelMatchesPropertyAddress} from '../_shared/property-fact-reconciliation/acquisition.ts';
 import {readJsonWithLimit} from '../_shared/abuseProtection.ts';
+import {createBackendMarketRentService,type PropertyEvidenceBackendClient} from '../_shared/property-data/backendFactory.ts';
+import {resolveCachedRentAvmSubject} from '../_shared/property-data/marketRentSubjectContext.ts';
+import {marketRentSubjectCandidates} from '../_shared/property-data/marketRentSubjectEvidence.ts';
 type Db={from:(table:string)=>any;rpc:(name:string,args:Record<string,unknown>)=>Promise<{data:any;error:any}>};
 const fields='id,owner_id,address,city,state,zip,type,lot,sqft,beds,baths,rehab,lat,lng,geocode_status,hide_street_address_on_card,is_active,publish_to_showcase,updated_at';
 Deno.serve(async req=>{
@@ -57,7 +60,13 @@ Deno.serve(async req=>{
     try{const access=await loadMaxxisRuntimeAccessContext(userId,authClient as unknown as Parameters<typeof loadMaxxisRuntimeAccessContext>[1],String(property.id));
      if(access.ok){const plan=access.context.plan==='ENTERPRISE'?'ENTERPRISE':access.context.plan==='PRO'?'PRO':'FREE';
       const cached=await getPropertyEvidenceForAuthenticatedUser({propertyId:property.id},authHeader,userId,String(property.id),false,{plan,bucket:'chat'});
-      const current=cachedProviderCandidates(cached,String(property.id));if(current.length)rows=[...rows.filter(c=>c.sourceFamily!=='RENTCAST'),...current];}
+      const current=cachedProviderCandidates(cached,String(property.id));if(current.length)rows=[...rows.filter(c=>c.sourceFamily!=='RENTCAST'),...current];
+      if(cached.entitlementState==='authorized'){
+        const market=await createBackendMarketRentService({supabaseAdmin:admin as unknown as PropertyEvidenceBackendClient,getEnv:name=>Deno.env.get(name),
+          providerBudgetContext:{userId,propertyId:String(property.id),plan,bucket:'chat'},hasEntitlement:async()=>true,
+          resolveSubject:()=>resolveCachedRentAvmSubject(admin,String(property.id))}).get({propertyId:String(property.id),userId,acquire:false});
+        rows.push(...marketRentSubjectCandidates(market.evidence));
+      }}
     }catch{/* cache unavailable, never acquire a paid record */}
     return rows;
    },

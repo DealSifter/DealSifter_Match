@@ -179,6 +179,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     executiveSummary: safeText(canonical?.executiveSummary) || executiveSummary(highlights, alignment),
     dealThesis: canonical?.dealThesis || null,
     marketContext: Object.freeze({
+      rentEstimate:providerMarket.rentEstimate?.status==='AVAILABLE'?Object.freeze({provider:'rentcast',evidenceType:'rent_estimate',status:'AVAILABLE',rent:providerMarket.rentEstimate.rent,scope:providerMarket.rentEstimate.scope??'PROPERTY'}):null,
       evidenceFreshness: providerMarket.evidenceFreshness || null,
       savedRecentSalesReference: providerMarket.savedRecentSalesReference || null,
       providerEstimate: toKnownFiniteNumber(providerMarket.providerEstimate) !== null

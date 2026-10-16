@@ -1,0 +1,10 @@
+{
+  "mockOnly": true,
+  "liveRentCastCalls": 0,
+  "liveGISCalls": 0,
+  "data": {
+    "explicitIntent": true,
+    "readinessAcquisition": false,
+    "unrelatedRouteAcquisition": false
+  }
+}

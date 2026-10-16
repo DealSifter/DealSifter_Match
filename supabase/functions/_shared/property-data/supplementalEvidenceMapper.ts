@@ -2,6 +2,7 @@ import type { ListingEvidence, ListingEvidenceItem, MarketEvidence, MarketSegmen
 
 const text = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
 const number = (value: unknown) => {
+  if(value===null||value===undefined||!['number','string'].includes(typeof value)||typeof value==='string'&&!value.trim())return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
@@ -33,9 +34,11 @@ export function mapRentEstimate(rawValue: unknown, queryFingerprint: string, ret
     return { ...mapListingItem(item), distanceMiles: number(item.distance), daysOld: number(item.daysOld),
       providerCorrelation: number(item.correlation) };
   }) : [];
+  const rent=number(raw.rent),low=number(raw.rentRangeLow),high=number(raw.rentRangeHigh);
+  const validRent=rent!==null&&rent>0&&rent*100<=Number.MAX_SAFE_INTEGER;
   return { provider: 'rentcast', evidenceType: 'rent_estimate', schemaVersion: 1, retrievedAt, queryFingerprint,
-    status: 'AVAILABLE', provenance: 'PROVIDER_ESTIMATE', rent: number(raw.rent) ?? number(raw.price),
-    rangeLow: number(raw.rentRangeLow) ?? number(raw.priceRangeLow), rangeHigh: number(raw.rentRangeHigh) ?? number(raw.priceRangeHigh),
+    status: validRent?'AVAILABLE':'NO_RESULT', provenance: 'PROVIDER_ESTIMATE', rent: validRent?rent:null,
+    rangeLow: validRent&&low!==null&&low>=0&&low<=rent?low:null, rangeHigh: validRent&&high!==null&&high>=rent&&high*100<=Number.MAX_SAFE_INTEGER?high:null,
     subjectProperty: raw.subjectProperty ? mapListingItem(raw.subjectProperty) : null, comparables };
 }
 

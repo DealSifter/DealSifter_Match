@@ -14,7 +14,8 @@ import { getCanonicalPropertyEvidenceWithDependencies } from './canonicalEvidenc
 import { resolveFeatureFlags } from '../featureFlags.ts';
 import { publicAnalyticalDecisionProofs } from './analyticalPropertyContext.ts';
 import { publicFinancialTaxProof } from './financialEvidenceContext.ts';
-import { createBackendSupplementalEvidenceService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
+import { createBackendMarketRentService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
+import type {RentAvmSubject} from '../property-data/rentAvmSubject.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
@@ -103,7 +104,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; parcelEvidenceReceipt?:unknown } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; rentAvmSubject?:boolean;marketRentAcquisition?:boolean;parcelEvidenceReceipt?:unknown } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -117,13 +118,32 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     let remoteConfig={};try{remoteConfig=JSON.parse(Deno.env.get('FEATURE_FLAGS_JSON')||'{}');}catch{/* OFF by default */}
     const flags=resolveFeatureFlags({userId:authenticated.userId,environment:supabaseUrl.includes('cyeipfskwwisbbayyaca')?'production':supabaseUrl.includes('oqdcnjupquhybwdbeeew')?'staging':'development',remoteConfig});
     return getCanonicalPropertyEvidenceWithDependencies({input:args,propertyId:context.propertyId||'',userId:authenticated.userId,
-      receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,financialEvidence:context.financialEvidence===true,
-      loadCachedMarketRent:async propertyId=>{
+      receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,financialEvidence:context.financialEvidence===true,rentAvmSubject:context.rentAvmSubject===true,
+      loadRentAvmState:async propertyId=>{
+        const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
+        const property=await internal.from('properties').select('id,type,address,city,state,zip,beds,baths,sqft,lot,owner_id,lat,lng,geocode_status').eq('id',propertyId).maybeSingle();
+        if(property.error||!property.data)return null;
+        // Only current publisher decisions can become shared AVM overrides.
+        const review=await internal.from('property_fact_reviews').select('state').eq('property_id',propertyId).eq('owner_id',property.data.owner_id).maybeSingle();
+        if(review.error)return null;
+        return {property:property.data,snapshot:review.data?.state??null};
+      },
+      loadMarketRent:async(propertyId,initialSubject)=>{
         const admin=createClient(supabaseUrl,supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
-        const service=createBackendSupplementalEvidenceService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
-          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'}});
-        const cached=await service.getCached({propertyId,userId:authenticated.userId},'rentEstimate');
-        return cached?{evidence:cached.evidence as unknown as Record<string,any>,freshness:cached.freshness}:null;
+        let first=true;
+        const service=createBackendMarketRentService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
+          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'},
+          hasEntitlement:async()=>{
+            if(context.plan==='PRO'||context.plan==='ENTERPRISE')return true;
+            const check=await authenticated.client.rpc('ds_has_property_intelligence_entitlement',{p_property_id:propertyId,p_unlock_type:'property_record'});
+            return !check.error&&check.data===true;
+          },
+          resolveSubject:async():Promise<RentAvmSubject>=>{
+            if(first){first=false;return initialSubject;}
+            const result=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId},authHeader,{...context,financialEvidence:false,marketRentAcquisition:false,rentAvmSubject:true});
+            return (result.type==='canonical_property_evidence'&&result.state==='available'?result.rentAvmSubject:null)??{propertyId,state:'SUBJECT_UNAVAILABLE'} as RentAvmSubject;
+          }});
+        return service.get({propertyId,userId:authenticated.userId,acquire:context.marketRentAcquisition===true});
       },
       loadPublicProperty:async propertyId=>{
         const reader=authenticated.client as unknown as {rpc(name:string,args:{p_property_id:string}):{maybeSingle():Promise<{data:unknown;error:unknown}>}};
