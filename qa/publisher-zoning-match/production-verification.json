@@ -1,0 +1,30 @@
+{
+  "pass": true,
+  "observedAt": "2026-10-16T03:26:57.860Z",
+  "codeSha": "789abf8e54e0c2d2c29944f75208c44e4e20ec6b",
+  "checks": {
+    "frontendExactRelease": true,
+    "backendVersionsAndJwt": true,
+    "flagsUnchanged": true,
+    "fourPublisherAndMatchCases": true,
+    "mobilePersonAndSpotlightReturn": true,
+    "tenModuleTransitions": true,
+    "slowAndStuckDownloadRecovery": true
+  },
+  "productionUserSession": false,
+  "realDatabaseWrites": 0,
+  "browserMode": "PRODUCTION_FRONTEND_SYNTHETIC_AUTH_AND_BACKEND",
+  "backendVerification": "DEPLOY_METADATA_PLUS_LOCAL_POSTGRES_CONTRACT_TESTS",
+  "navigationSetupRetry": {
+    "initialStage": "PLAYWRIGHT_LOGIN_CLICK_NAVIGATION_WAIT_TIMEOUT",
+    "appExceptions": 0,
+    "boundary": null,
+    "retryPassed": true
+  },
+  "reportedDashboardCrash": {
+    "reproduced": false,
+    "resolutionConfirmed": false
+  },
+  "migrationsApplied": 0,
+  "flagsChanged": 0
+}

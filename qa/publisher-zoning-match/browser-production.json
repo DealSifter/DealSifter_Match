@@ -1,0 +1,101 @@
+{
+  "pass": true,
+  "baseURL": "https://dealsiftermatch.vercel.app",
+  "realAuthenticatedSession": false,
+  "realBackendWrites": 0,
+  "mode": "REAL_APP_TWO_SYNTHETIC_ACCOUNTS_REAL_RECONCILIATION_RUNTIME",
+  "results": [
+    {
+      "device": "desktop",
+      "theme": "light",
+      "explicitOwnerPublication": true,
+      "otherAccountReadsDeclaredR2": true,
+      "nonownerCannotPublish": true,
+      "privateAssumptionsIsolated": true,
+      "publicationWrites": 1,
+      "unselected": {
+        "color": "rgb(19, 106, 116)",
+        "border": "rgb(184, 190, 200)",
+        "background": "rgb(255, 255, 255)",
+        "iconOpacity": "1",
+        "lensColor": "rgb(19, 106, 116)",
+        "lensBorder": "rgb(184, 190, 200)",
+        "lensBackground": "rgb(255, 255, 255)"
+      },
+      "selected": {
+        "background": "rgb(117, 186, 117)",
+        "color": "rgb(7, 28, 35)"
+      },
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "theme": "dark",
+      "explicitOwnerPublication": true,
+      "otherAccountReadsDeclaredR2": true,
+      "nonownerCannotPublish": true,
+      "privateAssumptionsIsolated": true,
+      "publicationWrites": 1,
+      "unselected": {
+        "color": "rgb(160, 255, 250)",
+        "border": "rgb(55, 70, 63)",
+        "background": "rgb(23, 30, 27)",
+        "iconOpacity": "1",
+        "lensColor": "rgb(160, 255, 250)",
+        "lensBorder": "rgb(55, 70, 63)",
+        "lensBackground": "rgb(23, 30, 27)"
+      },
+      "selected": {
+        "background": "rgb(117, 186, 117)",
+        "color": "rgb(7, 28, 35)"
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "theme": "light",
+      "explicitOwnerPublication": true,
+      "otherAccountReadsDeclaredR2": true,
+      "nonownerCannotPublish": true,
+      "privateAssumptionsIsolated": true,
+      "publicationWrites": 1,
+      "unselected": {
+        "color": "rgb(19, 106, 116)",
+        "border": "rgb(184, 190, 200)",
+        "background": "rgb(255, 255, 255)",
+        "iconOpacity": "1",
+        "lensColor": "rgb(19, 106, 116)",
+        "lensBorder": "rgb(184, 190, 200)",
+        "lensBackground": "rgb(255, 255, 255)"
+      },
+      "selected": {
+        "background": "rgb(117, 186, 117)",
+        "color": "rgb(7, 28, 35)"
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "theme": "dark",
+      "explicitOwnerPublication": true,
+      "otherAccountReadsDeclaredR2": true,
+      "nonownerCannotPublish": true,
+      "privateAssumptionsIsolated": true,
+      "publicationWrites": 1,
+      "unselected": {
+        "color": "rgb(160, 255, 250)",
+        "border": "rgb(55, 70, 63)",
+        "background": "rgb(23, 30, 27)",
+        "iconOpacity": "1",
+        "lensColor": "rgb(160, 255, 250)",
+        "lensBorder": "rgb(55, 70, 63)",
+        "lensBackground": "rgb(23, 30, 27)"
+      },
+      "selected": {
+        "background": "rgb(117, 186, 117)",
+        "color": "rgb(7, 28, 35)"
+      },
+      "errors": []
+    }
+  ]
+}

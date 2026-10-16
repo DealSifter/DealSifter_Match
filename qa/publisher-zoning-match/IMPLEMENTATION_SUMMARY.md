@@ -24,3 +24,11 @@ The production frontend's mobile person-popup “View in Feed” handoff and ret
 - `backend-dependency-closure.json`: only maxxis-chat and property-fact-review require backend deployment.
 
 No existing flags are changed, no paid providers are called by declaration, no real property data is changed by QA, and the six pre-existing modified user QA artifacts remain outside the release commit.
+
+## Production acceptance
+
+Runtime commit `789abf8e54e0c2d2c29944f75208c44e4e20ec6b` is READY and its production alias verified. Backend maxxis-chat is v85 and property-fact-review is v3; both remain ACTIVE with JWT verification. No flags or migrations changed.
+
+Post-deploy checks passed: four two-account publisher/Match device/theme cases, ten map-to-module transitions, the mobile person-popup/Spotlight-tab return paths, and animated-logo/scoped-timeout recovery. These use production frontend assets with synthetic authentication/backend; backend behavior is covered by local real PostgreSQL contracts and deployment metadata, not by a real authenticated production write. One concurrent browser setup timed out waiting after the mobile login click, without an application exception or recorded error boundary; its isolated repetition passed. See `production-verification.json` and `navigation/failure.json` for that distinction.
+
+The specific reported full Dashboard runtime crash remains unreproduced and its resolution is not claimed. Reload an already-open app once to adopt the new frontend release.

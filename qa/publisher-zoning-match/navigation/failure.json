@@ -1,0 +1,8 @@
+{
+  "baseURL": "https://dealsiftermatch.vercel.app",
+  "cold": false,
+  "message": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('nav-login-mobile')\u001b[22m\n\u001b[2m    - locator resolved to <button data-testid=\"nav-login-mobile\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+  "errors": [],
+  "failedAssets": [],
+  "boundary": null
+}
