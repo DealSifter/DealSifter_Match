@@ -1,0 +1,229 @@
+﻿{
+    "mode":  "Audit",
+    "at":  "2026-10-16T19:31:02.6550373Z",
+    "productionWrites":  false,
+    "before":  {
+                   "security":  [
+                                    {
+                                        "rls":  true,
+                                        "table":  "notifications",
+                                        "policies":  [
+                                                         {
+                                                             "name":  "notifications_delete_own",
+                                                             "qual":  "(auth.uid() = user_id)",
+                                                             "roles":  [
+                                                                           "public"
+                                                                       ],
+                                                             "command":  "DELETE"
+                                                         },
+                                                         {
+                                                             "name":  "notifications_no_direct_insert",
+                                                             "qual":  null,
+                                                             "roles":  [
+                                                                           "public"
+                                                                       ],
+                                                             "command":  "INSERT"
+                                                         },
+                                                         {
+                                                             "name":  "notifications_select_own",
+                                                             "qual":  "(auth.uid() = user_id)",
+                                                             "roles":  [
+                                                                           "public"
+                                                                       ],
+                                                             "command":  "SELECT"
+                                                         },
+                                                         {
+                                                             "name":  "notifications_update_own_read_at",
+                                                             "qual":  "(auth.uid() = user_id)",
+                                                             "roles":  [
+                                                                           "public"
+                                                                       ],
+                                                             "command":  "UPDATE"
+                                                         }
+                                                     ],
+                                        "anonDirectReadDenied":  null,
+                                        "clientDirectWriteDenied":  null
+                                    },
+                                    {
+                                        "rls":  true,
+                                        "table":  "property_fact_review_history",
+                                        "policies":  [
+                                                         {
+                                                             "name":  "property_fact_history_read_owner",
+                                                             "qual":  "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_review_history.property_id) AND (p.owner_id = auth.uid())))))",
+                                                             "roles":  [
+                                                                           "authenticated"
+                                                                       ],
+                                                             "command":  "SELECT"
+                                                         }
+                                                     ],
+                                        "anonDirectReadDenied":  true,
+                                        "clientDirectWriteDenied":  true
+                                    },
+                                    {
+                                        "rls":  true,
+                                        "table":  "property_fact_reviews",
+                                        "policies":  [
+                                                         {
+                                                             "name":  "property_fact_reviews_read_owner",
+                                                             "qual":  "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_reviews.property_id) AND (p.owner_id = auth.uid())))))",
+                                                             "roles":  [
+                                                                           "authenticated"
+                                                                       ],
+                                                             "command":  "SELECT"
+                                                         }
+                                                     ],
+                                        "anonDirectReadDenied":  true,
+                                        "clientDirectWriteDenied":  true
+                                    }
+                                ],
+                   "latestMigration":  "20261014213000",
+                   "optionalColumns":  [
+                                           {
+                                               "type":  "integer",
+                                               "column":  "baths",
+                                               "default":  null,
+                                               "nullable":  "YES"
+                                           },
+                                           {
+                                               "type":  "integer",
+                                               "column":  "beds",
+                                               "default":  null,
+                                               "nullable":  "YES"
+                                           },
+                                           {
+                                               "type":  "numeric",
+                                               "column":  "rehab",
+                                               "default":  null,
+                                               "nullable":  "YES"
+                                           }
+                                       ],
+                   "migrationHistory":  [
+                                            {
+                                                "name":  "property_geocode_publication_guard",
+                                                "version":  "20261013000001"
+                                            },
+                                            {
+                                                "name":  "smart_property_fact_review",
+                                                "version":  "20261014213000"
+                                            }
+                                        ],
+                   "reviewTableExists":  true,
+                   "historyTableExists":  true,
+                   "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text, \u0027property_data\u0027::text])))",
+                   "targetMigrationPresent":  true,
+                   "clientStoreRpcExecuteDenied":  true
+               },
+    "after":  {
+                  "security":  [
+                                   {
+                                       "rls":  true,
+                                       "table":  "notifications",
+                                       "policies":  [
+                                                        {
+                                                            "name":  "notifications_delete_own",
+                                                            "qual":  "(auth.uid() = user_id)",
+                                                            "roles":  [
+                                                                          "public"
+                                                                      ],
+                                                            "command":  "DELETE"
+                                                        },
+                                                        {
+                                                            "name":  "notifications_no_direct_insert",
+                                                            "qual":  null,
+                                                            "roles":  [
+                                                                          "public"
+                                                                      ],
+                                                            "command":  "INSERT"
+                                                        },
+                                                        {
+                                                            "name":  "notifications_select_own",
+                                                            "qual":  "(auth.uid() = user_id)",
+                                                            "roles":  [
+                                                                          "public"
+                                                                      ],
+                                                            "command":  "SELECT"
+                                                        },
+                                                        {
+                                                            "name":  "notifications_update_own_read_at",
+                                                            "qual":  "(auth.uid() = user_id)",
+                                                            "roles":  [
+                                                                          "public"
+                                                                      ],
+                                                            "command":  "UPDATE"
+                                                        }
+                                                    ],
+                                       "anonDirectReadDenied":  null,
+                                       "clientDirectWriteDenied":  null
+                                   },
+                                   {
+                                       "rls":  true,
+                                       "table":  "property_fact_review_history",
+                                       "policies":  [
+                                                        {
+                                                            "name":  "property_fact_history_read_owner",
+                                                            "qual":  "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_review_history.property_id) AND (p.owner_id = auth.uid())))))",
+                                                            "roles":  [
+                                                                          "authenticated"
+                                                                      ],
+                                                            "command":  "SELECT"
+                                                        }
+                                                    ],
+                                       "anonDirectReadDenied":  true,
+                                       "clientDirectWriteDenied":  true
+                                   },
+                                   {
+                                       "rls":  true,
+                                       "table":  "property_fact_reviews",
+                                       "policies":  [
+                                                        {
+                                                            "name":  "property_fact_reviews_read_owner",
+                                                            "qual":  "((owner_id = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM properties p\n  WHERE ((p.id = property_fact_reviews.property_id) AND (p.owner_id = auth.uid())))))",
+                                                            "roles":  [
+                                                                          "authenticated"
+                                                                      ],
+                                                            "command":  "SELECT"
+                                                        }
+                                                    ],
+                                       "anonDirectReadDenied":  true,
+                                       "clientDirectWriteDenied":  true
+                                   }
+                               ],
+                  "latestMigration":  "20261014213000",
+                  "optionalColumns":  [
+                                          {
+                                              "type":  "integer",
+                                              "column":  "baths",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          },
+                                          {
+                                              "type":  "integer",
+                                              "column":  "beds",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          },
+                                          {
+                                              "type":  "numeric",
+                                              "column":  "rehab",
+                                              "default":  null,
+                                              "nullable":  "YES"
+                                          }
+                                      ],
+                  "migrationHistory":  [
+                                           {
+                                               "name":  "property_geocode_publication_guard",
+                                               "version":  "20261013000001"
+                                           },
+                                           {
+                                               "name":  "smart_property_fact_review",
+                                               "version":  "20261014213000"
+                                           }
+                                       ],
+                  "reviewTableExists":  true,
+                  "historyTableExists":  true,
+                  "notificationConstraint":  "CHECK ((type = ANY (ARRAY[\u0027unlock\u0027::text, \u0027exclusive\u0027::text, \u0027spotlight_expired\u0027::text, \u0027support\u0027::text, \u0027property_data\u0027::text])))",
+                  "targetMigrationPresent":  true,
+                  "clientStoreRpcExecuteDenied":  true
+              }
+}

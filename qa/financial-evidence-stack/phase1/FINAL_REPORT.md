@@ -32,13 +32,20 @@ An earlier three-worker run exited before initializing three DOM suites despite 
 
 Quality gate: **PASS** (`quality-gates.json`). Exact affected closure: maxxis-chat, maxxis-deal-workflow, maxxis-provider-message-draft, property-fact-review. Public-parcel, feature-flags, property-intelligence and arv-visual-comp-review are not redeployed.
 
-COMMIT: PENDING
-PUSH: PENDING
-PRODUCTION DEPLOY: PENDING
-PRODUCTION SHA: PENDING
+COMMIT: `97692d0ac00834e4b083a2f9bf3db3df9bec8bde`
+PUSH: PASS
+PRODUCTION DEPLOY: YES — READY; public alias verified.
+PRODUCTION SHA: `97692d0ac00834e4b083a2f9bf3db3df9bec8bde`
+Deployment: `dpl_AikYHfLRdPkFTojRHzvEEGiLGvs4` — https://dealsiftermatch.vercel.app.
+Backend versions: maxxis-chat **87**, maxxis-deal-workflow **18**, maxxis-provider-message-draft **21**, property-fact-review **5**; all ACTIVE/JWT. Untouched: public-parcel **10**, feature-flags **19**, property-intelligence **13**, arv-visual-comp-review **13**.
+
+Post-deployment validation: PASS (`production-validation.json`). Actual production assets passed six device/locale cases, ten Map→module transitions and two photo→Feed handoffs with explicitly synthetic authentication/backend and zero real backend writes. Source SHA, public alias, exact immutable backend deployment, unchanged schema/RLS and flags were verified independently through operator metadata audits. The follow-up receipt commit is QA-only and does not require another application deployment.
+
 AUTHENTICATED PRODUCTION SMOKE: **BLOCKED** — no real user session is available. Operator metadata audits and synthetic authentication do not substitute for it.
 
 Six pre-existing user QA changes are preserved and excluded from this release.
 
 NEXT PHASE: FINANCIAL ANALYTICAL ENGINES — NOI + CAP RATE + CASH FLOW.
 FOLLOWING PHASE: FINANCING-AWARE METRICS — COC + DSCR + ROI.
+
+FINAL: FINANCIAL EVIDENCE + READINESS STACK VALIDATED.
