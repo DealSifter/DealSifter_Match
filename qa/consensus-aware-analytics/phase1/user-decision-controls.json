@@ -1,0 +1,606 @@
+{
+  "mode": "DETERMINISTIC_SYNTHETIC_CONTROLS",
+  "data": {
+    "keep": {
+      "result": {
+        "inputs": {
+          "LOT_AREA": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "userDecision": "KEEP_MY_VALUE",
+            "userAccepted": false,
+            "userConfirmed": true,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+            "value": 49658.399999999994,
+            "range": null,
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ]
+          },
+          "LIVING_AREA": {
+            "domain": "LIVING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "BUILDING_AREA": {
+            "domain": "BUILDING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "PRICE": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          }
+        },
+        "pricePerAcre": {
+          "value": 16666.666666666668,
+          "range": null,
+          "calculable": true,
+          "provisional": false,
+          "unit": "USD_PER_ACRE",
+          "inputResolution": "ALLOW_QUALIFIED",
+          "inputFact": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "userDecision": "KEEP_MY_VALUE",
+            "userAccepted": false,
+            "userConfirmed": true,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+            "value": 49658.399999999994,
+            "range": null,
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN"
+          },
+          "qualification": [
+            "USER_CONFIRMED_AMID_CONFLICT"
+          ],
+          "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+        },
+        "pricePerLotSqft": {
+          "value": 0.3826140189776554,
+          "range": null,
+          "calculable": true,
+          "provisional": false,
+          "unit": "USD_PER_LOT_SQFT",
+          "inputResolution": "ALLOW_QUALIFIED",
+          "inputFact": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "userDecision": "KEEP_MY_VALUE",
+            "userAccepted": false,
+            "userConfirmed": true,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+            "value": 49658.399999999994,
+            "range": null,
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN"
+          },
+          "qualification": [
+            "USER_CONFIRMED_AMID_CONFLICT"
+          ],
+          "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+        },
+        "pricePerLivingSqft": {
+          "value": null,
+          "range": null,
+          "calculable": false,
+          "provisional": false,
+          "unit": "USD_PER_LIVING_SQFT",
+          "inputResolution": "NOT_APPLICABLE",
+          "inputFact": {
+            "domain": "LIVING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": null,
+            "sourceId": null,
+            "status": null,
+            "freshness": null
+          },
+          "qualification": [
+            "INPUT_NOT_APPLICABLE"
+          ],
+          "reasonCode": "INPUT_NOT_APPLICABLE"
+        }
+      },
+      "consensus": "MATERIAL_CONFLICT"
+    },
+    "accept": {
+      "result": {
+        "inputs": {
+          "LOT_AREA": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "PUBLIC_PARCEL_GIS",
+              "sourceId": "approved-gis",
+              "status": "VERIFIED_RECORD",
+              "freshness": "FRESH"
+            },
+            "userDecision": "ACCEPT_EXTERNAL_VALUE",
+            "userAccepted": true,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_ACCEPTED_EXTERNAL_INPUT",
+            "value": 23958.000000000004,
+            "range": null,
+            "qualification": [
+              "USER_ACCEPTED_EXTERNAL_INPUT"
+            ]
+          },
+          "LIVING_AREA": {
+            "domain": "LIVING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "BUILDING_AREA": {
+            "domain": "BUILDING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "PRICE": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          }
+        },
+        "pricePerAcre": {
+          "value": 34545.454545454544,
+          "range": null,
+          "calculable": true,
+          "provisional": false,
+          "unit": "USD_PER_ACRE",
+          "inputResolution": "ALLOW_QUALIFIED",
+          "inputFact": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "PUBLIC_PARCEL_GIS",
+              "sourceId": "approved-gis",
+              "status": "VERIFIED_RECORD",
+              "freshness": "FRESH"
+            },
+            "userDecision": "ACCEPT_EXTERNAL_VALUE",
+            "userAccepted": true,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_ACCEPTED_EXTERNAL_INPUT",
+            "value": 23958.000000000004,
+            "range": null,
+            "qualification": [
+              "USER_ACCEPTED_EXTERNAL_INPUT"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "approved-gis",
+            "status": "VERIFIED_RECORD",
+            "freshness": "FRESH"
+          },
+          "qualification": [
+            "USER_ACCEPTED_EXTERNAL_INPUT"
+          ],
+          "reasonCode": "USER_ACCEPTED_EXTERNAL_INPUT"
+        },
+        "pricePerLotSqft": {
+          "value": 0.7930545120627764,
+          "range": null,
+          "calculable": true,
+          "provisional": false,
+          "unit": "USD_PER_LOT_SQFT",
+          "inputResolution": "ALLOW_QUALIFIED",
+          "inputFact": {
+            "domain": "LOT_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": "PUBLIC_PARCEL_GIS",
+              "sourceId": "approved-gis",
+              "status": "VERIFIED_RECORD",
+              "freshness": "FRESH"
+            },
+            "userDecision": "ACCEPT_EXTERNAL_VALUE",
+            "userAccepted": true,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "USER_ACCEPTED_EXTERNAL_INPUT",
+            "value": 23958.000000000004,
+            "range": null,
+            "qualification": [
+              "USER_ACCEPTED_EXTERNAL_INPUT"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": "PUBLIC_PARCEL_GIS",
+            "sourceId": "approved-gis",
+            "status": "VERIFIED_RECORD",
+            "freshness": "FRESH"
+          },
+          "qualification": [
+            "USER_ACCEPTED_EXTERNAL_INPUT"
+          ],
+          "reasonCode": "USER_ACCEPTED_EXTERNAL_INPUT"
+        },
+        "pricePerLivingSqft": {
+          "value": null,
+          "range": null,
+          "calculable": false,
+          "provisional": false,
+          "unit": "USD_PER_LIVING_SQFT",
+          "inputResolution": "NOT_APPLICABLE",
+          "inputFact": {
+            "domain": "LIVING_AREA",
+            "unit": "SQFT",
+            "consensusState": "SINGLE_SOURCE",
+            "analyticalUsability": "SINGLE_SOURCE",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "NOT_APPLICABLE",
+            "reasonCode": "INPUT_NOT_APPLICABLE",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "INPUT_NOT_APPLICABLE"
+            ]
+          },
+          "priceInput": {
+            "domain": "PRICE",
+            "unit": "USD",
+            "consensusState": null,
+            "analyticalUsability": null,
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+              "status": "USER_PROVIDED",
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "ALLOW_QUALIFIED",
+            "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+            "value": 19000,
+            "range": null,
+            "qualification": [
+              "PUBLISHER_PROVIDED_INPUT"
+            ]
+          },
+          "inputSource": {
+            "sourceType": null,
+            "sourceId": null,
+            "status": null,
+            "freshness": null
+          },
+          "qualification": [
+            "INPUT_NOT_APPLICABLE"
+          ],
+          "reasonCode": "INPUT_NOT_APPLICABLE"
+        }
+      }
+    }
+  }
+}

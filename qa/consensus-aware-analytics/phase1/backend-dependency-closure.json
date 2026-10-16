@@ -1,0 +1,110 @@
+{
+  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+    "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+    "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+    "supabase/functions/_shared/maxxis/areaMetrics.ts",
+    "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+    "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+    "supabase/functions/_shared/maxxis/consensusFactAnswer.ts",
+    "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+    "supabase/functions/_shared/maxxis/dealMetrics.ts",
+    "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+    "supabase/functions/_shared/maxxis/landMetrics.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/propertyAreaUnits.ts",
+    "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts",
+    "supabase/functions/_shared/maxxis/types.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/maxxis-chat/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "arv-visual-comp-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/consensusFactAnswer.ts",
+        "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+        "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts",
+        "supabase/functions/maxxis-chat/index.ts"
+      ]
+    },
+    {
+      "function": "maxxis-deal-workflow",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts"
+      ]
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts"
+      ]
+    },
+    {
+      "function": "property-intelligence",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+        "supabase/functions/_shared/maxxis/areaMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyAreaUnits.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

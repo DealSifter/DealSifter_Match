@@ -16,6 +16,7 @@ import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSugge
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
+import { buildAreaAnalyticalAnswer, detectAreaAnalyticalQuestion } from '../_shared/maxxis/areaAnalyticalAnswer.ts';
 import { formatConsensusFactAnswer } from '../_shared/maxxis/consensusFactAnswer.ts';
 import { detectsDealScenario, formatDealScenarioAnswer, resolveDealScenario } from '../_shared/maxxis/scenarioEngine.ts';
 import { detectMarketReferenceIntent } from '../_shared/maxxis/marketReferenceIntent.ts';
@@ -817,6 +818,22 @@ Deno.serve(async (req) => {
       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
     }
     const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
+    // A request-scoped promise: no additional provider acquisition or repeated review reads.
+    let analyticalEvidenceRead: ReturnType<typeof executeMaxxisTool> | undefined;
+    const readAnalyticalEvidence = () => analyticalEvidenceRead ??= executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',
+      {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,analyticalArea:true,parcelEvidenceReceipt:body.parcelEvidenceReceipt});
+    // Area questions are authorized cached reads + deterministic arithmetic, never Gemini arbitration.
+    const earlyAreaIntent=propertyContextId?detectAreaAnalyticalQuestion(message):null;
+    if(earlyAreaIntent){
+      const evidence=await readAnalyticalEvidence();
+      if(evidence.type==='canonical_property_evidence'){
+        const analytical=evidence.state==='available'?buildAreaAnalyticalAnswer(message,evidence.analyticalInputs,language):null;
+        const text=analytical?.answer||(language==='pt'?'O imóvel não está disponível neste contexto autorizado.':language==='es'?'La propiedad no está disponible en este contexto autorizado.':'The property is unavailable in this authorized context.');
+        return response({message:text,answer:text,type:'text',data:analytical?{propertyId:propertyContextId,areaMetric:analytical.metric,
+          ...(evidence.canReview&&analytical.metric.inputResolution==='BLOCK_CONFLICT'?{reviewField:analytical.reviewField}:{})}:null,
+          actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',arithmeticSource:'DETERMINISTIC_AREA_ENGINE',secondPass:false}},200,origin,requestId);
+      }
+    }
     // Factual questions precede stale report/gap context and never arbitrate through Gemini.
     const earlyPropertyFact=propertyContextId?detectPropertyFactLookup(message):null;
     if(earlyPropertyFact?.fields.length&&!/\b(?:report|relat[oó]rio|pdf|exportar|reporte|informe)\b/i.test(message)){
@@ -1300,7 +1317,9 @@ Deno.serve(async (req) => {
       }
       if (result.type === 'deal_insight') {
         if (marketReferenceIntent) {
-          const referenceResponse = buildMarketReferenceAnswer(rawSnapshot, marketReferenceIntent, language);
+          const areaEvidence = await readAnalyticalEvidence();
+          const referenceResponse = buildMarketReferenceAnswer(rawSnapshot, marketReferenceIntent, language,
+            areaEvidence.type==='canonical_property_evidence' && areaEvidence.state==='available' ? areaEvidence.analyticalInputs : undefined);
           structuredResponseCreated = true;
           return response({ ...referenceResponse, message: referenceResponse.answer, language,
             runtime: { ...toolRuntime, provider: 'deterministic' }, ...toolDegraded }, 200, origin, requestId);
@@ -1353,8 +1372,10 @@ Deno.serve(async (req) => {
         });
         const directFactAnswer = propertyFactIntent
           ? buildPropertyFactLookupAnswer(message, language, result.intelligenceSnapshot) : null;
+        const areaEvidence = dealScenarioIntent ? await readAnalyticalEvidence() : null;
         const scenarioResolution = dealScenarioIntent
           ? resolveDealScenario({
+              analyticalInputs: areaEvidence?.type==='canonical_property_evidence' && areaEvidence.state==='available' ? areaEvidence.analyticalInputs : undefined,
               message,
               history: Array.isArray(body.history) ? body.history as Array<{ role?: unknown; content?: unknown }> : [],
               propertyId: result.propertyId,

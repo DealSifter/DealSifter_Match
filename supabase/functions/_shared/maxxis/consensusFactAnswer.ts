@@ -8,9 +8,9 @@ const copy={
  es:{confirmed:'Las fuentes disponibles son consistentes.',provisional:'Rango provisional respaldado por fuentes independientes.',single:'Solo hay una fuente independiente; no es confirmación cruzada.',conflict:'Las fuentes difieren o no son comparables; no se eligió un valor como confirmado.',unavailable:'La evidencia disponible es insuficiente para informar este dato.',na:'Este dato no se aplica.',outlier:'Valor fuera del grupo de concordancia:',stale:'Es evidencia antigua reutilizable, no una verificación reciente.',gis:'No hay evidencia parcelaria pública aprobada disponible en este contexto; no significa que no existan registros.',survey:'El GIS público es información catastral; no sustituye un levantamiento topográfico.',type:'Tipo usado en el análisis:',publisher:'Registro del inmueble',rentcast:'RentCast',public:'GIS / registro público',geometry:'Área calculada de la geometría',lock:'La clasificación distinta del proveedor no cambia el tipo definido en DealSifter.'},
 };
 const labels:Record<Language,Record<ProjectedField,string>>={
- pt:{lotArea:'Área do lote',apn:'APN',owner:'Proprietário no registro',assessedValue:'Valor fiscal avaliado',propertyTax:'Imposto predial registrado',zoning:'Zoneamento',propertyType:'Tipo do imóvel'},
- en:{lotArea:'Lot area',apn:'APN',owner:'Recorded owner',assessedValue:'Assessed value',propertyTax:'Recorded property tax',zoning:'Zoning',propertyType:'Property type'},
- es:{lotArea:'Área del lote',apn:'APN',owner:'Propietario registrado',assessedValue:'Valor fiscal evaluado',propertyTax:'Impuesto predial registrado',zoning:'Zonificación',propertyType:'Tipo de inmueble'},
+ pt:{lotArea:'Área do lote',buildingArea:'Área construída / útil',apn:'APN',owner:'Proprietário no registro',assessedValue:'Valor fiscal avaliado',propertyTax:'Imposto predial registrado',zoning:'Zoneamento',propertyType:'Tipo do imóvel'},
+ en:{lotArea:'Lot area',buildingArea:'Building / living area',apn:'APN',owner:'Recorded owner',assessedValue:'Assessed value',propertyTax:'Recorded property tax',zoning:'Zoning',propertyType:'Property type'},
+ es:{lotArea:'Área del lote',buildingArea:'Área construida / habitable',apn:'APN',owner:'Propietario registrado',assessedValue:'Valor fiscal evaluado',propertyTax:'Impuesto predial registrado',zoning:'Zonificación',propertyType:'Tipo de inmueble'},
 };
 const safe=(value:unknown)=>String(value??'').replace(/<[^>]*>/g,'').replace(/[\u0000-\u001f]/g,' ').trim();
 function typeLabel(value:unknown,lang:Language){const key=safe(value).toUpperCase();return key==='LAND'?{pt:'Terreno',en:'Land',es:'Terreno'}[lang]:key==='SFR'||key==='SINGLE FAMILY'?{pt:'Residencial unifamiliar',en:'Single-family home',es:'Vivienda unifamiliar'}[lang]:safe(value);}
@@ -28,7 +28,7 @@ function sourceLabel(candidate:EvidenceCandidate,lang:Language){return candidate
 export function formatConsensusFactAnswer(fields:Record<ProjectedField,ProjectedEvidenceField>,requested:readonly string[],language:unknown,analysisType:unknown,publicAvailable:boolean){
  const lang:Language=language==='pt'||language==='es'?language:'en',c=copy[lang];
  const names:Record<string,ProjectedField>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType'};
- const selected=[...new Set(requested.map(name=>names[name]??name).filter(name=>PROJECTED_FIELDS.includes(name as ProjectedField)))] as ProjectedField[];
+ const selected=[...new Set(requested.map(name=>names[name]??name).filter(name=>PROJECTED_FIELDS.includes(name as typeof PROJECTED_FIELDS[number])))] as ProjectedField[];
  return selected.map(name=>{
    const field=fields[name],lines=[`${labels[lang][name]}: ${field.value!==null?valueLabel(field.value,name,lang):field.range?`${valueLabel(field.range.min,name,lang)}–${valueLabel(field.range.max,name,lang)}`:''}`.trim()];
    const statusText={CONFIRMED:c.confirmed,PROVISIONAL:c.provisional,SINGLE_SOURCE:c.single,CONFLICTED:c.conflict,UNAVAILABLE:c.unavailable,NOT_APPLICABLE:c.na};

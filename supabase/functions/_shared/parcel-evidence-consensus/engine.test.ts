@@ -273,9 +273,9 @@ describe('read-only adapters and production isolation', () => {
     const consumers = [...walk('src'), ...walk('supabase/functions')].filter(path => /\.(ts|tsx|js|jsx)$/.test(path)
       && !/parcel-evidence-consensus|\.(test|spec)\./.test(path));
     const hits = consumers.filter(path => /(?:from\s*|import\s*\()['"][^'"]*parcel-evidence-consensus/.test(readFileSync(path, 'utf8')));
-    const approved=['canonicalEvidenceProjection.ts','canonicalEvidenceTool.ts','consensusFactAnswer.ts','property-fact-reconciliation/model.ts','property-fact-reconciliation/runtime.ts','property-fact-review/index.ts','propertyFacts/cardFacts.js'];
+    const approved=['canonicalEvidenceProjection.ts','canonicalEvidenceTool.ts','consensusFactAnswer.ts','analyticalPropertyContext.ts','property-fact-reconciliation/model.ts','property-fact-reconciliation/runtime.ts','property-fact-review/index.ts','propertyFacts/cardFacts.js'];
     expect(hits.every(path=>approved.some(name=>path.replaceAll('\\','/').endsWith(name)))).toBe(true);
-    expect(hits).toHaveLength(7);
+    expect(hits).toHaveLength(8);
     artifact('consumer-validation', { runtimeImportCount: hits.length, approvedConsumers: hits, inspectedRuntimeFiles: consumers.length, propertyFactSidecars:true,publisherValueOverwrites:0,reportConsumption:0,financialConsumption:0 });
   });
 });

@@ -1,0 +1,247 @@
+{
+  "frontendGraphModules": 312,
+  "binding": [
+    {
+      "path": "src/components/maxxis/MaxxisAssistant.jsx",
+      "frontendConsumed": true,
+      "currentHash": "d60380054f7c5b593ca64726d322ab75342de518a5cf4a3bd3493e635caa8250",
+      "stagedHash": "d60380054f7c5b593ca64726d322ab75342de518a5cf4a3bd3493e635caa8250",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisLandDevelopment.js",
+      "frontendConsumed": true,
+      "currentHash": "a4818fca4a4c556ef326faf0dd10761a49bb73ced665390199e289ffad084135",
+      "stagedHash": "a4818fca4a4c556ef326faf0dd10761a49bb73ced665390199e289ffad084135",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "src/features/propertyFacts/FactReviewIndicator.jsx",
+      "frontendConsumed": true,
+      "currentHash": "5f855109051e1eb74a82bd92b163bee9a70034f2bf1e795d0a82bed86726c37f",
+      "stagedHash": "5f855109051e1eb74a82bd92b163bee9a70034f2bf1e795d0a82bed86726c37f",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "src/features/propertyFacts/copy.js",
+      "frontendConsumed": true,
+      "currentHash": "fef56f544dd996d45de214317fde74744fac4866be9b2aa83f607392fd428d0b",
+      "stagedHash": "fef56f544dd996d45de214317fde74744fac4866be9b2aa83f607392fd428d0b",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "src/features/propertyFacts/propertyFacts.css",
+      "frontendConsumed": false,
+      "currentHash": "27f29650cc80898c1c85409f793fe98f1b8c2cd580b9646f2112bd74b34ea099",
+      "stagedHash": "27f29650cc80898c1c85409f793fe98f1b8c2cd580b9646f2112bd74b34ea099",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "src/pages/Onboarding.jsx",
+      "frontendConsumed": true,
+      "currentHash": "f16f9727fd04d1e28ebbfc721a5f64f44cd9733e40ba62623884b6453289b505",
+      "stagedHash": "f16f9727fd04d1e28ebbfc721a5f64f44cd9733e40ba62623884b6453289b505",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+      "frontendConsumed": true,
+      "currentHash": "adc60135414a75f3db8df79571b885fd4c18f8c898cf5e44e333a85b9fc33bda",
+      "stagedHash": "adc60135414a75f3db8df79571b885fd4c18f8c898cf5e44e333a85b9fc33bda",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+      "frontendConsumed": false,
+      "currentHash": "9294e9470f8681eb8b9a038da0a7ccf6212fc0fc40cd92c8f4fee6f9b7adff60",
+      "stagedHash": "9294e9470f8681eb8b9a038da0a7ccf6212fc0fc40cd92c8f4fee6f9b7adff60",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/consensusFactAnswer.ts",
+      "frontendConsumed": true,
+      "currentHash": "6f62a5231a723047cfbd65eccd2870d3c4800de8bc7b94596f42f5fe33b62a96",
+      "stagedHash": "6f62a5231a723047cfbd65eccd2870d3c4800de8bc7b94596f42f5fe33b62a96",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+      "frontendConsumed": true,
+      "currentHash": "62ff58806ff289744c3bed432454b828347f3710a2ef8de1735bb2e2cb944bab",
+      "stagedHash": "62ff58806ff289744c3bed432454b828347f3710a2ef8de1735bb2e2cb944bab",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealMetrics.ts",
+      "frontendConsumed": true,
+      "currentHash": "31019dd0a49f86ce56f49e453c2e252bc86fda4945be1ee50d2d0fdfbfe0953e",
+      "stagedHash": "31019dd0a49f86ce56f49e453c2e252bc86fda4945be1ee50d2d0fdfbfe0953e",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+      "frontendConsumed": true,
+      "currentHash": "91d9ced21f528e682119dcd9b060f42003b62d1821af3e2be8bb255346483274",
+      "stagedHash": "91d9ced21f528e682119dcd9b060f42003b62d1821af3e2be8bb255346483274",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landMetrics.ts",
+      "frontendConsumed": true,
+      "currentHash": "229729c446ffe89472cb6dabea62788b794353d315b22c2212b8442cebdf5e0a",
+      "stagedHash": "229729c446ffe89472cb6dabea62788b794353d315b22c2212b8442cebdf5e0a",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+      "frontendConsumed": true,
+      "currentHash": "4840dc7e5228f0272d84bd51dedc0c6b5da2917a5cf129d8e1f325a412a54a7e",
+      "stagedHash": "4840dc7e5228f0272d84bd51dedc0c6b5da2917a5cf129d8e1f325a412a54a7e",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+      "frontendConsumed": true,
+      "currentHash": "b5915e22538e923f2cf0a17e37700d2e21c576e32bb36ddc855dd5daee16d93a",
+      "stagedHash": "b5915e22538e923f2cf0a17e37700d2e21c576e32bb36ddc855dd5daee16d93a",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+      "frontendConsumed": false,
+      "currentHash": "d96e0b6de21f37e705ba53de0cfb41cc9512df9e8deb2b95d8c42baa548cbe87",
+      "stagedHash": "d96e0b6de21f37e705ba53de0cfb41cc9512df9e8deb2b95d8c42baa548cbe87",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/types.ts",
+      "frontendConsumed": false,
+      "currentHash": "9985c95a5a0b3ff893ab43066fd45821765f04851ccbdd8fafb226c4dfac56ac",
+      "stagedHash": "9985c95a5a0b3ff893ab43066fd45821765f04851ccbdd8fafb226c4dfac56ac",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+      "frontendConsumed": true,
+      "currentHash": "9fde4b9e7a7bd95b9f9f47207249585a696c13ea1b89dbf79769aa9c1c1af302",
+      "stagedHash": "9fde4b9e7a7bd95b9f9f47207249585a696c13ea1b89dbf79769aa9c1c1af302",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+      "frontendConsumed": true,
+      "currentHash": "92d19adc77498cfa2e32b594a22fb96cc2e513456fa4ed921bb8f74f2472c730",
+      "stagedHash": "92d19adc77498cfa2e32b594a22fb96cc2e513456fa4ed921bb8f74f2472c730",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+      "frontendConsumed": true,
+      "currentHash": "ade46d18ffea399f827561c794c600ec45bbd7b42c2e9adbb7c3d9469e853e0d",
+      "stagedHash": "ade46d18ffea399f827561c794c600ec45bbd7b42c2e9adbb7c3d9469e853e0d",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaMetrics.ts",
+      "frontendConsumed": true,
+      "currentHash": "d173ff15b86f5d3a801027cb3e2596e9129f5ae08bd7bb27ab794f0a3c0be190",
+      "stagedHash": "d173ff15b86f5d3a801027cb3e2596e9129f5ae08bd7bb27ab794f0a3c0be190",
+      "mode": "EXACT_SOURCE"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/propertyAreaUnits.ts",
+      "frontendConsumed": true,
+      "currentHash": "e16e85485b4bb4e579001278770adffcc216ec93b6faca73abf5953a49ecf4e0",
+      "stagedHash": "e16e85485b4bb4e579001278770adffcc216ec93b6faca73abf5953a49ecf4e0",
+      "mode": "EXACT_SOURCE"
+    }
+  ],
+  "denoSourceBinding": [
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+      "hash": "9fde4b9e7a7bd95b9f9f47207249585a696c13ea1b89dbf79769aa9c1c1af302",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+      "hash": "92d19adc77498cfa2e32b594a22fb96cc2e513456fa4ed921bb8f74f2472c730",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+      "hash": "ade46d18ffea399f827561c794c600ec45bbd7b42c2e9adbb7c3d9469e853e0d",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaMetrics.ts",
+      "hash": "d173ff15b86f5d3a801027cb3e2596e9129f5ae08bd7bb27ab794f0a3c0be190",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+      "hash": "adc60135414a75f3db8df79571b885fd4c18f8c898cf5e44e333a85b9fc33bda",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+      "hash": "9294e9470f8681eb8b9a038da0a7ccf6212fc0fc40cd92c8f4fee6f9b7adff60",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/consensusFactAnswer.ts",
+      "hash": "6f62a5231a723047cfbd65eccd2870d3c4800de8bc7b94596f42f5fe33b62a96",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+      "hash": "62ff58806ff289744c3bed432454b828347f3710a2ef8de1735bb2e2cb944bab",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealMetrics.ts",
+      "hash": "31019dd0a49f86ce56f49e453c2e252bc86fda4945be1ee50d2d0fdfbfe0953e",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+      "hash": "91d9ced21f528e682119dcd9b060f42003b62d1821af3e2be8bb255346483274",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landMetrics.ts",
+      "hash": "229729c446ffe89472cb6dabea62788b794353d315b22c2212b8442cebdf5e0a",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+      "hash": "4840dc7e5228f0272d84bd51dedc0c6b5da2917a5cf129d8e1f325a412a54a7e",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/propertyAreaUnits.ts",
+      "hash": "e16e85485b4bb4e579001278770adffcc216ec93b6faca73abf5953a49ecf4e0",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+      "hash": "b5915e22538e923f2cf0a17e37700d2e21c576e32bb36ddc855dd5daee16d93a",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+      "hash": "d96e0b6de21f37e705ba53de0cfb41cc9512df9e8deb2b95d8c42baa548cbe87",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/types.ts",
+      "hash": "9985c95a5a0b3ff893ab43066fd45821765f04851ccbdd8fafb226c4dfac56ac",
+      "matchesDeno": true
+    },
+    {
+      "path": "supabase/functions/maxxis-chat/index.ts",
+      "hash": "54df9547f23ddad57f9c442da969a9c9078f66e4af6e4f16c5708077f9d3afaf",
+      "matchesDeno": true
+    }
+  ],
+  "pass": true
+}

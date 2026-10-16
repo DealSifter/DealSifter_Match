@@ -1,4 +1,8 @@
-export const SQFT_PER_ACRE = 43_560;
+import { SQFT_PER_ACRE } from './propertyAreaUnits.ts';
+export { SQFT_PER_ACRE } from './propertyAreaUnits.ts';
+import { resolveAnalyticalPropertyFact, type AnalyticalPropertyInputs } from './analyticalPropertyFacts.ts';
+import { calculateAreaMetrics } from './areaMetrics.ts';
+import { parseDealMetricNumber } from './dealMetrics.ts';
 
 export type CanonicalLotArea = Readonly<{
   lotSizeSqft: number | null;
@@ -54,7 +58,17 @@ export function parseCanonicalLotArea(value: unknown): CanonicalLotArea {
   });
 }
 
-export function calculateLandUnitMetrics(priceInput: unknown, lotInput: unknown) {
+export type LandUnitMetrics = ReturnType<typeof resolveLotDimensions> & {pricePerLotSqft:number|null;pricePerAcre:number|null;
+  pricePerLotSqftRange?:{min:number;max:number}|null;pricePerAcreRange?:{min:number;max:number}|null;areaMetrics?:ReturnType<typeof calculateAreaMetrics>};
+export function calculateLandUnitMetrics(priceInput: unknown, lotInput: unknown):Readonly<LandUnitMetrics> {
+  const context = lotInput && typeof lotInput === 'object' ? (lotInput as {analyticalPropertyInputs?:AnalyticalPropertyInputs}).analyticalPropertyInputs : null;
+  if (context?.version === 'ANALYTICAL_PROPERTY_INPUTS_V1') {
+    const price=typeof priceInput==='number'||typeof priceInput==='string'?parseDealMetricNumber(priceInput,'money'):null;
+    const inputs:AnalyticalPropertyInputs={...context,fields:{...context.fields,PRICE:{domain:'PRICE',effective:{value:price,unit:'USD',state:price===null?'UNAVAILABLE':'AVAILABLE',sourceType:'USER_PROVIDED',sourceId:'CURRENT_EXPLICIT_PRICE_INPUT',status:'USER_PROVIDED'}}}};
+    const areaMetrics=calculateAreaMetrics(inputs),lot=resolveLotDimensions({analyticalPropertyInputs:inputs});
+    return Object.freeze({...lot,pricePerLotSqft:areaMetrics.pricePerLotSqft.value,pricePerAcre:areaMetrics.pricePerAcre.value,
+      pricePerLotSqftRange:areaMetrics.pricePerLotSqft.range,pricePerAcreRange:areaMetrics.pricePerAcre.range,areaMetrics});
+  }
   const price = positive(priceInput);
   const lot = resolveLotDimensions(lotInput);
   const pricePerLotSqft = price && lot.lotSizeSqft
@@ -67,6 +81,16 @@ export function calculateLandUnitMetrics(priceInput: unknown, lotInput: unknown)
 /** Resolve the parcel once. Independent units are evidence, never independent outputs. */
 export function resolveLotDimensions(input: unknown) {
   const row = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const context=row.analyticalPropertyInputs as AnalyticalPropertyInputs|undefined;
+  if(context?.version==='ANALYTICAL_PROPERTY_INPUTS_V1'){
+    const analyticalInput=resolveAnalyticalPropertyFact(context.fields.LOT_AREA??{domain:'LOT_AREA'}),sqft=analyticalInput.value,acres=sqft===null?null:sqft/SQFT_PER_ACRE;
+    const result={...resolveParcelDimensions(null,null),resolvedSqft:sqft,resolvedAcres:acres,lotSizeSqft:sqft,lotSizeAcres:acres,
+      sourceUnit:sqft===null?'UNKNOWN' as const:'SQFT' as const,source:analyticalInput.inputSource.sourceId,evidenceStatus:analyticalInput.inputSource.status??'UNKNOWN',
+      acresStatus:acres===null?'UNKNOWN':'CALCULATED',sqftStatus:sqft===null?'UNKNOWN':analyticalInput.inputSource.status??'UNKNOWN',analyticalInput};
+    // Internal context is reusable by the next engine, not duplicated in JSON/report/scenario persistence.
+    Object.defineProperty(result,'analyticalPropertyInputs',{value:context,enumerable:false});
+    return Object.freeze(result);
+  }
   const physical = (row.canonicalPropertyFacts as { physical?: Record<string, unknown> } | undefined)?.physical;
   const canonical = row.canonicalPropertyFacts as { resolvedLotDimensions?: unknown } | undefined;
   const retained = (row.resolvedLotDimensions || canonical?.resolvedLotDimensions || (row.resolvedSqft ? row : null)) as ReturnType<typeof resolveParcelDimensions> | undefined;

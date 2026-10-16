@@ -449,6 +449,7 @@ export type MaxxisResponse = {
   message: string;
   type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_evidence' | 'deal_insight' | 'property_comparison' | 'deal_copilot_overview';
   data: null
+    | {propertyId:string;areaMetric:import('./areaMetrics.ts').AreaPriceMetric;reviewField?:string}
     | {propertyId:string;reviewField:string}
     | { properties: MaxxisPropertyResult[]; personalized?: boolean; profileAvailable?: boolean; profileSuggestions?: ProfileDriftSuggestion[] }
     | { services: MaxxisServiceResult[] }
@@ -470,6 +471,7 @@ export type MaxxisResponse = {
     provider: 'gemini' | 'stub' | 'local' | 'deterministic';
     model?: string;
     toolName?: string;
+    arithmeticSource?: 'DETERMINISTIC_AREA_ENGINE';
     secondPass: boolean;
     knowledgeVersion?: string;
     knowledgeTopics?: string[];

@@ -3,8 +3,10 @@ import type { CandidateInput, ConsensusField, ConsensusStatus, EvidenceCandidate
 import { buildCanonicalPropertyFacts } from './propertyEvidenceProjection.ts';
 import { resolveAnalysisPropertyType } from './canonicalFactSemantics.ts';
 export type AnalyticalUsability = 'CONFIRMED' | 'PROVISIONAL' | 'SINGLE_SOURCE' | 'CONFLICTED' | 'UNAVAILABLE' | 'NOT_APPLICABLE';
+// Existing seven-domain direct-fact routing remains stable; the area engine adds
+// the building/living projection without broadening those legacy question routes.
 export const PROJECTED_FIELDS = ['lotArea','apn','owner','assessedValue','propertyTax','zoning','propertyType'] as const;
-export type ProjectedField = typeof PROJECTED_FIELDS[number];
+export type ProjectedField = typeof PROJECTED_FIELDS[number] | 'buildingArea';
 export type ProjectionDomain = ProjectedField | 'buildingArea' | 'yearBuilt' | 'beds' | 'baths' | 'subdivision' | 'legalDescription';
 export const ANALYTICAL_FIELD_POLICY = Object.freeze({
   lotArea: { minor: 'PROVISIONAL', range: true }, apn: { minor: 'CONFIRMED', range: false },
@@ -61,7 +63,7 @@ export function buildConsensusAwareCanonicalReadModel(property:Record<string,unk
   const prepared=inputs.map(c=>(c.field==='propertyTax'||c.field==='assessedValue')&&c.evidenceStatus==='CALCULATED'
     ? {...c,evidenceStatus:'ESTIMATED' as const,metadata:{...c.metadata,concept:'NON_RECORDED_BENCHMARK'}}:c);
   const consensus=computeParcelEvidenceConsensus(prepared);
-  const fields=Object.fromEntries(PROJECTED_FIELDS.map(field=>[field,projectConsensusField(field,consensus.fields[field])])) as Record<ProjectedField,ProjectedEvidenceField>;
+  const fields=Object.fromEntries([...PROJECTED_FIELDS,'buildingArea' as const].map(field=>[field,projectConsensusField(field,consensus.fields[field])])) as Record<ProjectedField,ProjectedEvidenceField>;
   return Object.freeze({...buildCanonicalPropertyFacts(property,context),
     analyticalEvidence:Object.freeze({version:'CANONICAL_EVIDENCE_PROJECTION_V1',fields,
       resolvedAnalysisPropertyType:resolveAnalysisPropertyType(property),

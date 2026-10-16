@@ -4,6 +4,7 @@ import type { CandidateInput, ConsensusField } from '../parcel-evidence-consensu
 import { buildConsensusAwareCanonicalReadModel } from './canonicalEvidenceProjection.ts';
 import { readParcelEvidenceReceipt } from '../public-parcel/evidenceReceipt.ts';
 import type { MaxxisPropertyEvidenceResult } from './propertyEvidence.ts';
+import { buildAnalyticalPropertyInputs } from './analyticalPropertyContext.ts';
 
 const FIELD_MAP:Record<string,ConsensusField>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType',livingAreaSqft:'buildingArea',yearBuilt:'yearBuilt'};
 export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|null,id:string):CandidateInput[]{
@@ -20,7 +21,7 @@ export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|n
 type Options={input:unknown;propertyId:string;userId:string;receipt?:unknown;secret:string;parcelEnabled:boolean;
   loadPublicProperty:(id:string)=>Promise<Record<string,unknown>|null>;
   loadUserFacts?:(id:string,userId:string)=>Promise<Record<string,unknown>|null>;
-  loadReconciledFacts?:(id:string,userId:string)=>Promise<{facts:Record<string,unknown>;owner:boolean}|null>;
+  loadReconciledFacts?:(id:string,userId:string)=>Promise<{facts:Record<string,unknown>;owner:boolean;reviewSnapshot?:Record<string,any>;decisionProofs?:Record<string,unknown>;analyticalUnavailable?:boolean}|null>;
   loadCachedProvider:(id:string)=>Promise<MaxxisPropertyEvidenceResult>};
 /** Existing sanitized property authorization + existing provider cache entitlement;
  * receipt verification/computation never performs I/O or writes. */
@@ -61,8 +62,12 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
   }
   const readModel=buildConsensusAwareCanonicalReadModel(property as unknown as Record<string,unknown>,candidates,
     provider?.state==='available'&&provider.entitlementState==='authorized'&&provider.propertyId===input.propertyId?provider.evidence as Parameters<typeof buildConsensusAwareCanonicalReadModel>[2]:null);
-  const reconciled=await options.loadReconciledFacts?.(input.propertyId,options.userId).catch(()=>null);
+  const reconciled:Awaited<ReturnType<NonNullable<Options['loadReconciledFacts']>>>|undefined=await options.loadReconciledFacts?.(input.propertyId,options.userId).catch(()=>({facts:{},owner:false,analyticalUnavailable:true}));
+  const analyticalInputs=buildAnalyticalPropertyInputs({property:publisher,effectiveFacts:reconciled?.facts??{},
+    projections:readModel.analyticalEvidence.fields,reviewSnapshot:reconciled?.owner?reconciled.reviewSnapshot??null:null,decisionProofs:reconciled?.decisionProofs??{},
+    unavailableReason:reconciled?.analyticalUnavailable?'INPUT_DECISION_PROOF_UNAVAILABLE':undefined});
   return {type:'canonical_property_evidence' as const,propertyId:input.propertyId,state:'available' as const,readModel,
+    analyticalInputs,
     effectiveFacts:reconciled?.facts??null,canReview:reconciled?.owner===true,
     publicParcelState:parcels.length?'AVAILABLE':'NO_APPROVED_AVAILABLE_EVIDENCE',providerState:provider?.state??'unavailable',providerCalls:0};
 }

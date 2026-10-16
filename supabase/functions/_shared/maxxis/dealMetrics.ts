@@ -1,3 +1,4 @@
+import {resolveAnalyticalPropertyFact,type AnalyticalPropertyInputs,type ResolvedAnalyticalFact} from './analyticalPropertyFacts.ts';
 export type DealMetricSource = 'stored' | 'calculated';
 export type DealMetricInputKey = 'price' | 'sqft' | 'rehab' | 'capRate';
 export type DealMetricUnavailableReason = 'missing_inputs' | 'invalid_input' | 'division_by_zero' | 'unsafe_result';
@@ -8,6 +9,8 @@ export type DealMetric = {
   source: DealMetricSource | null;
   missingInputs: DealMetricInputKey[];
   reason: DealMetricUnavailableReason | null;
+  analyticalInput?: ResolvedAnalyticalFact;
+  range?: {min:number;max:number}|null;
 };
 
 export type DealMetricsInput = {
@@ -16,6 +19,7 @@ export type DealMetricsInput = {
   rehab?: number | string | null;
   capRate?: number | string | null;
   rehabProvided?: boolean;
+  analyticalInputs?: AnalyticalPropertyInputs;
 };
 
 export type DealMetricsResult = {
@@ -108,7 +112,8 @@ function unavailableReason(inputs: ParsedNumeric[], divisor?: ParsedNumeric): De
 
 export function calculateDealMetrics(input: DealMetricsInput): DealMetricsResult {
   const price = parseNumeric(input.price, 'money');
-  const sqft = parseNumeric(input.sqft, 'sqft');
+  const areaInput=input.analyticalInputs?resolveAnalyticalPropertyFact(input.analyticalInputs.fields.LIVING_AREA??{domain:'LIVING_AREA'}):null;
+  const sqft:ParsedNumeric = areaInput?{value:areaInput.value,status:areaInput.value===null?'missing':'valid'}:parseNumeric(input.sqft, 'sqft');
   const rehab = parseNumeric(input.rehab, 'money');
   const capRate = parseNumeric(input.capRate, 'rate');
 
@@ -126,10 +131,19 @@ export function calculateDealMetrics(input: DealMetricsInput): DealMetricsResult
     unavailableReason([price, sqft], sqft),
   );
   if (priceAvailable && sqftAvailable) {
-    const calculated = roundCurrency(price.value! / sqft.value!);
+    const ratio=price.value! / sqft.value!;
+    const calculated = areaInput ? (Number.isFinite(ratio)&&ratio<=Number.MAX_SAFE_INTEGER?ratio:null) : roundCurrency(ratio);
     pricePerSqft = calculated === null
       ? unavailableMetric([], 'unsafe_result')
-      : availableMetric(calculated, 'calculated');
+      : availableMetric(areaInput?price.value! / sqft.value!:calculated, 'calculated');
+  }
+  if(areaInput){
+    pricePerSqft={...pricePerSqft,analyticalInput:areaInput,range:null};
+    if(priceAvailable&&areaInput.inputResolution==='ALLOW_RANGE'&&areaInput.range){
+      const range={min:price.value!/areaInput.range.max,max:price.value!/areaInput.range.min};
+      if(Number.isFinite(range.min)&&Number.isFinite(range.max)&&range.min>=0&&range.max<=Number.MAX_SAFE_INTEGER)
+        pricePerSqft={value:null,range,calculable:true,source:'calculated',missingInputs:[],reason:null,analyticalInput:areaInput};
+    }
   }
 
   const acquisitionPlusRehabMissing = [

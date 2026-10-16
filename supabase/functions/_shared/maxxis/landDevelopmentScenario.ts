@@ -3,6 +3,7 @@ import { calculateLandUnitMetrics, resolveLotDimensions } from './landMetrics.ts
 import { selectDevelopmentComparables } from '../property-data/soldCompEngine.ts';
 import type { NormalizedValuationEvidence } from '../property-data/valuationTypes.ts';
 import type { SoldPropertyRecord } from '../property-data/soldTypes.ts';
+import { formatAreaPriceMetric } from './areaAnalyticalAnswer.ts';
 
 type Values = Record<string, unknown>;
 export type LandDevelopmentEvidence = { valuation: NormalizedValuationEvidence; records: SoldPropertyRecord[]; freshness?: unknown };
@@ -23,7 +24,7 @@ export function constructionBenchmark2026(state: unknown) {
 export function calculateLandDevelopmentScenario(input: Values, evidence?: LandDevelopmentEvidence | null, asOf?: string) {
   const price = number(input.purchasePrice);
   const lot = resolveLotDimensions(input);
-  const landMetrics = calculateLandUnitMetrics(price, lot);
+  const landMetrics = calculateLandUnitMetrics(price, input.analyticalPropertyInputs?input:lot);
   const units = number(input.proposedUnitCount);
   const area = number(input.proposedBuildingSqftPerUnit);
   if (units !== null && (units < 1 || !Number.isInteger(units))) throw new Error('SCENARIO_PROPOSED_UNIT_COUNT_INVALID');
@@ -45,7 +46,9 @@ export function calculateLandDevelopmentScenario(input: Values, evidence?: LandD
   const knownOtherCosts = round(costCoverage.slice(2).reduce((sum, row) => sum + (row.value ?? 0), 0));
   const developmentBasis = price !== null && hardCost ? { low: round(price + hardCost.low + knownOtherCosts),
     central: round(price + hardCost.central + knownOtherCosts), high: round(price + hardCost.high + knownOtherCosts) } : null;
-  const references = evidence ? selectDevelopmentComparables(evidence.valuation, evidence.records, { ...input, lotSizeSqft: lot.lotSizeSqft }, asOf) : null;
+  // Phase 1 changes area arithmetic, not the recent-sales comparable methodology.
+  const referenceLot = input.analyticalPropertyInputs ? resolveLotDimensions({...input,analyticalPropertyInputs:undefined}) : lot;
+  const references = evidence ? selectDevelopmentComparables(evidence.valuation, evidence.records, { ...input, lotSizeSqft: referenceLot.lotSizeSqft }, asOf) : null;
   const freshness = evidence?.freshness as Record<string, { state?: string; retrievedAt?: string }> | undefined;
   if (references) for (const family of ['landAcquisition', 'finishedHomeExit'] as const) {
     if (freshness?.[family]?.state === 'STALE_USABLE') {
@@ -141,7 +144,7 @@ export function formatLandDevelopmentAnswer(result: ReturnType<typeof calculateL
     ...(result.zoning ? [`${t('Zoneamento', 'Zoning', 'Zonificación')}: ${result.zoning} — ${t('premissa do usuário; não verificação legal', 'user assumption; not legal verification', 'supuesto del usuario; no verificación legal')}.`] : []),
     `${t('Benchmark interno 2026 de construção nova', 'Internal 2026 new-construction benchmark', 'Referencia interna 2026 de construcción nueva')} (${result.benchmark.state || t('nacional', 'national', 'nacional')}): ${money(r.low)}–${money(r.high)}/sqft; ${t('média', 'average', 'promedio')} ${money(r.average)}/sqft.`,
     t('Referência estimada, não orçamento de construtora nem preço de mercado ao vivo.', 'Estimated reference, not a contractor bid or live market price.', 'Referencia estimada, no presupuesto de constructor ni precio de mercado en vivo.'),
-    `${t('Preço do terreno por acre', 'Land asking price per acre', 'Precio del terreno por acre')}: ${result.landMetrics.pricePerAcre !== null ? money(result.landMetrics.pricePerAcre) : t('Área ou preço pendente', 'Area or price pending', 'Área o precio pendiente')}.`,
+    result.landMetrics.areaMetrics?formatAreaPriceMetric(result.landMetrics.areaMetrics.pricePerAcre,'pricePerAcre',lang):`${t('Preço do terreno por acre', 'Land asking price per acre', 'Precio del terreno por acre')}: ${result.landMetrics.pricePerAcre !== null ? money(result.landMetrics.pricePerAcre) : t('Área ou preço pendente', 'Area or price pending', 'Área o precio pendiente')}.`,
   ];
   if (!result.hardCost) lines.push(`${t('Base conhecida de desenvolvimento', 'Known development basis', 'Base conocida de desarrollo')}: ${result.preliminaryKnownDevelopmentBasis === null ? t('Não informada', 'Not supplied', 'No informada') : money(result.preliminaryKnownDevelopmentBasis)}. ` + t('Exclui construção e custos desconhecidos.', 'Excludes construction and unknown costs.', 'Excluye construcción y costos desconocidos.'));
   if (result.hardCost) lines.push(`${result.proposedUnitCount ?? '?'} × ${result.proposedBuildingSqftPerUnit ?? '?'} sqft = ${result.totalBuildingSqft ?? '?'} sqft.`,

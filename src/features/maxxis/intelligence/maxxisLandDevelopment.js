@@ -3,6 +3,7 @@ import { resolveLotDimensions } from '../../../../supabase/functions/_shared/max
 import { parseLandDevelopmentAssumptions, formatLandDevelopmentAnswer, LAND_DEVELOPMENT_COST_FIELDS } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 import { resolveDealScenario, compareScenarioOutputs } from '../../../../supabase/functions/_shared/maxxis/scenarioEngine.ts';
 import { buildDealDecisionContext } from '../../../../supabase/functions/_shared/maxxis/dealDecisionContext.ts';
+import { buildAnalyticalPropertyInputs } from '../../../../supabase/functions/_shared/maxxis/analyticalPropertyContext.ts';
 
 // Reports rebuild evidence from the property-scoped cache. Do not persist duplicate
 // provider records inside the assumptions payload (the API has a 16 KB limit).
@@ -18,7 +19,9 @@ export function landScenarioForPersistence(scenario) {
   return { ...scenario, calculatedOutputs };
 }
 
-export function resolveLocalLandDevelopment({ property, propertyId = property?.id, messages = [], message, language = 'en', storedAssumptions = {} }) {
+export function resolveLocalLandDevelopment({ property, propertyId = property?.id, messages = [], message, language = 'en', storedAssumptions = {}, reviewSnapshot, effectiveFacts = {} }) {
+  // An explicitly unhydrated live review defers to the authorized backend read.
+  if (reviewSnapshot === null) return null;
   if (!propertyId || !isVacantLandProperty(property) || /\b(relat[oó]rio|report|informe|pdf)\b/i.test(message)) return null;
   const scoped = messages.filter(item => String(item.data?.propertyId || item.data?.scenario?.propertyId || item.data?.sourceData?.propertyId || '') === String(propertyId));
   const latest = [...scoped].reverse().find(item => item.data?.scenario?.strategy === 'LAND')?.data?.scenario;
@@ -33,8 +36,11 @@ export function resolveLocalLandDevelopment({ property, propertyId = property?.i
   if (!latest && !storedAssumptions.developmentIntent && !parsed.developmentIntent && !parsed.zoning && !parsed.proposedUnitCount && !parsed.proposedPropertyType) return null;
   if (!Object.keys(parsed).length && !pendingCost && !comparing && !(developmentQuestion && (latest || storedAssumptions.developmentIntent))) return null;
   const snapshot = [...scoped].reverse().map(item => item.data?.intelligenceSnapshot || item.data?.sourceData?.intelligenceSnapshot).find(Boolean) || {};
-  const lot = resolveLotDimensions(property);
+  const analyticalInputs = buildAnalyticalPropertyInputs({property,reviewSnapshot,effectiveFacts,
+    projections:snapshot.propertyFacts?.canonicalPropertyFacts?.analyticalEvidence?.fields || snapshot.canonicalEvidenceProjection?.fields || {}});
+  const lot = resolveLotDimensions({...property,analyticalPropertyInputs:analyticalInputs});
   const resolution = resolveDealScenario({ message, propertyId, canonicalStrategy: 'LAND',
+    analyticalInputs,
     canonicalFacts: { ...property, purchasePrice: property.price, ...lot },
     storedAssumptions: { ...(latest?.assumptions || {}), ...storedAssumptions, ...(pendingCost || {}) },
     history: comparing ? scoped.filter(item => item.role === 'user') : [],
@@ -53,7 +59,7 @@ export function resolveLocalLandDevelopment({ property, propertyId = property?.i
     ? { code: 'USER_ZONING_ASSUMPTION_CONFLICT', canonicalValue: canonicalZoning, userValue: zoning, status: 'UNRESOLVED' } : null;
   const assumptionSnapshot = { ...snapshot, propertyId, propertyFacts: { ...snapshot.propertyFacts, ...property },
     dealAssumptions: { ...snapshot.dealAssumptions, ...storedAssumptions, ...resolution.scenario.assumptions } };
-  assumptionSnapshot.dealDecisionContext = buildDealDecisionContext(assumptionSnapshot);
+  assumptionSnapshot.dealDecisionContext = buildDealDecisionContext(assumptionSnapshot,analyticalInputs);
   const zoningText = zoning&&property.publisherDeclaredZoning===zoning?t(`Zoneamento ${zoning}: informado pelo publicador; parâmetros municipais ainda não verificados.`,`Zoning ${zoning}: declared by the publisher; municipal parameters not yet verified.`,`Zonificación ${zoning}: informada por el publicador; parámetros municipales aún no verificados.`):zoning ? t(`Zoneamento ${zoning}: premissa informada pelo usuário, não verificação legal.${zoningConflict ? ` Diverge do registro: ${canonicalZoning}.` : ''}`,
     `Zoning ${zoning}: user-provided assumption, not legal verification.${zoningConflict ? ` Conflicts with record: ${canonicalZoning}.` : ''}`,
     `Zonificación ${zoning}: supuesto aportado por el usuario, no verificación legal.${zoningConflict ? ` Difiere del registro: ${canonicalZoning}.` : ''}`) : '';

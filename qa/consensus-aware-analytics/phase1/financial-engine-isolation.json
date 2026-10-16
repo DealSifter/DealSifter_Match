@@ -1,0 +1,120 @@
+{
+  "mode": "DETERMINISTIC_SYNTHETIC_INTEGRATION",
+  "data": {
+    "legacy": {
+      "metrics": {
+        "pricePerSqft": {
+          "value": 15.2,
+          "calculable": true,
+          "source": "calculated",
+          "missingInputs": [],
+          "reason": null
+        },
+        "acquisitionPlusRehab": {
+          "value": 54000,
+          "calculable": true,
+          "source": "calculated",
+          "missingInputs": [],
+          "reason": null
+        },
+        "capRate": {
+          "value": 6,
+          "calculable": true,
+          "source": "stored",
+          "missingInputs": [],
+          "reason": null
+        }
+      },
+      "missingInputs": []
+    },
+    "aware": {
+      "metrics": {
+        "pricePerSqft": {
+          "value": null,
+          "calculable": false,
+          "source": null,
+          "missingInputs": [
+            "sqft"
+          ],
+          "reason": "missing_inputs",
+          "analyticalInput": {
+            "domain": "LIVING_AREA",
+            "unit": "SQFT",
+            "consensusState": "MATERIAL_CONFLICT",
+            "analyticalUsability": "CONFLICTED",
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "userDecision": null,
+            "userAccepted": false,
+            "userConfirmed": false,
+            "provisional": false,
+            "outliers": [],
+            "inputResolution": "BLOCK_CONFLICT",
+            "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+            "value": null,
+            "range": null,
+            "qualification": [
+              "UNRESOLVED_INPUT_CONFLICT"
+            ]
+          },
+          "range": null
+        },
+        "acquisitionPlusRehab": {
+          "value": 54000,
+          "calculable": true,
+          "source": "calculated",
+          "missingInputs": [],
+          "reason": null
+        },
+        "capRate": {
+          "value": 6,
+          "calculable": true,
+          "source": "stored",
+          "missingInputs": [],
+          "reason": null
+        }
+      },
+      "missingInputs": [
+        "sqft"
+      ]
+    },
+    "acquisitionPlusRehabChanged": false,
+    "storedCapRateChanged": false,
+    "financialInputsMigrated": 0
+  },
+  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
+  "financialFunctions": [
+    {
+      "name": "calculateBuyAndHoldScenario",
+      "unchanged": true
+    },
+    {
+      "name": "calculateFlipScenario",
+      "unchanged": true
+    },
+    {
+      "name": "calculateSubToScenario",
+      "unchanged": true
+    },
+    {
+      "name": "calculateWholesaleScenario",
+      "unchanged": true
+    },
+    {
+      "name": "solveScenarioTarget",
+      "unchanged": true
+    }
+  ],
+  "financialMetricBranchUnchanged": true,
+  "landROIExpressionUnchanged": true,
+  "migratedInputs": [
+    "LOT_AREA",
+    "LIVING_AREA",
+    "BUILDING_AREA"
+  ],
+  "migration": "NONE"
+}

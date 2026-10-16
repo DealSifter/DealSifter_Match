@@ -9,6 +9,9 @@
 .property-fact-warning{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;color:var(--gold,#e8af17);background:transparent;border:0;padding:3px;flex-shrink:0;animation:ds-fact-attention 2.2s ease-in-out infinite}
 button.property-fact-warning{cursor:pointer;min-width:32px;min-height:32px}.property-fact-warning:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:5px}
 @keyframes ds-fact-attention{0%,100%{opacity:1}50%{opacity:.55}}
+.property-fact-warning-cta{gap:6px;font:inherit;font-size:13px;font-weight:700;text-align:left;max-width:100%;border-radius:0;box-shadow:none;white-space:normal}
+.property-fact-warning-cta svg{flex-shrink:0;width:24px;height:24px}.property-fact-warning-cta:hover span,.property-fact-warning-cta:focus-visible span{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:767px){.property-fact-warning-cta{font-size:12px;min-height:40px}.property-fact-warning-cta svg{width:22px;height:22px}}
 .property-fact-edit-attention{animation:ds-fact-attention 2.2s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.property-fact-warning,.property-fact-edit-attention{animation:none}}
 .property-fact-review-page{color:var(--t1);outline:none;font-size:13px}.property-fact-review-page button{font:inherit;min-height:38px;border:1px solid var(--border);background:transparent;color:var(--t1);border-radius:8px;padding:7px 10px;cursor:pointer}.property-fact-review-page button:disabled{opacity:.5;cursor:default}

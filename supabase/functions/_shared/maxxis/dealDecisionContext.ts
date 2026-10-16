@@ -7,6 +7,8 @@ import {
 } from './strategyPlaybooks.ts';
 import { calculateLandUnitMetrics, parseCanonicalLotArea, resolveLotDimensions } from './landMetrics.ts';
 import { canonicalFactValue, resolveAnalysisPropertyType, propertyTypeFamily, toKnownFiniteNumber } from './canonicalFactSemantics.ts';
+import { calculateAreaMetrics } from './areaMetrics.ts';
+import type { AnalyticalPropertyInputs } from './analyticalPropertyFacts.ts';
 
 type AnyRecord = Record<string, any>;
 type Provenance = 'PROVIDER_VERIFIED' | 'USER_PROVIDED' | 'USER_ASSUMPTION' | 'CALCULATED' | 'MARKET_REFERENCE';
@@ -42,6 +44,7 @@ export type DealDecisionContext = Readonly<{
   decisionGaps: readonly DecisionGap[];
   scenariosPossible: readonly Readonly<{ code: string; basis: string[] }>[];
   scenariosBlocked: readonly Readonly<{ code: string; reason: string; gapCodes: string[] }>[];
+  analyticalAreaMetrics?: ReturnType<typeof calculateAreaMetrics>;
 }>;
 
 const record = (value: unknown): AnyRecord => value && typeof value === 'object' && !Array.isArray(value)
@@ -223,7 +226,7 @@ function rehabBenchmarkResemblance(rehabPerSqft: number | null, options: any[]) 
   });
 }
 
-export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionContext {
+export function buildDealDecisionContext(snapshotInput: unknown,analyticalInputs?:AnalyticalPropertyInputs): DealDecisionContext {
   const snapshot = record(snapshotInput);
   const context = record(snapshot.dealIntelligence);
   const property = record(snapshot.propertyFacts);
@@ -248,9 +251,11 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const strategy = (propertyTypeFamily(propertyType) === 'LAND' ? 'LAND' : ['FLIP', 'BUY_AND_HOLD', 'WHOLESALE', 'SELLER_FINANCING', 'SUB_TO', 'LAND', 'GENERIC_SELL']
     .includes(lockedStrategy) ? lockedStrategy : resolveDealStrategy({ propertyType, objective, strategies, rehab })) as DealStrategy;
   const playbook = getStrategyPlaybook(strategy);
-  const canonicalLotArea = resolveLotDimensions(property);
+  const analyticalProperty=analyticalInputs?{...property,analyticalPropertyInputs:analyticalInputs}:property;
+  const areaMetrics=analyticalInputs?calculateAreaMetrics(analyticalInputs):null;
+  const canonicalLotArea = resolveLotDimensions(analyticalProperty);
   const landUnitMetrics = strategy === 'LAND'
-    ? calculateLandUnitMetrics(price, canonicalLotArea) : null;
+    ? calculateLandUnitMetrics(price, analyticalInputs?analyticalProperty:canonicalLotArea) : null;
   const baseCost = strategy !== 'LAND' && price !== null && rehab !== null ? Math.round((price + rehab) * 100) / 100 : null;
   const rehabPerSqft = strategy !== 'LAND' && rehab !== null && sqft !== null && sqft > 0
     ? Math.round((rehab / sqft) * 100) / 100 : null;
@@ -286,8 +291,8 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const calculatedMetrics = [
     baseCost !== null ? datum('baseCost', baseCost, 'CALCULATED', 'ASKING_PRICE_PLUS_REHAB') : null,
     rehabPerSqft !== null ? datum('rehabPerSqft', rehabPerSqft, 'CALCULATED', 'REHAB_DIVIDED_BY_LIVING_AREA') : null,
-    strategy !== 'LAND' && metricValue(metrics, 'pricePerSqft') !== null
-      ? datum('pricePerSqft', metricValue(metrics, 'pricePerSqft'), 'CALCULATED', 'DEAL_METRICS') : null,
+    strategy !== 'LAND' && (areaMetrics ? areaMetrics.pricePerLivingSqft.value : metricValue(metrics, 'pricePerSqft')) !== null
+      ? datum('pricePerSqft', areaMetrics ? areaMetrics.pricePerLivingSqft.value : metricValue(metrics, 'pricePerSqft'), 'CALCULATED', areaMetrics ? 'RECONCILED_LIVING_AREA' : 'DEAL_METRICS') : null,
     calculatedCapRate !== null ? datum('calculatedCapRate', calculatedCapRate, 'CALCULATED', 'NOI_DIVIDED_BY_PRICE') : null,
     landUnitMetrics?.pricePerLotSqft != null
       ? datum('pricePerLotSqft', landUnitMetrics?.pricePerLotSqft, 'CALCULATED', 'ASKING_PRICE_DIVIDED_BY_LOT_SQFT') : null,
@@ -363,6 +368,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
     verifiedEvidence: Object.freeze(evidenceData(context)),
     userAssumptions: Object.freeze(userAssumptions),
     calculatedMetrics: Object.freeze(calculatedMetrics),
+    ...(areaMetrics ? { analyticalAreaMetrics: areaMetrics } : {}),
     marketReferences: Object.freeze(marketReferences),
     relationships: Object.freeze({
       askingPrice: price,

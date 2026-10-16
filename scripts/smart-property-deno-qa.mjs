@@ -7,7 +7,7 @@ mkdirSync(stage,{recursive:true});
 execFileSync('git',['archive','--format=tar',`--output=${resolve('.cache/smart-property-deno-baseline.tar')}`,baselineSha,'supabase'],{windowsHide:true});
 execFileSync('tar',['-xf',resolve('.cache/smart-property-deno-baseline.tar'),'-C',stage],{windowsHide:true});
 function check(cwd,newFunction){
- const args=['--yes','--package=deno','deno','check','--no-lock','supabase/functions/public-parcel/index.ts','supabase/functions/maxxis-chat/index.ts','supabase/functions/maxxis-deal-workflow/index.ts','supabase/functions/maxxis-provider-message-draft/index.ts',...(newFunction?['supabase/functions/property-fact-review/index.ts']:[])];
+ const args=['--yes','--package=deno','deno','check','--no-lock',...(process.env.SMART_PROPERTY_CHECK_CLOSURE?JSON.parse(readFileSync(`${directory}/backend-dependency-closure.json`,'utf8')).affectedFunctions.map(item=>`supabase/functions/${item.function}/index.ts`):['supabase/functions/public-parcel/index.ts','supabase/functions/maxxis-chat/index.ts','supabase/functions/maxxis-deal-workflow/index.ts','supabase/functions/maxxis-provider-message-draft/index.ts',...(newFunction?['supabase/functions/property-fact-review/index.ts']:[])])];
  let output='',exitCode=0;
  try{output=execFileSync('npx.cmd',args,{cwd,shell:true,windowsHide:true,encoding:'utf8',stdio:'pipe',maxBuffer:4000000});}catch(error){output=String(error.stdout??'')+'\n'+String(error.stderr??'');exitCode=error.status;}
  const diagnostics=[...output.matchAll(/(TS\d+) \[ERROR\]: ([\s\S]*?)(?=\nTS\d+ \[ERROR\]:|\nFound \d+ errors|$)/g)].map(match=>{

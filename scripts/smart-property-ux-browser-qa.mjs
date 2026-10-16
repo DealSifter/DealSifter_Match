@@ -6,7 +6,7 @@ import {publicEffectiveFacts} from '../supabase/functions/_shared/property-fact-
 process.env.E2E_SUPABASE_URL='https://cyeipfskwwisbbayyaca.supabase.co';
 const {setupMockSupabase}=await import('../e2e/support/mockSupabase.js');
 const {loginAs}=await import('../e2e/support/appActions.js');
-const directory='qa/smart-property-enrichment/ux-stabilization',baseURL=process.env.REVIEW_QA_BASE_URL||'http://127.0.0.1:4180',baseline=process.env.REVIEW_QA_BASELINE==='1';
+const directory=process.env.REVIEW_QA_DIRECTORY||'qa/smart-property-enrichment/ux-stabilization',baseURL=process.env.REVIEW_QA_BASE_URL||'http://127.0.0.1:4180',baseline=process.env.REVIEW_QA_BASELINE==='1';
 await mkdir(directory,{recursive:true});const browser=await chromium.launch({headless:true}),results=[];
 const jsonb=value=>Array.isArray(value)?value.map(jsonb):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,jsonb(item)])):value;
 const fulfilled=(route,value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
@@ -15,7 +15,7 @@ try{
  for(const [device,width,height,language] of cases){
   const context=await browser.newContext({baseURL,viewport:{width,height},isMobile:device==='mobile',hasTouch:device==='mobile',reducedMotion:'reduce'});
   await context.addInitScript(language=>{
-   localStorage.setItem('lang',language);localStorage.removeItem('ds_last_error_boundary');window.__ux={genericLoaderFlashes:0,suppressedBackgroundPollTicks:0};
+   localStorage.setItem('lang',language);localStorage.setItem('theme',language==='en-US'?'dark':'light');localStorage.removeItem('ds_last_error_boundary');window.__ux={genericLoaderFlashes:0,suppressedBackgroundPollTicks:0};
    // Isolate modal-triggered requests from the existing 30s inventory/auth polling clocks.
    // Identical controlled clocks are used for pre-fix and post-fix frontend measurements.
    const nativeInterval=window.setInterval.bind(window);window.setInterval=(fn,delay,...args)=>nativeInterval(delay===30000?()=>{window.__ux.suppressedBackgroundPollTicks++;}:fn,delay,...args);
@@ -29,9 +29,9 @@ try{
   const evidence=[[ev('lotArea',7000,'SQFT','RENTCAST')],additions,[]],stored={};
   for(let i=0;i<ids.length;i++)stored[ids[i]]={state:jsonb(await reconcilePropertyFacts(properties[i],evidence[i])),revision:1};
   stored[ids[2]].state.summary={complements:0,conflicts:1,pending:1};for(const row of Object.values(stored[ids[2]].state.rows))if(row.currentValue!=null)row.effective.adopted=true;
-  const actions=[],ownerQueries=[],publicQueries=[],writes=[];let refreshDelay=0,acquisitions=0;
+  const actions=[],ownerQueries=[],publicQueries=[],writes=[];let refreshDelay=0,ownerReadDelay=0,acquisitions=0;
   await context.route('**/rest/v1/properties*',route=>route.request().method()==='GET'?fulfilled(route,properties):route.fallback());
-  await context.route('**/rest/v1/property_fact_reviews*',route=>{ownerQueries.push(new URL(route.request().url()).searchParams.get('owner_id'));return fulfilled(route,ids.map(id=>({property_id:id,state:stored[id].state,revision:stored[id].revision})));});
+  await context.route('**/rest/v1/property_fact_reviews*',async route=>{ownerQueries.push(new URL(route.request().url()).searchParams.get('owner_id'));if(ownerReadDelay)await new Promise(resolve=>setTimeout(resolve,ownerReadDelay));return fulfilled(route,ids.map(id=>({property_id:id,state:stored[id].state,revision:stored[id].revision})));});
   await context.route('**/rest/v1/rpc/ds_public_effective_property_facts',route=>{publicQueries.push(route.request().postDataJSON());return fulfilled(route,ids.map(id=>({property_id:id,facts:publicEffectiveFacts(stored[id].state)})));});
   await context.route('**/rest/v1/notifications*',route=>fulfilled(route,route.request().method()==='GET'?[{id:'99999999-9999-4999-8999-999999999999',user_id:actor,type:'property_data',payload:{property_id:ids[1],field:'apn',complements:8,conflicts:99,evidence_hash:stored[ids[1]].state.evidenceHash},created_at:new Date().toISOString(),read_at:null}]:[]));
   await context.route('**/functions/v1/property-fact-review',async route=>{
@@ -55,7 +55,14 @@ try{
    const ownerBatches=ownerQueries.length,publicBefore=publicQueries.length;
    await portfolio.getByTestId(`property-edit-${ids[0]}`).click();const modal=page.locator('.ds-modal-content').filter({has:page.getByTestId('property-edit-page1')});await expect(modal).toBeVisible();expect(await page.getByRole('dialog').count()).toBe(1);await modal.evaluate(el=>{el.dataset.qaShell='same-edit-shell';});
    await expect(modal.locator('[data-testid="property-edit-page1"]')).toBeVisible();await modal.locator('textarea').fill('Synthetic unsaved edit retained');
-   const warning=modal.getByRole('button',{name:copy.warning});await expect(warning).toBeVisible();await page.emulateMedia({reducedMotion:'no-preference'});expect(await warning.evaluate(el=>getComputedStyle(el).animationName)).toBe('ds-fact-attention');await page.emulateMedia({reducedMotion:'reduce'});expect(await warning.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await warning.click();
+   const cta={pt:'Revise clicando aqui',en:'Review — click here',es:'Revise haciendo clic aquí'}[language.slice(0,2)];
+   const warning=modal.getByRole('button',{name:cta,exact:true});await expect(warning).toBeVisible();
+   expect(await warning.locator('svg').evaluate(el=>Math.round(el.getBoundingClientRect().width))).toBe(device==='mobile'?22:24);
+   const style=await warning.evaluate(el=>{const s=getComputedStyle(el);return{border:s.borderTopWidth,radius:s.borderRadius,background:s.backgroundColor};});
+   expect(style.border).toBe('0px');expect(style.radius).toBe('0px');expect(style.background).toBe('rgba(0, 0, 0, 0)');
+   await page.emulateMedia({reducedMotion:'no-preference'});expect(await warning.evaluate(el=>getComputedStyle(el).animationName)).toBe('ds-fact-attention');
+   await page.emulateMedia({reducedMotion:'reduce'});expect(await warning.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+   await page.screenshot({path:`${directory}/${baseURL.startsWith('https:')?'production':'local'}-${device}-${language}-cta.png`});await warning.getByText(cta,{exact:true}).click();
    const review=modal.getByTestId('property-review-page2');await expect(review).toBeVisible();expect(await modal.getAttribute('data-qa-shell')).toBe('same-edit-shell');expect(actions).toEqual([]);await expect(review.locator('article')).toHaveCount(1);await expect(review).toContainText('RentCast');
    await review.getByRole('radio',{name:copy.keep,exact:true}).check();expect(actions).toEqual([]);await review.getByRole('button',{name:copy.apply,exact:true}).click();await expect(modal.getByTestId('property-edit-page1')).toBeVisible();
    await expect(modal.locator('textarea')).toHaveValue('Synthetic unsaved edit retained');await expect(modal.locator('.property-fact-warning')).toHaveCount(0);expect(actions.map(action=>action.action)).toEqual(['DECIDE']);expect(publicQueries.length).toBe(publicBefore);expect(stored[ids[0]].state.rows.lotArea.decision.action).toBe('KEEP_MY_VALUE');await modal.getByRole('button',{name:'Close dialog',exact:true}).click();
@@ -74,13 +81,19 @@ try{
    await page.waitForTimeout(1400);expect(await page.evaluate(()=>localStorage.getItem('ds_last_error_boundary'))).toBeNull();expect(errors).toEqual([]);expect(ownerQueries.length).toBe(ownerBatches);expect(await page.locator('.property-fact-review-backdrop').count()).toBe(0);
    const flashes=await page.evaluate(()=>window.__ux.genericLoaderFlashes);expect(flashes).toBe(0);
    // Recreate the whole app/provider from persisted JSONB, rather than relying on local React state.
-   const actionsBeforeReload=actions.length;await page.reload({waitUntil:'domcontentloaded'});
+   const actionsBeforeReload=actions.length;ownerReadDelay=Number(process.env.REVIEW_QA_OWNER_RELOAD_DELAY_MS)||0;await page.reload({waitUntil:'domcontentloaded'});
    await expect(page.getByTestId('dashboard-root')).toBeVisible({timeout:60000});
    await page.evaluate(({actor,id})=>window.dispatchEvent(new CustomEvent('ds:open-property-fact-review',{detail:{userId:actor,propertyId:id,field:'apn'}})),{actor,id:ids[1]});
-   await expect(review).toBeVisible({timeout:60000});await expect(review.locator('article')).toHaveCount(0);await expect(review).toContainText(copy.quiet);await expect(modal.locator('.property-fact-warning')).toHaveCount(0);expect(actions.length).toBe(actionsBeforeReload);
+   await expect(review).toBeVisible({timeout:60000});await expect(review.locator('article')).toHaveCount(0);await expect(review).toContainText(copy.quiet);await expect(modal.locator('.property-fact-warning')).toHaveCount(0);
+   const reloadReads=actions.slice(actionsBeforeReload);
+   await writeFile(`${directory}/${device}-${language}-reload-requests.json`,JSON.stringify({actionsBeforeReload,actionsAfterReload:reloadReads,actions,providerAcquisitions:acquisitions,explicitCheckBeforeReload:true},null,2)+'\n');
+   // A cold notification can precede owner-batch hydration. The existing READ
+   // fallback is permitted; no automatic CHECK/acquisition or mutation is.
+   expect(reloadReads.every(action=>action.action==='READ')).toBe(true);expect(acquisitions).toBe(1);
    await modal.getByRole('button',{name:'Close dialog',exact:true}).click();expect(errors).toEqual([]);
    results.push({device,language,startupObservedMs,closeObservedMs,closeNetworkDependencies:0,ownerQueries:ownerBatches,publicQueries:publicBefore,actions,writes:writes.length,providerAcquisitionsFromApply:0,portfolioProviderFanout:0,reviewOpenProviderCalls:0,radioNetworkMutations:0,modalShellPreserved:true,standaloneButtons:0,independentDrawers:0,conflictOnlyWarning:true,staleSummarySuppressed:true,eightComplementApply:true,fullReloadPersistence:true,genericLoaderFlashes:flashes,errors});
   }
+  if(!baseline)Object.assign(results.at(-1),{ctaCopy:{pt:'Revise clicando aqui',en:'Review — click here',es:'Revise haciendo clic aquí'}[language.slice(0,2)],modalIconPx:device==='mobile'?22:24,oneBorderlessControl:true,reducedMotionRespected:true});
   console.log(JSON.stringify({device,language,baseline,passed:true}));await context.close();
  }
  await writeFile(`${directory}/${process.env.REVIEW_QA_RESULT_NAME||(baseline?'browser-before':baseURL.startsWith('https:')?'browser-production':'browser-local')}.json`,JSON.stringify({frontend:baseURL,mode:'REAL_APP_EXPLICIT_MOCK_AUTH_BACKEND_JSONB_KEY_ORDER',background30sPollClock:'CONTROLLED_TO_ISOLATE_REVIEW_REQUESTS',realUserSession:false,realBackendWrites:0,results},null,2)+'\n');console.log(JSON.stringify({pass:true,cases:results.length,baseline}));

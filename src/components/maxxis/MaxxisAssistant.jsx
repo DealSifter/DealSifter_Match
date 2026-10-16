@@ -65,6 +65,8 @@ import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/int
 import { resolveLocalLandDevelopment, landScenarioForPersistence } from '../../features/maxxis/intelligence/maxxisLandDevelopment';
 import { readMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { buildMarketReferenceAnswer } from '../../../supabase/functions/_shared/maxxis/marketReferenceAnswer.ts';
+import { detectAreaAnalyticalQuestion } from '../../../supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts';
+import { buildAnalyticalPropertyInputs } from '../../../supabase/functions/_shared/maxxis/analyticalPropertyContext.ts';
 import { pendingGapForContext } from '../../features/maxxis/routing/maxxisConversationIntent';
 import { resolveAnalysisStrategy, resolveAnalysisPropertyType } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 
@@ -1174,11 +1176,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       return;
     }
     const developmentProperty = withPublisherZoning(messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId),factReview?.facts[resolvedSubmitPropertyId]);
+    const areaAnalyticalIntent = detectAreaAnalyticalQuestion(cleanMessage);
     const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
       explicitReportType: meta.reportType,
       hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),
     });
-    const pendingGap = !meta.skipGapResolutionParse ? pendingGapForContext(messages, {
+    const pendingGap = !meta.skipGapResolutionParse && !areaAnalyticalIntent ? pendingGapForContext(messages, {
       propertyId: resolvedSubmitPropertyId, analysisStrategy: runtimeStrategy(developmentProperty),
       stateVersion: [...messages].reverse().find(item => String(item.data?.propertyId || '') === resolvedSubmitPropertyId && item.data?.stateVersion)?.data?.stateVersion,
       scenarioId: [...messages].reverse().find(item => String(item.data?.propertyId || '') === resolvedSubmitPropertyId && item.data?.scenario)?.data?.scenario?.id,
@@ -1188,23 +1191,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
     if (conversationRoute.code !== MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE) conversationIntentRef.current = conversationRoute.code;
     let storedLandAssumptions = { ...(developmentProperty?.publisherDeclaredZoning?{zoning:developmentProperty.publisherDeclaredZoning,zoningSource:'USER_PROVIDED'}:{}),...developmentProperty?.dealAssumptions };
-    if (!inferredReportType && runtimeStrategy(developmentProperty) === 'LAND' && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
+    if (!inferredReportType && !areaAnalyticalIntent && runtimeStrategy(developmentProperty) === 'LAND' && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
       const row = await readMaxxisAnalysisInputs(resolvedSubmitPropertyId).catch(() => null);
       storedLandAssumptions = { ...storedLandAssumptions, ...row?.deal_assumptions };
     }
-    if (!inferredReportType && ['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)) {
+    if (!inferredReportType && !areaAnalyticalIntent && ['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)) {
       const latest = [...messages].reverse().find(item => String(item.data?.propertyId || item.data?.intelligenceSnapshot?.propertyId || '') === resolvedSubmitPropertyId
         && item.data?.intelligenceSnapshot)?.data?.intelligenceSnapshot;
-      if (latest) {
+      if (latest && factReview?.records[resolvedSubmitPropertyId]?.snapshot) {
         const marketReply = buildMarketReferenceAnswer({ ...latest, propertyId: resolvedSubmitPropertyId,
-          propertyFacts: { ...latest.propertyFacts, ...developmentProperty }, dealAssumptions: { ...latest.dealAssumptions, ...storedLandAssumptions } }, conversationRoute.code, language);
+          propertyFacts: { ...latest.propertyFacts, ...developmentProperty }, dealAssumptions: { ...latest.dealAssumptions, ...storedLandAssumptions } }, conversationRoute.code, language,
+          buildAnalyticalPropertyInputs({property:developmentProperty,reviewSnapshot:factReview?.records[resolvedSubmitPropertyId]?.snapshot,
+            effectiveFacts:factReview?.facts[resolvedSubmitPropertyId],projections:latest.propertyFacts?.canonicalPropertyFacts?.analyticalEvidence?.fields || latest.canonicalEvidenceProjection?.fields || {}}));
         setMessages(prev => [...prev, { id: `maxxis-user-${Date.now()}`, role: 'user', content: meta.visibleUserMessage || cleanMessage, createdAt: new Date() },
           { ...marketReply, content: marketReply.answer, id: `maxxis-market-${Date.now()}`, role: 'assistant', createdAt: new Date() }]);
         setInput(''); return;
       }
     }
-    const landReply = !inferredReportType && !['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)
-      ? resolveLocalLandDevelopment({ property: developmentProperty, propertyId: resolvedSubmitPropertyId, messages, message: cleanMessage, language, storedAssumptions: storedLandAssumptions }) : null;
+    const landReply = !inferredReportType && !areaAnalyticalIntent && !['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)
+      ? resolveLocalLandDevelopment({ property: developmentProperty, propertyId: resolvedSubmitPropertyId, messages, message: cleanMessage, language, storedAssumptions: storedLandAssumptions,
+          reviewSnapshot:factReview?.records[resolvedSubmitPropertyId]?.snapshot ?? null,effectiveFacts:factReview?.facts[resolvedSubmitPropertyId] }) : null;
     if (landReply) {
       const values = landReply.data.inputsToPersist;
       if (Object.keys(values).length && UUID_PATTERN.test(resolvedSubmitPropertyId)) {

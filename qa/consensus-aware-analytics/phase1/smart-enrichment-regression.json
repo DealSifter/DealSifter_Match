@@ -1,0 +1,38 @@
+{
+  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
+  "coreFiles": [
+    {
+      "path": "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "baselineHash": "739a18b2dfcd1833f6b280af4fe39e8dd1e7179d",
+      "currentHash": "739a18b2dfcd1833f6b280af4fe39e8dd1e7179d",
+      "unchanged": true
+    },
+    {
+      "path": "src/services/propertyFactReviewService.js",
+      "baselineHash": "3cfc8161f2493557ffe7dc003df1356bfde6508b",
+      "currentHash": "3cfc8161f2493557ffe7dc003df1356bfde6508b",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "baselineHash": "a36af96364ca95a992ab4acbc62344804b461410",
+      "currentHash": "a36af96364ca95a992ab4acbc62344804b461410",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js",
+      "baselineHash": "a7ce321ce17a58a68d4fb4a3acf5397c27aeffd1",
+      "currentHash": "a7ce321ce17a58a68d4fb4a3acf5397c27aeffd1",
+      "unchanged": true
+    }
+  ],
+  "changed": 0,
+  "browserEvidence": "browser-local.json",
+  "regressions": 0,
+  "tests": {
+    "files": 9,
+    "total": 118,
+    "passed": 118,
+    "failed": 0
+  }
+}

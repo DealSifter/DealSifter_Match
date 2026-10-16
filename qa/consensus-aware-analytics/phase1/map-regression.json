@@ -1,0 +1,157 @@
+{
+  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
+  "files": [
+    {
+      "path": "src/assets/taskbar-mapview-icon.png",
+      "baselineHash": "2a3ec98cbcbab63561a2a01ed949e9861948fc28",
+      "currentHash": "2a3ec98cbcbab63561a2a01ed949e9861948fc28",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/map/ParcelLens.css",
+      "baselineHash": "f08339083a1149f92893b2383898812aa892ce18",
+      "currentHash": "f08339083a1149f92893b2383898812aa892ce18",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/map/ParcelLensLayer.jsx",
+      "baselineHash": "2fc1a6bd75a266202498c662db1332cec8bd5426",
+      "currentHash": "2fc1a6bd75a266202498c662db1332cec8bd5426",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensAccess.js",
+      "baselineHash": "752435a8ff2be4fff2d5d76f7e3e3b36923c380a",
+      "currentHash": "752435a8ff2be4fff2d5d76f7e3e3b36923c380a",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensController.js",
+      "baselineHash": "4d13cfae38a3731a7beb3d83fefdce98debc9dd3",
+      "currentHash": "4d13cfae38a3731a7beb3d83fefdce98debc9dd3",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensGeometry.js",
+      "baselineHash": "658389d4a60bfa743d8bf0b130838152ab0a2529",
+      "currentHash": "658389d4a60bfa743d8bf0b130838152ab0a2529",
+      "unchanged": true
+    },
+    {
+      "path": "src/pages/MapView.jsx",
+      "baselineHash": "7baefe8b8830f858b8935ef6a4ff34755a7fca55",
+      "currentHash": "7baefe8b8830f858b8935ef6a4ff34755a7fca55",
+      "unchanged": true
+    }
+  ],
+  "changed": 0,
+  "additionalGISCalls": 0,
+  "lensDiameter": 0.2,
+  "authenticatedProductionSession": "BLOCKED",
+  "browserEvidence": {
+    "mode": "ISOLATED_PRODUCTION_BUILD_FULL_APP_MOCK_AUTH",
+    "productionUserSession": false,
+    "realBackendWrites": 0,
+    "results": [
+      {
+        "device": "desktop",
+        "transitions": [
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 2712,
+            "moduleEntryObservedMs": 1169
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": true,
+            "mapEntryObservedMs": 2041,
+            "moduleEntryObservedMs": 943
+          },
+          {
+            "from": "mapview",
+            "to": "pricing",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 773,
+            "moduleEntryObservedMs": 707
+          },
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": true,
+            "mapEntryObservedMs": 603,
+            "moduleEntryObservedMs": 993
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 2066,
+            "moduleEntryObservedMs": 396
+          }
+        ],
+        "errors": []
+      },
+      {
+        "device": "phone",
+        "transitions": [
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 3631,
+            "moduleEntryObservedMs": 1494
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": true,
+            "mapEntryObservedMs": 3215,
+            "moduleEntryObservedMs": 2053
+          },
+          {
+            "from": "mapview",
+            "to": "pricing",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 2187,
+            "moduleEntryObservedMs": 3457
+          },
+          {
+            "from": "mapview",
+            "to": "dashboard",
+            "pinSelected": true,
+            "nativeZoomInFlight": true,
+            "mapEntryObservedMs": 2014,
+            "moduleEntryObservedMs": 1362
+          },
+          {
+            "from": "mapview",
+            "to": "matches",
+            "pinSelected": true,
+            "nativeZoomInFlight": false,
+            "mapEntryObservedMs": 1719,
+            "moduleEntryObservedMs": 1387
+          }
+        ],
+        "errors": []
+      }
+    ]
+  },
+  "pass": true,
+  "tests": {
+    "files": 2,
+    "total": 37,
+    "passed": 37,
+    "failed": 0
+  }
+}

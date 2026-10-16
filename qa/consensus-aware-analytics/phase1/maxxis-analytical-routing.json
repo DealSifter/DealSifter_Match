@@ -1,0 +1,715 @@
+{
+  "mode": "DETERMINISTIC_SYNTHETIC_INTEGRATION",
+  "data": {
+    "routing": [
+      {
+        "language": "pt",
+        "blocked": {
+          "answer": "Ainda não há uma área definida para análise porque as fontes divergem. Revise os dados do imóvel antes de calcular.",
+          "metric": {
+            "value": null,
+            "range": null,
+            "calculable": false,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "BLOCK_CONFLICT",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "BLOCK_CONFLICT",
+              "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+              "value": null,
+              "range": null,
+              "qualification": [
+                "UNRESOLVED_INPUT_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "UNRESOLVED_INPUT_CONFLICT"
+            ],
+            "reasonCode": "UNRESOLVED_INPUT_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "chosen": {
+          "answer": "Preço pedido por acre: US$ 16.666,67. usando a área 1,14 ac confirmada no cadastro; não é confirmação independente entre fontes.",
+          "metric": {
+            "value": 16666.666666666668,
+            "range": null,
+            "calculable": true,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_QUALIFIED",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "status": "USER_PROVIDED",
+                "freshness": "UNKNOWN"
+              },
+              "userDecision": "KEEP_MY_VALUE",
+              "userAccepted": false,
+              "userConfirmed": true,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+              "value": 49658.399999999994,
+              "range": null,
+              "qualification": [
+                "USER_CONFIRMED_AMID_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ],
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "ranged": {
+          "answer": "Preço pedido por acre: US$ 15.447,15–US$ 16.666,67. intervalo provisório de área 1,14–1,23 ac; sem escolher um ponto médio.",
+          "metric": {
+            "value": null,
+            "range": {
+              "min": 15447.154471544716,
+              "max": 16666.666666666668
+            },
+            "calculable": true,
+            "provisional": true,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_RANGE",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "OUTLIER_DETECTED",
+              "analyticalUsability": "PROVISIONAL",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": true,
+              "outliers": [
+                {
+                  "sourceType": "RENTCAST",
+                  "sourceId": "RENTCAST",
+                  "value": 23853.97872,
+                  "unit": "SQFT"
+                }
+              ],
+              "inputResolution": "ALLOW_RANGE",
+              "reasonCode": "PROVISIONAL_INPUT_RANGE",
+              "value": null,
+              "range": {
+                "min": 49658.399999999994,
+                "max": 53578.799999999996
+              },
+              "qualification": [
+                "PROVISIONAL_INPUT_RANGE"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "PROVISIONAL_INPUT_RANGE"
+            ],
+            "reasonCode": "PROVISIONAL_INPUT_RANGE"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        }
+      },
+      {
+        "language": "en",
+        "blocked": {
+          "answer": "An analytical area is not yet resolved because sources disagree. Review the property facts before calculating.",
+          "metric": {
+            "value": null,
+            "range": null,
+            "calculable": false,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "BLOCK_CONFLICT",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "BLOCK_CONFLICT",
+              "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+              "value": null,
+              "range": null,
+              "qualification": [
+                "UNRESOLVED_INPUT_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "UNRESOLVED_INPUT_CONFLICT"
+            ],
+            "reasonCode": "UNRESOLVED_INPUT_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "chosen": {
+          "answer": "Asking price per acre: $16,666.67. using area 1.14 ac confirmed in the listing; not independent cross-source confirmation.",
+          "metric": {
+            "value": 16666.666666666668,
+            "range": null,
+            "calculable": true,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_QUALIFIED",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "status": "USER_PROVIDED",
+                "freshness": "UNKNOWN"
+              },
+              "userDecision": "KEEP_MY_VALUE",
+              "userAccepted": false,
+              "userConfirmed": true,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+              "value": 49658.399999999994,
+              "range": null,
+              "qualification": [
+                "USER_CONFIRMED_AMID_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ],
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "ranged": {
+          "answer": "Asking price per acre: $15,447.15–$16,666.67. provisional area range 1.14–1.23 ac; no midpoint selected.",
+          "metric": {
+            "value": null,
+            "range": {
+              "min": 15447.154471544716,
+              "max": 16666.666666666668
+            },
+            "calculable": true,
+            "provisional": true,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_RANGE",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "OUTLIER_DETECTED",
+              "analyticalUsability": "PROVISIONAL",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": true,
+              "outliers": [
+                {
+                  "sourceType": "RENTCAST",
+                  "sourceId": "RENTCAST",
+                  "value": 23853.97872,
+                  "unit": "SQFT"
+                }
+              ],
+              "inputResolution": "ALLOW_RANGE",
+              "reasonCode": "PROVISIONAL_INPUT_RANGE",
+              "value": null,
+              "range": {
+                "min": 49658.399999999994,
+                "max": 53578.799999999996
+              },
+              "qualification": [
+                "PROVISIONAL_INPUT_RANGE"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "PROVISIONAL_INPUT_RANGE"
+            ],
+            "reasonCode": "PROVISIONAL_INPUT_RANGE"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        }
+      },
+      {
+        "language": "es",
+        "blocked": {
+          "answer": "Aún no hay un área definida para analizar porque las fuentes divergen. Revise los datos del inmueble antes de calcular.",
+          "metric": {
+            "value": null,
+            "range": null,
+            "calculable": false,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "BLOCK_CONFLICT",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "BLOCK_CONFLICT",
+              "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+              "value": null,
+              "range": null,
+              "qualification": [
+                "UNRESOLVED_INPUT_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "UNRESOLVED_INPUT_CONFLICT"
+            ],
+            "reasonCode": "UNRESOLVED_INPUT_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "chosen": {
+          "answer": "Precio pedido por acre: $16,666.67. usando el área 1.14 ac confirmada en el registro; no es confirmación independiente entre fuentes.",
+          "metric": {
+            "value": 16666.666666666668,
+            "range": null,
+            "calculable": true,
+            "provisional": false,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_QUALIFIED",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "MATERIAL_CONFLICT",
+              "analyticalUsability": "CONFLICTED",
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "dealSifter",
+                "status": "USER_PROVIDED",
+                "freshness": "UNKNOWN"
+              },
+              "userDecision": "KEEP_MY_VALUE",
+              "userAccepted": false,
+              "userConfirmed": true,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+              "value": 49658.399999999994,
+              "range": null,
+              "qualification": [
+                "USER_CONFIRMED_AMID_CONFLICT"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": "USER_PROVIDED",
+              "sourceId": "dealSifter",
+              "status": "USER_PROVIDED",
+              "freshness": "UNKNOWN"
+            },
+            "qualification": [
+              "USER_CONFIRMED_AMID_CONFLICT"
+            ],
+            "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        },
+        "ranged": {
+          "answer": "Precio pedido por acre: $15,447.15–$16,666.67. intervalo provisional de área 1.14–1.23 ac; sin elegir un punto medio.",
+          "metric": {
+            "value": null,
+            "range": {
+              "min": 15447.154471544716,
+              "max": 16666.666666666668
+            },
+            "calculable": true,
+            "provisional": true,
+            "unit": "USD_PER_ACRE",
+            "inputResolution": "ALLOW_RANGE",
+            "inputFact": {
+              "domain": "LOT_AREA",
+              "unit": "SQFT",
+              "consensusState": "OUTLIER_DETECTED",
+              "analyticalUsability": "PROVISIONAL",
+              "inputSource": {
+                "sourceType": null,
+                "sourceId": null,
+                "status": null,
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": true,
+              "outliers": [
+                {
+                  "sourceType": "RENTCAST",
+                  "sourceId": "RENTCAST",
+                  "value": 23853.97872,
+                  "unit": "SQFT"
+                }
+              ],
+              "inputResolution": "ALLOW_RANGE",
+              "reasonCode": "PROVISIONAL_INPUT_RANGE",
+              "value": null,
+              "range": {
+                "min": 49658.399999999994,
+                "max": 53578.799999999996
+              },
+              "qualification": [
+                "PROVISIONAL_INPUT_RANGE"
+              ]
+            },
+            "priceInput": {
+              "domain": "PRICE",
+              "unit": "USD",
+              "consensusState": null,
+              "analyticalUsability": null,
+              "inputSource": {
+                "sourceType": "USER_PROVIDED",
+                "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+                "status": "USER_PROVIDED",
+                "freshness": null
+              },
+              "userDecision": null,
+              "userAccepted": false,
+              "userConfirmed": false,
+              "provisional": false,
+              "outliers": [],
+              "inputResolution": "ALLOW_QUALIFIED",
+              "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+              "value": 19000,
+              "range": null,
+              "qualification": [
+                "PUBLISHER_PROVIDED_INPUT"
+              ]
+            },
+            "inputSource": {
+              "sourceType": null,
+              "sourceId": null,
+              "status": null,
+              "freshness": null
+            },
+            "qualification": [
+              "PROVISIONAL_INPUT_RANGE"
+            ],
+            "reasonCode": "PROVISIONAL_INPUT_RANGE"
+          },
+          "key": "pricePerAcre",
+          "reviewField": "lotArea",
+          "providerCalls": 0,
+          "arithmeticSource": "DETERMINISTIC_AREA_ENGINE"
+        }
+      }
+    ],
+    "providerCalls": 0,
+    "geminiArbitration": 0,
+    "requestScopedReadDeduplication": true
+  }
+}

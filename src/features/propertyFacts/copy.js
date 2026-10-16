@@ -7,7 +7,8 @@ const inlineCopy={
  en:{back:'Back to editing',yourData:'Your listing',warningLabel:'Conflicting facts need review',newFacts:n=>`${n} new facts`,neutralTitle:'New facts available',conflictsTitle:'Conflicting facts',refreshError:'Newer facts could not be retrieved. Saved facts remain available.',bulk:'Select additions',sources:'About the sources'},
  es:{back:'Volver a la edición',yourData:'Su registro',warningLabel:'Hay datos divergentes para revisar',newFacts:n=>`${n} datos nuevos`,neutralTitle:'Nuevos datos disponibles',conflictsTitle:'Datos divergentes',refreshError:'No se pudieron consultar datos más recientes. Los datos guardados siguen disponibles.',bulk:'Seleccionar datos nuevos',sources:'Sobre las fuentes'},
 };
-export const factCopy=language=>({...sharedCopy(baseLanguage(language)),...(inlineCopy[baseLanguage(language)]||inlineCopy.en)});
+const reviewCta={pt:'Revise clicando aqui',en:'Review — click here',es:'Revise haciendo clic aquí'};
+export const factCopy=language=>({...sharedCopy(baseLanguage(language)),...(inlineCopy[baseLanguage(language)]||inlineCopy.en),reviewCta:reviewCta[baseLanguage(language)]||reviewCta.en});
 const sourceNames={pt:{PUBLIC_PARCEL_GIS:'GIS público',PUBLIC_ASSESSOR:'Assessor público',PUBLIC_TAX:'Registro fiscal público',PUBLIC_ZONING:'Zoneamento público'},en:{PUBLIC_PARCEL_GIS:'Public GIS',PUBLIC_ASSESSOR:'Public assessor',PUBLIC_TAX:'Public tax record',PUBLIC_ZONING:'Public zoning'},es:{PUBLIC_PARCEL_GIS:'GIS público',PUBLIC_ASSESSOR:'Asesor público',PUBLIC_TAX:'Registro fiscal público',PUBLIC_ZONING:'Zonificación pública'}};
 export const factSource=(source,language)=>(sourceNames[baseLanguage(language)]||sourceNames.en)[source]||sharedSource(source,baseLanguage(language));
 export const factValue=(fact,field,language)=>sharedValue(fact,field,baseLanguage(language));

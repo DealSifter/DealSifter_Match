@@ -1,0 +1,601 @@
+{
+  "mode": "DETERMINISTIC_SYNTHETIC_CONTROLS",
+  "data": {
+    "before": {
+      "inputs": {
+        "LOT_AREA": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "LIVING_AREA": {
+          "domain": "LIVING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": null,
+            "sourceId": null,
+            "status": null,
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "BLOCK_CONFLICT",
+          "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+          "value": null,
+          "range": null,
+          "qualification": [
+            "UNRESOLVED_INPUT_CONFLICT"
+          ]
+        },
+        "BUILDING_AREA": {
+          "domain": "BUILDING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": null,
+            "sourceId": null,
+            "status": null,
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "BLOCK_CONFLICT",
+          "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+          "value": null,
+          "range": null,
+          "qualification": [
+            "UNRESOLVED_INPUT_CONFLICT"
+          ]
+        },
+        "PRICE": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        }
+      },
+      "pricePerAcre": {
+        "value": 219298.2456140351,
+        "range": null,
+        "calculable": true,
+        "provisional": false,
+        "unit": "USD_PER_ACRE",
+        "inputResolution": "ALLOW_QUALIFIED",
+        "inputFact": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "dealSifter",
+          "status": "USER_PROVIDED",
+          "freshness": null
+        },
+        "qualification": [
+          "PUBLISHER_PROVIDED_INPUT"
+        ],
+        "reasonCode": "PUBLISHER_PROVIDED_INPUT"
+      },
+      "pricePerLotSqft": {
+        "value": 5.034394986548097,
+        "range": null,
+        "calculable": true,
+        "provisional": false,
+        "unit": "USD_PER_LOT_SQFT",
+        "inputResolution": "ALLOW_QUALIFIED",
+        "inputFact": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "dealSifter",
+          "status": "USER_PROVIDED",
+          "freshness": null
+        },
+        "qualification": [
+          "PUBLISHER_PROVIDED_INPUT"
+        ],
+        "reasonCode": "PUBLISHER_PROVIDED_INPUT"
+      },
+      "pricePerLivingSqft": {
+        "value": null,
+        "range": null,
+        "calculable": false,
+        "provisional": false,
+        "unit": "USD_PER_LIVING_SQFT",
+        "inputResolution": "BLOCK_CONFLICT",
+        "inputFact": {
+          "domain": "LIVING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": null,
+            "sourceId": null,
+            "status": null,
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "BLOCK_CONFLICT",
+          "reasonCode": "UNRESOLVED_INPUT_CONFLICT",
+          "value": null,
+          "range": null,
+          "qualification": [
+            "UNRESOLVED_INPUT_CONFLICT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": null,
+          "sourceId": null,
+          "status": null,
+          "freshness": null
+        },
+        "qualification": [
+          "UNRESOLVED_INPUT_CONFLICT"
+        ],
+        "reasonCode": "UNRESOLVED_INPUT_CONFLICT"
+      }
+    },
+    "after": {
+      "inputs": {
+        "LOT_AREA": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "LIVING_AREA": {
+          "domain": "LIVING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN"
+          },
+          "userDecision": "KEEP_MY_VALUE",
+          "userAccepted": false,
+          "userConfirmed": true,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+          "value": 1250,
+          "range": null,
+          "qualification": [
+            "USER_CONFIRMED_AMID_CONFLICT"
+          ]
+        },
+        "BUILDING_AREA": {
+          "domain": "BUILDING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN"
+          },
+          "userDecision": "KEEP_MY_VALUE",
+          "userAccepted": false,
+          "userConfirmed": true,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+          "value": 1250,
+          "range": null,
+          "qualification": [
+            "USER_CONFIRMED_AMID_CONFLICT"
+          ]
+        },
+        "PRICE": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        }
+      },
+      "pricePerAcre": {
+        "value": 219298.2456140351,
+        "range": null,
+        "calculable": true,
+        "provisional": false,
+        "unit": "USD_PER_ACRE",
+        "inputResolution": "ALLOW_QUALIFIED",
+        "inputFact": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "dealSifter",
+          "status": "USER_PROVIDED",
+          "freshness": null
+        },
+        "qualification": [
+          "PUBLISHER_PROVIDED_INPUT"
+        ],
+        "reasonCode": "PUBLISHER_PROVIDED_INPUT"
+      },
+      "pricePerLotSqft": {
+        "value": 5.034394986548097,
+        "range": null,
+        "calculable": true,
+        "provisional": false,
+        "unit": "USD_PER_LOT_SQFT",
+        "inputResolution": "ALLOW_QUALIFIED",
+        "inputFact": {
+          "domain": "LOT_AREA",
+          "unit": "SQFT",
+          "consensusState": "SINGLE_SOURCE",
+          "analyticalUsability": "SINGLE_SOURCE",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 49658.399999999994,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "dealSifter",
+          "status": "USER_PROVIDED",
+          "freshness": null
+        },
+        "qualification": [
+          "PUBLISHER_PROVIDED_INPUT"
+        ],
+        "reasonCode": "PUBLISHER_PROVIDED_INPUT"
+      },
+      "pricePerLivingSqft": {
+        "value": 200,
+        "range": null,
+        "calculable": true,
+        "provisional": false,
+        "unit": "USD_PER_LIVING_SQFT",
+        "inputResolution": "ALLOW_QUALIFIED",
+        "inputFact": {
+          "domain": "LIVING_AREA",
+          "unit": "SQFT",
+          "consensusState": "MATERIAL_CONFLICT",
+          "analyticalUsability": "CONFLICTED",
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "dealSifter",
+            "status": "USER_PROVIDED",
+            "freshness": "UNKNOWN"
+          },
+          "userDecision": "KEEP_MY_VALUE",
+          "userAccepted": false,
+          "userConfirmed": true,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "USER_CONFIRMED_AMID_CONFLICT",
+          "value": 1250,
+          "range": null,
+          "qualification": [
+            "USER_CONFIRMED_AMID_CONFLICT"
+          ]
+        },
+        "priceInput": {
+          "domain": "PRICE",
+          "unit": "USD",
+          "consensusState": null,
+          "analyticalUsability": null,
+          "inputSource": {
+            "sourceType": "USER_PROVIDED",
+            "sourceId": "PROPERTY_CURRENT_ASKING_PRICE",
+            "status": "USER_PROVIDED",
+            "freshness": null
+          },
+          "userDecision": null,
+          "userAccepted": false,
+          "userConfirmed": false,
+          "provisional": false,
+          "outliers": [],
+          "inputResolution": "ALLOW_QUALIFIED",
+          "reasonCode": "PUBLISHER_PROVIDED_INPUT",
+          "value": 250000,
+          "range": null,
+          "qualification": [
+            "PUBLISHER_PROVIDED_INPUT"
+          ]
+        },
+        "inputSource": {
+          "sourceType": "USER_PROVIDED",
+          "sourceId": "dealSifter",
+          "status": "USER_PROVIDED",
+          "freshness": "UNKNOWN"
+        },
+        "qualification": [
+          "USER_CONFIRMED_AMID_CONFLICT"
+        ],
+        "reasonCode": "USER_CONFIRMED_AMID_CONFLICT"
+      }
+    }
+  }
+}

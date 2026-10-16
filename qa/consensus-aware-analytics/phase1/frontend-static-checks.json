@@ -1,0 +1,10 @@
+{
+  "observedDate": "2026-10-16",
+  "mode": "EXECUTED_LOCAL_COMMANDS_FINAL_FROZEN_FRONTEND",
+  "checks": [
+    { "command": "node node_modules/eslint/bin/eslint.js src/ --max-warnings=0", "exitCode": 0, "diagnostics": 0 },
+    { "command": "node node_modules/typescript/bin/tsc -p tsconfig.contracts.json", "exitCode": 0, "diagnostics": 0 }
+  ],
+  "denoBaselineComparison": "deno-baseline-comparison.json",
+  "pass": true
+}

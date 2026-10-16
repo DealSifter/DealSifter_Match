@@ -12,6 +12,7 @@ import { supabaseAnonKey, supabaseUrl } from './config.ts';
 import { supabaseServiceRoleKey } from './config.ts';
 import { getCanonicalPropertyEvidenceWithDependencies } from './canonicalEvidenceTool.ts';
 import { resolveFeatureFlags } from '../featureFlags.ts';
+import { publicAnalyticalDecisionProofs } from './analyticalPropertyContext.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
@@ -100,7 +101,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; parcelEvidenceReceipt?:unknown } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; parcelEvidenceReceipt?:unknown } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -129,9 +130,22 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
       loadReconciledFacts:async(propertyId,userId)=>{
         const reader=authenticated.client as unknown as {from:(name:string)=>any;rpc:(name:string,args:Record<string,unknown>)=>Promise<{data:any;error:unknown}>};
         const own=await reader.from('property_fact_reviews').select('state').eq('property_id',propertyId).eq('owner_id',userId).maybeSingle();
-        if(!own.error&&own.data?.state?.rows)return {facts:Object.fromEntries(Object.entries(own.data.state.rows).map(([field,row])=>[field,(row as {effective:unknown}).effective])),owner:true};
+        if(!own.error&&own.data?.state?.rows)return {facts:Object.fromEntries(Object.entries(own.data.state.rows).map(([field,row])=>[field,(row as {effective:unknown}).effective])),owner:true,reviewSnapshot:own.data.state};
         const publicResult=await reader.rpc('ds_public_effective_property_facts',{p_property_ids:[propertyId]});
-        return !publicResult.error&&publicResult.data?.[0]?.facts?{facts:publicResult.data[0].facts,owner:false}:null;
+        if(publicResult.error)return {facts:{},owner:false,analyticalUnavailable:true};
+        if(!publicResult.data?.length)return {facts:{},owner:false};
+        if(publicResult.data[0]?.property_id!==propertyId||!publicResult.data[0].facts)return {facts:{},owner:false,analyticalUnavailable:true};
+        const facts=publicResult.data[0].facts;
+        // Existing APN/zoning/direct-fact reads incur no new metadata query.
+        if(!context.analyticalArea)return {facts,owner:false};
+        // After the authenticated public gate, read only current-publisher decision proof.
+        // Alternatives/history/actor identity never enter the public analytical context.
+        const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
+        const proof=await internal.from('property_fact_reviews').select('owner_id,lotEffective:state->rows->lotArea->effective,lotDecision:state->rows->lotArea->decision,lotHash:state->rows->lotArea->>evidenceHash,lotConsensus:state->rows->lotArea->projection->>consensusState,lotUsability:state->rows->lotArea->projection->>analyticalUsability,livingEffective:state->rows->buildingArea->effective,livingDecision:state->rows->buildingArea->decision,livingHash:state->rows->buildingArea->>evidenceHash,livingConsensus:state->rows->buildingArea->projection->>consensusState,livingUsability:state->rows->buildingArea->projection->>analyticalUsability,properties!inner(owner_id)').eq('property_id',propertyId).limit(16).abortSignal(AbortSignal.timeout(1500));
+        const rows=(!proof.error&&Array.isArray(proof.data)?proof.data:[]) as unknown as Array<{owner_id:string;properties:{owner_id:string}|null;lotEffective:unknown;lotDecision:unknown;lotHash:string;lotConsensus:string;lotUsability:string;livingEffective:unknown;livingDecision:unknown;livingHash:string;livingConsensus:string;livingUsability:string}>;
+        const current=rows.find(row=>row.owner_id===row.properties?.owner_id);
+        const selected=current?{rows:{lotArea:{effective:current.lotEffective,decision:current.lotDecision,evidenceHash:current.lotHash,projection:{consensusState:current.lotConsensus,analyticalUsability:current.lotUsability}},buildingArea:{effective:current.livingEffective,decision:current.livingDecision,evidenceHash:current.livingHash,projection:{consensusState:current.livingConsensus,analyticalUsability:current.livingUsability}}}}:null;
+        return {facts,owner:false,decisionProofs:selected?publicAnalyticalDecisionProofs(selected,facts):{},analyticalUnavailable:!current};
       },
       loadCachedProvider:propertyId=>getPropertyEvidenceForAuthenticatedUser({propertyId},authHeader,authenticated.userId,context.propertyId,false,
         {plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'})});

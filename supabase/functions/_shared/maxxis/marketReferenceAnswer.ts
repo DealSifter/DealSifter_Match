@@ -1,9 +1,12 @@
 import { calculateLandDevelopmentScenario, constructionBenchmark2026, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 import { propertyTypeFamily, resolveAnalysisPropertyType, toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 import { calculateLandUnitMetrics, resolveLotDimensions } from './landMetrics.ts';
+import { calculateAreaMetrics } from './areaMetrics.ts';
+import { formatAreaPriceMetric } from './areaAnalyticalAnswer.ts';
+import type { AnalyticalPropertyInputs } from './analyticalPropertyFacts.ts';
 
 type Values = Record<string, any>;
-export function buildMarketReferenceAnswer(snapshot: Values, intent: string, language = 'en') {
+export function buildMarketReferenceAnswer(snapshot: Values, intent: string, language = 'en', analyticalInputs?: AnalyticalPropertyInputs) {
   const t = (pt: string, en: string, es: string) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
   const facts = snapshot.propertyFacts || snapshot.property || {};
   const propertyId = String(snapshot.propertyId || facts.id || '');
@@ -46,7 +49,8 @@ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, lan
     `Procedencia: ventas registradas; actualización: ${freshness?.retrievedAt || reference?.asOf || snapshot.generatedAt || 'no disponible'}; estado: ${freshnessLabel}.`));
   if (land) {
     const metrics = calculateLandUnitMetrics(facts.price ?? facts.askingPrice, facts);
-    lines.push(t(`Preço pedido: ${money(facts.price ?? facts.askingPrice)}; área: ${metrics.lotSizeAcres ?? '—'} acres; pedido por acre: ${money(metrics.pricePerAcre)}.`,
+    if (analyticalInputs) lines.push(formatAreaPriceMetric(calculateAreaMetrics(analyticalInputs).pricePerAcre,'pricePerAcre',language));
+    else lines.push(t(`Preço pedido: ${money(facts.price ?? facts.askingPrice)}; área: ${metrics.lotSizeAcres ?? '—'} acres; pedido por acre: ${money(metrics.pricePerAcre)}.`,
       `Asking price: ${money(facts.price ?? facts.askingPrice)}; area: ${metrics.lotSizeAcres ?? '—'} acres; asking per acre: ${money(metrics.pricePerAcre)}.`,
       `Precio pedido: ${money(facts.price ?? facts.askingPrice)}; área: ${metrics.lotSizeAcres ?? '—'} acres; pedido por acre: ${money(metrics.pricePerAcre)}.`));
     const benchmark = constructionBenchmark2026(facts.state);
@@ -62,5 +66,6 @@ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, lan
   const action = { id: `${actionType}:${propertyId}:${stateVersion}`, type: actionType, code: actionType,
     propertyId, stateVersion, label: t('Ver comparáveis', 'View comparables', 'Ver comparables'),
     displayBehavior: 'EXPAND_EVIDENCE', executionBehavior: 'EXPAND_EVIDENCE', payload: { reference: reference || null } };
-  return { answer: lines.join('\n\n'), type: 'market_reference' as const, data: { propertyId, intelligenceSnapshot: snapshot, reference: reference || null, landMetrics: landOutput?.landMetrics || null, stateVersion, providerCalls: 0 }, actions: [action] };
+  const analyticalLandMetrics=land&&analyticalInputs?calculateLandUnitMetrics(facts.price,{...facts,analyticalPropertyInputs:analyticalInputs}):null;
+  return { answer: lines.join('\n\n'), type: 'market_reference' as const, data: { propertyId, intelligenceSnapshot: snapshot, reference: reference || null, landMetrics: analyticalLandMetrics || landOutput?.landMetrics || null, stateVersion, providerCalls: 0 }, actions: [action] };
 }

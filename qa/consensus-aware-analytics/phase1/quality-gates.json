@@ -1,0 +1,67 @@
+{
+  "full": {
+    "startedAt": "2026-10-16T13:52:58.322Z",
+    "finishedAt": "2026-10-16T14:04:28.614Z",
+    "exitCode": 0,
+    "total": 2259,
+    "passed": 2259,
+    "failed": 0,
+    "files": 238,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "targeted": {
+    "startedAt": "2026-10-16T13:31:32.004Z",
+    "finishedAt": "2026-10-16T13:32:38.851Z",
+    "exitCode": 0,
+    "total": 130,
+    "passed": 130,
+    "failed": 0,
+    "files": 5,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "groups": {
+    "analytical": {
+      "files": 2,
+      "total": 57,
+      "passed": 57,
+      "failed": 0
+    },
+    "smartEnrichmentUx": {
+      "files": 9,
+      "total": 118,
+      "passed": 118,
+      "failed": 0
+    },
+    "mapLifecycle": {
+      "files": 2,
+      "total": 37,
+      "passed": 37,
+      "failed": 0
+    }
+  },
+  "build": true,
+  "deno": {
+    "newErrors": 0,
+    "baselineErrors": 50,
+    "currentErrors": 50,
+    "pass": true
+  },
+  "browserPass": true,
+  "mapPass": true,
+  "reportChanged": 0,
+  "financialFunctionsUnchanged": true,
+  "financialMetricBranchUnchanged": true,
+  "migration": "NONE",
+  "frontendStaticChecks": true,
+  "finalAnalyticalTests": {
+    "total": 57,
+    "passed": 57,
+    "failed": 0
+  },
+  "authenticatedProductionSmoke": "BLOCKED",
+  "realUserSession": false,
+  "sourceBindingPass": true,
+  "pass": true
+}

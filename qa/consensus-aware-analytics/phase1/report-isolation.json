@@ -1,0 +1,296 @@
+{
+  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
+  "files": [
+    {
+      "path": "src/assets/maxxis/report-official-logo.png",
+      "baselineHash": "91708bd73997aba0bdf3ba1bca287c0d0df8dad7",
+      "currentHash": "91708bd73997aba0bdf3ba1bca287c0d0df8dad7",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-1.png",
+      "baselineHash": "6f9d4ac4420952fa686403c974fe117f32e9b5f1",
+      "currentHash": "6f9d4ac4420952fa686403c974fe117f32e9b5f1",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-2.png",
+      "baselineHash": "533212bdb679e7d23becaf2420d733719cb9b571",
+      "currentHash": "533212bdb679e7d23becaf2420d733719cb9b571",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-3.png",
+      "baselineHash": "08fcaff8eb6119f787289f358061a47b49d709c8",
+      "currentHash": "08fcaff8eb6119f787289f358061a47b49d709c8",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-4.png",
+      "baselineHash": "1512bd28ca3fd0b0e098e0a528611890d20761d3",
+      "currentHash": "1512bd28ca3fd0b0e098e0a528611890d20761d3",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-5.png",
+      "baselineHash": "8d458ba69baf6640d7d9a4e374666b27f97fc05d",
+      "currentHash": "8d458ba69baf6640d7d9a4e374666b27f97fc05d",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/deal-intelligence-page-6.png",
+      "baselineHash": "bfb727287068afd1b06674d40cd01785db8f526e",
+      "currentHash": "bfb727287068afd1b06674d40cd01785db8f526e",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/maxxis-analysis-page-1.png",
+      "baselineHash": "eb2f9f6eda3d7103776c37bd3cac23de5d2399ba",
+      "currentHash": "eb2f9f6eda3d7103776c37bd3cac23de5d2399ba",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/maxxis-analysis-page-2.png",
+      "baselineHash": "053e3b647a5227a0e0984ed418c0f11ccf6d3aa3",
+      "currentHash": "053e3b647a5227a0e0984ed418c0f11ccf6d3aa3",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/maxxis-analysis-page-3.png",
+      "baselineHash": "e9665a22fc8570319e1197c1e88afca7ddcb1b6b",
+      "currentHash": "e9665a22fc8570319e1197c1e88afca7ddcb1b6b",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/property-release-page-1.png",
+      "baselineHash": "f9c50fb783139489f3d8b5430990c1614bc9d54a",
+      "currentHash": "f9c50fb783139489f3d8b5430990c1614bc9d54a",
+      "unchanged": true
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/sample-property-photo.jpg",
+      "baselineHash": "a362d00407de429a58980127f6d65eb1d28a5f1a",
+      "currentHash": "a362d00407de429a58980127f6d65eb1d28a5f1a",
+      "unchanged": true
+    },
+    {
+      "path": "src/domain/maxxis/maxxisReportSchema.js",
+      "baselineHash": "e32c8282087680a1904ac6dd411446883b5dba65",
+      "currentHash": "e32c8282087680a1904ac6dd411446883b5dba65",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/access/ReportExperienceSelector.css",
+      "baselineHash": "b491468452769c9366099fecedc73bf032d3a8c7",
+      "currentHash": "b491468452769c9366099fecedc73bf032d3a8c7",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/access/ReportExperienceSelector.jsx",
+      "baselineHash": "ab66ff24ccbed7a7741b2637f5f4a6c9f58fb209",
+      "currentHash": "ab66ff24ccbed7a7741b2637f5f4a6c9f58fb209",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/MaxxisReportExportActions.css",
+      "baselineHash": "99655618b15ba69c85ab5e1ddfbfe64cd3aec11d",
+      "currentHash": "99655618b15ba69c85ab5e1ddfbfe64cd3aec11d",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/MaxxisReportExportActions.jsx",
+      "baselineHash": "506cc0caabadc203c7e32cc3db4cc77733f53169",
+      "currentHash": "506cc0caabadc203c7e32cc3db4cc77733f53169",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisLandReportView.js",
+      "baselineHash": "9dda01ac175e29e3f5f0b3ed0c55165f678227c9",
+      "currentHash": "9dda01ac175e29e3f5f0b3ed0c55165f678227c9",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportDeliveryContracts.js",
+      "baselineHash": "9b22d2239684c6e7481dbe49fc8181d588ea8fd5",
+      "currentHash": "9b22d2239684c6e7481dbe49fc8181d588ea8fd5",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportExportPreview.js",
+      "baselineHash": "58ce3170a2e38635195b0849828c13bb8513a7fb",
+      "currentHash": "58ce3170a2e38635195b0849828c13bb8513a7fb",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportPdf.js",
+      "baselineHash": "ff69eccc376e14793a06fab999b862343d74b758",
+      "currentHash": "ff69eccc376e14793a06fab999b862343d74b758",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportRenderer.js",
+      "baselineHash": "cd60f5a95f9f01e7bd770b9eb16928ad824456a7",
+      "currentHash": "cd60f5a95f9f01e7bd770b9eb16928ad824456a7",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportVisualPolicy.js",
+      "baselineHash": "fc16635b847be95674874fd531d8a457b1e2aa7d",
+      "currentHash": "fc16635b847be95674874fd531d8a457b1e2aa7d",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportContentPriority.js",
+      "baselineHash": "b4c963071cc594db699b9d0333fe950bd39a046d",
+      "currentHash": "b4c963071cc594db699b9d0333fe950bd39a046d",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportDeliveryUtils.js",
+      "baselineHash": "daf6ca6b46a9789e600bef090274b122df3816ee",
+      "currentHash": "daf6ca6b46a9789e600bef090274b122df3816ee",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportExportEntitlement.js",
+      "baselineHash": "f1c911fe4d3b7569056e08a4c1c445bf0829b93e",
+      "currentHash": "f1c911fe4d3b7569056e08a4c1c445bf0829b93e",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportMessageEntitlements.js",
+      "baselineHash": "63c8a9196bce13d3938d1261fb23a40603cafc92",
+      "currentHash": "63c8a9196bce13d3938d1261fb23a40603cafc92",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisAnalysisReportExperience.jsx",
+      "baselineHash": "6d592bb30b5b53cb359d0402e117500730c62e89",
+      "currentHash": "6d592bb30b5b53cb359d0402e117500730c62e89",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisCanonicalReportPreview.css",
+      "baselineHash": "db78467b4160f6c23371f412664e2fcd46975160",
+      "currentHash": "db78467b4160f6c23371f412664e2fcd46975160",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisCanonicalReportPreview.jsx",
+      "baselineHash": "c40c1ba81f1590a55e93aca42bafaf0252fd46e8",
+      "currentHash": "c40c1ba81f1590a55e93aca42bafaf0252fd46e8",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisDealIntelligenceReportPreview.jsx",
+      "baselineHash": "3efa698a054a2382cf5638e041a345c00bd32a89",
+      "currentHash": "3efa698a054a2382cf5638e041a345c00bd32a89",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisAnalysisReport.js",
+      "baselineHash": "cfd8660e52e8e9017fa033acfb4082c67a9ff26c",
+      "currentHash": "cfd8660e52e8e9017fa033acfb4082c67a9ff26c",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js",
+      "baselineHash": "839c53e66f77812cc69d8e96aa0ccb9ec5866935",
+      "currentHash": "839c53e66f77812cc69d8e96aa0ccb9ec5866935",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportConfidencePersona.js",
+      "baselineHash": "c20395b9629f9677dd50be6891c7d7d3dbcc895c",
+      "currentHash": "c20395b9629f9677dd50be6891c7d7d3dbcc895c",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportFailureRecovery.js",
+      "baselineHash": "cb03d9df66b227a3ba1aedd0db595381dc1d9e54",
+      "currentHash": "cb03d9df66b227a3ba1aedd0db595381dc1d9e54",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisStructuredReportFallback.js",
+      "baselineHash": "bb873f7a970d266a2b236eec1ba5eb465c59c861",
+      "currentHash": "bb873f7a970d266a2b236eec1ba5eb465c59c861",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/presentation/reportNarrativePresentation.js",
+      "baselineHash": "4c24b1718953739ee7d077aeedda2abb869d8f2f",
+      "currentHash": "4c24b1718953739ee7d077aeedda2abb869d8f2f",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/reports/MyMaxxisReports.css",
+      "baselineHash": "b9aff292ff1ab9cd1e4abc0d905c9f5278fee926",
+      "currentHash": "b9aff292ff1ab9cd1e4abc0d905c9f5278fee926",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/reports/MyMaxxisReports.jsx",
+      "baselineHash": "58e4e95777ab614b840b1e44ec67ebf394d83074",
+      "currentHash": "58e4e95777ab614b840b1e44ec67ebf394d83074",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/reports/savedReportAccess.js",
+      "baselineHash": "5309b9e3763ed986349a86a79cf0f9d4defcb2c4",
+      "currentHash": "5309b9e3763ed986349a86a79cf0f9d4defcb2c4",
+      "unchanged": true
+    },
+    {
+      "path": "src/services/maxxisReportService.js",
+      "baselineHash": "8c404dce9aa421363e217d00e46b3da308d67c53",
+      "currentHash": "8c404dce9aa421363e217d00e46b3da308d67c53",
+      "unchanged": true
+    },
+    {
+      "path": "src/services/propertyReportParcelService.js",
+      "baselineHash": "be52783df0dd70f62e6783d3bbb027f6073080ef",
+      "currentHash": "be52783df0dd70f62e6783d3bbb027f6073080ef",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/rehabCostBenchmarks2026.ts",
+      "baselineHash": "44cad11ccd8e1d0be6e766e8cf0b1e7c910bc44b",
+      "currentHash": "44cad11ccd8e1d0be6e766e8cf0b1e7c910bc44b",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/retainedReportReference.ts",
+      "baselineHash": "c61f70fb2c0e10fb106612397c3c4926373bec3a",
+      "currentHash": "c61f70fb2c0e10fb106612397c3c4926373bec3a",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/sellerFinancingScenario.ts",
+      "baselineHash": "ecfde34d976d930832df36fe8b8bf6e5d1e5ac96",
+      "currentHash": "ecfde34d976d930832df36fe8b8bf6e5d1e5ac96",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/arvEngine.ts",
+      "baselineHash": "9df1177c6d9f494624808ccb43f4635782d56b27",
+      "currentHash": "9df1177c6d9f494624808ccb43f4635782d56b27",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldCompEngine.ts",
+      "baselineHash": "6f72c41bf1dfc741d54b0eb57ba780802d83bb07",
+      "currentHash": "6f72c41bf1dfc741d54b0eb57ba780802d83bb07",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+      "baselineHash": "cc9cd49189913ea2c29239021a36095ee5c7478e",
+      "currentHash": "cc9cd49189913ea2c29239021a36095ee5c7478e",
+      "unchanged": true
+    }
+  ],
+  "changed": 0,
+  "reportBroadMigration": 0,
+  "legacyDefaultsPreserved": true
+}

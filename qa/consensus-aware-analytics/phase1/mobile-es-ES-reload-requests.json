@@ -1,0 +1,23 @@
+{
+  "actionsBeforeReload": 3,
+  "actionsAfterReload": [],
+  "actions": [
+    {
+      "action": "DECIDE",
+      "propertyId": "55555555-5555-4555-8555-555555555555",
+      "decisions": 1
+    },
+    {
+      "action": "DECIDE",
+      "propertyId": "77777777-7777-4777-8777-777777777777",
+      "decisions": 8
+    },
+    {
+      "action": "CHECK",
+      "propertyId": "88888888-8888-4888-8888-888888888888",
+      "decisions": 0
+    }
+  ],
+  "providerAcquisitions": 1,
+  "explicitCheckBeforeReload": true
+}

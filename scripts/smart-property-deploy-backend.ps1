@@ -1,7 +1,7 @@
 param([Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{40}$')][string]$CodeSha,
- [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel')][string]$OnlyFunction,
+ [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel','property-intelligence','arv-visual-comp-review')][string]$OnlyFunction,
  [string]$QaDirectory='qa/smart-property-enrichment/final-integration',
- [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel')][string[]]$ExpectedFunctions=@())
+ [ValidateSet('maxxis-chat','maxxis-deal-workflow','maxxis-provider-message-draft','property-fact-review','public-parcel','property-intelligence','arv-visual-comp-review')][string[]]$ExpectedFunctions=@())
 $ErrorActionPreference='Stop'
 $integrationRemote=& git ls-remote origin refs/heads/fix/production-real-defects
 if($LASTEXITCODE-ne 0 -or ($integrationRemote-split '\s+')[0]-ne $CodeSha){throw 'EXPECTED_PUSHED_CODE_SHA_REQUIRED'}
