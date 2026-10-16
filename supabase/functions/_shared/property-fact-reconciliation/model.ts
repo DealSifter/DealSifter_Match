@@ -14,7 +14,7 @@ export type ReviewAction='KEEP_MY_VALUE'|'ACCEPT_EXTERNAL_VALUE'|'REVIEW_LATER';
 type Decision={action:ReviewAction;evidenceHash:string;candidateId:string|null;value:number|string|null;source:CandidateInput['sourceType'];sourceId:string;unit:string|null;status:string;freshness:string;year:number|null;by:string;at:string;originalValue:unknown};
 export type ReviewRow={field:ReviewField;state:ReconciliationState;originalValue:unknown;currentCandidate:EvidenceCandidate|null;currentValue:number|string|null;currentUserMaintained?:boolean;evidenceHash:string;projection:ProjectedEvidenceField;candidates:EvidenceCandidate[];bulkCandidateId:string|null;decision:Decision|null;pending:boolean;effective:EffectiveFact};
 export type EffectiveFact={value:number|string|null;unit:string|null;state:'AVAILABLE'|'CONFLICTED'|'UNAVAILABLE'|'NOT_APPLICABLE';sourceType:string|null;sourceId?:string;status?:string;freshness?:string;year?:number|null;adopted?:boolean;userConfirmed?:boolean};
-export type ReviewSnapshot={version:1;propertyId:string;publisherUpdatedAt:string|null;publicCheckedAt?:string|null;identityHash:string;publisherHash:string;evidenceHash:string;rows:Record<ReviewField,ReviewRow>;summary:{complements:number;conflicts:number;pending:number};checkedAt:string;resolvedPropertyType:string};
+export type ReviewSnapshot={version:1;propertyId:string;publisherUpdatedAt:string|null;publicCheckedAt?:string|null;publisherDeclarations?:{zoning?:{value:string;by:string;at:string;identityHash:string}};identityHash:string;publisherHash:string;evidenceHash:string;rows:Record<ReviewField,ReviewRow>;summary:{complements:number;conflicts:number;pending:number};checkedAt:string;resolvedPropertyType:string};
 const aliases:Record<ReviewField,string>= {lotArea:'lot',apn:'apn',owner:'publicOwnerName',assessedValue:'assessedValue',propertyTax:'propertyTax',zoning:'zoning',propertyType:'type',buildingArea:'sqft',yearBuilt:'yearBuilt',beds:'beds',baths:'baths',subdivision:'subdivision',legalDescription:'legalDescription'};
 const clean=(value:unknown)=>typeof value==='string'?value.normalize('NFKC').trim():value??null;
 export function stableJson(value:unknown):string {if(Array.isArray(value))return `[${value.map(stableJson).join(',')}]`;if(value&&typeof value==='object')return `{${Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,v])=>`${JSON.stringify(key)}:${stableJson(v)}`).join(',')}}`;return JSON.stringify(value??null);}
@@ -29,7 +29,10 @@ export function publisherCandidates(property:Record<string,unknown>):CandidateIn
 }
 /** Only current raw publisher inputs + authorized evidence; never migrate a calculation input. */
 export async function reconcilePropertyFacts(property:Record<string,unknown>,external:readonly CandidateInput[],previous:ReviewSnapshot|null=null,now=new Date().toISOString()):Promise<ReviewSnapshot>{
- const original=publisherCandidates(property),identityHash=await evidenceHash(propertyIdentity(property)),publisherHash=await evidenceHash(original.map(c=>[c.field,c.originalValue,c.value??null]));
+ const identityHash=await evidenceHash(propertyIdentity(property)),rawPublisher=publisherCandidates(property);
+ const declaration=previous?.identityHash===identityHash&&previous.publisherDeclarations?.zoning?.identityHash===identityHash?previous.publisherDeclarations.zoning:null;
+ const original=rawPublisher.map(candidate=>candidate.field==='zoning'&&declaration?{...candidate,originalValue:declaration.value,sourceId:'dealSifter-publisher-declaration',evidenceStatus:'USER_PROVIDED' as const}:candidate);
+ const publisherHash=await evidenceHash(original.map(c=>[c.field,c.originalValue,c.value??null]));
  const fiscal=external.map(c=>['assessedValue','propertyTax'].includes(c.field)&&c.evidenceStatus==='CALCULATED'?{...c,evidenceStatus:'ESTIMATED' as const}:c);
  const rawType=resolveAnalysisPropertyType(property);
  const consensus=computeParcelEvidenceConsensus([...original,...fiscal]),resolvedType=propertyTypeFamily(rawType)==='LAND'?'LAND':String(rawType??'UNKNOWN'),rows={} as ReviewSnapshot['rows'];
@@ -54,14 +57,15 @@ export async function reconcilePropertyFacts(property:Record<string,unknown>,ext
   let effective:EffectiveFact={value:null,unit:projection.unit,state:notApplicable?'NOT_APPLICABLE':state==='REVIEW_REQUIRED'?'CONFLICTED':'UNAVAILABLE',sourceType:null};
   if(!notApplicable&&decision&&decision.action!=='REVIEW_LATER')effective={value:decision.value,unit:decision.unit,state:'AVAILABLE',sourceType:decision.source,sourceId:decision.sourceId,status:decision.status,freshness:decision.freshness,year:decision.year,adopted:true,userConfirmed:decision.action==='KEEP_MY_VALUE'&&decision.source==='USER_PROVIDED'};
   else if(!notApplicable&&current&&state!=='REVIEW_REQUIRED')effective={value:current.normalizedValue,unit:current.normalizedUnit,state:'AVAILABLE',sourceType:current.sourceType,status:current.evidenceStatus,year:current.metadata?.year??null,adopted:Boolean(previousSelected&&samePublisher&&oldRow?.effective.adopted)};
-  const row:ReviewRow={field,state,originalValue:original.find(c=>c.field===field)?.originalValue??null,currentCandidate:current??null,currentValue:current?.normalizedValue??null,currentUserMaintained:Boolean(previousSelected&&samePublisher&&(oldRow?.currentUserMaintained||oldRow?.decision&&oldRow.decision.action!=='REVIEW_LATER')),evidenceHash:hash,projection,candidates,bulkCandidateId:null,decision,
+  if(field==='zoning'&&current?.sourceId==='dealSifter-publisher-declaration'&&effective.state==='AVAILABLE')effective={...effective,status:'PUBLISHER_DECLARED',userConfirmed:false};
+  const row:ReviewRow={field,state,originalValue:rawPublisher.find(c=>c.field===field)?.originalValue??null,currentCandidate:current??null,currentValue:current?.normalizedValue??null,currentUserMaintained:Boolean(field==='zoning'&&declaration||previousSelected&&samePublisher&&(oldRow?.currentUserMaintained||oldRow?.decision&&oldRow.decision.action!=='REVIEW_LATER')),evidenceHash:hash,projection,candidates,bulkCandidateId:null,decision,
    pending:['COMPLEMENT_AVAILABLE','REVIEW_REQUIRED'].includes(state)&&(!decision||decision.action==='REVIEW_LATER'),effective};
   const eligible=candidates.filter(c=>candidateCanBeAccepted(row,c,resolvedType)&&c.evidenceStatus!=='CALCULATED');
   if(state==='COMPLEMENT_AVAILABLE'&&eligible.length&&new Set(eligible.map(c=>stableJson([c.normalizedValue,c.normalizedUnit]))).size===1)row.bulkCandidateId=eligible[0].candidateId;
   rows[field]=row;
  }
  const summary={complements:0,conflicts:0,pending:0};
- const snapshot:ReviewSnapshot={version:1,propertyId:String(property.id),publisherUpdatedAt:typeof property.updated_at==='string'?property.updated_at:null,identityHash,publisherHash,evidenceHash:await evidenceHash(REVIEW_FIELDS.map(field=>rows[field].evidenceHash)),rows,summary,checkedAt:now,resolvedPropertyType:resolvedType};
+ const snapshot:ReviewSnapshot={version:1,propertyId:String(property.id),publisherUpdatedAt:typeof property.updated_at==='string'?property.updated_at:null,...(declaration?{publisherDeclarations:{zoning:declaration}}:{}),identityHash,publisherHash,evidenceHash:await evidenceHash(REVIEW_FIELDS.map(field=>rows[field].evidenceHash)),rows,summary,checkedAt:now,resolvedPropertyType:resolvedType};
  snapshot.summary=actionableReview(snapshot).summary;return snapshot;
 }
 export function applyFactDecisions(snapshot:ReviewSnapshot,actions:readonly {field:ReviewField;action:ReviewAction;candidateId?:string}[],userId:string,now=new Date().toISOString()):ReviewSnapshot{
@@ -72,7 +76,7 @@ export function applyFactDecisions(snapshot:ReviewSnapshot,actions:readonly {fie
   if(action.action!=='REVIEW_LATER'&&(!candidate||action.action==='ACCEPT_EXTERNAL_VALUE'&&!candidateCanBeAccepted(row,candidate,next.resolvedPropertyType)))throw new Error('INELIGIBLE_CANDIDATE');
   row.decision={action:action.action,evidenceHash:row.evidenceHash,candidateId:candidate?.candidateId??null,value:candidate?.normalizedValue??null,source:candidate?.sourceType??'USER_PROVIDED',sourceId:candidate?.sourceId??'dealSifter',unit:candidate?.normalizedUnit??row.projection.unit,status:candidate?.evidenceStatus??'UNKNOWN',freshness:candidate?.freshness??'UNKNOWN',year:candidate?.metadata?.year??null,by:userId,at:now,originalValue:row.originalValue};
   row.pending=action.action==='REVIEW_LATER';
-  if(!row.pending){row.currentCandidate=candidate??null;row.currentValue=candidate?.normalizedValue??null;row.effective={value:row.decision.value,unit:row.decision.unit,state:'AVAILABLE',sourceType:row.decision.source,sourceId:row.decision.sourceId,status:row.decision.status,freshness:row.decision.freshness,year:row.decision.year,adopted:true,userConfirmed:action.action==='KEEP_MY_VALUE'&&row.decision.source==='USER_PROVIDED'};}
+  if(!row.pending){row.currentCandidate=candidate??null;row.currentValue=candidate?.normalizedValue??null;row.effective={value:row.decision.value,unit:row.decision.unit,state:'AVAILABLE',sourceType:row.decision.source,sourceId:row.decision.sourceId,status:row.decision.sourceId==='dealSifter-publisher-declaration'?'PUBLISHER_DECLARED':row.decision.status,freshness:row.decision.freshness,year:row.decision.year,adopted:true,userConfirmed:action.action==='KEEP_MY_VALUE'&&row.decision.source==='USER_PROVIDED'&&row.decision.sourceId!=='dealSifter-publisher-declaration'};}
  }
  next.summary=actionableReview(next).summary;
  return next;

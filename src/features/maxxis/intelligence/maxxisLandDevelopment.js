@@ -54,7 +54,7 @@ export function resolveLocalLandDevelopment({ property, propertyId = property?.i
   const assumptionSnapshot = { ...snapshot, propertyId, propertyFacts: { ...snapshot.propertyFacts, ...property },
     dealAssumptions: { ...snapshot.dealAssumptions, ...storedAssumptions, ...resolution.scenario.assumptions } };
   assumptionSnapshot.dealDecisionContext = buildDealDecisionContext(assumptionSnapshot);
-  const zoningText = zoning ? t(`Zoneamento ${zoning}: premissa informada pelo usuário, não verificação legal.${zoningConflict ? ` Diverge do registro: ${canonicalZoning}.` : ''}`,
+  const zoningText = zoning&&property.publisherDeclaredZoning===zoning?t(`Zoneamento ${zoning}: informado pelo publicador; parâmetros municipais ainda não verificados.`,`Zoning ${zoning}: declared by the publisher; municipal parameters not yet verified.`,`Zonificación ${zoning}: informada por el publicador; parámetros municipales aún no verificados.`):zoning ? t(`Zoneamento ${zoning}: premissa informada pelo usuário, não verificação legal.${zoningConflict ? ` Diverge do registro: ${canonicalZoning}.` : ''}`,
     `Zoning ${zoning}: user-provided assumption, not legal verification.${zoningConflict ? ` Conflicts with record: ${canonicalZoning}.` : ''}`,
     `Zonificación ${zoning}: supuesto aportado por el usuario, no verificación legal.${zoningConflict ? ` Difiere del registro: ${canonicalZoning}.` : ''}`) : '';
   return { content: [zoningText, content].filter(Boolean).join('\n\n'), type: 'deal_scenario', data: { propertyId, scenario: resolution.scenario,

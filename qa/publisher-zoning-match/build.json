@@ -1,0 +1,33 @@
+{
+  "pass": true,
+  "baseline": "60a4e228514d0ca7b1ca428d2666cd60407bb800",
+  "delta": [
+    "src/App.css",
+    "src/App.jsx",
+    "src/components/map/PropertyPinPopup.css",
+    "src/components/maxxis/MaxxisAssistant.jsx",
+    "src/components/ui/ModuleLoadingState.jsx",
+    "src/components/ui/RecoverableModule.test.jsx",
+    "src/features/maxxis/intelligence/maxxisLandDevelopment.js",
+    "src/features/maxxis/proactive/maxxisProactiveTriggerEngine.js",
+    "src/features/maxxis/proactive/maxxisProactiveTriggerEngine.test.js",
+    "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+    "src/lib/lazyWithRetry.jsx",
+    "src/lib/moduleLoadError.js",
+    "src/lib/moduleResource.js",
+    "src/lib/moduleResource.test.js",
+    "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+    "src/components/ui/AppLoadingScreen.jsx",
+    "src/features/propertyFacts/PublisherZoningConfirmation.jsx",
+    "src/features/propertyFacts/PublisherZoningConfirmation.test.jsx",
+    "src/features/propertyFacts/publisherZoning.js",
+    "supabase/functions/_shared/property-fact-reconciliation/publisherZoning.test.ts"
+  ],
+  "startedAt": "2026-10-16T02:45:57.661Z",
+  "finishedAt": "2026-10-16T02:58:50.151Z",
+  "modernAndLegacy": true,
+  "sentryUpload": false,
+  "mode": "COMPLETE_CURRENT_INTEGRATION_ISOLATED_BUILD"
+}

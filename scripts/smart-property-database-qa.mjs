@@ -80,6 +80,24 @@ try{
    assert.equal((await db.query("select count(*)::int n from notifications where payload->>'property_id'=$1",[mixedId])).rows[0].n,1);
   });
  }
+ if(process.env.SMART_PROPERTY_PUBLISHER_ZONING_QA==='1'){
+  const {runPropertyFactReview}=await import('../supabase/functions/_shared/property-fact-reconciliation/runtime.ts');
+  const zoningId='77777777-7777-4777-8777-777777777777';
+  await db.exec("reset role;set role service_role;set request.jwt.claim.role='service_role';");
+  await db.query('insert into properties(id,owner_id) values($1,$2)',[zoningId,a]);
+  const deps={userId:a,loadOwnedProperty:async()=>({id:zoningId,owner_id:a,address:'100 QA Land',city:'QA',state:'AL',zip:'35126',type:'Land'}),
+   loadReview:async()=>{const result=await db.query('select state,revision from property_fact_reviews where property_id=$1 and owner_id=$2',[zoningId,a]);const row=result.rows[0];return row?{...row,revision:Number(row.revision)}:null;},
+   acquire:async()=>{throw new Error('DECLARATION_MUST_NOT_ACQUIRE');},store:async(id,owner,revision,state,facts,notify)=>Number((await db.query('select ds_store_property_fact_review($1,$2,$3,$4::jsonb,$5::jsonb,$6) revision',[id,owner,revision,JSON.stringify(state),JSON.stringify(facts),notify])).rows[0].revision)};
+  await pass('publisher-zoning-explicit-declaration-sql-persistence',async()=>{const result=await runPropertyFactReview({propertyId:zoningId,action:'DECLARE_ZONING',revision:0,declaredZoning:'R2'},deps);assert.equal(result.snapshot.rows.zoning.effective.status,'PUBLISHER_DECLARED');});
+  await db.exec(`reset role;set role authenticated;set request.jwt.claim.role='authenticated';set request.jwt.claim.sub='${b}';`);
+  await pass('other-user-reads-qualified-shared-zoning-without-owner-private-history',async()=>{
+   const facts=(await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[zoningId]])).rows[0].facts;
+   assert.equal(facts.zoning.value,'R2');assert.equal(facts.zoning.status,'PUBLISHER_DECLARED');assert.equal(facts.zoning.sourceType,'USER_PROVIDED');assert(!JSON.stringify(facts).includes(a));
+   assert.equal((await db.query('select count(*)::int n from property_fact_review_history where property_id=$1',[zoningId])).rows[0].n,0);
+  });
+  await db.exec('reset role;');
+  await pass('unpublished-shared-zoning-is-not-public',async()=>{await db.query('update properties set publish_to_showcase=false where id=$1',[zoningId]);assert.equal((await db.query('select * from ds_public_effective_property_facts($1::uuid[])',[[zoningId]])).rows.length,0);});
+ }
  await writeFile(`${process.env.SMART_PROPERTY_QA_DIRECTORY||'qa/smart-property-enrichment'}/security-validation.json`,JSON.stringify({pass:true,mode:'LOCAL_REAL_POSTGRES_PGLITE',productionWrites:0,checks},null,2)+'\n');
  console.log(JSON.stringify({pass:true,checks:checks.length}));
 }finally{await db.close();}

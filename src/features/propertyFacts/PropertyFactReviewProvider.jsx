@@ -73,7 +73,16 @@ export function PropertyFactReviewProvider({userId='',properties=[],publicProper
   })();pendingMutations.current.set(key,task);void task.finally(()=>{if(pendingMutations.current.get(key)===task)pendingMutations.current.delete(key);}).catch(()=>null);return task;
  },[userId,ownedProperties,read,accept]);
  const defer=useCallback(id=>mutate(id,'DEFER'),[mutate]);
+ const declareZoning=useCallback(async(id,value)=>{
+  if(!ownedProperties.has(String(id)))throw new Error('PROPERTY_OWNER_REQUIRED');
+  const key=`${userId}:${id}`;if(pendingMutations.current.has(key))throw new Error('REVIEW_IN_PROGRESS');
+  const task=(async()=>{const basis=recordsRef.current[id]||await read(id);
+   const result=await requestPropertyFactReview(userId,id,'DECLARE_ZONING',{revision:basis?.revision??0,...(basis?.snapshot?{evidenceHash:basis.snapshot.evidenceHash}:{}),declaredZoning:value});
+   if(result?.propertyId!==id||!result.snapshot||!Number.isInteger(result.revision))throw new Error('INVALID_REVIEW_RESPONSE');
+   accept(result,userId);return result;
+  })();pendingMutations.current.set(key,task);try{return await task;}finally{if(pendingMutations.current.get(key)===task)pendingMutations.current.delete(key);}
+ },[ownedProperties,userId,read,accept]);
  const facts=useMemo(()=>({...((publicState.actor===userId)?publicState.facts:{}),...Object.fromEntries(Object.entries(records).filter(([,record])=>record.snapshot).map(([id,record])=>[id,publicEffectiveFacts(record.snapshot)]))}),[publicState,userId,records]);
- const value=useMemo(()=>({userId,records,facts,ownedProperties,open,read,check,mutate,defer,request:request?.actor===userId?request:null,consumeRequest,notice:notice?.actor===userId?notice:null,dismissNotice:()=>setNotice(null)}),[userId,records,facts,ownedProperties,open,read,check,mutate,defer,request,consumeRequest,notice]);
+ const value=useMemo(()=>({userId,records,facts,ownedProperties,open,read,check,mutate,defer,declareZoning,request:request?.actor===userId?request:null,consumeRequest,notice:notice?.actor===userId?notice:null,dismissNotice:()=>setNotice(null)}),[userId,records,facts,ownedProperties,open,read,check,mutate,defer,declareZoning,request,consumeRequest,notice]);
  return <PropertyFactReviewContext.Provider value={value}>{children}</PropertyFactReviewContext.Provider>;
 }

@@ -1,0 +1,128 @@
+{
+  "pass": true,
+  "sourceFreezeVerified": true,
+  "sources": [
+    {
+      "path": "src/App.css",
+      "sha256": "eea5d0d7dff0d48c20fbfd2a94ac049044fcd95869920d73f1a5784a462eaf6c",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/App.jsx",
+      "sha256": "dedb630b0a1485b8213267ba3b05520aa6658b6d9080d6e6fb6b42c50aa40520",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/components/map/PropertyPinPopup.css",
+      "sha256": "40e9c8f2e64eae158b4e05de9ed9b1e99d64ff6366da85e9d38dcb73fbc6f153",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/components/maxxis/MaxxisAssistant.jsx",
+      "sha256": "1418eb58003df01aff0c0948708395725977ed6ef62a957cef9c545571b170d8",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/components/ui/ModuleLoadingState.jsx",
+      "sha256": "9629663b2431a61f9104481dad60fb661eadcf0362e6fe1414b47c0a6da2e588",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/components/ui/RecoverableModule.test.jsx",
+      "sha256": "78e4853c62f32966578582904125ecae7d95b9cbf51308aa7eede3d2eebb55eb",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisLandDevelopment.js",
+      "sha256": "129712fad28cc9df046016f7793de2d3d578ba75673638cd17f7eb8c744f2f26",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/maxxis/proactive/maxxisProactiveTriggerEngine.js",
+      "sha256": "bc748f8a6e0043c0b41e39159f70ea0ef9de0e440145b14f73f512002cc9dd88",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/maxxis/proactive/maxxisProactiveTriggerEngine.test.js",
+      "sha256": "3aca2dfc1eedf376ffb6967698b6252b3f7b0202a19a81c832e80f4c99484195",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "sha256": "aaa5b212a6160fa78f0db29129ec8aa21ba71415e5566a6f2e7bc19652c6c8e8",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/lib/lazyWithRetry.jsx",
+      "sha256": "6ddad6e0919dfcd93a573b81784fbb3a0844edbb0535d9d4985e3c16a81a88f3",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/lib/moduleLoadError.js",
+      "sha256": "46c6cd5c5fd4dd535d816124d4176b095ff3cea8d0cf26e46e26926fcd6af2b6",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/lib/moduleResource.js",
+      "sha256": "d5aa028cb6514b9668641ad9b62546ff830e96952961f786298c104889a71e36",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/lib/moduleResource.test.js",
+      "sha256": "064d29ecd38042603b0215b968382b3e329c7e092e35be699bcce443bbfa23ce",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+      "sha256": "73ca16387f258e1d4a5b0f9c3cd20db47c2377a7d69ac1eb0d13ebfadea370f0",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "sha256": "bb5c3d15a6c0f4e310872e619ede62ec8382050a010c1e65dd2fa6262c786539",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+      "sha256": "ec2d33cc945087d3e96393f48e808b4a8ca190001245cf83066a6c22f6625b32",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/components/ui/AppLoadingScreen.jsx",
+      "sha256": "62797685125c0ac061ff83b21f82ec5738b2da659f627ca5217730ba9c574e00",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/propertyFacts/PublisherZoningConfirmation.jsx",
+      "sha256": "d917fad271e57d1e7db73420c77199c0e97b35e5c4c7148e43e9f1b854649588",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/propertyFacts/PublisherZoningConfirmation.test.jsx",
+      "sha256": "bd4d3b0f2b5799b9107893d1ac32415b64657c05830ad337b69e5daac70efcfe",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "src/features/propertyFacts/publisherZoning.js",
+      "sha256": "26ffd8ae242eeca7b942b8e90b8cd38beb52750dc609e9ab67687cf652a1f9c6",
+      "equalsBuiltStage": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/publisherZoning.test.ts",
+      "sha256": "8dca3a5427b27dd69d6c8268062fcb77275ac5e40b8e233332fe2a28313b1f8c",
+      "equalsBuiltStage": true
+    }
+  ],
+  "tests": 2196,
+  "browserCases": 4,
+  "loadingCases": 2,
+  "lint": {
+    "command": "eslint src --max-warnings=0",
+    "exitCode": 0
+  },
+  "frontendTypecheck": {
+    "command": "tsc -p tsconfig.contracts.json",
+    "exitCode": 0
+  },
+  "backendTypecheck": "BASELINE_COMPARISON_ZERO_NEW_DIAGNOSTICS_NOT_A_CLEAN_CHECK"
+}

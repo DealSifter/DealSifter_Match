@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLang } from '../../i18n/translations';
 import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
 import {factCopy} from '../../features/propertyFacts/copy';
+import {PublisherZoningConfirmation} from '../../features/propertyFacts/PublisherZoningConfirmation';
+import {withPublisherZoning} from '../../features/propertyFacts/publisherZoning';
 import { getSafeLang, localizePresentationText } from '../../services/chatTranslation';
 import { buildDegradedEvidenceContinuation } from '../../features/maxxis/intelligence/degradedEvidenceContinuation';
 import { prepareReportNarrativePresentation } from '../../features/maxxis/presentation/reportNarrativePresentation';
@@ -1171,7 +1173,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         content: language === 'pt' ? 'O imóvel selecionado mudou. Solicite o relatório novamente para o imóvel atual.' : language === 'es' ? 'La propiedad seleccionada cambió. Solicita el informe de nuevo para la propiedad actual.' : 'The selected property changed. Request the report again for the current property.' }]);
       return;
     }
-    const developmentProperty = messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId);
+    const developmentProperty = withPublisherZoning(messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId),factReview?.facts[resolvedSubmitPropertyId]);
     const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
       explicitReportType: meta.reportType,
       hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),
@@ -1185,7 +1187,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       property: developmentProperty, pendingGap, requestedReportType: inferredReportType, previousIntent: conversationIntentRef.current,
     });
     if (conversationRoute.code !== MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE) conversationIntentRef.current = conversationRoute.code;
-    let storedLandAssumptions = developmentProperty?.dealAssumptions || {};
+    let storedLandAssumptions = { ...(developmentProperty?.publisherDeclaredZoning?{zoning:developmentProperty.publisherDeclaredZoning,zoningSource:'USER_PROVIDED'}:{}),...developmentProperty?.dealAssumptions };
     if (!inferredReportType && runtimeStrategy(developmentProperty) === 'LAND' && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
       const row = await readMaxxisAnalysisInputs(resolvedSubmitPropertyId).catch(() => null);
       storedLandAssumptions = { ...storedLandAssumptions, ...row?.deal_assumptions };
@@ -2526,13 +2528,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const contextualTriggers = useMemo(() => {
     if (!proactiveEnabled || !enabled || !userPreferencesHydrated) return [];
-    const property = propertyCandidates.find((item) => String(item.id || item.propertyId) === String(activePropertyContextId))
-      || { id: activePropertyContextId };
+    const property = withPublisherZoning(propertyCandidates.find((item) => String(item.id || item.propertyId) === String(activePropertyContextId))
+      || { id: activePropertyContextId },factReview?.facts[activePropertyContextId]);
     const context = resolveMaxxisProactiveContext({ property, propertyId: activePropertyContextId, messages });
     return buildMaxxisProactiveTriggers({ ...context, language, accountKey: sessionKey,
       intensity: effectiveMaxxisPreferences.proactiveIntensity });
   }, [activePropertyContextId, effectiveMaxxisPreferences.proactiveIntensity, enabled, language, messages,
-    proactiveEnabled, propertyCandidates, sessionKey, userPreferencesHydrated]);
+    proactiveEnabled, propertyCandidates, sessionKey, userPreferencesHydrated,factReview?.facts]);
 
   useEffect(() => {
     const bubble = proactiveBubble || pendingProactiveBubble;
@@ -3417,6 +3419,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   activeAnalysisGapId={activeAnalysisGapId}
                 />
                 {message.role==='assistant'&&typeof message.data?.reviewField==='string'&&factReview?.ownedProperties.has(String(message.data.propertyId))?<button type="button" className="maxxis-smart-action-chip" onClick={()=>factReview.open(message.data.propertyId,message.data.reviewField)}>{factCopy(language).review}</button>:null}
+                {message.role==='assistant'&&message.data?.inputsToPersist?.zoning?<PublisherZoningConfirmation propertyId={message.data.propertyId} value={message.data.inputsToPersist.zoning} language={language}/>:null}
                 {message.data?.proactiveTrigger && smartActions.length > 0 ? (
                   <button type="button" className="maxxis-smart-action-chip" onClick={() => {
                     const trigger = message.data.proactiveTrigger;

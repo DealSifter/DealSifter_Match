@@ -11,6 +11,7 @@ import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import { AppLoadingScreen } from './components/ui/AppLoadingScreen';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { canPrefetchModule } from './lib/moduleResource';
 const safeSessionRemove = (key) => {
@@ -28,15 +29,15 @@ const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then
 const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
 const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
 const PAGE_MODULES = { landing:Landing, dashboard:Dashboard, matches:MatchesPage, onboarding:Onboarding, pricing:Pricing, mapview:MapView, settings:Settings, admin:AdminDashboard, terms:TermsPage, privacy:PrivacyPolicyPage };
-const MaxxisAssistant = lazyWithRetry(() => import('./components/maxxis/MaxxisAssistant').then((m) => ({ default: m.MaxxisAssistant })), 'maxxis-assistant');
+const MaxxisAssistant = lazyWithRetry(() => import('./components/maxxis/MaxxisAssistant').then((m) => ({ default: m.MaxxisAssistant })), 'maxxis-assistant', { silent:true, overlay:true });
 import { UnlockModal } from './components/modals/UnlockModal';
 import { SpotlightModal } from './components/modals/SpotlightModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
 const AdminLoginModal = lazyWithRetry(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })), 'admin-login');
 const EmbeddedCheckoutModal = lazyWithRetry(() => import('./components/modals/EmbeddedCheckoutModal').then((m) => ({ default: m.EmbeddedCheckoutModal })), 'embedded-checkout');
 import { ToastContainer } from './components/ui/Toast';
-const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
-const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
+const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent', { silent:true, overlay:true });
+const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie', { silent:true, overlay:true });
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
@@ -699,20 +700,6 @@ const canonicalUnlockedContactToFeedCard = (entry) => {
     unlockedAt: entry.unlockedAt || entry.unlocked_at || null,
   };
 };
-
-const AppLoadingScreen = ({ message = 'Loading DealSifter...', overlay = false, label }) => (
-  <div
-    className={overlay ? 'ds-processing-overlay' : 'ds-app-boot-screen'}
-    role="status"
-    aria-live="polite"
-    aria-label={label || message}
-  >
-    <div className="ds-processing-card">
-      <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
-      <div className="ds-processing-text">{message}</div>
-    </div>
-  </div>
-);
 
 const MobilePortraitGuard = ({ copy }) => (
   <div
@@ -6072,7 +6059,7 @@ export default function App() {
           </div>
         )}
 
-        {showBlockingProcessing && (
+        {!isAppShellBooting && showBlockingProcessing && (
           <AppLoadingScreen message={blockingProcessingMessage} overlay label={blockingProcessingMessage} />
         )}
 

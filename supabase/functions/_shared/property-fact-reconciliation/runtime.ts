@@ -9,13 +9,24 @@ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]
 export async function runPropertyFactReview(input:unknown,deps:Dependencies){
  const body=input&&typeof input==='object'&&!Array.isArray(input)?input as Record<string,unknown>:{};
  const id=String(body.propertyId||''),action=String(body.action||'READ');
- if(Object.keys(body).some(key=>!['propertyId','action','revision','evidenceHash','decisions','cacheOnly','force','parcelEvidenceReceipt'].includes(key)))throw new Error('INVALID_REVIEW_REQUEST');
- if(!deps.userId||!UUID.test(id)||!['READ','CHECK','DECIDE','ACCEPT_ALL','DEFER'].includes(action))throw new Error('INVALID_REVIEW_REQUEST');
+ if(Object.keys(body).some(key=>!['propertyId','action','revision','evidenceHash','decisions','cacheOnly','force','parcelEvidenceReceipt',...(action==='DECLARE_ZONING'?['declaredZoning']:[])].includes(key)))throw new Error('INVALID_REVIEW_REQUEST');
+ if(!deps.userId||!UUID.test(id)||!['READ','CHECK','DECIDE','ACCEPT_ALL','DEFER','DECLARE_ZONING'].includes(action))throw new Error('INVALID_REVIEW_REQUEST');
  const property=await deps.loadOwnedProperty(id,deps.userId);if(!property||String(property.id)!==id||property.owner_id!==deps.userId)throw new Error('PROPERTY_OWNER_REQUIRED');
  const previous=await deps.loadReview(id,deps.userId);
  if(action==='READ')return {propertyId:id,snapshot:previous?.state??null,revision:previous?.revision??0};
  let next:ReviewSnapshot;
  if(action==='CHECK'){next=await reconcilePropertyFacts(property,await deps.acquire(property,previous?.state??null,body.parcelEvidenceReceipt,body.force===true),previous?.state??null);next.publicCheckedAt=body.cacheOnly===true?previous?.state.publicCheckedAt??null:next.checkedAt;}
+ else if(action==='DECLARE_ZONING'){
+  if(body.revision!==(previous?.revision??0)||previous&&body.evidenceHash!==previous.state.evidenceHash)throw new Error('FACT_REVIEW_STALE');
+  const value=typeof body.declaredZoning==='string'?body.declaredZoning.normalize('NFKC').trim().toUpperCase():'';
+  if(!/^[\p{L}\p{N}][\p{L}\p{N} ._()/-]{0,79}$/u.test(value))throw new Error('INVALID_ZONING_DECLARATION');
+  const cached=previous?Object.values(previous.state.rows).flatMap(row=>row.projection.candidates.filter(c=>c.sourceFamily!=='PUBLISHER')):[];
+  const basis=await reconcilePropertyFacts(property,cached,previous?.state??null);
+  const prepared=structuredClone(basis);prepared.publisherDeclarations={zoning:{value,by:deps.userId,at:new Date().toISOString(),identityHash:basis.identityHash}};
+  prepared.rows.zoning.currentCandidate=null;prepared.rows.zoning.decision=null;
+  next=await reconcilePropertyFacts(property,cached,prepared);
+  next.publicCheckedAt=previous?.state.publicCheckedAt??null;
+ }
  else{
   if(!previous||body.revision!==previous.revision||body.evidenceHash!==previous.state.evidenceHash)throw new Error('FACT_REVIEW_STALE');
   const cached=Object.values(previous.state.rows).flatMap(row=>row.projection.candidates.filter(c=>c.sourceFamily!=='PUBLISHER'));

@@ -14,6 +14,20 @@ const options = (memory = createMaxxisProactiveSessionMemory()) => ({ config: { 
   contextSnapshot: { property: { id: property.id } }, sessionMemory: memory });
 
 describe('Contextual proactivity over existing deterministic intelligence', () => {
+  it('reuses publisher-declared R2 across accounts without repeating zoning/allowed-use questions or granting legal permission',()=>{
+    const land={id:'land-shared',type:'Land',publisherDeclaredZoning:'R2',lot:'1 ac'};
+    const context=resolveMaxxisProactiveContext({property:land});
+    expect(context.snapshot.dealAssumptions).toMatchObject({zoning:'R2',zoningSource:'USER_PROVIDED'});
+    expect(context.decisionContext.decisionGaps.some(gap=>gap.field==='zoning')).toBe(false);
+    expect(context.decisionContext.decisionGaps.some(gap=>gap.field==='allowed_use')).toBe(true);
+    const triggers=buildMaxxisProactiveTriggers({...context,language:'pt'});
+    expect(triggers.filter(trigger=>trigger.type==='LAND_INPUT').every(trigger=>!['zoning','allowed_use'].includes(trigger.evidence.gap.field))).toBe(true);
+    expect(context.snapshot.propertyFacts.zoning).toBeUndefined();expect(context.snapshot.propertyFacts.allowedUse).toBeUndefined();
+  });
+  it('keeps another users explicit private zoning assumption separate from the shared declaration',()=>{
+    const context=resolveMaxxisProactiveContext({property:{id:'land-shared',type:'Land',publisherDeclaredZoning:'R2',dealAssumptions:{zoning:'R3'}}});
+    expect(context.snapshot.dealAssumptions.zoning).toBe('R3');expect(context.property.publisherDeclaredZoning).toBe('R2');
+  });
   it('passes a concrete trigger through experience orchestration to a real bubble', () => {
     const trigger = selectMaxxisProactiveTrigger(input());
     const result = orchestrateMaxxisExperience({ maxxisEnabled: true, maxxisOpen: false, proactiveSignal: trigger,

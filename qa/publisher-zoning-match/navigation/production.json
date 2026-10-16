@@ -1,0 +1,17 @@
+{
+  "baseURL": "https://dealsiftermatch.vercel.app",
+  "pass": true,
+  "productionUserSession": false,
+  "realBackendWrites": 0,
+  "mode": "REAL_FRONTEND_SYNTHETIC_AUTH_BACKEND",
+  "results": [
+    {
+      "freshDocument": false,
+      "target": "E2E Provider e2e-mvadil80",
+      "personViewInFeed": true,
+      "spotlightTabReturn": true,
+      "errors": [],
+      "failedAssets": []
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { ModuleLoadingState } from '../components/ui/ModuleLoadingState';
 import { createModuleResource } from './moduleResource';
 import { captureAppException } from './observability';
 
-export function lazyWithRetry(importer, key, { overlay = false } = {}) {
+export function lazyWithRetry(importer, key, { overlay = false, silent = false } = {}) {
   const resource = createModuleResource(importer, { report:(error, info) => captureAppException(error, { area:'module_loading', module:key, ...info }) });
   let currentType = lazy(() => resource.load());
   function RecoverableModule(props) {
@@ -15,7 +15,7 @@ export function lazyWithRetry(importer, key, { overlay = false } = {}) {
       setGeneration(previous => ({ Imported:currentType, revision:previous.revision + 1 }));
     };
     return <ErrorBoundary scope={key} compact overlay={overlay} resetKey={revision} onRetry={retry}>
-      <Suspense fallback={<ModuleLoadingState overlay={overlay} />}><Imported {...props} /></Suspense>
+      <Suspense fallback={silent ? null : <ModuleLoadingState overlay={overlay} />}><Imported {...props} /></Suspense>
     </ErrorBoundary>;
   }
   RecoverableModule.displayName = `Module(${key})`;

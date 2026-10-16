@@ -64,7 +64,7 @@ export function resolveMaxxisProactiveContext({ property = {}, propertyId = prop
   const base = stale ? {} : loaded;
   if (stale) facts = { ...property, id: propertyId };
   if (stale) { latestScenario = null; previousScenario = null; }
-  const assumptions = { ...object(latestScenario?.assumptions), ...object(base.dealAssumptions?.activeScenario?.assumptions), ...object(base.dealAssumptions), ...object(property.dealAssumptions) };
+  const assumptions = { ...(property.publisherDeclaredZoning?{zoning:property.publisherDeclaredZoning,zoningSource:'USER_PROVIDED'}:{}),...object(latestScenario?.assumptions), ...object(base.dealAssumptions?.activeScenario?.assumptions), ...object(base.dealAssumptions), ...object(property.dealAssumptions) };
   const benchmark = estimateRehabBenchmark2026({ state: facts.state, livingAreaSqft: facts.sqft, condition: assumptions.targetCondition || facts.targetCondition });
   const resolved = { ...base, propertyId, propertyFacts: facts, dealAssumptions: assumptions,
     rehabAnalysis: base.rehabAnalysis || { value: facts.rehab ?? facts.estimatedRehab, benchmark,
@@ -201,7 +201,10 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
     amortization_months: ['amortizationMonths', 'amortizationYears'], balloon_months: ['balloonMonths', 'balloonMonth', 'balloonYears'],
     term_months: ['termMonths', 'termYears', 'amortizationMonths', 'amortizationYears'], operating_expenses: ['operatingExpenses', 'noi'],
     arrears: ['arrears', 'reinstatement'], reinstatement: ['arrears', 'reinstatement'] };
-  const gap = list(strategyFields[strategy]).map((field) => gaps.find((item) => item.field === field
+  // A known zoning code is the entry point to the local rules. Do not repeatedly ask
+  // for a generic allowed use after receiving it; the legal-use gap stays in DecisionContext.
+  const knownZoning=present(assumptions.zoning)||present(property.zoning)||present(snapshot.propertyFacts?.zoning)||present(snapshot.propertyFacts?.publisherDeclaredZoning);
+  const gap = list(strategyFields[strategy]).filter(field=>!(strategy==='LAND'&&knownZoning&&['zoning','allowed_use'].includes(field))).map((field) => gaps.find((item) => item.field === field
     && !list(aliases[field]).some((key) => present(assumptions[key])))).find(Boolean);
   const holdReady = positive(asking) && positive(rentReference || rentAssumption) && (present(property.annualPropertyTax)
     || list(decision.verifiedEvidence).some((datum) => datum.key === 'annualPropertyTax'));

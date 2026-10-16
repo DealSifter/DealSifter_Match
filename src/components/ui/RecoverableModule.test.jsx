@@ -18,8 +18,17 @@ describe('scoped module recovery', () => {
   it('shows loading without hiding sibling navigation; shares a prefetched result', async () => {
     let finish; const importer=vi.fn(()=>new Promise(resolve=>{finish=resolve;})); const Module=lazyWithRetry(importer,'map');
     const preload=Module.preload(); render(<><button>Navigation</button><Module /></>);
-    expect(screen.getByRole('status').textContent).toBe('Loading this module…'); expect(screen.getByText('Navigation')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Loading this module…');expect(screen.getByRole('img',{name:'DealSifter'}).className).toBe('ds-processing-logo'); expect(screen.getByText('Navigation')).toBeTruthy();
     finish({default:()=> <div>Loaded module</div>}); await preload; await screen.findByText('Loaded module'); expect(importer).toHaveBeenCalledOnce();
+  });
+  it('does not show a competing page loader for auxiliary modules',async()=>{
+    let finishPage,finishAssistant;
+    const Page=lazyWithRetry(()=>new Promise(resolve=>{finishPage=resolve;}),'page');
+    const Assistant=lazyWithRetry(()=>new Promise(resolve=>{finishAssistant=resolve;}),'assistant',{silent:true,overlay:true});
+    render(<><button>Navigation</button><Page/><Assistant/></>);
+    expect(screen.getAllByRole('status')).toHaveLength(1);expect(screen.getAllByRole('img',{name:'DealSifter'})).toHaveLength(1);
+    finishPage({default:()=> <div>Loaded page</div>});await screen.findByText('Loaded page');
+    expect(screen.queryByRole('status')).toBeNull();finishAssistant({default:()=> <div>Loaded assistant</div>});await screen.findByText('Loaded assistant');
   });
   it('recreates a rejected lazy type on manual retry without reloading the app', async () => {
     vi.spyOn(console,'error').mockImplementation(()=>{}); setLang('pt');

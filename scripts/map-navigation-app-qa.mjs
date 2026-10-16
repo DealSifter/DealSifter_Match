@@ -26,7 +26,7 @@ try {
       sessionStorage.setItem('ds_mapview_ui_state_v1',JSON.stringify({showPeople:false,showProperties:true,panelCollapsed:true,viewport:{center:[35.92113,-78.58355],zoom:15}}));
       localStorage.removeItem('ds_last_error_boundary');
     });
-    const backend=await setupMockSupabase(context,{propertyOverrides:{hide_street_address_on_card:false,address:'QA map property',lat:35.92113,lng:-78.58355,geocode_status:'resolved',geocode_source:'explicit-qa-fixture',geocoded_at:'2026-10-13T00:00:00Z'}});
+    const backend=await setupMockSupabase(context,{propertyOverrides:{hide_street_address_on_card:false,address:'QA map property',...(process.env.MAP_QA_PROPERTY_TYPE?{type:process.env.MAP_QA_PROPERTY_TYPE,beds:null,baths:null,rehab:null}:{}),lat:35.92113,lng:-78.58355,geocode_status:'resolved',geocode_source:'explicit-qa-fixture',geocoded_at:'2026-10-13T00:00:00Z'}});
     // A production frontend can be tested without a real session or DB write.
     // The known backend is fully mocked; all other Supabase projects are denied.
     await context.route('**/*.supabase.co/**',route=>route.request().url().startsWith(process.env.E2E_SUPABASE_URL)?route.fallback():route.abort());
@@ -35,7 +35,7 @@ try {
     await loginAs(page,backend.users.investor);
     const guide=page.getByRole('dialog',{name:/DealSifter Guide/i});if(await guide.isVisible())await guide.getByRole('button',{name:/Close guide/i}).click();
     const transitions=[];
-    for(const module of ['dashboard','matches','pricing','dashboard','matches']) {
+    for(const module of process.env.MAP_QA_PHOTO_HANDOFF==='1'?['dashboard']:['dashboard','matches','pricing','dashboard','matches']) {
       const mapEntryStarted=Date.now();
       await navigate(page,'mapview');
       const pin=page.locator('.leaflet-marker-icon.map-pin-wrapper').first();await expect(pin).toBeVisible({timeout:60000});
@@ -45,7 +45,13 @@ try {
       if(transitions.length%2===0)await page.waitForTimeout(700);
       const nativeZoomInFlight=transitions.length%2===1;
       if(nativeZoomInFlight){await page.locator('.leaflet-control-zoom-in').click();await page.waitForTimeout(75);}
-      const exitStarted=Date.now();await navigate(page,module);const moduleEntryObservedMs=Date.now()-exitStarted;
+      const exitStarted=Date.now();
+      if(process.env.MAP_QA_PHOTO_HANDOFF==='1'){
+        await page.locator('.ds-property-pin-photo').click();
+        try{await expect(page.getByTestId('dashboard-root')).toBeVisible({timeout:30000});await expect(page.getByTestId('dashboard-root')).toContainText('QA map property',{timeout:30000});await page.waitForTimeout(1500);}
+        catch(error){await writeFile(`${output}/${device}-photo-failure.json`,JSON.stringify({errors,boundary:await page.evaluate(()=>localStorage.getItem('ds_last_error_boundary')),mode:'PUBLIC_FRONTEND_SYNTHETIC_AUTH_BACKEND'},null,2)+'\n');throw error;}
+      }else await navigate(page,module);
+      const moduleEntryObservedMs=Date.now()-exitStarted;
       await page.waitForTimeout(400);
       expect(await page.evaluate(()=>localStorage.getItem('ds_last_error_boundary'))).toBeNull();
       transitions.push({from:'mapview',to:module,pinSelected:true,nativeZoomInFlight,mapEntryObservedMs,moduleEntryObservedMs});

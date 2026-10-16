@@ -1,0 +1,27 @@
+{
+  "pass": true,
+  "baseURL": "http://127.0.0.1:4182",
+  "productionUserSession": false,
+  "realBackendWrites": 0,
+  "mode": "REAL_FRONTEND_SYNTHETIC_AUTH_CONTROLLED_CHUNK_DELAY",
+  "results": [
+    {
+      "device": "desktop",
+      "timeoutInjected": false,
+      "oneAnimatedPageLoader": true,
+      "auxiliaryDoesNotCompete": true,
+      "scopedTimeoutRecovery": false,
+      "chunkNetworkRequests": 1,
+      "unexpectedErrors": []
+    },
+    {
+      "device": "mobile",
+      "timeoutInjected": true,
+      "oneAnimatedPageLoader": true,
+      "auxiliaryDoesNotCompete": true,
+      "scopedTimeoutRecovery": true,
+      "chunkNetworkRequests": 1,
+      "unexpectedErrors": []
+    }
+  ]
+}

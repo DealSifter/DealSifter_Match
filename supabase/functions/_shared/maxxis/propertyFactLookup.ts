@@ -155,7 +155,9 @@ export function buildPropertyFactLookupAnswer(message: unknown, languageInput: u
   for(const field of intent.fields){const key=effectiveAliases[field],fact=record(effective[key]);
     if(fact.state==='AVAILABLE'&&(fact.adopted||fact.status==='USER_CONFIRMED'||fact.sourceType!=='USER_PROVIDED'||projection.fields?.[key]?.analyticalUsability!=='CONFLICTED')){
       effectiveFields.add(field);const copy=factCopy(language) as {fields:Record<string,string>;source:string;staleSource:string},value=factValue(fact,key,language).replace(/[<>&]/g,(char:string)=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[char]!));
-      const chosen=language==='pt'?'Valor atualmente adotado no cadastro':language==='es'?'Valor actualmente adoptado en el registro':'Current value adopted in the listing';
+      const declared=key==='zoning'&&fact.sourceType==='USER_PROVIDED'&&fact.status==='PUBLISHER_DECLARED';
+      const chosen=declared?(language==='pt'?'Informado pelo publicador; parâmetros municipais ainda não verificados':language==='es'?'Informado por el publicador; parámetros municipales aún no verificados':'Declared by the publisher; municipal parameters not yet verified')
+       :language==='pt'?'Valor atualmente adotado no cadastro':language==='es'?'Valor actualmente adoptado en el registro':'Current value adopted in the listing';
       lines.push(`${copy.fields[key]}: ${value}${typeof fact.year==='number'?` · ${fact.year}`:''}. ${chosen}. ${copy.source}: ${factSource(fact.sourceType,language)}.${fact.freshness==='STALE_USABLE'?` ${copy.staleSource}.`:''}`);
     }
   }

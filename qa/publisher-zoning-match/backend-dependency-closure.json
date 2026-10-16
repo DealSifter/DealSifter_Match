@@ -1,0 +1,26 @@
+{
+  "baseline": "819af6faeada92fd4d1b7d7d6a178424db5f6e06",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+    "supabase/functions/_shared/property-fact-reconciliation/runtime.ts"
+  ],
+  "changedFunctionModules": [],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/propertyFactLookup.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+        "supabase/functions/_shared/property-fact-reconciliation/runtime.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

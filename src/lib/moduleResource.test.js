@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createModuleResource, canPrefetchModule } from './moduleResource';
 import { isModuleLoadError } from './moduleLoadError';
 
 const module = { default: () => null };
 const transport = () => new TypeError('Failed to fetch dynamically imported module');
+afterEach(()=>vi.useRealTimers());
 describe('module transport and single-flight recovery', () => {
   it('shares prefetch and foreground work, then caches only a valid loaded module', async () => {
     let finish; const importer=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));
@@ -42,11 +43,29 @@ describe('module transport and single-flight recovery', () => {
     const importer=vi.fn().mockResolvedValue({});
     await expect(createModuleResource(importer).load()).rejects.toThrow('MODULE_DEFAULT_EXPORT_MISSING'); expect(importer).toHaveBeenCalledOnce();
   });
-  it('does not let an old failed prefetch erase a new retry', async () => {
-    let fail; const importer=vi.fn().mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;})).mockResolvedValue(module);
+  it('reuses a physical import across resets rather than racing duplicate downloads', async () => {
+    let finish; const importer=vi.fn().mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
     const report=vi.fn(); const resource=createModuleResource(importer,{report}); const previous=resource.preload();
-    resource.reset(); expect(await resource.load()).toBe(module); fail(transport()); await previous;
-    expect(await resource.load()).toBe(module); expect(importer).toHaveBeenCalledTimes(2); expect(report).not.toHaveBeenCalled();
+    resource.reset(); const next=resource.load();finish(module);expect(await next).toBe(module);await previous;
+    expect(await resource.load()).toBe(module); expect(importer).toHaveBeenCalledOnce(); expect(report).not.toHaveBeenCalled();
+  });
+  it('ends a stuck download with scoped recovery, without background retry storms',async()=>{
+    vi.useFakeTimers();const importer=vi.fn(()=>new Promise(()=>{})),report=vi.fn(),wait=vi.fn();
+    const resource=createModuleResource(importer,{timeoutMs:1000,report,wait});
+    const failure=expect(resource.load()).rejects.toMatchObject({code:'MODULE_LOAD_TIMEOUT'});
+    await vi.advanceTimersByTimeAsync(1000);await failure;
+    expect(importer).toHaveBeenCalledOnce();expect(wait).not.toHaveBeenCalled();expect(report).toHaveBeenCalledOnce();
+    expect(isModuleLoadError(report.mock.calls[0][0])).toBe(true);expect(vi.getTimerCount()).toBe(0);
+  });
+  it('can explicitly recover a timed-out import when its original request finally finishes',async()=>{
+    vi.useFakeTimers();let finish;const importer=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));
+    const resource=createModuleResource(importer,{timeoutMs:1000});const failure=expect(resource.load()).rejects.toThrow('MODULE_LOAD_TIMEOUT');
+    await vi.advanceTimersByTimeAsync(1000);await failure;resource.reset();const retry=resource.load();finish(module);
+    expect(await retry).toBe(module);expect(importer).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0);
+  });
+  it('clears the deadline when an import completes promptly',async()=>{
+    vi.useFakeTimers();const report=vi.fn();expect(await createModuleResource(async()=>module,{report}).load()).toBe(module);
+    expect(vi.getTimerCount()).toBe(0);await vi.advanceTimersByTimeAsync(60_000);expect(report).not.toHaveBeenCalled();
   });
   it.each(['ChunkLoadError: Loading chunk 12 failed','Importing a module script failed.','Unable to preload CSS for /assets/module.css','error loading dynamically imported module'])('recognizes supported transport errors: %s', message => {
     expect(isModuleLoadError(new Error(message))).toBe(true);
