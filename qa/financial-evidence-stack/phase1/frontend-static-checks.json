@@ -1,0 +1,17 @@
+{
+  "checks": [
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "output": "",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "output": "",
+      "pass": true
+    }
+  ],
+  "pass": true
+}

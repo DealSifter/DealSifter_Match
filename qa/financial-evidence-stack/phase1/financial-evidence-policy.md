@@ -1,0 +1,13 @@
+# Operating evidence policy v1
+
+`financialEvidence.ts` separates actual/declared actual/public records, provider estimates, approved benchmarks, explicit investor assumptions, calculated (reserved), unavailable and not-applicable. No taxonomy replaces existing provider status; both class and original status/provenance survive.
+
+Per-domain tiers are explicit: contract/other actual income admit only actual evidence; market rent admits provider estimates only; investor rent admits investor assumptions only. Tax prefers actual records/declarations (conflicts block), then explicit scenario assumptions, provider estimates and approved benchmarks. Insurance prefers actual policy/quote, explicit assumption, approved benchmark. HOA prefers actual evidence, then explicit assumption. Vacancy/maintenance permit actual historical evidence, explicit assumptions, future approved benchmarks. Management/utilities/other expenses admit known actual expense or explicit assumption, no generic defaults.
+
+Actual observations conflict on differing values, units or year. Equivalent USD monthly/annual observations can agree only through known cadence. One source family repeated is not independent confirmation. KEEP/ACCEPT requires current proof and exact selected candidate. REVIEW_LATER is not authorization. Conflict history remains true even when an explicit effective input is usable.
+
+Annualization: MONTHLY×12, QUARTERLY×4, SEMIANNUAL×2, ANNUAL×1. UNKNOWN and ONE_TIME return null. Original cadence/value retained. Percentage inputs preserve an explicit scheduled-rent/effective-income basis; they are not annualized as dollars. Non-finite, negative, unsafe amount/annualization and percentages above 100 are blocked. Missing ≠ zero. Self-managed/no-HOA zero must be explicit.
+
+Freshness uses existing states; STALE_USABLE remains qualified, UNKNOWN never claims current verification. Expired/identity-mismatched/corrupt evidence is rejected. Every candidate requires source type/id/family/authority/status. Benchmarks require approved=true, dataset name, geography, year, method and source; no benchmark dataset/value is activated in production by this phase. No arbitrary insurance/vacancy/management/maintenance/tax-rate defaults exist in the stack.
+
+Resolver/adapter/answers are pure and import no network/database client. Only the existing authorized runtime loader performs bounded cached reads; nothing writes evidence or private assumptions. The full stack is not serialized to shared cache or reports. Financial answers serialize only the selected input summary/readiness, not internal proof/actor/history/alternatives.

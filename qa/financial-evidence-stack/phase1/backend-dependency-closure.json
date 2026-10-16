@@ -1,0 +1,58 @@
+{
+  "baseline": "144056b478032efc61378d99f94432273b0b7a76",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+    "supabase/functions/_shared/maxxis/financialEvidence.ts",
+    "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/financialEvidenceContext.ts",
+    "supabase/functions/_shared/maxxis/financialReadiness.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts",
+    "supabase/functions/_shared/maxxis/types.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/maxxis-chat/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/financialEvidence.ts",
+        "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/financialEvidenceContext.ts",
+        "supabase/functions/_shared/maxxis/financialReadiness.ts",
+        "supabase/functions/maxxis-chat/index.ts"
+      ]
+    },
+    {
+      "function": "maxxis-deal-workflow",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/financialEvidence.ts",
+        "supabase/functions/_shared/maxxis/financialReadiness.ts"
+      ]
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/financialEvidence.ts",
+        "supabase/functions/_shared/maxxis/financialReadiness.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/types.ts",
+        "supabase/functions/_shared/maxxis/financialEvidence.ts",
+        "supabase/functions/_shared/maxxis/financialEvidenceContext.ts",
+        "supabase/functions/_shared/maxxis/financialReadiness.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

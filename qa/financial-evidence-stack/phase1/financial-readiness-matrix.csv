@@ -1,0 +1,14 @@
+metric,requiredInput,optionalInput,inputClassAllowed,blocksIfMissing,blocksIfConflict,notes
+NOI,currentContractRent,otherActualIncome,ACTUAL,true,true,market rent not actual rent
+NOI,recurringOperatingExpenses,,ACTUAL or explicit ASSUMPTION or approved ESTIMATE,true,true,no automatic zero or capital expenses
+NOI,vacancy,,ACTUAL or explicit ASSUMPTION,true,true,explicit percentage basis required
+Cap Rate,NOI,,qualified NOI policy,true,true,no financing required
+Cap Rate,explicitValueBasis,,ASKING_PRICE or ACQUISITION_PRICE or MARKET_VALUE,true,true,positive and explicitly designated
+Cash Flow,NOI,,qualified NOI policy,true,true,future engine
+Cash Flow,debtService and recurringFinancingEffects,,NOT_EVALUATED,true,true,no debt defaults
+CoC,annualPreTaxCashFlow,,NOT_EVALUATED,true,true,future engine
+CoC,cashInvested,,NOT_EVALUATED,true,true,no cash invested inference
+DSCR,NOI,,qualified NOI policy,true,true,future engine
+DSCR,debtService,,NOT_EVALUATED,true,true,not gross rent proxy
+ROI,explicitROIDefinition,,NOT_EVALUATED,true,true,no ambiguous ROI formula
+ROI,definitionSpecificInputs,,NOT_EVALUATED,true,true,no rental warning for simple sell

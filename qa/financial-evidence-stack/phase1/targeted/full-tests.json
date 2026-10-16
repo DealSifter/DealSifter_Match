@@ -1,0 +1,11 @@
+{
+  "startedAt": "2026-10-16T19:26:19.460Z",
+  "finishedAt": "2026-10-16T19:26:43.400Z",
+  "exitCode": 0,
+  "total": 243,
+  "passed": 243,
+  "failed": 0,
+  "files": 6,
+  "historicalQaPreserved": true,
+  "pass": true
+}

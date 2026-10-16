@@ -1,0 +1,25 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "answer": "No tengo un alquiler contractual actual confirmado. Alquiler de mercado estimado: $1,800.00 / mes. estimación, no alquiler contractual ni gasto real · RentCast.",
+    "readiness": null,
+    "input": {
+      "domain": "currentContractRent",
+      "value": null,
+      "unit": null,
+      "cadence": "UNKNOWN",
+      "annualizedValue": null,
+      "sourceClass": "UNAVAILABLE",
+      "source": null,
+      "analyticalUsability": "UNAVAILABLE",
+      "qualification": [],
+      "estimated": false,
+      "assumption": false,
+      "freshness": "UNAVAILABLE",
+      "reasonCode": "EVIDENCE_UNAVAILABLE",
+      "candidates": [],
+      "conflictPreserved": false
+    }
+  }
+}

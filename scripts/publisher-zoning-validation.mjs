@@ -7,7 +7,7 @@ const resultFile=process.env.VALIDATION_RESULT_FILE||'.cache/publisher-zoning-fu
 const paths=(await run('git',['ls-files','qa'],{maxBuffer:4*1024*1024})).stdout.trim().split(/\r?\n/).filter(path=>/\.(json|csv|md)$/.test(path));
 const saved=await Promise.all(paths.map(async path=>[path,await readFile(path)]));
 const startedAt=new Date().toISOString();let exitCode=0;
-try{await run(process.execPath,['node_modules/vitest/vitest.mjs','run',...(process.env.VALIDATION_TEST_FILES?.split(';').filter(Boolean)||[]),'--config','vitest.p0.config.mjs','--pool=threads',`--maxWorkers=${process.env.VALIDATION_WORKERS||2}`,'--reporter=json',`--outputFile=${resultFile}`],{maxBuffer:32*1024*1024});}
+try{await run(process.execPath,['node_modules/vitest/vitest.mjs','run',...(process.env.VALIDATION_TEST_FILES?.split(';').filter(Boolean)||[]),'--config','vitest.p0.config.mjs','--pool=threads',`--maxWorkers=${process.env.VALIDATION_WORKERS||2}`,'--reporter=json',...(process.env.VALIDATION_VERBOSE_REPORTER==='1'?['--reporter=default']:[]),`--outputFile=${resultFile}`],{maxBuffer:32*1024*1024});}
 catch(error){exitCode=error.code||1;await writeFile('.cache/publisher-zoning-full.log',String(error.stdout||'')+'\n'+String(error.stderr||error.message));}
 finally{for(const[path,buffer]of saved)if(!(await readFile(path)).equals(buffer))await writeFile(path,buffer);}
 const result=JSON.parse(await readFile(resultFile,'utf8'));

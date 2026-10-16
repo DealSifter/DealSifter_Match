@@ -1,0 +1,51 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "domain": "hoa",
+    "value": 0,
+    "unit": "USD",
+    "cadence": "ANNUAL",
+    "annualizedValue": 0,
+    "sourceClass": "USER_PROVIDED_ACTUAL",
+    "source": {
+      "id": "hoa-publisher",
+      "domain": "hoa",
+      "value": 0,
+      "unit": "USD",
+      "cadence": "ANNUAL",
+      "evidenceClass": "USER_PROVIDED_ACTUAL",
+      "sourceType": "USER_PROVIDED",
+      "sourceId": "publisher",
+      "sourceFamily": "PUBLISHER",
+      "sourceAuthority": "Publisher",
+      "evidenceStatus": "USER_PROVIDED",
+      "freshness": "UNKNOWN"
+    },
+    "analyticalUsability": "ACTUAL_SINGLE_SOURCE",
+    "estimated": false,
+    "assumption": false,
+    "freshness": "UNKNOWN",
+    "reasonCode": "ACTUAL_EVIDENCE_AVAILABLE",
+    "qualification": [
+      "FRESHNESS_UNKNOWN"
+    ],
+    "candidates": [
+      {
+        "id": "hoa-publisher",
+        "domain": "hoa",
+        "value": 0,
+        "unit": "USD",
+        "cadence": "ANNUAL",
+        "evidenceClass": "USER_PROVIDED_ACTUAL",
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "Publisher",
+        "evidenceStatus": "USER_PROVIDED",
+        "freshness": "UNKNOWN"
+      }
+    ],
+    "conflictPreserved": false
+  }
+}

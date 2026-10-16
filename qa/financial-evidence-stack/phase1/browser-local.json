@@ -1,0 +1,278 @@
+{
+  "frontend": "http://127.0.0.1:4182",
+  "mode": "REAL_APP_EXPLICIT_MOCK_AUTH_BACKEND_JSONB_KEY_ORDER",
+  "background30sPollClock": "CONTROLLED_TO_ISOLATE_REVIEW_REQUESTS",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "pt-BR",
+      "startupObservedMs": 16337,
+      "closeObservedMs": 1947,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        },
+        {
+          "action": "READ",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Revise clicando aqui",
+      "modalIconPx": 24,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    },
+    {
+      "device": "desktop",
+      "language": "en-US",
+      "startupObservedMs": 27298,
+      "closeObservedMs": 1001,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Review — click here",
+      "modalIconPx": 24,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    },
+    {
+      "device": "desktop",
+      "language": "es-ES",
+      "startupObservedMs": 17521,
+      "closeObservedMs": 673,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Revise haciendo clic aquí",
+      "modalIconPx": 24,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    },
+    {
+      "device": "mobile",
+      "language": "pt-BR",
+      "startupObservedMs": 21306,
+      "closeObservedMs": 1645,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Revise clicando aqui",
+      "modalIconPx": 22,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    },
+    {
+      "device": "mobile",
+      "language": "en-US",
+      "startupObservedMs": 25358,
+      "closeObservedMs": 270,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Review — click here",
+      "modalIconPx": 22,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    },
+    {
+      "device": "mobile",
+      "language": "es-ES",
+      "startupObservedMs": 4845,
+      "closeObservedMs": 345,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Revise haciendo clic aquí",
+      "modalIconPx": 22,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    }
+  ]
+}

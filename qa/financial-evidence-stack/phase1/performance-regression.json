@@ -1,0 +1,10 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "iterations": 1000,
+    "durationMs": 763.6127639999995,
+    "appShellImports": 0,
+    "providerCalls": 0
+  }
+}

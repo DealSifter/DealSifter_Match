@@ -5,6 +5,7 @@ import { buildConsensusAwareCanonicalReadModel } from './canonicalEvidenceProjec
 import { readParcelEvidenceReceipt } from '../public-parcel/evidenceReceipt.ts';
 import type { MaxxisPropertyEvidenceResult } from './propertyEvidence.ts';
 import { buildAnalyticalPropertyInputs } from './analyticalPropertyContext.ts';
+import { buildFinancialEvidenceFromAuthorizedContext } from './financialEvidenceContext.ts';
 
 const FIELD_MAP:Record<string,ConsensusField>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType',livingAreaSqft:'buildingArea',yearBuilt:'yearBuilt'};
 export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|null,id:string):CandidateInput[]{
@@ -18,10 +19,11 @@ export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|n
    metadata:{year:typeof year==='number'?year:null,effectiveDate:fact.effectiveDate,countyFips:typeof evidence.fields.countyFips?.value==='string'?evidence.fields.countyFips.value:null,...(field==='assessedValue'?{concept:'ASSESSED_VALUE'}:field==='propertyTax'?{concept:'ANNUAL_RECORDED_TAX'}:{})}});
  }return rows;
 }
-type Options={input:unknown;propertyId:string;userId:string;receipt?:unknown;secret:string;parcelEnabled:boolean;
+type Options={input:unknown;propertyId:string;userId:string;receipt?:unknown;secret:string;parcelEnabled:boolean;financialEvidence?:boolean;
+  loadCachedMarketRent?:(id:string)=>Promise<{evidence:Record<string,any>;freshness?:{state:string}}|null>;
   loadPublicProperty:(id:string)=>Promise<Record<string,unknown>|null>;
   loadUserFacts?:(id:string,userId:string)=>Promise<Record<string,unknown>|null>;
-  loadReconciledFacts?:(id:string,userId:string)=>Promise<{facts:Record<string,unknown>;owner:boolean;reviewSnapshot?:Record<string,any>;decisionProofs?:Record<string,unknown>;analyticalUnavailable?:boolean}|null>;
+  loadReconciledFacts?:(id:string,userId:string)=>Promise<{facts:Record<string,unknown>;owner:boolean;reviewSnapshot?:Record<string,any>;financialSnapshot?:Record<string,any>|null;financialUnavailable?:boolean;decisionProofs?:Record<string,unknown>;analyticalUnavailable?:boolean}|null>;
   loadCachedProvider:(id:string)=>Promise<MaxxisPropertyEvidenceResult>};
 /** Existing sanitized property authorization + existing provider cache entitlement;
  * receipt verification/computation never performs I/O or writes. */
@@ -66,7 +68,16 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
   const analyticalInputs=buildAnalyticalPropertyInputs({property:publisher,effectiveFacts:reconciled?.facts??{},
     projections:readModel.analyticalEvidence.fields,reviewSnapshot:reconciled?.owner?reconciled.reviewSnapshot??null:null,decisionProofs:reconciled?.decisionProofs??{},
     unavailableReason:reconciled?.analyticalUnavailable?'INPUT_DECISION_PROOF_UNAVAILABLE':undefined});
+  // Opt-in financial read: no extra cache read for area/APN/zoning/legacy consumers.
+  const rent=options.financialEvidence&&provider?.entitlementState==='authorized'
+    ?await options.loadCachedMarketRent?.(input.propertyId).catch(()=>null):null;
+  const financialEvidence=options.financialEvidence?buildFinancialEvidenceFromAuthorizedContext({propertyId:input.propertyId,
+    taxProjection:readModel.analyticalEvidence.fields.propertyTax,effectiveTax:reconciled?.facts?.propertyTax as Record<string,any>|undefined,
+    taxReviewUnavailable:reconciled?.analyticalUnavailable===true||reconciled?.financialUnavailable===true,
+    reviewSnapshot:reconciled?.owner?reconciled.reviewSnapshot:reconciled?.financialSnapshot,
+    provider,cachedRent:rent,privateAssumptions:own}):null;
   return {type:'canonical_property_evidence' as const,propertyId:input.propertyId,state:'available' as const,readModel,
+    ...(options.financialEvidence?{financialEvidence,financialStrategy:property.objective,financialPropertyType:property.type}:{}),
     analyticalInputs,
     effectiveFacts:reconciled?.facts??null,canReview:reconciled?.owner===true,
     publicParcelState:parcels.length?'AVAILABLE':'NO_APPROVED_AVAILABLE_EVIDENCE',providerState:provider?.state??'unavailable',providerCalls:0};

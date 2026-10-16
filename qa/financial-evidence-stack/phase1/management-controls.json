@@ -1,0 +1,51 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "domain": "propertyManagement",
+    "value": 0,
+    "unit": "USD",
+    "cadence": "ANNUAL",
+    "annualizedValue": 0,
+    "sourceClass": "INVESTOR_ASSUMPTION",
+    "source": {
+      "id": "propertyManagement-publisher",
+      "domain": "propertyManagement",
+      "value": 0,
+      "unit": "USD",
+      "cadence": "ANNUAL",
+      "evidenceClass": "INVESTOR_ASSUMPTION",
+      "sourceType": "USER_PROVIDED",
+      "sourceId": "publisher",
+      "sourceFamily": "PUBLISHER",
+      "sourceAuthority": "Publisher",
+      "evidenceStatus": "USER_PROVIDED",
+      "freshness": "UNKNOWN"
+    },
+    "analyticalUsability": "USER_ASSUMPTION",
+    "estimated": false,
+    "assumption": true,
+    "freshness": "UNKNOWN",
+    "reasonCode": "EXPLICIT_ASSUMPTION",
+    "qualification": [
+      "FRESHNESS_UNKNOWN"
+    ],
+    "candidates": [
+      {
+        "id": "propertyManagement-publisher",
+        "domain": "propertyManagement",
+        "value": 0,
+        "unit": "USD",
+        "cadence": "ANNUAL",
+        "evidenceClass": "INVESTOR_ASSUMPTION",
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "Publisher",
+        "evidenceStatus": "USER_PROVIDED",
+        "freshness": "UNKNOWN"
+      }
+    ],
+    "conflictPreserved": false
+  }
+}

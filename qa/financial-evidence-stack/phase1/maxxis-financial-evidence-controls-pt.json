@@ -1,0 +1,25 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "answer": "Não tenho um aluguel contratual atual confirmado. Aluguel de mercado estimado: US$ 1.800,00 / mês. estimativa, não valor contratual ou despesa efetiva · RentCast.",
+    "readiness": null,
+    "input": {
+      "domain": "currentContractRent",
+      "value": null,
+      "unit": null,
+      "cadence": "UNKNOWN",
+      "annualizedValue": null,
+      "sourceClass": "UNAVAILABLE",
+      "source": null,
+      "analyticalUsability": "UNAVAILABLE",
+      "qualification": [],
+      "estimated": false,
+      "assumption": false,
+      "freshness": "UNAVAILABLE",
+      "reasonCode": "EVIDENCE_UNAVAILABLE",
+      "candidates": [],
+      "conflictPreserved": false
+    }
+  }
+}

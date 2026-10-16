@@ -449,6 +449,8 @@ export type MaxxisResponse = {
   message: string;
   type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_evidence' | 'deal_insight' | 'property_comparison' | 'deal_copilot_overview';
   data: null
+    | {propertyId:string;financialReadiness:ReturnType<typeof import('./financialReadiness.ts').buildFinancialInputReadiness>|null;
+        financialInput:Pick<import('./financialEvidence.ts').FinancialResolvedInput,'domain'|'value'|'cadence'|'annualizedValue'|'sourceClass'|'analyticalUsability'>|null}
     | {propertyId:string;areaMetric:import('./areaMetrics.ts').AreaPriceMetric;reviewField?:string}
     | {propertyId:string;reviewField:string}
     | { properties: MaxxisPropertyResult[]; personalized?: boolean; profileAvailable?: boolean; profileSuggestions?: ProfileDriftSuggestion[] }
@@ -472,6 +474,8 @@ export type MaxxisResponse = {
     model?: string;
     toolName?: string;
     arithmeticSource?: 'DETERMINISTIC_AREA_ENGINE';
+    providerCalls?: 0;
+    financialArbitration?: false;
     secondPass: boolean;
     knowledgeVersion?: string;
     knowledgeTopics?: string[];

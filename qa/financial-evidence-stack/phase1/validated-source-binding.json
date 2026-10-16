@@ -1,0 +1,114 @@
+{
+  "binding": [
+    {
+      "path": "src/components/maxxis/MaxxisAssistant.jsx",
+      "frontendConsumed": true,
+      "currentHash": "87d7c94cd03cf9472151f340f821706b3a29f267ed9b5db8d48599481043fc3e",
+      "stagedHash": "87d7c94cd03cf9472151f340f821706b3a29f267ed9b5db8d48599481043fc3e",
+      "mode": "EXACT_OR_TYPE_ERASURE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+      "frontendConsumed": false,
+      "currentHash": "f88142eebda97cfcda460f3f07646d3ccb7031f2e0ea53958994e19f72d26a7b",
+      "stagedHash": "f88142eebda97cfcda460f3f07646d3ccb7031f2e0ea53958994e19f72d26a7b",
+      "mode": "EXACT_OR_TYPE_ERASURE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+      "frontendConsumed": false,
+      "currentHash": "0831e7cf38591bf115d317e42d9b8b5df88fd9555e88a599506a4a2971f5d5df",
+      "stagedHash": "0831e7cf38591bf115d317e42d9b8b5df88fd9555e88a599506a4a2971f5d5df",
+      "mode": "EXACT_OR_TYPE_ERASURE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/types.ts",
+      "frontendConsumed": false,
+      "currentHash": "cf31632281e7fb76aca1fabbe664857bbc123d54659be46a5e35e064f68d7879",
+      "stagedHash": "cf31632281e7fb76aca1fabbe664857bbc123d54659be46a5e35e064f68d7879",
+      "mode": "EXACT_OR_TYPE_ERASURE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidence.ts",
+      "frontendConsumed": true,
+      "currentHash": "2254c82f26b1c4771cd537af7461a8495bb03ff641cd177e14c36b9d25151ea3",
+      "stagedHash": "59a566c195f8585b4fa5e910b4fda146bd688831188f8a3032acc60463be727d",
+      "mode": "USED_BROWSER_EXPORT_BUNDLE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+      "frontendConsumed": true,
+      "currentHash": "c95b48b30953bda06c2ad5c287b24a90e7c630e620ee70220d9a7463923ac7cb",
+      "stagedHash": "e28f5379dc7ad7d2561bc42a4d552d336df8fb76cb7904429936b5beeea598e5",
+      "mode": "USED_BROWSER_EXPORT_BUNDLE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidenceContext.ts",
+      "frontendConsumed": false,
+      "currentHash": "9ceebc32eedb8a14edf3495588333c913682c9914b37305b75c2f9bb8f58e411",
+      "stagedHash": "9ceebc32eedb8a14edf3495588333c913682c9914b37305b75c2f9bb8f58e411",
+      "mode": "EXACT_OR_TYPE_ERASURE_EQUIVALENT",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialReadiness.ts",
+      "frontendConsumed": true,
+      "currentHash": "499efd8cd2ef226e1651b30a79262840e2073da24e2196faa9b01a634124642c",
+      "stagedHash": "e073ba245622b78a849b7221d0d2f98a8aa924e3af0fd8611c85edca712c9d9c",
+      "mode": "USED_BROWSER_EXPORT_BUNDLE_EQUIVALENT",
+      "pass": true
+    }
+  ],
+  "denoBinding": [
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidence.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialEvidenceContext.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/financialReadiness.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/types.ts",
+      "pass": true
+    },
+    {
+      "path": "supabase/functions/maxxis-chat/index.ts",
+      "pass": true
+    }
+  ],
+  "frontendModules": 315,
+  "financialUiImports": [
+    {
+      "path": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\src\\components\\maxxis\\MaxxisAssistant.jsx",
+      "bindings": "detectFinancialEvidenceQuestion",
+      "module": "../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts"
+    }
+  ],
+  "detectorEquivalent": true,
+  "currentDetectorHash": "113833e8a09c86fabcecbc632fe7f64f6f90e31ef1cd866c1a65c86fa88fc1ce",
+  "stagedDetectorHash": "113833e8a09c86fabcecbc632fe7f64f6f90e31ef1cd866c1a65c86fa88fc1ce",
+  "pass": true
+}

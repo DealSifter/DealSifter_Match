@@ -1,0 +1,192 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "answer": "NOI: Ainda não há dados suficientes para calcular com confiabilidade.\n\nAluguel de mercado estimado: US$ 1.800,00 / mês. estimativa, não valor contratual ou despesa efetiva · RentCast.\n\nHá aluguel de mercado estimado, mas ele não substitui o aluguel contratual.\n\nPróximo dado prioritário: Aluguel contratual atual.",
+    "readiness": {
+      "version": "FINANCIAL_INPUT_READINESS_V1",
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "incomeBasis": "CURRENT_ACTUAL",
+      "readinessLevel": "INCOMPLETE",
+      "income": {
+        "status": "INCOMPLETE",
+        "inputs": [
+          "currentContractRent"
+        ]
+      },
+      "operatingExpenses": {
+        "status": "INCOMPLETE",
+        "inputs": [
+          "propertyTax",
+          "insurance",
+          "hoa",
+          "vacancy",
+          "propertyManagement",
+          "maintenance",
+          "utilities",
+          "otherOperatingExpenses"
+        ]
+      },
+      "financing": {
+        "status": "NOT_EVALUATED",
+        "inputs": []
+      },
+      "missingCritical": [
+        "currentContractRent",
+        "propertyTax",
+        "insurance",
+        "hoa",
+        "vacancy",
+        "propertyManagement",
+        "maintenance",
+        "utilities",
+        "otherOperatingExpenses"
+      ],
+      "missingOptional": [
+        "otherActualIncome"
+      ],
+      "estimatedInputs": [
+        "providerMarketRentEstimate"
+      ],
+      "assumedInputs": [],
+      "conflictedInputs": [],
+      "reasonCodes": [
+        "ACTUAL_RENT_MISSING",
+        "PROPERTY_TAX_MISSING",
+        "INSURANCE_MISSING",
+        "HOA_MISSING",
+        "VACANCY_ASSUMPTION_MISSING",
+        "MANAGEMENT_ASSUMPTION_MISSING",
+        "MAINTENANCE_ASSUMPTION_MISSING",
+        "UTILITIES_UNKNOWN",
+        "REQUIRED_INPUT_MISSING",
+        "MARKET_RENT_ESTIMATE_AVAILABLE",
+        "ESTIMATE_ONLY"
+      ],
+      "nextGap": "currentContractRent",
+      "metrics": {
+        "NOI": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "currentContractRent",
+            "propertyTax",
+            "insurance",
+            "hoa",
+            "vacancy",
+            "propertyManagement",
+            "maintenance",
+            "utilities",
+            "otherOperatingExpenses"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "operatingIncome",
+            "recurringOperatingExpenses"
+          ],
+          "calculationMigrated": false
+        },
+        "CAP_RATE": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "currentContractRent",
+            "propertyTax",
+            "insurance",
+            "hoa",
+            "vacancy",
+            "propertyManagement",
+            "maintenance",
+            "utilities",
+            "otherOperatingExpenses",
+            "explicitValueBasis"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "NOI",
+            "explicitValueBasis"
+          ],
+          "calculationMigrated": false
+        },
+        "CASH_FLOW": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "currentContractRent",
+            "propertyTax",
+            "insurance",
+            "hoa",
+            "vacancy",
+            "propertyManagement",
+            "maintenance",
+            "utilities",
+            "otherOperatingExpenses",
+            "debtService",
+            "recurringFinancingEffects"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "NOI",
+            "debtService",
+            "recurringFinancingEffects"
+          ],
+          "calculationMigrated": false
+        },
+        "COC": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "currentContractRent",
+            "propertyTax",
+            "insurance",
+            "hoa",
+            "vacancy",
+            "propertyManagement",
+            "maintenance",
+            "utilities",
+            "otherOperatingExpenses",
+            "annualPreTaxCashFlow",
+            "cashInvested"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "annualPreTaxCashFlow",
+            "cashInvested"
+          ],
+          "calculationMigrated": false
+        },
+        "DSCR": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "currentContractRent",
+            "propertyTax",
+            "insurance",
+            "hoa",
+            "vacancy",
+            "propertyManagement",
+            "maintenance",
+            "utilities",
+            "otherOperatingExpenses",
+            "debtService"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "NOI",
+            "debtService"
+          ],
+          "calculationMigrated": false
+        },
+        "ROI": {
+          "readinessLevel": "INCOMPLETE",
+          "missingCritical": [
+            "explicitROIDefinition",
+            "definitionSpecificInputs"
+          ],
+          "conflictedInputs": [],
+          "policy": [
+            "explicitROIDefinition",
+            "definitionSpecificInputs"
+          ],
+          "calculationMigrated": false
+        }
+      }
+    },
+    "input": null
+  }
+}

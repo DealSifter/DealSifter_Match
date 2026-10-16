@@ -66,6 +66,7 @@ import { resolveLocalLandDevelopment, landScenarioForPersistence } from '../../f
 import { readMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { buildMarketReferenceAnswer } from '../../../supabase/functions/_shared/maxxis/marketReferenceAnswer.ts';
 import { detectAreaAnalyticalQuestion } from '../../../supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts';
+import { detectFinancialEvidenceQuestion } from '../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts';
 import { buildAnalyticalPropertyInputs } from '../../../supabase/functions/_shared/maxxis/analyticalPropertyContext.ts';
 import { pendingGapForContext } from '../../features/maxxis/routing/maxxisConversationIntent';
 import { resolveAnalysisStrategy, resolveAnalysisPropertyType } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
@@ -1176,7 +1177,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       return;
     }
     const developmentProperty = withPublisherZoning(messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId),factReview?.facts[resolvedSubmitPropertyId]);
-    const areaAnalyticalIntent = detectAreaAnalyticalQuestion(cleanMessage);
+    // Deterministic financial questions must reach the authorized backend, not stale local gap/scenario interceptors.
+    const areaAnalyticalIntent = detectAreaAnalyticalQuestion(cleanMessage) || detectFinancialEvidenceQuestion(cleanMessage);
     const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
       explicitReportType: meta.reportType,
       hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),

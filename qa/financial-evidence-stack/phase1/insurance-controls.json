@@ -1,0 +1,51 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "domain": "insurance",
+    "value": 1800,
+    "unit": "USD",
+    "cadence": "ANNUAL",
+    "annualizedValue": 1800,
+    "sourceClass": "USER_PROVIDED_ACTUAL",
+    "source": {
+      "id": "insurance-publisher",
+      "domain": "insurance",
+      "value": 1800,
+      "unit": "USD",
+      "cadence": "ANNUAL",
+      "evidenceClass": "USER_PROVIDED_ACTUAL",
+      "sourceType": "USER_PROVIDED",
+      "sourceId": "policy-quote",
+      "sourceFamily": "PUBLISHER",
+      "sourceAuthority": "Publisher",
+      "evidenceStatus": "USER_PROVIDED",
+      "freshness": "UNKNOWN"
+    },
+    "analyticalUsability": "ACTUAL_SINGLE_SOURCE",
+    "estimated": false,
+    "assumption": false,
+    "freshness": "UNKNOWN",
+    "reasonCode": "ACTUAL_EVIDENCE_AVAILABLE",
+    "qualification": [
+      "FRESHNESS_UNKNOWN"
+    ],
+    "candidates": [
+      {
+        "id": "insurance-publisher",
+        "domain": "insurance",
+        "value": 1800,
+        "unit": "USD",
+        "cadence": "ANNUAL",
+        "evidenceClass": "USER_PROVIDED_ACTUAL",
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "policy-quote",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "Publisher",
+        "evidenceStatus": "USER_PROVIDED",
+        "freshness": "UNKNOWN"
+      }
+    ],
+    "conflictPreserved": false
+  }
+}

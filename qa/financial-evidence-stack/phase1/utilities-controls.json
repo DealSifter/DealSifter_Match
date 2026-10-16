@@ -1,0 +1,21 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "domain": "utilities",
+    "value": null,
+    "unit": null,
+    "cadence": "UNKNOWN",
+    "annualizedValue": null,
+    "sourceClass": "UNAVAILABLE",
+    "source": null,
+    "analyticalUsability": "UNAVAILABLE",
+    "qualification": [],
+    "estimated": false,
+    "assumption": false,
+    "freshness": "UNAVAILABLE",
+    "reasonCode": "EVIDENCE_UNAVAILABLE",
+    "candidates": [],
+    "conflictPreserved": false
+  }
+}

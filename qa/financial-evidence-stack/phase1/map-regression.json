@@ -1,0 +1,26 @@
+{
+  "baseline": "144056b478032efc61378d99f94432273b0b7a76",
+  "files": [
+    {
+      "path": "src/features/parcel/mapLifetime.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensAccess.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensController.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/parcel/parcelLensGeometry.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/pages/MapView.jsx",
+      "unchanged": true
+    }
+  ],
+  "changed": 0
+}

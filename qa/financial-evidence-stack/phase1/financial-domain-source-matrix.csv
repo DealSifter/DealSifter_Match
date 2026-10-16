@@ -1,0 +1,21 @@
+domain,sourceClass,sourceType,actualOrEstimated,annualizable,cadenceRequired,analyticalUse,notes
+currentContractRent,USER_PROVIDED_ACTUAL,PUBLISHER,ACTUAL,true,true,actual income,no current collection UI added
+otherActualIncome,ACTUAL,AUTHORIZED_RECORD,ACTUAL,true,true,actual income,optional unless observed
+providerMarketRentEstimate,PROVIDER_ESTIMATE,RENTCAST,ESTIMATED,true,true,market scenario only,existing cache monthly contract
+investorRentAssumption,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,investor scenario only,never contractual rent
+propertyTax,PUBLIC_RECORD,PUBLIC_TAX,ACTUAL,true,true,recorded annual expense,year and concept preserved
+propertyTax,PUBLIC_RECORD,RENTCAST,ACTUAL,true,true,recorded annual expense,assessment never tax
+propertyTax,USER_PROVIDED_ACTUAL,PUBLISHER,DECLARED_ACTUAL,true,true,qualified actual tax,existing review proof
+propertyTax,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario only,not public actual tax
+insurance,USER_PROVIDED_ACTUAL,POLICY_QUOTE,ACTUAL,true,true,operating expense,future adapter contract
+insurance,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario expense,existing annual contract
+insurance,BENCHMARK_ESTIMATE,APPROVED_DATASET,ESTIMATED,true,true,future benchmark,activated datasets zero
+hoa,PUBLIC_RECORD,RENTCAST,ACTUAL,false,true,not annualizable without cadence,current fee has unknown cadence
+hoa,USER_PROVIDED_ACTUAL,PUBLISHER,ACTUAL,true,true,recurring expense,explicit zero legitimate
+hoa,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario expense,legacy scenario monthly contract explicit
+propertyManagement,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,false,true,scenario percent,explicit income basis required
+vacancy,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,false,true,scenario percent,no default five percent
+maintenance,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario reserve,annual amount or explicit percent basis
+utilities,ACTUAL,AUTHORIZED_RECORD,ACTUAL,true,true,owner paid expense,unknown never tenant paid
+utilities,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario expense,future adapter only
+otherOperatingExpenses,INVESTOR_ASSUMPTION,PRIVATE_SCENARIO,ASSUMPTION,true,true,scenario expense,existing annual contract

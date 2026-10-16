@@ -1,0 +1,16 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "resolverModules": [
+      "financialEvidence",
+      "financialReadiness",
+      "financialEvidenceContext",
+      "financialEvidenceAnswer"
+    ],
+    "networkDependencies": 0,
+    "providerCalls": 0,
+    "geminiArbitration": 0,
+    "privateDataWrites": 0
+  }
+}

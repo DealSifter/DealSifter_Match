@@ -1,0 +1,35 @@
+{
+  "mode": "ISOLATED_PRODUCTION_BUILD_FULL_APP_MOCK_AUTH",
+  "productionUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 5513,
+          "moduleEntryObservedMs": 4405
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 5619,
+          "moduleEntryObservedMs": 4769
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

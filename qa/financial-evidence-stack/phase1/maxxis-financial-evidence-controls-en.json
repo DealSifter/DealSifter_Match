@@ -1,0 +1,25 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "answer": "I do not have confirmed current contract rent. Estimated market rent: $1,800.00 / month. estimate, not contractual rent or actual expense · RentCast.",
+    "readiness": null,
+    "input": {
+      "domain": "currentContractRent",
+      "value": null,
+      "unit": null,
+      "cadence": "UNKNOWN",
+      "annualizedValue": null,
+      "sourceClass": "UNAVAILABLE",
+      "source": null,
+      "analyticalUsability": "UNAVAILABLE",
+      "qualification": [],
+      "estimated": false,
+      "assumption": false,
+      "freshness": "UNAVAILABLE",
+      "reasonCode": "EVIDENCE_UNAVAILABLE",
+      "candidates": [],
+      "conflictPreserved": false
+    }
+  }
+}

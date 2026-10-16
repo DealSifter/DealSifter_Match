@@ -1,0 +1,138 @@
+{
+  "baseline": "144056b478032efc61378d99f94432273b0b7a76",
+  "files": [
+    {
+      "path": "src/domain/maxxis/maxxisReportSchema.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/access/ReportExperienceSelector.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/MaxxisReportExportActions.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisLandReportView.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportDeliveryContracts.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportExportPreview.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportPdf.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportRenderer.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/maxxisReportVisualPolicy.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportContentPriority.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportDeliveryUtils.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportExportEntitlement.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/export/reportMessageEntitlements.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisAnalysisReportExperience.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisCanonicalReportPreview.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/MaxxisDealIntelligenceReportPreview.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisAnalysisReport.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportConfidencePersona.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportFailureRecovery.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisStructuredReportFallback.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/presentation/reportNarrativePresentation.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/reports/MyMaxxisReports.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/maxxis/reports/savedReportAccess.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/services/maxxisReportService.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/services/propertyReportParcelService.js",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/rehabCostBenchmarks2026.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/retainedReportReference.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/sellerFinancingScenario.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/arvEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/recentSalesMarketEstimate.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-data/soldCompEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/public-parcel/reportEvidence.ts",
+      "unchanged": true
+    }
+  ],
+  "changed": 0
+}

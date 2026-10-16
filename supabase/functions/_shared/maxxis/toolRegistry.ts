@@ -13,6 +13,8 @@ import { supabaseServiceRoleKey } from './config.ts';
 import { getCanonicalPropertyEvidenceWithDependencies } from './canonicalEvidenceTool.ts';
 import { resolveFeatureFlags } from '../featureFlags.ts';
 import { publicAnalyticalDecisionProofs } from './analyticalPropertyContext.ts';
+import { publicFinancialTaxProof } from './financialEvidenceContext.ts';
+import { createBackendSupplementalEvidenceService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
@@ -101,7 +103,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; parcelEvidenceReceipt?:unknown } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; parcelEvidenceReceipt?:unknown } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -115,7 +117,14 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     let remoteConfig={};try{remoteConfig=JSON.parse(Deno.env.get('FEATURE_FLAGS_JSON')||'{}');}catch{/* OFF by default */}
     const flags=resolveFeatureFlags({userId:authenticated.userId,environment:supabaseUrl.includes('cyeipfskwwisbbayyaca')?'production':supabaseUrl.includes('oqdcnjupquhybwdbeeew')?'staging':'development',remoteConfig});
     return getCanonicalPropertyEvidenceWithDependencies({input:args,propertyId:context.propertyId||'',userId:authenticated.userId,
-      receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,
+      receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,financialEvidence:context.financialEvidence===true,
+      loadCachedMarketRent:async propertyId=>{
+        const admin=createClient(supabaseUrl,supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
+        const service=createBackendSupplementalEvidenceService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
+          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'}});
+        const cached=await service.getCached({propertyId,userId:authenticated.userId},'rentEstimate');
+        return cached?{evidence:cached.evidence as unknown as Record<string,any>,freshness:cached.freshness}:null;
+      },
       loadPublicProperty:async propertyId=>{
         const reader=authenticated.client as unknown as {rpc(name:string,args:{p_property_id:string}):{maybeSingle():Promise<{data:unknown;error:unknown}>}};
         const {data,error}=await reader.rpc('ds_get_public_property_details',{p_property_id:propertyId}).maybeSingle();
@@ -125,7 +134,8 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         const reader=authenticated.client as unknown as {from(name:string):any};
         const {data,error}=await reader.from('property_arv_review_contexts').select('deal_assumptions').eq('subject_property_id',propertyId).eq('reviewer_user_id',userId).maybeSingle();
         if(error||!data?.deal_assumptions)return null;
-        const inputs=data.deal_assumptions;return {...(inputs.activeScenario?.propertyId===propertyId?inputs.activeScenario.assumptions||{}:{}),...inputs};
+        const inputs=data.deal_assumptions;if(context.financialEvidence)return inputs;
+        return {...(inputs.activeScenario?.propertyId===propertyId?inputs.activeScenario.assumptions||{}:{}),...inputs};
       },
       loadReconciledFacts:async(propertyId,userId)=>{
         const reader=authenticated.client as unknown as {from:(name:string)=>any;rpc:(name:string,args:Record<string,unknown>)=>Promise<{data:any;error:unknown}>};
@@ -136,6 +146,14 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         if(!publicResult.data?.length)return {facts:{},owner:false};
         if(publicResult.data[0]?.property_id!==propertyId||!publicResult.data[0].facts)return {facts:{},owner:false,analyticalUnavailable:true};
         const facts=publicResult.data[0].facts;
+        if(context.financialEvidence){
+          // Current publisher only, after the authenticated public RPC gate. No private assumptions/history/actor.
+          const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
+          const proof=await internal.from('property_fact_reviews').select('owner_id,taxEffective:state->rows->propertyTax->effective,taxDecision:state->rows->propertyTax->decision,taxHash:state->rows->propertyTax->>evidenceHash,taxUsability:state->rows->propertyTax->projection->>analyticalUsability,properties!inner(owner_id)').eq('property_id',propertyId).limit(16).abortSignal(AbortSignal.timeout(1500));
+          const current=(!proof.error&&Array.isArray(proof.data)?proof.data:[]).find((row:any)=>row.owner_id===row.properties?.owner_id) as any;
+          const snapshot=current?{propertyId,rows:{propertyTax:{effective:current.taxEffective,decision:current.taxDecision,evidenceHash:current.taxHash,projection:{analyticalUsability:current.taxUsability}}}}:null;
+          return {facts,owner:false,financialSnapshot:snapshot?publicFinancialTaxProof(snapshot,facts):null,financialUnavailable:!!proof.error||!current};
+        }
         // Existing APN/zoning/direct-fact reads incur no new metadata query.
         if(!context.analyticalArea)return {facts,owner:false};
         // After the authenticated public gate, read only current-publisher decision proof.

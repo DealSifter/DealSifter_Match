@@ -1,0 +1,42 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "assessedValue": {
+      "value": 100000,
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "effectiveDate": "2025",
+      "providerPropertyId": "fixture",
+      "confidence": null
+    },
+    "assessmentYear": {
+      "value": 2025,
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "effectiveDate": "2025",
+      "providerPropertyId": "fixture",
+      "confidence": null
+    },
+    "annualPropertyTax": {
+      "value": 1500,
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "effectiveDate": "2025",
+      "providerPropertyId": "fixture",
+      "confidence": null
+    },
+    "propertyTaxYear": {
+      "value": 2025,
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "effectiveDate": "2025",
+      "providerPropertyId": "fixture",
+      "confidence": null
+    }
+  }
+}

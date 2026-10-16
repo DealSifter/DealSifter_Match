@@ -1,0 +1,57 @@
+{
+  "baseline": "144056b478032efc61378d99f94432273b0b7a76",
+  "files": [
+    {
+      "path": "supabase/functions/_shared/maxxis/dealMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyFacts.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/analyticalPropertyContext.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaMetrics.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/areaAnalyticalAnswer.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts",
+      "unchanged": true
+    }
+  ],
+  "changed": 0,
+  "enginesMigrated": [],
+  "migration": "NONE",
+  "providerAcquisitions": 0
+}

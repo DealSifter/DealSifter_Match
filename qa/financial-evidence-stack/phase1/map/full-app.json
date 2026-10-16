@@ -1,0 +1,99 @@
+{
+  "mode": "ISOLATED_PRODUCTION_BUILD_FULL_APP_MOCK_AUTH",
+  "productionUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 4367,
+          "moduleEntryObservedMs": 3254
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 5611,
+          "moduleEntryObservedMs": 3129
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 2427,
+          "moduleEntryObservedMs": 2511
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 1475,
+          "moduleEntryObservedMs": 4763
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 7854,
+          "moduleEntryObservedMs": 1164
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 3058,
+          "moduleEntryObservedMs": 1214
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 4723,
+          "moduleEntryObservedMs": 4933
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 4791,
+          "moduleEntryObservedMs": 2403
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 3309,
+          "moduleEntryObservedMs": 2522
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 5218,
+          "moduleEntryObservedMs": 2683
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

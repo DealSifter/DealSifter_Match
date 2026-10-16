@@ -1,0 +1,85 @@
+{
+  "full": {
+    "startedAt": "2026-10-16T19:21:49.968Z",
+    "finishedAt": "2026-10-16T19:26:16.958Z",
+    "exitCode": 0,
+    "total": 2384,
+    "passed": 2384,
+    "failed": 0,
+    "files": 239,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "targeted": {
+    "startedAt": "2026-10-16T19:26:19.460Z",
+    "finishedAt": "2026-10-16T19:26:43.400Z",
+    "exitCode": 0,
+    "total": 243,
+    "passed": 243,
+    "failed": 0,
+    "files": 6,
+    "historicalQaPreserved": true,
+    "pass": true
+  },
+  "groups": {
+    "financial": {
+      "files": 1,
+      "total": 125,
+      "passed": 125,
+      "failed": 0
+    },
+    "analytical": {
+      "files": 2,
+      "total": 57,
+      "passed": 57,
+      "failed": 0
+    },
+    "smartEnrichment": {
+      "files": 9,
+      "total": 118,
+      "passed": 118,
+      "failed": 0
+    },
+    "map": {
+      "files": 2,
+      "total": 37,
+      "passed": 37,
+      "failed": 0
+    },
+    "rentcast": {
+      "files": 3,
+      "total": 26,
+      "passed": 26,
+      "failed": 0
+    },
+    "consensus": {
+      "files": 2,
+      "total": 102,
+      "passed": 102,
+      "failed": 0
+    }
+  },
+  "finalFinancial": {
+    "total": 125,
+    "passed": 125,
+    "failed": 0
+  },
+  "build": true,
+  "deno": {
+    "newErrors": 0,
+    "baseline": 50,
+    "current": 50,
+    "pass": true
+  },
+  "sourcePass": true,
+  "staticPass": true,
+  "browserPass": true,
+  "mapPass": true,
+  "isolated": true,
+  "migration": "NONE",
+  "providerCalls": 0,
+  "geminiArbitration": 0,
+  "activatedBenchmarks": 0,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "pass": true
+}

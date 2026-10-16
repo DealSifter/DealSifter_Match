@@ -1,0 +1,13 @@
+# Metric-specific readiness policy v1
+
+Operating rental readiness applies to Buy & Hold/rental/income strategy or explicit rental-economic questions. LAND Sell, FSBO and ordinary Sell are NOT_APPLICABLE without that explicit request. A market rent does not change strategy. ROI of a sell listing does not trigger rental-vacancy questioning.
+
+Actual NOI policy requires contractual income plus recurring tax, insurance, HOA, vacancy, management, maintenance, owner utilities and other operating expenses. Each required expense needs explicit usable evidence/assumption, including zero where appropriate. Unknown cadence or one-time expenses do not satisfy recurring requirements. Other actual income is optional when unknown, but once reported, conflict/unusable cadence blocks readiness; no numerical NOI/total is calculated here.
+
+CURRENT_ACTUAL, MARKET_SCENARIO and INVESTOR_SCENARIO are separate income bases; the default is CURRENT_ACTUAL. A market estimate cannot complete actual NOI readiness. Scenario readiness may use its explicitly designated estimate/assumption only when all remaining required inputs exist.
+
+Levels: conflict in required inputs → BLOCKED_CONFLICT; missing/invalid cadence → INCOMPLETE. Complete required inputs: actual-only → READY_ACTUAL; a strict majority of required inputs are investor assumptions → READY_ASSUMPTION_HEAVY; otherwise any used estimate/assumption → READY_MIXED. This counts categories, not an invented completion percentage. Unused market estimates/private alternatives remain disclosed in estimatedInputs/assumedInputs but cannot downgrade actual-input readiness.
+
+NOI excludes financing, debt and capital expenditures. Cap Rate requires that NOI policy plus an explicit positive ASKING_PRICE/ACQUISITION_PRICE/MARKET_VALUE basis, never a silent switch. Cash Flow additionally requires debt service/defined recurring financing effects; CoC requires annual pre-tax cash flow/cash invested; DSCR requires NOI/debt service; ROI requires an explicit definition and definition-specific inputs. Financing remains NOT_EVALUATED. Future metrics stay incomplete where future dependencies are unavailable. No metric is migrated/calculated by this stack.
+
+Lists distinguish missing critical/optional, estimated, assumed and conflicted inputs, with stable reason codes. Priority: income, tax, insurance, HOA, vacancy, management, maintenance, owner utilities/other expenses. Maxxis explains one next priority rather than initiating an unsolicited multi-question form. Explicit “what is missing” requests may list missing labels. PT-BR/EN/ES do not expose raw internal reason enums.

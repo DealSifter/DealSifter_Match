@@ -1,0 +1,66 @@
+{
+  "baseline": "144056b478032efc61378d99f94432273b0b7a76",
+  "files": [
+    {
+      "path": "src/features/propertyFacts/FactReviewIndicator.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/PropertyFactNotificationSync.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/PropertyFactReview.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/PropertyFactReviewContext.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/PropertyFactReviewProvider.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/PublisherZoningConfirmation.jsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/cardFacts.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/copy.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/editReviewDraft.js",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/propertyFacts/publisherZoning.js",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/acquisition.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/model.ts",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/presentation.js",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/functions/_shared/property-fact-reconciliation/runtime.ts",
+      "unchanged": true
+    }
+  ],
+  "changed": 0
+}

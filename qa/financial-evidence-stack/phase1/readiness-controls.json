@@ -1,0 +1,118 @@
+{
+  "fixtureOnly": true,
+  "liveProviderCalls": 0,
+  "data": {
+    "version": "FINANCIAL_INPUT_READINESS_V1",
+    "propertyId": "11111111-1111-4111-8111-111111111111",
+    "incomeBasis": "CURRENT_ACTUAL",
+    "readinessLevel": "READY_ACTUAL",
+    "income": {
+      "status": "AVAILABLE",
+      "inputs": [
+        "currentContractRent"
+      ]
+    },
+    "operatingExpenses": {
+      "status": "AVAILABLE",
+      "inputs": [
+        "propertyTax",
+        "insurance",
+        "hoa",
+        "vacancy",
+        "propertyManagement",
+        "maintenance",
+        "utilities",
+        "otherOperatingExpenses"
+      ]
+    },
+    "financing": {
+      "status": "NOT_EVALUATED",
+      "inputs": []
+    },
+    "missingCritical": [],
+    "missingOptional": [
+      "otherActualIncome"
+    ],
+    "estimatedInputs": [],
+    "assumedInputs": [],
+    "conflictedInputs": [],
+    "reasonCodes": [],
+    "nextGap": null,
+    "metrics": {
+      "NOI": {
+        "readinessLevel": "READY_ACTUAL",
+        "missingCritical": [],
+        "conflictedInputs": [],
+        "policy": [
+          "operatingIncome",
+          "recurringOperatingExpenses"
+        ],
+        "calculationMigrated": false
+      },
+      "CAP_RATE": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "explicitValueBasis"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "explicitValueBasis"
+        ],
+        "calculationMigrated": false
+      },
+      "CASH_FLOW": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "debtService",
+          "recurringFinancingEffects"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "debtService",
+          "recurringFinancingEffects"
+        ],
+        "calculationMigrated": false
+      },
+      "COC": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "annualPreTaxCashFlow",
+          "cashInvested"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "annualPreTaxCashFlow",
+          "cashInvested"
+        ],
+        "calculationMigrated": false
+      },
+      "DSCR": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "debtService"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "NOI",
+          "debtService"
+        ],
+        "calculationMigrated": false
+      },
+      "ROI": {
+        "readinessLevel": "INCOMPLETE",
+        "missingCritical": [
+          "explicitROIDefinition",
+          "definitionSpecificInputs"
+        ],
+        "conflictedInputs": [],
+        "policy": [
+          "explicitROIDefinition",
+          "definitionSpecificInputs"
+        ],
+        "calculationMigrated": false
+      }
+    }
+  }
+}
