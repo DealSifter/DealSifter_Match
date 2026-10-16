@@ -34,15 +34,21 @@ See `quality-gates.json`, `validated-source-binding.json`, `analytical-input-pol
 
 ## Release
 
-COMMIT: PENDING
+COMMIT: `144056b478032efc61378d99f94432273b0b7a76`
 
-PUSH: PENDING
+PUSH: PASS
 
-PRODUCTION DEPLOY: PENDING
+PRODUCTION DEPLOY: YES — READY
 
-PRODUCTION SHA: PENDING
+PRODUCTION SHA: `144056b478032efc61378d99f94432273b0b7a76`
 
 Backend dependency closure: `arv-visual-comp-review`, `maxxis-chat`, `maxxis-deal-workflow`, `maxxis-provider-message-draft`, `property-fact-review`, `property-intelligence`. JWT verification must remain enabled. Existing parcel GA configuration and general-grid OFF must remain unchanged.
+
+Production deployment `dpl_5KKSStAccy2cg4NuYVwRQTqtfYnc` is READY; source SHA and the `https://dealsiftermatch.vercel.app` alias are verified. All six affected functions are ACTIVE with JWT enabled: ARV visual review 12→13, maxxis-chat 85→86, workflow 16→17, provider-message draft 19→20, property-fact-review 3→4, property-intelligence 12→13. Public-parcel 10 and feature-flags 19 are unchanged.
+
+Published-asset browser validation also passed all six device/locale cases, ten map/module transitions and two photo-to-Feed handoffs. These tests used explicit synthetic authentication/backend and performed zero real backend writes. The post-deploy database audit is identical to the pre-deploy audit; existing parcel configuration is unchanged. See `production-validation.json`, `production-deployment.json`, `backend-deploy.json`, `backend-production-after.json`, `browser-production.json` and the `map/production-synthetic.json` artifacts.
+
+Post-deployment evidence is committed separately as QA-only documentation. It does not change the deployed application source SHA.
 
 ## Validation limit
 
