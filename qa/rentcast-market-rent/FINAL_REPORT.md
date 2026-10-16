@@ -1,6 +1,6 @@
 # RentCast Market Rent AVM + Financial Evidence Corrections
 
-IMPLEMENTATION: PASS — pre-deployment gates validated.
+IMPLEMENTATION: PASS — implementation and post-deployment gates validated.
 
 Original production baseline: `97692d0ac00834e4b083a2f9bf3db3df9bec8bde`.
 Actual repository/pushed baseline: `e6f13b759238a21de1ca6b1367dd17ade46bc657`
@@ -73,14 +73,31 @@ The Node 22 review harness requires `--experimental-strip-types --experimental-t
 
 ## Release
 
-COMMIT: NOT_COMMITTED (source commit follows these accepted gates).
-PUSH: PENDING.
-PRODUCTION DEPLOY: PENDING.
-PRODUCTION SHA: PENDING.
+COMMIT: `7bb7530beda8aebe810ec07660dc8fb5ad687b95`.
+PUSH: PASS — remote branch SHA verified.
+PRODUCTION DEPLOY: YES — READY, source SHA and production alias verified.
+PRODUCTION SHA: `7bb7530beda8aebe810ec07660dc8fb5ad687b95`.
+Deployment: `dpl_4XLhZJ37wP9zcNF6cZovvQ6kcPNY`.
+Public URL: https://dealsiftermatch.vercel.app.
 Exact affected closure: arv-visual-comp-review, maxxis-chat, maxxis-deal-workflow,
 maxxis-provider-message-draft, property-fact-review, property-intelligence.
-Public-parcel and feature-flags are not redeployed. Existing flags and schema/RLS
-will be reconfirmed after release.
+Backend deploy: PASS — immutable Git archive of the pushed commit. All six functions
+are ACTIVE with JWT verification: arv-visual-comp-review 14, maxxis-chat 88,
+maxxis-deal-workflow 19, maxxis-provider-message-draft 22, property-fact-review 6,
+property-intelligence 14. Public-parcel 10 and feature-flags 19 were not redeployed.
+Post-deploy operator audits confirm unchanged flags and schema/RLS; no migration,
+secret update or production database write was performed.
+
+Post-deploy actual production assets: PASS — six desktop/mobile × PT/EN/ES review
+cases, ten Map→module transitions and two photo→Feed handoffs. Zero page errors,
+generic loader flashes in review, review-open provider acquisitions, radio network
+mutations or Portfolio provider fan-out. Eight selected additions persist and the
+existing edit shell remains intact. Authentication/backend are explicitly synthetic;
+these checks do not constitute a real authenticated production smoke. Observed
+browser durations include local runner/resource/network conditions, not an SLA.
+See `production-validation.json`, `browser/browser-production.json`,
+`map/production-synthetic.json` and `photo/production-synthetic.json`.
+Temporary QA preview on port 4182 was stopped; other servers were left untouched.
 
 AUTHENTICATED PRODUCTION SMOKE: **BLOCKED** — no legitimate real user session is
 available. Operator metadata and synthetic browser authentication are not substitutes.
@@ -89,3 +106,5 @@ result/range/subject: **BLOCKED**, not the fixed automated fixture values.
 
 NEXT PHASE: FINANCIAL ANALYTICAL ENGINES — NOI + CAP RATE + OPERATING CASH FLOW.
 FOLLOWING PHASE: FINANCING-AWARE METRICS — COC + DSCR + ROI.
+
+FINAL: RENTCAST MARKET RENT AVM + FINANCIAL EVIDENCE CORRECTIONS VALIDATED.

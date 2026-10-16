@@ -1,0 +1,99 @@
+{
+  "mode": "PRODUCTION_FRONTEND_WITH_EXPLICIT_MOCK_AUTH_BACKEND",
+  "productionUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 23579,
+          "moduleEntryObservedMs": 6551
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 11364,
+          "moduleEntryObservedMs": 2654
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 1243,
+          "moduleEntryObservedMs": 2775
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 5065,
+          "moduleEntryObservedMs": 3519
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 3344,
+          "moduleEntryObservedMs": 5144
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 6883,
+          "moduleEntryObservedMs": 1707
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 992,
+          "moduleEntryObservedMs": 2573
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 1142,
+          "moduleEntryObservedMs": 1181
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true,
+          "nativeZoomInFlight": true,
+          "mapEntryObservedMs": 1698,
+          "moduleEntryObservedMs": 736
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true,
+          "nativeZoomInFlight": false,
+          "mapEntryObservedMs": 1931,
+          "moduleEntryObservedMs": 1308
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

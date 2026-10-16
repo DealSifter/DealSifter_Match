@@ -1,0 +1,77 @@
+{
+  "sourceSha": "7bb7530beda8aebe810ec07660dc8fb5ad687b95",
+  "deploymentId": "dpl_4XLhZJ37wP9zcNF6cZovvQ6kcPNY",
+  "productionUrl": "https://dealsiftermatch.vercel.app",
+  "exactBackend": true,
+  "exactFrontend": true,
+  "functions": [
+    {
+      "slug": "arv-visual-comp-review",
+      "before": 13,
+      "after": 14,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    },
+    {
+      "slug": "maxxis-chat",
+      "before": 87,
+      "after": 88,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    },
+    {
+      "slug": "maxxis-deal-workflow",
+      "before": 18,
+      "after": 19,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    },
+    {
+      "slug": "maxxis-provider-message-draft",
+      "before": 21,
+      "after": 22,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    },
+    {
+      "slug": "property-fact-review",
+      "before": 5,
+      "after": 6,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    },
+    {
+      "slug": "property-intelligence",
+      "before": 13,
+      "after": 14,
+      "active": true,
+      "jwt": true,
+      "incremented": true
+    }
+  ],
+  "untouched": [
+    {
+      "slug": "public-parcel",
+      "unchanged": true
+    },
+    {
+      "slug": "feature-flags",
+      "unchanged": true
+    }
+  ],
+  "databaseUnchanged": true,
+  "flagsUnchanged": true,
+  "browserPass": true,
+  "mapPass": true,
+  "photoPass": true,
+  "realBackendWrites": 0,
+  "mode": "ACTUAL_PRODUCTION_ASSETS_WITH_EXPLICIT_SYNTHETIC_AUTH_BACKEND",
+  "authenticatedProductionSmoke": "BLOCKED",
+  "productionSmokeNewBillableCalls": 0,
+  "pass": true
+}
