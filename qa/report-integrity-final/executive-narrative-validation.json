@@ -94,7 +94,13 @@
   },
   "authenticatedProductionSmoke": "BLOCKED",
   "authenticatedProductionSmokeReason": "NO_LEGITIMATE_REAL_USER_SESSION_AVAILABLE",
-  "releaseConsolidation": "PENDING_COORDINATOR_FINAL_SOURCE_BOUND_PIPELINE",
+  "releaseConsolidation": {
+    "receipt": "qa/report-integrity-final/quality-gates.json",
+    "sourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+    "passedGates": 11,
+    "failedGates": 0,
+    "pass": true
+  },
   "incrementalRevalidation": {
     "receipt": "qa/report-integrity-final/incremental-validation.json",
     "currentSourcesMatchSuccessfulFullRun": true,
@@ -104,5 +110,5 @@
     "actualBuildRepeated": false,
     "browserTestedAssetBytesIdentical": true
   },
-  "updateInstruction": "Current full/static, extracted targeted subset and unchanged real build/browser assets are source-bound. Preserve original receipts and actual PDF hashes; final consolidation remains pending, and local synthetic QA is not authenticated production smoke"
+  "updateInstruction": "All 11 current-source local release gates passed. Preserve original receipts and actual PDF hashes; commit/push/deploy are recorded separately, and local synthetic QA is not authenticated production smoke"
 }

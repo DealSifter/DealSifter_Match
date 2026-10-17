@@ -1,16 +1,16 @@
-# Production readiness — pending final gates
+# Production readiness — deployed and verified
 
-This is a pre-release readiness record, not deployment authorization or a final PASS. Original production application baseline is `7bb7530beda8aebe810ec07660dc8fb5ad687b95`; actual repository baseline is `04950e177e9c6f8237872e60369b8bd90be03b66`. The baseline production frontend/backend/database receipts are retained in this QA directory. Legitimate newer baseline work was not reset.
+Production validation PASS is recorded in `production-validation.json`. Code commit `3be3a484aef2567badae1bb50b833873b3e9fc59` was committed, pushed and deployed. Vercel deployment `dpl_DWaWJRnrL3NSUd32J8VDqypMC1ac` is READY at `https://dealsiftermatch.vercel.app`, with alias and source SHA verified. Original production application baseline was `7bb7530beda8aebe810ec07660dc8fb5ad687b95`; actual repository baseline was `04950e177e9c6f8237872e60369b8bd90be03b66`. The baseline frontend/backend/database receipts remain retained; legitimate newer baseline work was not reset.
 
 ## Implemented scope
 
-The strict report projection, typed values, localized evidence-linked narrative, dynamic substantive sections, safe PDF/DOM rendering and translation acquisition/cache contract are implemented. Confirmed saved private scenarios are projected through their own typed whitelist, preserving known premises and qualified existing calculations without altering any financial formula. Financial/area/ARV engines are not being migrated. No database migration is authorized or expected.
+The strict report projection, typed values, localized evidence-linked narrative, dynamic substantive sections, safe PDF/DOM rendering and translation acquisition/cache contract are implemented. Confirmed saved private scenarios are projected through their own typed whitelist, preserving known premises and qualified existing calculations without altering any financial formula. Financial/area/ARV engines were not migrated. No database migration occurred.
 
-## Deployment conditions still to consolidate
+## Completed release validation
 
-Final approval requires `quality-gates.json` PASS for the same frozen source: targeted and full deterministic tests; full frontend lint; contract/report TypeScript; unchanged 25-engine/MapView/migration source isolation; 30 newly generated real PDFs with current source/binary hashes, extracted text and raster pages; manual visual/executive review covering the six L3 fixtures; modern/legacy build and source binding; affected Edge Deno baseline comparison; and current browser review/navigation/photo handoff evidence. Stale partial artifacts, prior counts or an image's existence cannot stand in for any gate.
+`quality-gates.json` records all 11 gates PASS for frozen source digest `6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15`: full tests 2613/2613; 453 report assertions in 18 files extracted from that same full run; frontend lint; contract/report TypeScript; unchanged 25-engine/MapView/migration source isolation; 30 actual PDF binaries with extracted text, raster pages, hashes and evidence/layout audits; 18 hash-bound L3 manual visual/executive reviews; modern/legacy real build and source binding; Deno 37 baseline/37 current/zero new diagnostics; six review flows, ten MapView transitions and two photo-to-feed handoffs. Additional structured-notes continuation passed 1/1.
 
-The final gate runner and exact receipt shapes are documented in `release-validation-contract.md`. Every missing, failed or stale proof blocks deployment. Current pre-release status is **PENDING**, not production-ready. Commit/push/deploy remain conditional on completing the requested final gates. No subsequent NOI/Cap Rate/Operating Cash Flow implementation is authorized by passing unit tests alone.
+The targeted receipt is explicitly a subset of the current full run, not a second claimed execution. `incremental-validation.json` proves the sole post-build source change was an obsolete L2 test fixture, with no runtime/configuration/public-input changes. The actual successful build was revalidated without a redundant rebuild; 125 served build files remained byte-identical to the tested assets. Original receipts and first-run failures remain preserved. No subsequent NOI/Cap Rate/Operating Cash Flow engine implementation is implied by this release.
 
 ## Authenticated production smoke
 
@@ -18,10 +18,12 @@ BLOCKED: no legitimate real authenticated user session is available to this run.
 
 ## Safe deployment scope
 
-The backend dependency-closure audit identifies `maxxis-chat` and `presentation-translate` for the contained presenter/translation origin fixes; frontend report changes require the matched frontend build. The final deployment process must verify the exact committed/pushed code SHA and corresponding production alias/function metadata. No migration, secrets, plan limits, entitlement framework, paid-provider budget expansion or public parcel feature exposure change is part of this release.
+The exact affected backend closure was deployed and verified: `maxxis-chat` v89 and `presentation-translate` v5, both ACTIVE with JWT verification enabled. The matched frontend code SHA and production alias were verified. Backend and database after-audits confirm schema/RLS, feature flags and secrets unchanged. No migration, plan-limit/entitlement change, paid-provider budget expansion or public parcel exposure change formed part of this release.
 
 Existing stored PDFs remain untouched. Newly generated PDFs use the corrected projection. Report storage/pricing, My Reports access, property privacy and private investor scenario scope must remain unchanged. Rendering/reopening must perform zero evidence-provider calls.
 
-## Required handoff
+## Production browser evidence and handoff
 
-Finalize `FINAL_REPORT.md` from source-bound receipts using the complete field checklist in `FINAL_REPORT_DRAFT.md`. Replace every PENDING entry only with actual evidence. If any required final gate fails, report the exact blocker and do not deploy or claim "REPORT INTEGRITY + EXECUTIVE WOW RECOVERY VALIDATED".
+The real production frontend passed six review cases (desktop/mobile × PT/EN/ES), ten navigation transitions and two photo handoffs using explicitly simulated authentication/backend. There were zero real backend writes and no legitimate real-user session. A transient first-attempt icon-width assertion failure is preserved; the original unchanged isolated ES case and one complete original six-case retry passed. No test tolerance or application change was introduced to obtain the PASS. Production validation is not misrepresented as an authenticated real-user smoke.
+
+`FINAL_REPORT.md` contains the complete required field checklist. `production-deployment.json`, `backend-production-after.json`, `migration-production-after.json` and `production-validation.json` retain the production proofs. The sole outstanding verification limitation is the explicitly BLOCKED authenticated real-user production smoke; all deterministic, artifact, source-binding, deployment-metadata and simulated-auth production frontend gates passed.

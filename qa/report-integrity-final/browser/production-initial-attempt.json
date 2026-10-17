@@ -1,0 +1,30 @@
+{
+  "pass": false,
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "runner": "scripts/smart-property-ux-browser-qa.mjs",
+  "runnerModified": false,
+  "exitCode": 1,
+  "completedCasesObservedInConsole": ["desktop-pt-BR", "desktop-en-US"],
+  "failedCase": "desktop-es-ES",
+  "assertion": "rounded SVG getBoundingClientRect().width equals desktop icon size",
+  "expected": 24,
+  "received": 23,
+  "sourceLine": 60,
+  "completeResultJsonWritten": false,
+  "diagnosis": "Transient measured geometry; source explicitly sets 24px with flex-shrink:0. An ancestor transform/opening transition is a hypothesis, not proven by this failed attempt.",
+  "isolatedOriginalRunnerRetry": {
+    "pass": true,
+    "cases": 1,
+    "result": "browser-production-desktop-es-retry.json",
+    "assertionChanged": false
+  },
+  "fullOriginalRunnerRetry": {
+    "pass": true,
+    "cases": 6,
+    "result": "browser-production.json",
+    "assertionChanged": false,
+    "sourceChanged": false
+  },
+  "realUserSession": false,
+  "realBackendWrites": 0
+}

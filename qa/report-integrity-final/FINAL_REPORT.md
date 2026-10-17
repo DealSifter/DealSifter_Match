@@ -1,9 +1,9 @@
 # Report integrity + executive evidence recovery
 
-The implementation and its actual-PDF/content/visual checks are validated locally. Commit, push, production deployment and the final current-source release consolidation are not inferred from those checks: they remain explicitly pending below until their receipts exist. No legitimate authenticated production user session was available.
+The implementation and its actual-PDF/content/visual checks are validated. All 11 current-source release gates passed. Code commit, push and production deployment succeeded; the production alias, source SHA and affected functions were verified. Production browser checks used the real frontend with explicitly simulated authentication/backend and zero real writes. No legitimate authenticated production user session was available.
 
 ```text
-IMPLEMENTATION: PASS — implemented and locally validated; release consolidation pending
+IMPLEMENTATION: PASS — implemented, locally validated and current-source release consolidation passed
 ORIGINAL PRODUCTION BASELINE: 7bb7530beda8aebe810ec07660dc8fb5ad687b95
 ACTUAL BASELINE: 04950e177e9c6f8237872e60369b8bd90be03b66
 PRODUCTION BASELINE: 7bb7530beda8aebe810ec07660dc8fb5ad687b95
@@ -123,14 +123,14 @@ NEW DENO ERRORS: 0 — affected closure maxxis-chat + presentation-translate
 LIVE RENTCAST CALLS IN AUTOMATED TESTS: 0 — mocked/denied transports
 LIVE GIS CALLS IN AUTOMATED TESTS: 0 — mocked/denied transports
 AUTHENTICATED PRODUCTION SMOKE: BLOCKED — no legitimate real user session available
-COMMIT: PENDING — not yet committed for this release
-PUSH: PENDING — not yet pushed for this release
-PRODUCTION DEPLOY: PENDING — final release gates and authorized deployment verification
-PRODUCTION SHA: 7bb7530beda8aebe810ec07660dc8fb5ad687b95 — pre-release baseline only, not this implementation
+COMMIT: 3be3a484aef2567badae1bb50b833873b3e9fc59
+PUSH: PASS — code commit pushed
+PRODUCTION DEPLOY: YES — alias READY, source SHA verified; maxxis-chat v89 + presentation-translate v5 ACTIVE with JWT verification preserved
+PRODUCTION SHA: 3be3a484aef2567badae1bb50b833873b3e9fc59
 QA ARTIFACTS: qa/report-integrity-final/ ; qa/report-integrity/root-cause-analysis.md
 NEXT PHASE: ONLY AFTER THIS PASS — FINANCIAL ANALYTICAL ENGINES — NOI + CAP RATE + OPERATING CASH FLOW
-RELEASE BLOCKED BY: final source-bound consolidation and commit/push/deploy receipts pending; authenticated production smoke remains separately BLOCKED
-FINAL: PENDING_FINAL_RELEASE_CONSOLIDATION — local report-integrity and executive visual checks passed
+RELEASE BLOCKED BY: NONE for validated implementation/deployment; authenticated real-user production smoke remains separately BLOCKED
+FINAL: REPORT INTEGRITY + EXECUTIVE WOW RECOVERY VALIDATED
 ```
 
 The complete matrix is 18 L3 PDFs (six fixtures × PT/EN/ES) and 12 L1/L2 PDFs (4724 and Honolulu × two levels × three locales). Structured-notes continuation is an additional PDF, not a substitution for any matrix member. All automated fixtures are synthetic. The report boundary keeps publisher declarations and private assumptions qualified; it does not turn them into official verification or current contracted income.
@@ -139,4 +139,6 @@ Evidence is retained in `full/tests.json` and the raw Vitest output, `golden-rep
 
 `targeted/tests.json` identifies the 453 assertions in 18 report-related files within that same final full-suite JSON; it is a source-bound subset, not a claim of a second completed test run. The redundant post-full pipeline was stopped after its final static checks passed, while its repeated targeted stage was still running. `incremental-validation.json` records all 858 current source hashes matching the successful full run and the sole test-only difference from the actual built/browser-tested source. There were no production application, configuration or public-input changes. `build.json` revalidates the existing real successful build without claiming a rebuild, and `browser/identical-build-revalidation.json` binds the prior six review cases, ten navigation transitions and two photo handoffs to identical built asset bytes. Original build/source/targeted receipts remain preserved.
 
-Current consolidated release gates must be checked in `quality-gates.json` after the coordinator's final source-bound pipeline. A local technical PASS does not imply a production deploy or a real-user authenticated production smoke.
+`quality-gates.json` records PASS for all 11 gates on source digest `6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15`. Deno comparison remains 37 pre-existing diagnostics before and after, with zero new diagnostics. A local technical PASS does not imply a production deploy or a real-user authenticated production smoke.
+
+`production-validation.json` separately records production PASS for deployment `dpl_DWaWJRnrL3NSUd32J8VDqypMC1ac`, alias `https://dealsiftermatch.vercel.app` and code SHA `3be3a484aef2567badae1bb50b833873b3e9fc59`. Schema/RLS, feature flags and secrets remained unchanged; no migration or real backend write occurred. The six production review cases passed in the original unchanged harness, as did the production navigation/photo checks. The first production attempt's transient 23px-versus-24px icon measurement is retained in `browser/production-initial-attempt.json`; the isolated original ES case and one complete original six-case retry passed without modifying any assertion. `browser/browser-production.json` has SHA256 `104d5506626ad513bab85144cfd9dfdf79d949e848d9c570334c9458d293b773`. These are real-production-frontend checks with simulated authentication/backend, not an authenticated real-user smoke.

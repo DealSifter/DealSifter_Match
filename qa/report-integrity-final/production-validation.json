@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "sourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+  "codeSha": "3be3a484aef2567badae1bb50b833873b3e9fc59",
+  "deploymentId": "dpl_DWaWJRnrL3NSUd32J8VDqypMC1ac",
+  "alias": "https://dealsiftermatch.vercel.app",
+  "affectedFunctions": [
+    "maxxis-chat",
+    "presentation-translate"
+  ],
+  "productionReady": true,
+  "aliasVerified": true,
+  "sourceShaVerified": true,
+  "migrations": "NONE",
+  "schemaRlsUnchanged": true,
+  "flagsSecretsUnchanged": true,
+  "realBackendWrites": 0,
+  "realUserSession": false,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "reason": "NO_LEGITIMATE_REAL_USER_SESSION_AVAILABLE"
+}

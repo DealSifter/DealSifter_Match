@@ -1,0 +1,53 @@
+{
+  "frontend": "https://dealsiftermatch.vercel.app",
+  "mode": "REAL_APP_EXPLICIT_MOCK_AUTH_BACKEND_JSONB_KEY_ORDER",
+  "background30sPollClock": "CONTROLLED_TO_ISOLATE_REVIEW_REQUESTS",
+  "realUserSession": false,
+  "realBackendWrites": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "language": "es-ES",
+      "startupObservedMs": 5923,
+      "closeObservedMs": 394,
+      "closeNetworkDependencies": 0,
+      "ownerQueries": 1,
+      "publicQueries": 1,
+      "actions": [
+        {
+          "action": "DECIDE",
+          "propertyId": "55555555-5555-4555-8555-555555555555",
+          "decisions": 1
+        },
+        {
+          "action": "DECIDE",
+          "propertyId": "77777777-7777-4777-8777-777777777777",
+          "decisions": 8
+        },
+        {
+          "action": "CHECK",
+          "propertyId": "88888888-8888-4888-8888-888888888888",
+          "decisions": 0
+        }
+      ],
+      "writes": 3,
+      "providerAcquisitionsFromApply": 0,
+      "portfolioProviderFanout": 0,
+      "reviewOpenProviderCalls": 0,
+      "radioNetworkMutations": 0,
+      "modalShellPreserved": true,
+      "standaloneButtons": 0,
+      "independentDrawers": 0,
+      "conflictOnlyWarning": true,
+      "staleSummarySuppressed": true,
+      "eightComplementApply": true,
+      "fullReloadPersistence": true,
+      "genericLoaderFlashes": 0,
+      "errors": [],
+      "ctaCopy": "Revise haciendo clic aquí",
+      "modalIconPx": 24,
+      "oneBorderlessControl": true,
+      "reducedMotionRespected": true
+    }
+  ]
+}

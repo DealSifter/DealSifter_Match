@@ -1,0 +1,9 @@
+﻿{
+    "id":  "dpl_743he3RbEvG3RP7g9858yuLVCRwz",
+    "sourceSha":  "3be3a484aef2567badae1bb50b833873b3e9fc59",
+    "state":  "CANCELED",
+    "canceled":  true,
+    "productionUnaffected":  true,
+    "reason":  "Redundant automatic preview of the exact approved production commit",
+    "apiReference":  "https://vercel.com/docs/rest-api/deployments/cancel-a-deployment"
+}
