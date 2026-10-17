@@ -1,1335 +1,151 @@
-import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
-import React, { useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  BarChart3,
-  Bath,
-  BedDouble,
-  Brain,
-  Camera,
-  CheckCircle,
-  DollarSign,
-  FileText,
-  Home,
-  ListChecks,
-  Map,
-  MapPin,
-  Maximize,
-  Target,
-  TrendingUp,
-  User,
-  Wrench,
-} from "lucide-react";
-import officialDealSifterLogo from "../../../assets/maxxis/report-official-logo.png";
-import { resolveComparableMap,comparableMapViewport } from "../export/maxxisReportPdf";
-import {marketRentReportCopy,rentalReportMapPoints} from '../export/marketRentReport';
-import { explainMaxxisEvidenceState } from "./maxxisUserFacingEvidence";
-import { localizeMaxxisValue } from "../presentation/maxxisPresentationI18n";
-import { LocalizedNarrative } from '../../../components/ui/LocalizedNarrative';
+import React, { useEffect, useRef, useState } from 'react';
+import { BarChart3, Camera, CheckCircle, FileText, Home, MapPin, Target } from 'lucide-react';
+import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png';
+import { buildStrictReportViewModel, validateReportViewModel } from '../export/reportIntegrityViewModel.ts';
+import { prepareReportAssets } from '../export/reportPreparedAssets.ts';
+import { comparableMapViewport } from '../export/comparableMapGeometry.ts';
 
 const COPY = {
-  en: {
-    language: "en",
-    open: "Open investor report experience",
-    release: "Investor-ready property release",
-    tagline: "Real Data. Smarter Decisions.",
-    reportFree: "Property Release",
-    reportPro: "Maxxis Analysis Report",
-    reportDeal: "Maxxis Deal Intelligence Report",
-    property: "Property Overview",
-    owner: "Ownership & Public Record",
-    characteristics: "Property Characteristics",
-    land: "Land & Tax Information",
-    photos: "Property Photos",
-    location: "Location Map",
-    notes: "Notes",
-    cma: "Comparative Market Analysis",
-    relative: "Relative distance view — not geographic coordinates",
-    valuation: "Valuation Intelligence",
-    providerEstimate: "Provider estimate (not DealSifter ARV)",
-    spread: "Potential Spread",
-    roi: "Projected ROI Range",
-    rental: "Rental Intelligence",
-    price: "Price Analysis",
-    distribution: "Value Distribution",
-    fitRisk: "Investment Fit & Risk Analysis",
-    profile: "Investor Profile",
-    compatibility: "Profile Compatibility",
-    evidence: "Evidence Summary",
-    insights: "Key Insights & Verification",
-    positive: "Positive Signals",
-    missing: "Missing Information",
-    considerations: "Considerations",
-    steps: "Recommended Verification Steps",
-    powered: "Powered by MAXXIS AI",
-    conclusion: "Segmented Conclusion",
-    topics: "Main Topics",
-    questions: "Questions",
-    actions: "Recommended Actions",
-    confidence: "Maxxis Analysis Confidence",
-    contributors: "Positive contributors",
-    limitations: "Limitations",
-    perspective: "Investor Perspective",
-    unknown: "UNKNOWN",
-    unavailable: "Unavailable",
-    scenario: "Scenario-based",
-    beds: "Beds", baths: "Baths", livingArea: "Living area", capRate: "Cap rate", ownerLabel: "Owner", ownerOccupied: "Owner occupied", ownershipRecord: "Ownership record", latestSale: "Latest sale", saleDate: "Sale date", allowedContacts: "Allowed contacts", title: "Title", priceLabel: "Price", strategy: "Strategy", range: "Range", yearBuilt: "Year built", bedsBaths: "Beds / Baths", rehab: "Rehab", county: "County", lotSize: "Lot size", assessedValue: "Assessed value", propertyTax: "Property tax", source: "Source", address: "Address", salePrice: "Sale Price", distance: "Distance", similarity: "Similarity", status: "Status", confidenceLabel: "Confidence", compsLabel: "Comps", method: "Method", estimatedArv: "Estimated ARV Range", estimatedRent: "Estimated rent", rentalYield: "Rental yield", reportedCapRate: "Reported cap rate", listPrice: "List price", marketRange: "Market range", priceSqft: "Price / sqft", subjectComparison: "Subject comparison", riskAnalysis: "Risk Analysis", matchDisclaimer: "Match Score represents profile compatibility, not investment quality.", evidenceLabel: "Evidence", profileFit: "Profile fit", valuationLabel: "Valuation", executiveSummary: "MAXXIS EXECUTIVE SUMMARY", confidenceDisclaimer: "Analysis completeness and reliability — not property quality.", notAvailable: "Not available", level: "LEVEL", mapAttribution: "© OpenStreetMap contributors",
-    noExternal: "Property records only — no external comparable images.",
-    disclaimer:
-      "This report provides evidence-based investment analysis only and does not constitute appraisal, financial advice, or recommendation to buy or sell.",
-  },
-  pt: {
-    language: "pt",
-    open: "Abrir experiência do relatório do investidor",
-    release: "Relatório de imóvel pronto para investidores",
-    tagline: "Dados reais. Decisões mais inteligentes.",
-    reportFree: "Relatório do Imóvel",
-    reportPro: "Relatório de Análise Maxxis",
-    reportDeal: "Relatório Maxxis de Inteligência do Negócio",
-    property: "Visão Geral do Imóvel",
-    owner: "Propriedade e Registro Público",
-    characteristics: "Características do Imóvel",
-    land: "Terreno e Dados Fiscais",
-    photos: "Fotos do Imóvel",
-    location: "Mapa de Localização",
-    notes: "Notas",
-    cma: "Análise Comparativa de Mercado",
-    relative:
-      "Visão de distância relativa — não representa coordenadas geográficas",
-    valuation: "Inteligência de Avaliação",
-    providerEstimate: "Estimativa do provedor (não é o ARV DealSifter)",
-    spread: "Margem Potencial",
-    roi: "Faixa de ROI Projetado",
-    rental: "Inteligência de Locação",
-    price: "Análise de Preço",
-    distribution: "Distribuição de Valor",
-    fitRisk: "Aderência e Análise de Risco",
-    profile: "Perfil do Investidor",
-    compatibility: "Compatibilidade com o Perfil",
-    evidence: "Resumo das Evidências",
-    insights: "Insights e Verificação",
-    positive: "Sinais Positivos",
-    missing: "Informações Ausentes",
-    considerations: "Considerações",
-    steps: "Etapas Recomendadas de Verificação",
-    powered: "Tecnologia MAXXIS AI",
-    conclusion: "Conclusão Segmentada",
-    topics: "Tópicos Principais",
-    questions: "Perguntas",
-    actions: "Ações Recomendadas",
-    confidence: "Confiança da Análise Maxxis",
-    contributors: "Contribuições positivas",
-    limitations: "Limitações",
-    perspective: "Perspectiva do Investidor",
-    unknown: "DESCONHECIDO",
-    unavailable: "Indisponível",
-    scenario: "Baseado em cenários",
-    beds: "Quartos", baths: "Banheiros", livingArea: "Área útil", capRate: "Cap rate", ownerLabel: "Proprietário", ownerOccupied: "Ocupado pelo proprietário", ownershipRecord: "Registro de propriedade", latestSale: "Última venda", saleDate: "Data da venda", allowedContacts: "Contatos permitidos", title: "Título", priceLabel: "Preço", strategy: "Estratégia", range: "Faixa", yearBuilt: "Ano de construção", bedsBaths: "Quartos / Banheiros", rehab: "Reforma", county: "Condado", lotSize: "Área do lote", assessedValue: "Valor fiscal", propertyTax: "Imposto predial", source: "Fonte", address: "Endereço", salePrice: "Preço de venda", distance: "Distância", similarity: "Similaridade", status: "Status", confidenceLabel: "Confiança", compsLabel: "Comparáveis", method: "Método", estimatedArv: "Faixa estimada de ARV", estimatedRent: "Aluguel estimado", rentalYield: "Rendimento do aluguel", reportedCapRate: "Cap rate informado", listPrice: "Preço anunciado", marketRange: "Faixa de mercado", priceSqft: "Preço / sqft", subjectComparison: "Comparação do imóvel", riskAnalysis: "Análise de riscos", matchDisclaimer: "A pontuação representa aderência ao perfil, não a qualidade do investimento.", evidenceLabel: "Evidência", profileFit: "Aderência ao perfil", valuationLabel: "Avaliação", executiveSummary: "RESUMO EXECUTIVO MAXXIS", confidenceDisclaimer: "Completude e confiabilidade da análise — não é qualidade do imóvel.", notAvailable: "Indisponível", level: "NÍVEL", mapAttribution: "© Colaboradores do OpenStreetMap",
-    noExternal:
-      "Somente registros dos imóveis — sem imagens externas de comparáveis.",
-    disclaimer:
-      "Este relatório fornece apenas análise de investimento baseada em evidências e não constitui avaliação oficial, aconselhamento financeiro ou recomendação de compra ou venda.",
-  },
-  es: {
-    language: "es",
-    open: "Abrir experiencia del informe del inversor",
-    release: "Informe de propiedad listo para inversores",
-    tagline: "Datos reales. Decisiones más inteligentes.",
-    reportFree: "Informe de la Propiedad",
-    reportPro: "Informe de Análisis Maxxis",
-    reportDeal: "Informe Maxxis de Inteligencia del Negocio",
-    property: "Resumen de la Propiedad",
-    owner: "Titularidad y Registro Público",
-    characteristics: "Características de la Propiedad",
-    land: "Terreno y Datos Fiscales",
-    photos: "Fotos de la Propiedad",
-    location: "Mapa de Ubicación",
-    notes: "Notas",
-    cma: "Análisis Comparativo de Mercado",
-    relative:
-      "Vista de distancia relativa — no representa coordenadas geográficas",
-    valuation: "Inteligencia de Valoración",
-    providerEstimate: "Estimación del proveedor (no es ARV DealSifter)",
-    spread: "Margen Potencial",
-    roi: "Rango de ROI Proyectado",
-    rental: "Inteligencia de Alquiler",
-    price: "Análisis de Precio",
-    distribution: "Distribución de Valor",
-    fitRisk: "Alineación y Análisis de Riesgo",
-    profile: "Perfil del Inversor",
-    compatibility: "Compatibilidad con el Perfil",
-    evidence: "Resumen de Evidencias",
-    insights: "Insights y Verificación",
-    positive: "Señales Positivos",
-    missing: "Información Faltante",
-    considerations: "Consideraciones",
-    steps: "Pasos Recomendados de Verificación",
-    powered: "Tecnología MAXXIS AI",
-    conclusion: "Conclusión Segmentada",
-    topics: "Temas Principales",
-    questions: "Preguntas",
-    actions: "Acciones Recomendadas",
-    confidence: "Confianza del Análisis Maxxis",
-    contributors: "Contribuciones positivas",
-    limitations: "Limitaciones",
-    perspective: "Perspectiva del Inversor",
-    unknown: "DESCONOCIDO",
-    unavailable: "No disponible",
-    scenario: "Basado en escenarios",
-    beds: "Habitaciones", baths: "Baños", livingArea: "Superficie", capRate: "Cap rate", ownerLabel: "Propietario", ownerOccupied: "Ocupada por propietario", ownershipRecord: "Registro de titularidad", latestSale: "Última venta", saleDate: "Fecha de venta", allowedContacts: "Contactos permitidos", title: "Título", priceLabel: "Precio", strategy: "Estrategia", range: "Rango", yearBuilt: "Año de construcción", bedsBaths: "Hab. / Baños", rehab: "Reforma", county: "Condado", lotSize: "Superficie del lote", assessedValue: "Valor fiscal", propertyTax: "Impuesto predial", source: "Fuente", address: "Dirección", salePrice: "Precio de venta", distance: "Distancia", similarity: "Similitud", status: "Estado", confidenceLabel: "Confianza", compsLabel: "Comparables", method: "Método", estimatedArv: "Rango ARV estimado", estimatedRent: "Alquiler estimado", rentalYield: "Rendimiento del alquiler", reportedCapRate: "Cap rate informado", listPrice: "Precio anunciado", marketRange: "Rango de mercado", priceSqft: "Precio / sqft", subjectComparison: "Comparación de la propiedad", riskAnalysis: "Análisis de riesgos", matchDisclaimer: "La puntuación representa afinidad con el perfil, no la calidad de la inversión.", evidenceLabel: "Evidencia", profileFit: "Afinidad con el perfil", valuationLabel: "Valoración", executiveSummary: "RESUMEN EJECUTIVO MAXXIS", confidenceDisclaimer: "Integridad y fiabilidad del análisis; no es la calidad del inmueble.", notAvailable: "No disponible", level: "NIVEL", mapAttribution: "© Colaboradores de OpenStreetMap",
-    noExternal:
-      "Solo registros de propiedades — sin imágenes externas de comparables.",
-    disclaimer:
-      "Este informe ofrece únicamente análisis de inversión basado en evidencia y no constituye tasación, asesoramiento financiero ni recomendación de compra o venta.",
-  },
+  en: { open: 'Open investor report experience', hint: 'Click to explore', level: 'Level', property: 'Property Overview',
+    executive: 'Executive Deal Snapshot', coverage: 'Evidence coverage', opportunity: 'Strongest supported signal',
+    risk: 'Primary uncertainty', next: 'Next verification', photos: 'Property Photos', location: 'Location Map', notes: 'Publisher notes',
+    invalid: 'This report cannot be displayed safely. Generate it again.', map: 'Coordinate-derived relative view — not a cadastral map.' },
+  pt: { open: 'Abrir relatório do investidor', hint: 'Clique para explorar', level: 'Nível', property: 'Visão geral do imóvel',
+    executive: 'Síntese executiva do negócio', coverage: 'Cobertura das evidências', opportunity: 'Sinal mais bem sustentado',
+    risk: 'Principal incerteza', next: 'Próxima verificação', photos: 'Fotos do imóvel', location: 'Localização', notes: 'Notas do publicador',
+    invalid: 'Este relatório não pode ser exibido com segurança. Gere-o novamente.', map: 'Visão relativa por coordenadas — não é mapa cadastral.' },
+  es: { open: 'Abrir informe del inversor', hint: 'Haga clic para explorar', level: 'Nivel', property: 'Resumen de la propiedad',
+    executive: 'Síntesis ejecutiva del negocio', coverage: 'Cobertura de evidencia', opportunity: 'Señal mejor sustentada',
+    risk: 'Principal incertidumbre', next: 'Próxima verificación', photos: 'Fotos del inmueble', location: 'Ubicación', notes: 'Notas del publicador',
+    invalid: 'Este informe no puede mostrarse de forma segura. Genérelo de nuevo.', map: 'Vista relativa por coordenadas — no es mapa catastral.' },
 };
-
-const OPEN_HINT = Object.freeze({
-  en: "CLICK TO VIEW",
-  pt: "CLIQUE PARA VER",
-  es: "CLIC PARA VER",
-});
-
-const list = (value) => (Array.isArray(value) ? value : []);
-const available = (section) => (section?.available ? section.data : null);
-const text = (value, unknown) =>
-  value === null || value === undefined || value === ""
-    ? unknown
-    : String(value);
-const money = (value, unknown) => {
-  const number = Number(value);
-  if (value === null || value === undefined || value === "" || !Number.isFinite(number)) return unknown;
-  return number < 0
-    ? `-$${Math.abs(number).toLocaleString("en-US")}`
-    : `$${number.toLocaleString("en-US")}`;
-};
-const localizedBoolean = (value, copy) => typeof value !== "boolean" ? text(value, copy.unknown)
-  : value ? (copy.language === "pt" ? "Sim" : copy.language === "es" ? "Sí" : "Yes")
-    : (copy.language === "pt" ? "Não" : copy.language === "es" ? "No" : "No");
-const localizedDate = (value, copy) => {
-  if (!value) return copy.unknown;
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat(copy.language === "pt" ? "pt-BR" : copy.language === "es" ? "es-ES" : "en-US",
-    copy.language === "en" ? { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }
-      : { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }).format(date);
-};
-const percent = (value, unknown) =>
-  toKnownFiniteNumber(value) !== null
-    ? `${Number(value).toLocaleString("en-US")}%`
-    : unknown;
-const evidenceText = (value, fallback, language = "en") =>
-  explainMaxxisEvidenceState(value || fallback, language);
-const KEY_LABELS = Object.freeze({
-  pt: { totalComparableRecords: "Registros comparáveis", sampleSize: "Total de registros", usedCount: "Usados na análise", supportingCount: "Registros de apoio", salePriceLow: "Menor preço de venda", salePriceHigh: "Maior preço de venda", usedComparables: "Usados na análise", averageSalePrice: "Preço médio de venda", averageSimilarity: "Similaridade média", averageDistance: "Distância média", verifiedRecords: "Registros verificados", userProvided: "Informado pelo usuário", calculated: "Calculado", estimated: "Estimado", unknown: "Desconhecido", conflicts: "Conflitos", location: "Localização", priceRange: "Faixa de preço", propertyType: "Tipo de imóvel", strategy: "Estratégia" },
-  es: { totalComparableRecords: "Registros comparables", sampleSize: "Total de registros", usedCount: "Usados en el análisis", supportingCount: "Registros de apoyo", salePriceLow: "Menor precio de venta", salePriceHigh: "Mayor precio de venta", usedComparables: "Usados en el análisis", averageSalePrice: "Precio medio de venta", averageSimilarity: "Similitud media", averageDistance: "Distancia media", verifiedRecords: "Registros verificados", userProvided: "Informado por el usuario", calculated: "Calculado", estimated: "Estimado", unknown: "Desconocido", conflicts: "Conflictos" },
-});
 
 const reportProfiler = (id, phase, actualDuration, baseDuration, startTime, commitTime) => {
-  if (typeof window === "undefined" || typeof window.dispatchEvent !== "function" || typeof CustomEvent !== "function") return;
-  window.dispatchEvent(new CustomEvent("dealsifter:maxxis-performance", { detail: { stage: "inline_report_react_commit", id, phase, actualDuration, baseDuration, startTime, commitTime } }));
-};
-const keyLabel = (key, language = "en") => {
-  const safeKey = String(key || "");
-  return KEY_LABELS[language]?.[safeKey] || safeKey.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
-};
-const displayLabel = (value, fallback = "", language = "en") => localizeMaxxisValue(value, language, fallback);
-const arvStatusText = (status, copy) => {
-  if (status === "NOT_APPLICABLE") return displayLabel(status, copy.unavailable, copy.language);
-  if (status === "ARV_AVAILABLE")
-    return copy.unavailable === "Indisponível"
-      ? "ARV disponível"
-      : copy.unavailable === "No disponible"
-        ? "ARV disponible"
-        : "ARV available";
-  if (status === "ARV_LIMITED")
-    return copy.unavailable === "Indisponível"
-      ? "ARV limitado pelas evidências"
-      : copy.unavailable === "No disponible"
-        ? "ARV limitado por la evidencia"
-        : "ARV limited by evidence";
-  return copy.unavailable;
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent !== 'function') return;
+  window.dispatchEvent(new CustomEvent('dealsifter:maxxis-performance', { detail: { stage: 'inline_report_react_commit', id, phase, actualDuration, baseDuration, startTime, commitTime } }));
 };
 
-function ReportHeader({ level, subtitle, copy }) {
-  const product =
-    level === 3
-      ? copy.reportDeal
-      : level === 2
-        ? copy.reportPro
-        : copy.reportFree;
-  return (
-    <header className="maxxis-v2-header">
-      <div className="maxxis-v2-brand">
-        <img src={officialDealSifterLogo} alt="DealSifter Match" />
-        <small>{copy.tagline}</small>
-      </div>
-      <div>
-        <strong>{product}</strong>
-        <small>{subtitle}</small>
-      </div>
-      <span className={`is-level-${level}`}>
-        {level === 3 ? "ENTERPRISE" : level === 2 ? "PRO" : "FREE"}
-      </span>
-    </header>
-  );
+function SectionTitle({ icon: Icon = FileText, children }) {
+  return <h3 className="maxxis-v2-section-title"><span>{React.createElement(Icon, { 'aria-hidden': true, size: 16 })}</span>{children}</h3>;
 }
 
-function ComparableMap({ schema, rows, copy,rentView=null }) {
-  const [mapImage, setMapImage] = useState(null);
-  useEffect(() => {
-    let active = true;
-    const renderMap = () => resolveComparableMap(schema,rentView?{points:rentalReportMapPoints(rentView)}:{}).then((result) => {
-      if (active) setMapImage(result);
-    });
-    const idleId = typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
-      ? window.requestIdleCallback(renderMap, { timeout: 1500 })
-      : setTimeout(renderMap, 0);
-    return () => {
-      active = false;
-      if (typeof window !== "undefined" && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
-      else clearTimeout(idleId);
-    };
-  }, [schema,rentView]);
-  if (mapImage)
-    return (
-      <div className="maxxis-v2-comparable-map">
-        <img src={mapImage} alt={copy.cma} />
-        <small>{copy.mapAttribution}</small>
-      </div>
-    );
-  if(rentView){
-    const points=rentalReportMapPoints(rentView);
-    if(!points.length)return <p>{copy.unavailable}</p>;
-    const viewport=comparableMapViewport(points);
-    return <div className="maxxis-v2-relative-map" role="img" aria-label={copy.relative}>
-      {viewport.world.map(({x,y,item})=><span key={item.id} className={item.marker==='S'?'is-subject':'is-used'} style={{position:'absolute',left:`${(x-viewport.left)/viewport.width*100}%`,top:`${(y-viewport.top)/viewport.height*100}%`}}>{item.marker}</span>)}
-      <small>{copy.relative}</small>
-    </div>;
-  }
-  return (
-    <div
-      className="maxxis-v2-relative-map"
-      role="img"
-      aria-label={copy.relative}
-    >
-      <span className="is-subject">S</span>
-      {(rentView?rows.filter(item=>item.latitude!=null&&item.longitude!=null):rows).map((item, index) => (
-        <span
-          key={item.compIdentifier || `${item.address}-${index}`}
-          className={`is-${(item.status||'used').toLowerCase()}`}
-          style={{
-            "--comp-offset": `${Math.min(88, 18 + (item.distanceMiles || index + 1) * 18)}%`,
-          }}
-        >
-          {item.number??index + 1}
-        </span>
-      ))}
-      <small>{copy.relative}</small>
-    </div>
-  );
+function SafeRows({ rows }) {
+  if (!rows?.length) return null;
+  return <dl>{rows.map((row, index) => <div key={`${row.label}-${index}`}><dt>{row.label}</dt>
+    <dd>{row.value}{row.source ? <small>{row.source}</small> : null}</dd></div>)}</dl>;
 }
 
-function Badge({ children, tone = "teal" }) {
-  return <span className={`maxxis-v2-badge is-${tone}`}>{children}</span>;
+function ReportHeader({ view, copy, level }) {
+  return <header className="maxxis-v2-header">
+    <div className="maxxis-v2-brand"><img src={officialDealSifterLogo} alt="DealSifter Match" /><small>{view.header.subtitle}</small></div>
+    <div><strong>{view.header.product}</strong><small>{copy.property}</small></div>
+    <span className={`is-level-${level}`}>{level === 3 ? 'ENTERPRISE' : level === 2 ? 'PRO' : 'FREE'}</span>
+  </header>;
 }
 
-function SectionTitle({ icon = FileText, children }) {
-  return (
-    <strong className="maxxis-v2-section-title">
-      <span>
-        {React.createElement(icon, { "aria-hidden": true, size: 16 })}
-      </span>
-      {children}
-    </strong>
-  );
+/** Geometry is the same pure ARV/rental framing used by PDF. No tiles, URLs or I/O. */
+function SafeCoordinateMap({ map, title }) {
+  if (!map?.points.length) return null;
+  const viewport = comparableMapViewport(map.points, 900, 330, 65);
+  return <figure className="maxxis-v2-info-card"><SectionTitle icon={MapPin}>{title}</SectionTitle>
+    <div className="maxxis-v2-comparable-map"><svg viewBox="0 0 900 330" width="100%" height="100%" role="img" aria-label={map.caption}>
+      <rect width="900" height="330" fill="#edf4f4" />
+      {[150, 300, 450, 600, 750].map(x => <path key={`x-${x}`} d={`M${x} 0V330`} stroke="#d7e5e5" />)}
+      {[82.5, 165, 247.5].map(y => <path key={`y-${y}`} d={`M0 ${y}H900`} stroke="#d7e5e5" />)}
+      {viewport.world.map(({ x, y, item }) => <g key={item.id} transform={`translate(${x - viewport.left} ${y - viewport.top})`} data-report-map-marker={item.marker}>
+        <circle r={item.marker === 'S' ? 19 : 16} fill={item.marker === 'S' ? '#15384f' : '#0d876f'} stroke="#fff" strokeWidth="3" />
+        <text textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize="15" fontWeight="700">{item.marker}</text>
+      </g>)}
+    </svg></div><figcaption>{map.caption}</figcaption>
+  </figure>;
 }
 
-function InfoCard({ title, rows, icon, narrative = false, copy }) {
-  return (
-    <section className={`maxxis-v2-info-card${narrative ? " is-narrative" : ""}`}>
-      <SectionTitle icon={icon}>{title}</SectionTitle>
-      <dl>
-        {rows.length ? (
-          rows.map(([label, value, source]) => (
-            <div key={`${label}-${value}`}>
-              <dt>{label}</dt>
-              <dd>
-                {narrative
-                  ? evidenceText(value, copy?.unavailable, copy?.language)
-                  : displayLabel(value, copy?.unavailable, copy?.language)}
-                {source ? <small>{displayLabel(source, copy?.unavailable, copy?.language)}</small> : null}
-              </dd>
-            </div>
-          ))
-        ) : (
-          <div>
-            <dt>{copy?.status || "Status"}</dt>
-            <dd>{copy?.notAvailable || "Not available"}</dd>
-          </div>
-        )}
-      </dl>
-    </section>
-  );
+function ExecutiveSnapshot({ executive, copy }) {
+  if (!executive) return null;
+  return <section className="maxxis-v2-info-card is-narrative" data-report-section="EXECUTIVE_SNAPSHOT">
+    <SectionTitle icon={Target}>{copy.executive}</SectionTitle>
+    <span className="maxxis-v2-badge is-navy">{executive.status}</span><p>{executive.thesis.text}</p>
+    <div className="maxxis-v2-comp-stats" aria-label={copy.coverage}>{executive.coverage.map(row =>
+      <span key={row.label}><small>{row.label}</small><b>{row.value}</b></span>)}</div>
+    <SafeRows rows={[
+      ...(executive.opportunity ? [{ label: copy.opportunity, value: executive.opportunity.text }] : []),
+      ...(executive.risk ? [{ label: copy.risk, value: executive.risk.text }] : []),
+      ...(executive.blocker ? [{ label: copy.next, value: executive.blocker.text }] : []),
+    ]} />
+  </section>;
 }
 
-function ConfidenceCard({ confidence, copy }) {
-  if (!confidence) return null;
-  return (
-    <section className="maxxis-v2-confidence">
-      <div>
-        <small>{copy.confidence}</small>
-        <strong>{percent(confidence.score, copy.unknown)}</strong>
-        <Badge
-          tone={
-            confidence.classification === "HIGH"
-              ? "teal"
-              : confidence.classification === "MODERATE"
-                ? "gold"
-                : "muted"
-          }
-        >
-          {displayLabel(confidence.classification, copy.unavailable, copy.language)}
-        </Badge>
-        <em>{copy.confidenceDisclaimer}</em>
-      </div>
-      <div>
-        <strong>{copy.contributors}</strong>
-        {list(confidence.contributors).map((item) => (
-          <span key={item}>✓ {evidenceText(item, copy.unavailable, copy.language)}</span>
-        ))}
-      </div>
-      <div>
-        <strong>{copy.limitations}</strong>
-        {list(confidence.limitations).map((item) => (
-          <span key={item}>⚠ {evidenceText(item, copy.unavailable, copy.language)}</span>
-        ))}
-      </div>
-    </section>
-  );
+function SafeReportSection({ section }) {
+  return <section className={`maxxis-v2-info-card${section.kind === 'list' || section.kind === 'narrative' ? ' is-narrative' : ''}`}
+    data-report-section={section.id === 'market-rent' ? 'MARKET_RENT' : section.id}>
+    <SectionTitle icon={section.map ? MapPin : section.hero ? BarChart3 : FileText}>{section.title}</SectionTitle>
+    {section.hero ? <div className="maxxis-v2-arv"><div><small>{section.hero.label}</small><strong className="maxxis-v2-price">{section.hero.value}</strong><p>{section.hero.qualification}</p></div></div> : null}
+    {section.range ? <div className="maxxis-v2-comp-stats"><span><small>{section.range.low}</small></span>
+      <span><b>{section.range.estimate}</b></span><span><small>{section.range.high}</small></span></div> : null}
+    {section.text ? <p>{section.text}</p> : null}
+    <SafeRows rows={section.rows} />
+    {section.items?.length ? <ul>{section.items.map((item, index) => <li key={`${section.id}-${index}`}>{item.text}</li>)}</ul> : null}
+    {section.map ? <SafeCoordinateMap map={section.map} title={section.title} /> : null}
+    {section.table?.rows.length ? <div className="maxxis-v2-table-wrap"><table><thead><tr>{section.table.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead>
+      <tbody>{section.table.rows.map((row, index) => <tr key={`${section.id}-${index}`} data-report-comp-number={index + 1}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div> : null}
+  </section>;
 }
 
-function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_OVERVIEW" }) {
-  const property = available(schema.sections.propertySummary) || {};
-  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || '').trim());
-  const landLabels = copy.language === 'pt'
-    ? { acres: 'Lote / acres', perAcre: 'Preço / acre', perLotSqft: 'Preço / sqft do lote', apn: 'APN / cadastro fiscal', zoning: 'Zoneamento' }
-    : copy.language === 'es'
-      ? { acres: 'Lote / acres', perAcre: 'Precio / acre', perLotSqft: 'Precio / sqft del lote', apn: 'APN / registro fiscal', zoning: 'Zonificación' }
-      : { acres: 'Lot / acres', perAcre: 'Price / acre', perLotSqft: 'Price / lot sqft', apn: 'APN / Assessor ID', zoning: 'Zoning' };
-  const apnUnavailable = copy.language === 'pt' ? 'Não disponível no registro externo atual.'
-    : copy.language === 'es' ? 'No disponible en el registro externo actual.'
-      : 'Not available in the current external record.';
-  const owner = property.owner || {};
-  const images = list(property.images);
-  const status = property.dealClosed
-    ? "CLOSED"
-    : property.published
-      ? "PUBLISHED"
-      : "DRAFT";
-  const location = [
-    property.address,
-    property.city,
-    property.state,
-    property.zip,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const contacts = list(owner.allowedContacts)
-    .map((item) => item.label || item.type || item.value)
-    .filter(Boolean)
-    .join(", ");
-  const propertyEvidence = available(schema.sections.propertyEvidence) || {};
-  const evidenceFacts = Object.fromEntries(
-    [
-      ...list(propertyEvidence.verifiedRecords),
-      ...list(propertyEvidence.userProvided),
-    ]
-      .filter((item) => item?.field)
-      .map((item) => [item.field, item]),
-  );
-  const fact = (field, fallback = null) =>
-    evidenceFacts[field]?.value ?? fallback;
-  const factSource = (field) =>
-    evidenceFacts[field]?.sourceType || evidenceFacts[field]?.source || null;
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section={pageCode}
-    >
-      <ReportHeader
-        level={level}
-        copy={copy}
-        subtitle={level === 2 ? copy.reportPro : copy.release}
-      />
-      {level===2&&schema.presentation?.marketRent?<p className="maxxis-v2-info-card">{marketRentReportCopy(copy.language).title}{schema.presentation.marketRent.scope==='UNIT'?` (${marketRentReportCopy(copy.language).perUnit})`:''}: {money(schema.presentation.marketRent.monthlyRentEstimate,copy.unavailable)}</p>:null}
-      <div className="maxxis-v2-page-body">
-        <section className="maxxis-v2-property-hero">
-          {images[0] ? (
-            <img src={images[0]} alt="" />
-          ) : (
-            <div
-              className="maxxis-v2-image-empty"
-              aria-label={copy.unavailable}
-            >
-              ⌂
-            </div>
-          )}
-          <div>
-            <div className="maxxis-v2-badges">
-              <Badge>{text(property.type, copy.unknown)}</Badge>
-              <Badge tone="navy">{displayLabel(status, copy.unavailable, copy.language)}</Badge>
-            </div>
-            <h3>{text(property.title || property.address, copy.unknown)}</h3>
-            <span>
-              {text(
-                [property.city, property.state].filter(Boolean).join(", "),
-                copy.unknown,
-              )}
-            </span>
-            <strong className="maxxis-v2-price">
-              {money(property.price, copy.unknown)}
-            </strong>
-          </div>
-        </section>
-        <section className="maxxis-v2-metric-strip">
-          {isLand ? <>
-          <span><Maximize aria-hidden="true" /><small>{landLabels.acres}</small><b>{text(property.lotSizeAcres, copy.unknown)}</b></span>
-          <span><Maximize aria-hidden="true" /><small>{copy.lotSize}</small><b>{text(property.lotSizeSqft ?? property.lot, copy.unknown)}</b></span>
-          <span><TrendingUp aria-hidden="true" /><small>{landLabels.perAcre}</small><b>{money(property.pricePerAcre, copy.unknown)}</b></span>
-          <span><TrendingUp aria-hidden="true" /><small>{landLabels.perLotSqft}</small><b>{money(property.pricePerLotSqft, copy.unknown)}</b></span>
-          </> : <>
-          <span>
-            <BedDouble aria-hidden="true" />
-            <small>{copy.beds}</small>
-            <b>{text(property.beds, copy.unknown)}</b>
-          </span>
-          <span>
-            <Bath aria-hidden="true" />
-            <small>{copy.baths}</small>
-            <b>{text(property.baths, copy.unknown)}</b>
-          </span>
-          <span>
-            <Maximize aria-hidden="true" />
-            <small>{copy.livingArea}</small>
-            <b>{text(property.sqft, copy.unknown)}</b>
-          </span>
-          <span>
-            <TrendingUp aria-hidden="true" />
-            <small>{copy.capRate}</small>
-            <b>
-              {property.capRate === null || property.capRate === undefined
-                ? copy.unknown
-                : percent(property.capRate, copy.unknown)}
-            </b>
-          </span>
-          </>}
-        </section>
-        <div className="maxxis-v2-info-grid">
-          <InfoCard
-            copy={copy}
-            icon={User}
-            title={copy.owner}
-            rows={[
-              [copy.ownerLabel, text(owner.name, copy.unknown)],
-              [
-                copy.ownerOccupied,
-                localizedBoolean(fact("ownerOccupied", property.ownerOccupied), copy),
-                factSource("ownerOccupied"),
-              ],
-              [
-                copy.ownershipRecord,
-                localizedBoolean(fact("ownershipRecordPresent", property.ownershipRecordPresent), copy),
-                factSource("ownershipRecordPresent"),
-              ],
-              [
-                copy.latestSale,
-                money(fact("latestSalePrice", property.latestSalePrice), copy.unknown),
-                factSource("latestSalePrice"),
-              ],
-              [
-                copy.saleDate,
-                localizedDate(fact("latestSaleDate", property.latestSaleDate), copy),
-                factSource("latestSaleDate"),
-              ],
-              [copy.allowedContacts, text(contacts, copy.unknown)],
-            ]}
-          />
-          <InfoCard
-            copy={copy}
-            icon={Home}
-            title={copy.characteristics}
-            rows={isLand ? [
-              [copy.title, text(property.title, copy.unknown)],
-              [copy.priceLabel, money(property.price, copy.unknown)],
-              [copy.strategy, displayLabel(property.resolvedAnalysisStrategy || property.objective, copy.unknown, copy.language)],
-              [landLabels.acres, text(property.lotSizeAcres, copy.unknown)],
-              [landLabels.perAcre, money(property.pricePerAcre, copy.unknown)],
-              [landLabels.zoning, text(fact("zoning", property.zoning), copy.unknown), factSource("zoning")],
-            ] : [
-              [copy.title, text(property.title, copy.unknown)],
-              [copy.priceLabel, money(property.price, copy.unknown)],
-              [copy.strategy, displayLabel(property.resolvedAnalysisStrategy || property.objective, copy.unknown, copy.language)],
-              [
-                copy.yearBuilt,
-                text(fact("yearBuilt", property.yearBuilt), copy.unknown),
-                factSource("yearBuilt"),
-              ],
-              [
-                copy.bedsBaths,
-                `${text(fact("bedrooms", property.beds), copy.unknown)} / ${text(fact("bathrooms", property.baths), copy.unknown)}`,
-              ],
-              [
-                copy.livingArea,
-                text(fact("livingAreaSqft", property.sqft), copy.unknown),
-                factSource("livingAreaSqft"),
-              ],
-              [copy.rehab, money(property.rehab, copy.unknown)],
-            ]}
-          />
-          <InfoCard
-            copy={copy}
-            icon={MapPin}
-            title={copy.land}
-            rows={[
-              [copy.location, text(location, copy.unknown)],
-              [
-                copy.county,
-                text(fact("county", property.county), copy.unknown),
-                factSource("county"),
-              ],
-              [
-                copy.lotSize,
-                text(fact("lotSizeSqft", property.lotSizeSqft ?? property.lot), copy.unknown),
-                factSource("lotSizeSqft"),
-              ],
-              [landLabels.apn, text(fact("assessorId", property.assessorId), apnUnavailable), factSource("assessorId")],
-              [
-                copy.assessedValue,
-                money(fact("assessedValue", property.assessedValue), copy.unknown),
-                factSource("assessedValue"),
-              ],
-              [
-                copy.propertyTax,
-                money(fact("annualPropertyTax", property.annualPropertyTax), copy.unknown),
-                factSource("annualPropertyTax"),
-              ],
-              [copy.source, text(property.source, copy.unknown)],
-            ]}
-          />
-        </div>
-        <section className="maxxis-v2-photo-section">
-          <SectionTitle icon={Camera}>{copy.photos}</SectionTitle>
-          {images.length ? (
-            <div className="maxxis-v2-photos">
-              {images.slice(0, 5).map((image, index) => (
-                <img
-                  key={`${image}-${index}`}
-                  src={image}
-                  alt={`${copy.photos} ${index + 1}`}
-                />
-              ))}
-            </div>
-          ) : (
-            <p>{copy.unavailable}</p>
-          )}
-        </section>
-        <div className="maxxis-v2-bottom-grid">
-          <section className="maxxis-v2-location">
-            <SectionTitle icon={Map}>{copy.location}</SectionTitle>
-            <div
-              role="img"
-              aria-label={`${copy.location}: ${location || copy.unknown}`}
-            >
-              <MapPin aria-hidden="true" />
-              <b>{text(location, copy.unknown)}</b>
-              <small>
-                {displayLabel(schema.presentation.map.status, copy.unavailable, copy.language)}
-              </small>
-            </div>
-          </section>
-          <section className="maxxis-v2-notes">
-            <SectionTitle icon={FileText}>{copy.notes}</SectionTitle>
-            <p><LocalizedNarrative text={text(property.propertyUserNotes || property.notes, copy.unknown)} language={copy.language} protectedNames={[property.title, property.address, property.owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></p>
-          </section>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function ComparableMarket({ schema, copy, page = 2 }) {
-  const comps = available(schema.sections.comparableEvidence) || {};
-  const valuation = available(schema.sections.valuationEvidence) || {};
-  const recent = valuation.recentSalesMarketEstimate || {};
-  const groups = [
-    ["RECENT", list(recent.valuationComps).map((item) => ({ ...item, similarity: item.structuralScore }))],
-    ["USED", list(comps.used)],
-    ["SUPPORT", list(comps.supporting)],
-    ["EXCLUDED", list(comps.excluded)],
-  ];
-  const rows = groups.flatMap(([status, items]) =>
-    items.map((item) => ({ ...item, status })),
-  );
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section="COMPARATIVE_MARKET_ANALYSIS"
-    >
-      <ReportHeader level={3} copy={copy} subtitle={copy.cma} />
-      <div className="maxxis-v2-page-body">
-        <SectionTitle icon={MapPin}>{copy.cma}</SectionTitle>
-        <ComparableMap schema={schema} rows={rows} copy={copy} />
-        <div className="maxxis-v2-comp-stats">
-          {Object.entries(schema.presentation.comparableStatistics || {})
-            .filter(
-              ([key, value]) => !["sourceType"].includes(key) && value !== null,
-            )
-            .slice(0, 6)
-            .map(([key, value]) => (
-              <span key={key}>
-                <small>{keyLabel(key, copy.language)}</small>
-                <b>
-                  {key.toLowerCase().includes("percent") ||
-                  key.toLowerCase().includes("similarity")
-                    ? `${value}%`
-                    : value}
-                </b>
-              </span>
-            ))}
-        </div>
-        <div className="maxxis-v2-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>{copy.address}</th>
-                <th>{copy.salePrice}</th>
-                <th>{copy.saleDate}</th>
-                <th>{copy.bedsBaths}</th>
-                <th>Sqft</th>
-                <th>{copy.distance}</th>
-                <th>{copy.similarity}</th>
-                <th>{copy.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((item, index) => (
-                <tr key={item.compIdentifier || `${item.address}-${index}`}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <strong>{text(item.address, copy.unknown)}</strong>
-                    <small>
-                      {evidenceText(
-                        item.exclusionReason || item.inclusionReason || "",
-                        copy.unavailable,
-                        copy.language,
-                      )}
-                    </small>
-                  </td>
-                  <td>{money(item.salePrice, copy.unknown)}</td>
-                  <td>{localizedDate(item.saleDate, copy)}</td>
-                  <td>
-                    {text(item.beds, copy.unknown)} /{" "}
-                    {text(item.baths, copy.unknown)}
-                  </td>
-                  <td>{text(item.sqft, copy.unknown)}</td>
-                  <td>
-                    {item.distanceMiles !== null &&
-                    item.distanceMiles !== undefined &&
-                    item.distanceMiles !== "" &&
-                    toKnownFiniteNumber(item.distanceMiles) !== null
-                      ? `${Number(item.distanceMiles)} mi`
-                      : copy.unknown}
-                  </td>
-                  <td>{percent(item.similarity, copy.unknown)}</td>
-                  <td>
-                    <Badge
-                      tone={
-                        item.status === "EXCLUDED"
-                          ? "muted"
-                          : item.status === "SUPPORT"
-                            ? "gold"
-                            : "teal"
-                      }
-                    >
-                      {displayLabel(item.status, copy.unavailable, copy.language)}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <small>{copy.noExternal}</small>
-      </div>
-    </article>
-  );
-}
-
-function ScenarioCards({ title, values, formatter, copy }) {
-  return (
-    <section className="maxxis-v2-kpi-block">
-      <SectionTitle icon={TrendingUp}>{title}</SectionTitle>
-      <div>
-        {list(values).map((item) => (
-          <span key={item.scenario}>
-            <small>{displayLabel(item.scenario, copy.unavailable, copy.language)}</small>
-            <b>{formatter(item.value, copy.unknown)}</b>
-          </span>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ValuationPage({ schema, copy, page = 3 }) {
-  const valuation = available(schema.sections.valuationEvidence) || {};
-  const scenarios = schema.presentation.kpiScenarios;
-  const metrics = schema.presentation.existingMetrics || {};
-  const property = available(schema.sections.propertySummary) || {};
-  const recent = valuation.recentSalesMarketEstimate || {};
-  const recentAvailable = recent.status === "AVAILABLE" && toKnownFiniteNumber(recent.centralEstimate) !== null;
-  const range = recentAvailable ? recent.range
-    : ["ARV_UNAVAILABLE", "NOT_APPLICABLE"].includes(valuation.status) ? null : valuation.range;
-  const centralReference = recentAvailable ? recent.centralEstimate : valuation.centralReference;
-  const providerEstimate = valuation.providerEstimate;
-  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || "").trim());
-  const chartValues = range
-    ? [
-        range.low,
-        centralReference || (range.low + range.high) / 2,
-        range.high,
-      ]
-    : [];
-  const max = Math.max(...chartValues, 1);
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section="VALUATION_INTELLIGENCE"
-    >
-      <ReportHeader level={3} copy={copy} subtitle={copy.valuation} />
-      <div className="maxxis-v2-page-body">
-        <section className="maxxis-v2-arv">
-          <div>
-            <small>{recentAvailable
-              ? (recent.referenceState === "STALE_CALCULATED_REFERENCE"
-                ? (copy.language === "pt" ? "Estimativa baseada nas vendas anteriormente registradas" : copy.language === "es" ? "Estimación basada en ventas registradas anteriormente" : "Estimate based on previously recorded sales")
-                : (copy.language === "pt" ? "Estimativa de mercado por vendas recentes" : copy.language === "es" ? "Estimación de mercado por ventas recientes" : "Recent-sales market estimate"))
-              : copy.estimatedArv}</small>
-            <strong>
-              {recentAvailable
-                ? money(recent.centralEstimate, copy.unknown)
-                : range ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}`
-                : copy.unavailable}
-            </strong>
-          </div>
-          <div>
-            <Badge
-              tone={
-                valuation.status === "ARV_AVAILABLE"
-                  ? "teal"
-                  : valuation.status === "ARV_LIMITED"
-                    ? "gold"
-                    : "muted"
-              }
-            >
-              {recentAvailable ? displayLabel(recent.confidence, copy.unavailable, copy.language) : arvStatusText(valuation.status, copy)}
-            </Badge>
-            <span>
-              {copy.confidenceLabel}: <b>{displayLabel((recentAvailable ? recent.confidence : valuation.confidence) || "LOW", copy.unavailable, copy.language)}</b>
-            </span>
-            <span>
-              {copy.compsLabel}: <b>{recentAvailable ? `${recent.valuationCompCount} market / ${valuation.compsUsed || 0} ARV` : valuation.compsUsed || 0}</b>
-            </span>
-            <span>
-              {copy.method}: <b>{text(recentAvailable ? recent.methodology : valuation.methodology, copy.unknown)}</b>
-            </span>
-          </div>
-        </section>
-        {providerEstimate ? (
-          <section className="maxxis-v2-provider-estimate">
-            <div>
-              <small>{copy.providerEstimate}{valuation.evidenceFreshness?.valuation?.state === 'STALE_USABLE' ? (copy.language === 'en' ? ' — prior external evidence' : copy.language === 'es' ? ' — datos externos anteriores' : ' — dados externos anteriores') : ''}</small>
-              <strong>{money(providerEstimate.value, copy.unknown)}</strong>
-            </div>
-            <Badge tone="gold">
-              {recent.providerAvmCompatibility === "QUARANTINED_FOR_TYPE_CONFLICT"
-                ? (copy.language === "pt" ? "Em quarentena por conflito de tipo" : copy.language === "es" ? "En cuarentena por conflicto de tipo" : "Quarantined for type conflict")
-                : evidenceText(providerEstimate.status, copy.unknown, copy.language)}
-            </Badge>
-          </section>
-        ) : null}
-        <Badge tone="navy">{copy.scenario}</Badge>
-        {scenarios?.available ? (
-          <>
-            <ScenarioCards
-              title={copy.spread}
-              values={scenarios.potentialSpread}
-              formatter={money}
-              copy={copy}
-            />
-            <ScenarioCards
-              title={copy.roi}
-              values={scenarios.projectedRoi}
-              formatter={percent}
-              copy={copy}
-            />
-            <small>{evidenceText(scenarios.disclaimer, copy.unknown, copy.language)}</small>
-          </>
-        ) : (
-          <p>
-            {copy.spread} / {copy.roi}: {copy.unavailable} —{" "}
-            {evidenceText(scenarios?.reason, copy.unknown, copy.language)}
-          </p>
-        )}
-        <div className="maxxis-v2-two-col">
-          {isLand ? <InfoCard
-            copy={copy}
-            icon={MapPin}
-            title={copy.land}
-            rows={[
-              [copy.lotSize, text(property.lotSizeSqft ?? property.lot, copy.unknown)],
-              ["Acres", text(property.lotSizeAcres, copy.unknown)],
-              [copy.priceSqft, money(property.pricePerLotSqft, copy.unknown)],
-              [copy.priceLabel, money(property.pricePerAcre, copy.unknown)],
-            ]}
-          /> :
-          <InfoCard
-            copy={copy}
-            icon={DollarSign}
-            title={copy.rental}
-            rows={[
-              [copy.estimatedRent, copy.unknown],
-              [copy.rentalYield, copy.unknown],
-              ["NOI", copy.unknown],
-              [
-                copy.reportedCapRate,
-                metrics.capRate?.value === null
-                  ? copy.unknown
-                  : percent(metrics.capRate?.value, copy.unknown),
-                metrics.capRate?.sourceType,
-              ],
-            ]}
-          />}
-          <InfoCard
-            copy={copy}
-            icon={TrendingUp}
-            title={copy.price}
-            rows={isLand ? [
-              [copy.listPrice, money(property.price, copy.unknown)],
-              [copy.marketRange, range ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}` : copy.unknown],
-              [copy.confidenceLabel, displayLabel(recent.confidence, copy.unknown, copy.language)],
-              [copy.compsLabel, text(recent.valuationCompCount, copy.unknown)],
-            ] : [
-              [copy.listPrice, money(property.price, copy.unknown)],
-              [copy.marketRange, copy.unknown],
-              [
-                copy.priceSqft,
-                metrics.pricePerSqft?.value === null
-                  ? copy.unknown
-                  : money(metrics.pricePerSqft?.value, copy.unknown),
-                metrics.pricePerSqft?.sourceType,
-              ],
-              [copy.subjectComparison, copy.unknown],
-            ]}
-          />
-        </div>
-        <section className="maxxis-v2-chart">
-          <SectionTitle icon={BarChart3}>{copy.distribution}</SectionTitle>
-          {chartValues.length ? (
-            <div>
-              {chartValues.map((value, index) => (
-                <span
-                  key={`${value}-${index}`}
-                  style={{ height: `${Math.max(15, (value / max) * 100)}%` }}
-                >
-                  <b>{money(value, copy.unknown)}</b>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p>{copy.unavailable}</p>
-          )}
-        </section>
-        {list(valuation.warnings).map((warning) => (
-          <p className="maxxis-v2-warning" key={warning}>
-            <AlertTriangle aria-hidden="true" size={14} />{" "}
-            {evidenceText(warning, copy.unknown, copy.language)}
-          </p>
-        ))}
-      </div>
-    </article>
-  );
-}
-
-function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
-  const fit = available(schema.sections.investmentProfile) || {};
-  const risks = list(available(schema.sections.riskAssessment));
-  const counts = schema.presentation.evidenceCounts || {};
-  const perspective = schema.presentation.investorPerspective;
-  const safeScore = toKnownFiniteNumber(fit.score) !== null
-    ? Math.max(0, Math.min(100, Number(fit.score)))
-    : 0;
-  const criteria = list(fit.criteria).length
-    ? list(fit.criteria)
-    : [
-        ["location", fit.targetMarket],
-        ["priceRange", fit.priceRange],
-        ["propertyType", fit.propertyType],
-        ["strategy", fit.strategy],
-      ].filter(([, criterion]) => Boolean(criterion)).map(([key, criterion]) => ({ ...criterion, key }));
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section="INVESTMENT_FIT_RISK"
-    >
-      <ReportHeader level={level} copy={copy} subtitle={copy.fitRisk} />
-      <div className="maxxis-v2-page-body">
-        <div className="maxxis-v2-two-col">
-          <InfoCard
-            copy={copy}
-            icon={User}
-            title={copy.profile}
-            rows={[
-              [copy.strategy, displayLabel(fit.strategy?.status, copy.unknown, copy.language)],
-              [copy.marketRange, displayLabel(fit.targetMarket?.status, copy.unknown, copy.language)],
-              [copy.range || "Range", displayLabel(fit.priceRange?.status, copy.unknown, copy.language)],
-              [
-                copy.characteristics,
-                displayLabel(fit.propertyType?.status, copy.unknown, copy.language),
-              ],
-            ]}
-          />
-          <section className="maxxis-v2-score">
-            <SectionTitle icon={Target}>{copy.compatibility}</SectionTitle>
-            <div style={{ "--match-score": `${safeScore * 3.6}deg` }}>
-              <b>{percent(fit.score, copy.unknown)}</b>
-            </div>
-            <small>
-              {copy.matchDisclaimer}
-            </small>
-          </section>
-        </div>
-        {perspective ? (
-          <section className="maxxis-v2-perspective">
-            <div>
-              <small>{copy.perspective}</small>
-              <strong>{displayLabel(perspective.persona, copy.unavailable, copy.language)}</strong>
-              <span>{evidenceText(perspective.message, copy.unavailable, copy.language)}</span>
-            </div>
-            <div>
-              {list(perspective.priorities).map((item, index) => (
-                <Badge key={item} tone={index === 0 ? "navy" : "teal"}>
-                  {index + 1}. {evidenceText(item, copy.unavailable, copy.language)}
-                </Badge>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        <section>
-          <SectionTitle icon={BarChart3}>{copy.fitRisk}</SectionTitle>
-          <div className="maxxis-v2-fit-bars">
-            {criteria.map((criterion, criterionIndex) => {
-              const score =
-                criterion.score ??
-                (criterion.status === "matched"
-                  ? 100
-                  : criterion.status === "not_matched"
-                    ? 0
-                    : 35);
-              return (
-                <div key={criterion.key || criterion.label || `criterion-${criterionIndex}`}>
-                  <span>{keyLabel(criterion.key || criterion.label, copy.language)}</span>
-                  <i>
-                    <b
-                      style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
-                    />
-                  </i>
-                  <strong>{score}%</strong>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-        <section>
-          <SectionTitle icon={AlertTriangle}>{copy.riskAnalysis}</SectionTitle>
-          <div className="maxxis-v2-risk-grid">
-            {risks.length ? (
-              risks.map((risk) => (
-                <div key={risk.code}>
-                  <Badge
-                    tone={
-                      risk.severity === "HIGH"
-                        ? "danger"
-                        : risk.severity === "MEDIUM"
-                          ? "gold"
-                          : "teal"
-                    }
-                  >
-                    {displayLabel(risk.severity, copy.unavailable, copy.language)}
-                  </Badge>
-                  <b>{displayLabel(risk.category, copy.unavailable, copy.language)}</b>
-                  <i
-                    className={`is-${String(risk.severity || "medium").toLowerCase()}`}
-                  >
-                    <span />
-                  </i>
-                  <span>{evidenceText(risk.reason || risk.explanation, copy.unavailable, copy.language)}</span>
-                </div>
-              ))
-            ) : (
-              <p>{copy.unavailable}</p>
-            )}
-          </div>
-        </section>
-        <section>
-          <SectionTitle icon={CheckCircle}>{copy.evidence}</SectionTitle>
-          <div className="maxxis-v2-evidence-counts">
-            {Object.entries(counts).map(([key, value]) => (
-              <span key={key}>
-                <b>{value}</b>
-                <small>{keyLabel(key, copy.language)}</small>
-              </span>
-            ))}
-          </div>
-        </section>
-      </div>
-    </article>
-  );
-}
-
-function InsightsPage({ schema, copy, page = 5, level = 3 }) {
-  const executive = available(schema.sections.executiveSummary) || {};
-  const observations = list(executive.observations);
-  const limitations = list(available(schema.sections.limitations));
-  const checks = list(available(schema.sections.verificationChecklist));
-  const decisionContent = schema.structuredAnalysis?.reportPage5 || {};
-  const supports = list(decisionContent.supportsDeal).length ? list(decisionContent.supportsDeal) : observations;
-  const weakens = list(decisionContent.weakensDeal);
-  const unknown = list(decisionContent.stillUnknown).length
-    ? list(decisionContent.stillUnknown) : limitations.filter((item) => /unknown|missing|unavailable|none/i.test(item));
-  const verifyFirst = list(decisionContent.verifyFirst).length ? list(decisionContent.verifyFirst) : checks;
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section="KEY_INSIGHTS_VERIFICATION"
-    >
-      <ReportHeader level={level} copy={copy} subtitle={copy.insights} />
-      <div className="maxxis-v2-page-body maxxis-v2-insight-grid">
-        <InfoCard
-          copy={copy}
-          icon={CheckCircle}
-          title={copy.positive}
-          narrative
-          rows={supports.map((item, index) => [
-            `${index + 1}`,
-            text(item.explanation || item, copy.unknown),
-            item.source || item.sourceType,
-          ])}
-        />
-        <InfoCard
-          copy={copy}
-          icon={AlertTriangle}
-          title={copy.missing}
-          narrative
-          rows={unknown.map((item, index) => [`${index + 1}`, item])}
-        />
-        <InfoCard
-          copy={copy}
-          icon={Wrench}
-          title={copy.considerations}
-          narrative
-          rows={(weakens.length ? weakens : limitations).map((item, index) => [`${index + 1}`, item])}
-        />
-        <InfoCard
-          copy={copy}
-          icon={ListChecks}
-          title={copy.steps}
-          narrative
-          rows={verifyFirst.map((item, index) => [`${index + 1}`, item])}
-        />
-      </div>
-    </article>
-  );
-}
-
-function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
-  const executive = available(schema.sections.executiveSummary) || {};
-  const risks = list(available(schema.sections.riskAssessment));
-  const checks = list(available(schema.sections.verificationChecklist));
-  const summary = executive.summary || executive || copy.unknown;
-  const summaryLines = list(
-    schema.presentation.executiveSummaryIntelligence?.lines,
-  );
-  const thesisContent = schema.structuredAnalysis?.reportPage6 || {};
-  const thesisLines = [thesisContent.currentThesis, thesisContent.investorMeaning].filter(Boolean);
-  const decisionQuestions = list(thesisContent.openDecisionQuestions);
-  const decisionActions = list(thesisContent.decisionChangingActions);
-  return (
-    <article
-      className="maxxis-v2-page"
-      data-report-page={page}
-      data-report-section="MAXXIS_AI_ANALYSIS"
-    >
-      <ReportHeader level={level} copy={copy} subtitle={copy.powered} />
-      <div className="maxxis-v2-page-body">
-        <ConfidenceCard
-          confidence={schema.presentation.analysisConfidence}
-          copy={copy}
-        />
-        <section className="maxxis-v2-ai-summary">
-          <SectionTitle icon={Brain}>{copy.executiveSummary}</SectionTitle>
-          {(thesisLines.length ? thesisLines : summaryLines).length ? (
-            (thesisLines.length ? thesisLines : summaryLines).map((line) => (
-              <span key={line}>{evidenceText(line, copy.unavailable, copy.language)}</span>
-            ))
-          ) : (
-            <strong>{displayLabel(summary, copy.unavailable, copy.language)}</strong>
-          )}
-        </section>
-        <div className="maxxis-v2-two-col">
-          <InfoCard
-            copy={copy}
-            icon={Target}
-            title={copy.conclusion}
-            narrative
-            rows={[
-              [
-                copy.evidenceLabel,
-                displayLabel(schema.sections.propertyEvidence.sourceType, copy.unavailable, copy.language),
-              ],
-              [
-                copy.profileFit,
-                text(
-                  available(schema.sections.investmentProfile)?.score,
-                  copy.unknown,
-                ),
-              ],
-              [
-                copy.valuationLabel,
-                displayLabel(
-                  available(schema.sections.valuationEvidence)?.status,
-                  copy.unavailable,
-                  copy.language,
-                ),
-              ],
-            ]}
-          />
-          <InfoCard
-            copy={copy}
-            icon={BarChart3}
-            title={copy.topics}
-            narrative
-            rows={risks.map((risk, index) => [
-              `${index + 1}`,
-              `${displayLabel(risk.category, copy.unavailable, copy.language)}: ${evidenceText(risk.reason || risk.explanation, copy.unavailable, copy.language)}`,
-            ])}
-          />
-        </div>
-        <InfoCard
-          copy={copy}
-          icon={AlertTriangle}
-          title={copy.questions}
-          narrative
-          rows={(decisionQuestions.length ? decisionQuestions : checks)
-            .slice(0, 4)
-            .map((item, index) => [
-              `${index + 1}`,
-              `${evidenceText(item, copy.unavailable, copy.language).replace(/[.?]$/, "")}?`,
-            ])}
-        />
-        <InfoCard
-          copy={copy}
-          icon={ListChecks}
-          title={copy.actions}
-          narrative
-          rows={(decisionActions.length ? decisionActions : checks).map((item, index) => [`${index + 1}`, item])}
-        />
-        <p className="maxxis-v2-disclaimer">{copy.disclaimer}</p>
-      </div>
-    </article>
-  );
-}
-
-function MarketRentPage({page,schema,copy}){
-  const view=schema.presentation?.marketRent;if(!view)return null;
-  const t=marketRentReportCopy(copy.language),rows=view.reportRentalComparables??[];
-  const usd=value=>value==null?'–':new Intl.NumberFormat(copy.language==='pt'?'pt-BR':copy.language==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(value);
-  return <article className="maxxis-v2-page" data-report-page={page.page} data-report-section="MARKET_RENT">
-    <ReportHeader level={3} subtitle={t.title} copy={copy}/>
+/** Rendering below accepts only a validated ReportViewModel, not domain entities. */
+function SafeReportBody({ view, copy, level }) {
+  const property = view.property;
+  const snapshotTexts = new Set([view.executive?.opportunity?.text, view.executive?.risk?.text, view.executive?.blocker?.text].filter(Boolean));
+  const substantiveSections = view.sections.map(section => ({ ...section, items: section.items?.filter(item => !snapshotTexts.has(item.text)) }))
+    .filter(section => section.text || section.items?.length || section.rows?.length || section.hero || section.table?.rows.length);
+  return <article className="maxxis-v2-page" data-report-page="1" data-report-section="PROPERTY_OVERVIEW">
+    <ReportHeader view={view} copy={copy} level={level} />
     <div className="maxxis-v2-page-body">
-      <section className="maxxis-v2-info-card"><SectionTitle icon={DollarSign}>{t.title}{view.scope==='UNIT'?` (${t.perUnit})`:''}</SectionTitle><strong className="maxxis-v2-price">{usd(view.monthlyRentEstimate)}</strong>
-        <p>{view.rentPerSqft?`${usd(view.rentPerSqft.value)} ${t.perSqft}`:''} · {view.rentPerBedroom?`${usd(view.rentPerBedroom.value)} ${t.perBed}`:''}</p>
-        {view.rangeLow!=null&&view.rangeHigh!=null?<p>{t.range}: {usd(view.rangeLow)} — {usd(view.rangeHigh)}</p>:null}
-        <p>{t.subject}: {view.subject.propertyType} · {view.subject.bedrooms??'–'} / {view.subject.bathrooms??'–'} · {view.subject.livingAreaSqft??'–'} sqft</p>
+      <section className="maxxis-v2-property-hero">
+        {property.photos[0] ? <img src={property.photos[0]} alt={property.title} /> : <div className="maxxis-v2-image-empty"><Home aria-hidden="true" /></div>}
+        <div><h3>{property.title}</h3><span>{property.location}</span><strong className="maxxis-v2-price">{property.price}</strong>
+          <div className="maxxis-v2-badges"><span className="maxxis-v2-badge">{property.type}</span><span className="maxxis-v2-badge is-navy">{property.strategy}</span></div></div>
       </section>
-      {rows.length?<><ComparableMap schema={schema} rows={rows} copy={copy} rentView={view}/>
-        <section className="maxxis-v2-info-card"><SectionTitle icon={MapPin}>{t.comps}</SectionTitle><div className="maxxis-v2-table-wrap"><table><thead><tr><th>#</th><th>{copy.address}</th><th>{t.monthly}</th><th>{t.correlation}</th><th>{t.distance}</th></tr></thead><tbody>
-          {rows.map(comp=><tr key={comp.id}><td>{comp.number}</td><td>{comp.address}<small>{comp.bedrooms??'–'} / {comp.bathrooms??'–'} · {comp.livingAreaSqft??'–'} sqft</small></td><td>{usd(comp.monthlyRent)}</td><td>{comp.providerCorrelation==null?'–':`${(comp.providerCorrelation*100).toFixed(1)}%`}</td><td>{comp.distanceMiles==null?'–':`${comp.distanceMiles.toFixed(2)} mi`}</td></tr>)}
-        </tbody></table></div></section></>:<p>{t.noComps}</p>}
-      <p>{t.qualification} {view.freshness==='STALE_USABLE'?t.stale:''} {view.retrievedAt?`${t.retrieved}: ${localizedDate(view.retrievedAt,copy)}`:''}</p><small>{t.calculated}</small>
-      {view.missingCoordinateCompIds?.length?<p>{t.missing}</p>:null}
+      {property.metrics.length ? <div className="maxxis-v2-metric-strip">{property.metrics.map(row => <span key={row.label}><CheckCircle aria-hidden="true" /><small>{row.label}</small><b>{row.value}</b></span>)}</div> : null}
+      <ExecutiveSnapshot executive={view.executive} copy={copy} />
+      {level === 1 && property.facts.length ? <div className="maxxis-v2-info-grid">{property.facts.map(group => <section key={group.title} className="maxxis-v2-info-card"><SectionTitle>{group.title}</SectionTitle><SafeRows rows={group.rows} /></section>)}</div> : null}
+      {property.photos.length > 1 ? <section className="maxxis-v2-photo-section"><SectionTitle icon={Camera}>{copy.photos}</SectionTitle><div className="maxxis-v2-photos">{property.photos.slice(1).map((photo, index) => <img src={photo} key={photo} alt={`${property.title} · ${index + 2}`} />)}</div></section> : null}
+      {level === 1 && property.locationPoint ? <SafeCoordinateMap map={{ points: [property.locationPoint], caption: copy.map }} title={copy.location} /> : null}
+      {level === 1 && property.notes.length ? <section className="maxxis-v2-notes"><SectionTitle>{copy.notes}</SectionTitle>{property.notes.map((note, index) => <p key={index}>{note}</p>)}</section> : null}
+      {substantiveSections.map(section => <SafeReportSection key={section.id} section={section} />)}
+      <p className="maxxis-v2-disclaimer">{view.disclaimer}</p>
     </div>
   </article>;
 }
-function CanonicalReportPage({ page, schema, copy, level }) {
-  if(page.code==='MARKET_RENT')return <MarketRentPage page={page} schema={schema} copy={copy}/>;
-  if (page.code === "PROPERTY_OVERVIEW" || page.code === "EXECUTIVE_SUMMARY_PROPERTY_CONTEXT") {
-    return <PropertyOverview schema={schema} copy={copy} level={level} page={page.page} pageCode={page.code} />;
-  }
-  if (page.code === "COMPARATIVE_MARKET_ANALYSIS") {
-    return <ComparableMarket schema={schema} copy={copy} page={page.page} />;
-  }
-  if (page.code === "VALUATION_INTELLIGENCE") {
-    return <ValuationPage schema={schema} copy={copy} page={page.page} />;
-  }
-  if (page.code === "INVESTMENT_FIT_RISK") {
-    return <FitRiskPage schema={schema} copy={copy} page={page.page} level={level} />;
-  }
-  if (page.code === "KEY_INSIGHTS_NEXT_STEPS" || page.code === "KEY_INSIGHTS_VERIFICATION") {
-    return <InsightsPage schema={schema} copy={copy} page={page.page} level={level} />;
-  }
-  if (page.code === "MAXXIS_AI_ANALYSIS") {
-    return <MaxxisAnalysisPage schema={schema} copy={copy} page={page.page} level={level} />;
-  }
-  return null;
+
+function StrictReportPreview({ schema, language }) {
+  const [, setAssetRevision] = useState(0);
+  const active = useRef(true), request = useRef(0);
+  useEffect(() => { active.current = true; return () => { active.current = false; request.current += 1; }; }, [schema]);
+  const view = (() => {
+    try {
+      const candidate = buildStrictReportViewModel({ schema, language });
+      return validateReportViewModel(candidate).valid ? candidate : null;
+    } catch { return null; }
+  })();
+  const locale = view?.locale || (/^pt/i.test(language) ? 'pt' : /^es/i.test(language) ? 'es' : 'en');
+  const copy = COPY[locale];
+  if (!view) return <p role="status">{copy.invalid}</p>;
+  const level = view.reportType === 'DEAL_INTELLIGENCE' ? 3 : view.reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
+  const onToggle = async event => {
+    const current = ++request.current;
+    if (!event.currentTarget.open) return;
+    await prepareReportAssets(schema).catch(() => []);
+    if (active.current && current === request.current) setAssetRevision(revision => revision + 1);
+  };
+  return <React.Profiler id={`maxxis-inline-${view.reportType}`} onRender={reportProfiler}>
+    <details className={`maxxis-report-preview maxxis-report-v2 is-${view.reportType.toLowerCase()}`} onToggle={onToggle}>
+      <summary><span>{copy.open}</span><span className="maxxis-v2-open-hint"><i aria-hidden="true" />{copy.hint}</span><span className="maxxis-v2-badge is-navy">{copy.level} {level}</span></summary>
+      <div className="maxxis-v2-report"><SafeReportBody view={view} copy={copy} level={level} /></div>
+    </details>
+  </React.Profiler>;
 }
 
-export function MaxxisDealIntelligenceReportPreview({
-  schema,
-  language = "en",
-}) {
-  if (!schema || schema.type !== "maxxis_report_schema") return null;
-  const copy = COPY[language] || COPY.en;
-  const level =
-    schema.reportType === "DEAL_INTELLIGENCE"
-      ? 3
-      : schema.reportType === "MAXXIS_ANALYSIS"
-        ? 2
-        : 1;
-  return (
-    <React.Profiler id={`maxxis-inline-${schema.reportType}`} onRender={reportProfiler}>
-    <details className={`maxxis-report-preview maxxis-report-v2 is-${schema.reportType.toLowerCase()}`}>
-      <summary>
-        <span>{copy.open}</span>
-        <span className="maxxis-v2-open-hint">
-          <i aria-hidden="true" />
-          {OPEN_HINT[language] || OPEN_HINT.en}
-        </span>
-        <Badge tone="navy">{copy.level} {level}</Badge>
-      </summary>
-      <div className="maxxis-v2-report">
-        {list(schema.pages).map((page) => (
-          <CanonicalReportPage key={`${page.page}-${page.code}`} page={page} schema={schema} copy={copy} level={level} />
-        ))}
-      </div>
-    </details>
-    </React.Profiler>
-  );
+export function MaxxisDealIntelligenceReportPreview({ schema, language = 'en' }) {
+  if (!schema || schema.type !== 'maxxis_report_schema') return null;
+  return <StrictReportPreview schema={schema} language={language} />;
 }

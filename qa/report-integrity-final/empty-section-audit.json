@@ -1,0 +1,377 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-low-evidence-sell",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 0,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 8,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 5,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 5,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 5,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 7,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 9,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 9,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 9,
+      "omittedSections": [],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [
+        "positive-signals",
+        "decision-blockers",
+        "next-actions"
+      ],
+      "pass": true
+    },
+    {
+      "report": "golden-minimal",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 2,
+      "omittedSections": [
+        "UNTRUSTED_LEGACY_ZERO:rehab"
+      ],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-minimal-en",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 2,
+      "omittedSections": [
+        "UNTRUSTED_LEGACY_ZERO:rehab"
+      ],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    },
+    {
+      "report": "golden-minimal-es",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 2,
+      "omittedSections": [
+        "UNTRUSTED_LEGACY_ZERO:rehab"
+      ],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    }
+  ]
+}

@@ -539,6 +539,12 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       brand: 'DealSifter Match',
       design: 'PREMIUM_INVESTOR_REPORT_V2',
       ...(marketRent?{marketRent}:{}),
+      financialEvidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? dealIntelligence?.financialEvidence || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+          ? maxxisAnalysis?.financialEvidence || null : null,
+      financialReadiness: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? dealIntelligence?.financialReadiness || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+          ? maxxisAnalysis?.financialReadiness || null : null,
       map: Object.freeze({
         status: finiteCoordinate(property?.latitude) !== null && finiteCoordinate(property?.longitude) !== null ? 'COORDINATES_AVAILABLE' : 'LOCATION_CONTEXT_ONLY',
         latitude: finiteCoordinate(property?.latitude),

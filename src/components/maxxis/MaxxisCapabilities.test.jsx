@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { clampPanelPosition, MessageBubble } from './MaxxisCapabilities';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
+import { buildMaxxisReportSchema } from '../../domain/maxxis/maxxisReportSchema';
 
 describe('Maxxis Deal AI structured result presentation', () => {
   it('keeps the desktop assistant floating, minimizable, and constrained to the viewport', () => {
@@ -267,36 +268,45 @@ describe('Maxxis Deal AI structured result presentation', () => {
   });
 
   it('renders the Level 2 Maxxis Analysis sections without Deal Intelligence output', () => {
-    const html = renderToStaticMarkup(
-      <MessageBubble
-        language="en"
-        message={{ id: 'maxxis-analysis', role: 'assistant', content: '75% profile fit.',
-          type: 'maxxis_analysis_report', data: { maxxisAnalysisReport: {
-            type: 'maxxis_analysis_report', executiveSummary: 'The available information indicates 75% Investment Profile fit.',
-            propertyHighlights: {
-              verified: [{ field: 'propertyType', label: 'Property type', value: 'Single Family' }],
-              userProvided: [{ field: 'city', label: 'City', value: 'Austin' }],
-              unknown: [{ field: 'yearBuilt', label: 'Year built', value: null }],
-            },
-            profileAlignment: { score: 75,
-              targetMarket: { label: 'Target market', status: 'ALIGNED', explanation: 'Location matches the target market.' },
-              propertyType: { label: 'Property type', status: 'ALIGNED', explanation: 'Type matches the profile.' },
-              strategy: { label: 'Strategy', status: 'UNKNOWN', explanation: 'Strategy is unknown.' } },
-            keyObservations: { positives: ['Location matches the target market.'], attention: ['Year built is unknown.'] },
-            riskAwareness: [{ code: 'UNKNOWN_PROPERTY_FIELDS', category: 'DATA_RISK', severity: 'MEDIUM', explanation: 'Some fields remain unknown.' }],
-            limitations: ['Match Score measures Investment Profile fit only.'],
-            nextSteps: ['Confirm the year built.'],
-          } } }}
-      />,
-    );
-    expect(html).toContain('Maxxis Analysis');
-    expect(html).toContain('Property highlights');
-    expect(html).toContain('Profile fit');
-    expect(html).toContain('PROFILE FIT ONLY');
-    expect(html).toContain('Limitations');
-    expect(html).toContain('Next steps');
-    expect(html).not.toContain('Deal Intelligence');
-    expect(html).not.toMatch(/ARV|comparables|valuation/i);
+    const report = {
+      type: 'maxxis_analysis_report', executiveSummary: 'The available information indicates 75% Investment Profile fit.',
+      propertyHighlights: {
+        verified: [{ field: 'propertyType', label: 'Property type', value: 'Single Family' }],
+        userProvided: [{ field: 'city', label: 'City', value: 'Austin' }],
+        unknown: [{ field: 'yearBuilt', label: 'Year built', value: null }],
+      },
+      profileAlignment: { score: 75,
+        targetMarket: { label: 'Target market', status: 'ALIGNED', explanation: 'Location matches the target market.' },
+        propertyType: { label: 'Property type', status: 'ALIGNED', explanation: 'Type matches the profile.' },
+        strategy: { label: 'Strategy', status: 'UNKNOWN', explanation: 'Strategy is unknown.' } },
+      keyObservations: { positives: ['Location matches the target market.'], attention: ['Year built is unknown.'] },
+      riskAwareness: [{ code: 'UNKNOWN_PROPERTY_FIELDS', category: 'DATA_RISK', severity: 'MEDIUM', explanation: 'Some fields remain unknown.' }],
+      limitations: ['Match Score measures Investment Profile fit only.'], nextSteps: ['Confirm the year built.'],
+    };
+    const maxxisReport = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', maxxisAnalysis: report,
+      property: { id: 'analysis-property', address: '123 Analysis Street', city: 'Austin', state: 'TX',
+        type: 'SFR', objective: 'Sell', price: 250000, beds: 3, baths: 2, sqft: 1760 } });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('NO_PROVIDER_ACQUISITION_ALLOWED'));
+    try {
+      const html = renderToStaticMarkup(
+        <MessageBubble language="en" message={{ id: 'maxxis-analysis', role: 'assistant', content: '75% profile fit.',
+          type: 'maxxis_analysis_report', data: { maxxisAnalysisReport: report, maxxisReport } }} />,
+      );
+      expect(html).toContain('MAXXIS ANALYSIS REPORT');
+      expect(html).toContain('class="is-level-2">PRO</span>');
+      expect(html).toContain('123 Analysis Street');
+      expect(html).toContain('Austin');
+      expect(html).toContain('Profile compatibility');
+      expect(html).toContain('Match Score');
+      expect(html).toContain('75%');
+      expect(html).toContain('not deal quality, probability of success or analysis confidence');
+      expect(html).toContain('Prioritized next checks');
+      expect(html).not.toMatch(/Deal Intelligence|MAXXIS DEAL INTELLIGENCE/i);
+      expect(html).not.toContain('data-report-section="arv-market"');
+      expect(html).not.toContain('data-report-comp-number=');
+      expect(html).not.toContain('<table');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally { fetchSpy.mockRestore(); }
   });
 
   it('renders the premium Deal Intelligence evidence, valuation, comps, risks, and limitations', () => {

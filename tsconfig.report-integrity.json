@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.contracts.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/features/maxxis/export/reportIntegrityTypes.ts",
+    "src/features/maxxis/export/reportIntegrityViewModel.ts",
+    "src/features/maxxis/export/strictReportPdf.ts",
+    "src/features/maxxis/export/comparableMapGeometry.ts",
+    "src/features/maxxis/export/reportPreparedAssets.ts",
+    "supabase/functions/_shared/presentationTranslationContract.ts"
+  ]
+}

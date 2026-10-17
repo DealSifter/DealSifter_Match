@@ -1,0 +1,129 @@
+{
+  "pass": true,
+  "executiveWowPass": true,
+  "reviewedReports": [
+    {
+      "fixture": "ARV_RICH",
+      "basename": "golden-arv-rich-en",
+      "pdfSha256": "ad988eadefb14e67bfdd6fe88b2e702257f52ce2f33b26c33d40964a1f14f1ea",
+      "pass": true
+    },
+    {
+      "fixture": "ARV_RICH",
+      "basename": "golden-arv-rich-es",
+      "pdfSha256": "1203ca22a0e82c9d4266878d5419281c411ad0961b86b11d7fc96cc5d4a66ce2",
+      "pass": true
+    },
+    {
+      "fixture": "ARV_RICH",
+      "basename": "golden-arv-rich",
+      "pdfSha256": "60309e947d36d60088efc18de859d7ad031fa994f522c87b834ae2698340931a",
+      "pass": true
+    },
+    {
+      "fixture": "BUY_HOLD",
+      "basename": "golden-buy-hold-en",
+      "pdfSha256": "62c7132079bdfcd87b74b7cac8c70f84d0d02e09ff9c5ff2814d1afcdc9ee605",
+      "pass": true
+    },
+    {
+      "fixture": "BUY_HOLD",
+      "basename": "golden-buy-hold-es",
+      "pdfSha256": "566809fd3ab7f2360fe10d6ce833f961e5cc44a321db01e7e80f15603e46bc3a",
+      "pass": true
+    },
+    {
+      "fixture": "BUY_HOLD",
+      "basename": "golden-buy-hold",
+      "pdfSha256": "9afdb142ce7c780e72224bb6acb6ea4e10ab9c10169fbfd5fe212b43ba20ab38",
+      "pass": true
+    },
+    {
+      "fixture": "LAND_CONFLICT",
+      "basename": "golden-land-conflict-en",
+      "pdfSha256": "d18dd794242f32a9d5943e96c50f200f3a3a690f777d42a87a51c19917d657e6",
+      "pass": true
+    },
+    {
+      "fixture": "LAND_CONFLICT",
+      "basename": "golden-land-conflict-es",
+      "pdfSha256": "5a3340c394dce20d5f742b1659d8e303da0b876ed593a9bbe67ec15e2abd07b3",
+      "pass": true
+    },
+    {
+      "fixture": "LAND_CONFLICT",
+      "basename": "golden-land-conflict",
+      "pdfSha256": "f567d9788c651a6cc6d6df61b632f0d9e30bf1cb469b2ca4560369055812858e",
+      "pass": true
+    },
+    {
+      "fixture": "LOW_EVIDENCE_SELL",
+      "basename": "golden-low-evidence-sell-en",
+      "pdfSha256": "c9ef6b97acf3aa9fb2a11a7ce5f74b452917edbf3c8841b71776448cbcbf1c0d",
+      "pass": true
+    },
+    {
+      "fixture": "LOW_EVIDENCE_SELL",
+      "basename": "golden-low-evidence-sell-es",
+      "pdfSha256": "538deccccc76bbbccb1ac8c8171748179e85fa0501496d4442bf30ff77aa830f",
+      "pass": true
+    },
+    {
+      "fixture": "LOW_EVIDENCE_SELL",
+      "basename": "golden-low-evidence-sell",
+      "pdfSha256": "0fcfeb4104f7a247a502cde2ab311d35810728158f6ebc96408d91258f597bce",
+      "pass": true
+    },
+    {
+      "fixture": "MINIMAL",
+      "basename": "golden-minimal-en",
+      "pdfSha256": "36ee203269801193c3714b36e086322a482932ba314196c99c38fb28d22236c4",
+      "pass": true
+    },
+    {
+      "fixture": "MINIMAL",
+      "basename": "golden-minimal-es",
+      "pdfSha256": "5628bf5d3b9897a72013ef7ca13cf7347368186b2ba4db199fc3a4a7dcb4bba6",
+      "pass": true
+    },
+    {
+      "fixture": "MINIMAL",
+      "basename": "golden-minimal",
+      "pdfSha256": "27422e2b4ece0cf04607aababd8632950f3d2daee4262c0c5f4bb9cf18a425cd",
+      "pass": true
+    },
+    {
+      "fixture": "RENTAL_MARKET_RICH",
+      "basename": "golden-rental-market-rich-en",
+      "pdfSha256": "532522ae5ddf068df3f4a320ffff0bdcf5a1fa72a0c9e18b20e9f44807c96572",
+      "pass": true
+    },
+    {
+      "fixture": "RENTAL_MARKET_RICH",
+      "basename": "golden-rental-market-rich-es",
+      "pdfSha256": "8ab6ae2d1be4f2d3e2ad41743958579d646f963562966e143f7e234f0748e308",
+      "pass": true
+    },
+    {
+      "fixture": "RENTAL_MARKET_RICH",
+      "basename": "golden-rental-market-rich",
+      "pdfSha256": "fa36343285f679fc3aea5341249c1dbdace96c8586d8f2488579eaa1a13054e6",
+      "pass": true
+    }
+  ],
+  "method": "Actual final 18 L3 contact sheets; detailed independent ARV/rental map-page inspection; all-page raster and text audits for all 30 PDFs",
+  "rootReviewedFixtures": [
+    "LOW_EVIDENCE_SELL",
+    "LAND_CONFLICT",
+    "BUY_HOLD",
+    "MINIMAL"
+  ],
+  "independentReceipt": "visual-independent-rich.json",
+  "observations": [
+    "Evidence-limited reports contract without invented returns.",
+    "Supported opportunity, primary risk and next action are evidence-qualified.",
+    "Rich rental and ARV reports retain comparable maps and tables.",
+    "Private scenario results are qualified and incomplete financial results are not promoted."
+  ],
+  "sourceDigest": "50ccd885effd3bd05943005f776c128918047baf879aeb0e1b638eea304cf4e2"
+}

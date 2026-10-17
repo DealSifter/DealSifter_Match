@@ -1,0 +1,86 @@
+{
+  "reviewDate": "2026-10-17",
+  "reviewer": "/root/report_pdf_audit",
+  "reviewRole": "Second visual pass, separate from golden artifact generation",
+  "scope": "Six final rich L3 PDFs: Rental Market and ARV, PT/EN/ES",
+  "syntheticFixturesOnly": true,
+  "sourceDigest": "620ad9ea15b8245be2cd992d4271724b310c7e400b7ce1203aea0dccb3c745a4",
+  "sourceBinding": {
+    "receipt": "golden-report-validation.json",
+    "changedSourcesDuringGeneration": [],
+    "independentlyRecheckedCurrentSourceHashes": true,
+    "sourceHashMismatches": [],
+    "allSixPdfHashesMatchGenerationReceipts": true
+  },
+  "artifacts": [
+    {
+      "pdf": "golden-rental-market-rich.pdf",
+      "locale": "pt",
+      "pages": 4,
+      "sha256": "fa36343285f679fc3aea5341249c1dbdace96c8586d8f2488579eaa1a13054e6",
+      "contactInspected": "golden-rental-market-rich-contact.png",
+      "fullMapPageInspected": "golden-rental-market-rich-page-2.png",
+      "visualPass": true
+    },
+    {
+      "pdf": "golden-rental-market-rich-en.pdf",
+      "locale": "en",
+      "pages": 4,
+      "sha256": "532522ae5ddf068df3f4a320ffff0bdcf5a1fa72a0c9e18b20e9f44807c96572",
+      "contactInspected": "golden-rental-market-rich-en-contact.png",
+      "fullMapPageInspected": "golden-rental-market-rich-en-page-2.png",
+      "visualPass": true
+    },
+    {
+      "pdf": "golden-rental-market-rich-es.pdf",
+      "locale": "es",
+      "pages": 4,
+      "sha256": "8ab6ae2d1be4f2d3e2ad41743958579d646f963562966e143f7e234f0748e308",
+      "contactInspected": "golden-rental-market-rich-es-contact.png",
+      "fullMapPageInspected": "golden-rental-market-rich-es-page-2.png",
+      "visualPass": true
+    },
+    {
+      "pdf": "golden-arv-rich.pdf",
+      "locale": "pt",
+      "pages": 3,
+      "sha256": "60309e947d36d60088efc18de859d7ad031fa994f522c87b834ae2698340931a",
+      "contactInspected": "golden-arv-rich-contact.png",
+      "fullMapPageInspected": "golden-arv-rich-page-2.png",
+      "visualPass": true
+    },
+    {
+      "pdf": "golden-arv-rich-en.pdf",
+      "locale": "en",
+      "pages": 3,
+      "sha256": "ad988eadefb14e67bfdd6fe88b2e702257f52ce2f33b26c33d40964a1f14f1ea",
+      "contactInspected": "golden-arv-rich-en-contact.png",
+      "fullMapPageInspected": "golden-arv-rich-en-page-2.png",
+      "visualPass": true
+    },
+    {
+      "pdf": "golden-arv-rich-es.pdf",
+      "locale": "es",
+      "pages": 3,
+      "sha256": "1203ca22a0e82c9d4266878d5419281c411ad0961b86b11d7fc96cc5d4a66ce2",
+      "contactInspected": "golden-arv-rich-es-contact.png",
+      "fullMapPageInspected": "golden-arv-rich-es-page-2.png",
+      "visualPass": true
+    }
+  ],
+  "observations": [
+    "As seis capas mantêm identidade do imóvel, preço, foto, marca e snapshot com oportunidade, risco e próxima verificação legíveis.",
+    "Os diagramas relativos mostram S e 1–5 dentro dos limites, sem colisão entre marcadores, tabela ou rodapé. A legenda não os apresenta como mapa cadastral.",
+    "As referências de aluguel continuam distintas de aluguel contratual; as faixas de ARV não são apresentadas como garantia de retorno.",
+    "A tabela Rental EN/ES continua na página seguinte com título e cabeçalho repetidos; todos os cinco comparáveis permanecem legíveis. ARV mantém os cinco comparáveis completos na página do mapa.",
+    "Proveniência por referência, datas, moedas, qualificação dos valores e rodapés permanecem legíveis; nenhum bloco vazio, JSON bruto, chave interna ou corte de conteúdo foi observado.",
+    "A suspeita inicial de logo/foto ausente em visualizações agrupadas foi descartada abrindo o mesmo PNG isoladamente, sem regeneração. Os objetos bitmap da logo também foram confirmados em todas as páginas dos seis PDFs; a foto está presente em cada primeira página."
+  ],
+  "visualDefectsFound": [],
+  "contentClippingObserved": 0,
+  "mapMarkerClippingObserved": 0,
+  "footerOverlapObserved": 0,
+  "reviewPass": true,
+  "notAGlobalReleaseApproval": true,
+  "authenticatedProductionSmoke": "BLOCKED"
+}

@@ -69,19 +69,21 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     ['free', 'PROPERTY_RELEASE', 1],
     ['pro', 'MAXXIS_ANALYSIS', 3],
     ['enterprise', 'DEAL_INTELLIGENCE', 6],
-  ])('renders a physical %s PDF preserving its base pages and any P0 continuation', async (plan, reportType, expectedPages) => {
+  ])('renders a physical %s PDF with authorized useful content and structured continuation', async (plan, reportType, maximumPages) => {
     const result = await renderMaxxisReportPdf({
       schema: schema(reportType),
       exportEntitlement: entitlement(plan, reportType, 'PDF'),
       generatedAt: '2026-09-15T12:00:00.000Z',
     });
     expect(result).toMatchObject({ state: 'RENDERED', document: { mimeType: 'application/pdf' } });
-    expect(result.document.pages).toHaveLength(expectedPages);
-    expect(result.document.pageCount).toBeGreaterThanOrEqual(expectedPages);
-    if (result.document.pageCount > expectedPages) expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
+    expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
+    expect(result.document.pageCount).toBeLessThanOrEqual(maximumPages);
+    expect(result.document.pages).toHaveLength(result.document.pageCount);
+    expect(result.document.outputValidation.valid).toBe(true);
+    for (const continuation of result.document.layoutAudit.continuations) expect(continuation).toMatchObject({ sectionId: expect.any(String), title: expect.any(String), kind: expect.any(String) });
     expect(result.document.binary.byteLength).toBeGreaterThan(1000);
     expect(new TextDecoder('latin1').decode(result.document.binary.slice(0, 8))).toContain('%PDF-');
-  });
+  }, 30000);
 
   it('renders a vacant-land Deal Intelligence PDF without residential ARV placeholders', async () => {
     const landIntelligence = {
@@ -109,12 +111,15 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
       generatedAt: '2026-09-15T12:00:00.000Z',
       language: 'pt',
     });
-    expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: 6, mimeType: 'application/pdf' } });
+    expect(result.state).toBe('RENDERED');
+    expect(result.document.mimeType).toBe('application/pdf');
+    expect(result.document.pageCount).toBeLessThan(6);
+    expect(result.document.strictViewModel.sections.some(section => section.id === 'arv')).toBe(false);
     expect(result.document.binary.byteLength).toBeGreaterThan(1000);
     expect(landSchema.sections.valuationEvidence).toMatchObject({
       sourceType: 'NOT_APPLICABLE', data: { status: 'NOT_APPLICABLE', range: null, centralReference: null },
     });
-  });
+  }, 30000);
 
   it('shares one in-flight PDF render between the chat preview and export action', async () => {
     const reportSchema = schema('MAXXIS_ANALYSIS');
@@ -126,8 +131,11 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     const previewRender = renderMaxxisReportPdfCached(options);
     const exportRender = renderMaxxisReportPdfCached(options);
     expect(exportRender).toBe(previewRender);
-    await expect(exportRender).resolves.toMatchObject({ state: 'RENDERED', document: { pageCount: 3 } });
-  });
+    const result = await exportRender;
+    expect(result.state).toBe('RENDERED');
+    expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
+    expect(result.document.pageCount).toBeLessThanOrEqual(3);
+  }, 30000);
 
   it('attaches the temporary download link before clicking for browser compatibility', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');

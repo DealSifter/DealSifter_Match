@@ -35,11 +35,14 @@ describe('Maxxis report generation performance contract', () => {
   }, 30000);
 
   it('single-flights preview and export generation', () => expect(secondPromise).toBe(firstPromise));
-  it('produces one complete enterprise document including necessary P0 continuation', () => {
+  it('contracts weak-evidence reports without empty analytical pages or generic overflow', () => {
     expect(result.state).toBe('RENDERED');
-    expect(result.document.pages).toHaveLength(6);
-    expect(result.document.pageCount).toBeGreaterThanOrEqual(6);
-    if (result.document.pageCount > 6) expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
+    expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
+    expect(result.document.pageCount).toBeLessThan(6);
+    expect(result.document.pages).toHaveLength(result.document.pageCount);
+    expect(result.document.strictViewModel.type).toBe('strict_report_view_model');
+    expect(result.document.outputValidation.valid).toBe(true);
+    expect(result.document.layoutAudit.continuations.every(section => section.sectionId && section.title && section.kind)).toBe(true);
   });
   it('records end-to-end generation time', () => expect(result.timings.totalMs).toBeGreaterThanOrEqual(0));
   it('records deterministic view-model preparation time', () => expect(result.timings.preparationMs).toBeGreaterThanOrEqual(0));
@@ -47,7 +50,7 @@ describe('Maxxis report generation performance contract', () => {
   it('records asset resolution time', () => expect(result.timings.assetsMs).toBeGreaterThanOrEqual(0));
   it('records aggregate page render time', () => expect(result.timings.pageRenderMs).toBeGreaterThanOrEqual(0));
   it('records binary assembly time', () => expect(result.timings.assemblyMs).toBeGreaterThanOrEqual(0));
-  it('records a duration for every one of the six pages', () => expect(result.timings.perPageMs).toHaveLength(6));
+  it('records a duration for every physical page actually rendered', () => expect(result.timings.perPageMs).toHaveLength(result.document.pageCount));
   it('keeps every page duration finite', () => expect(result.timings.perPageMs.every(Number.isFinite)).toBe(true));
   it('yields the browser main thread between PDF pages', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');

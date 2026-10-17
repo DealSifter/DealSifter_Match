@@ -206,6 +206,8 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     propertyHighlights: highlights,
     profileAlignment: alignment,
     canonicalInvestmentAnalysis,
+    financialEvidence: snapshot.financialEvidence || dealIntelligence.financialEvidence || null,
+    financialReadiness: snapshot.financialReadiness || dealIntelligence.financialReadiness || null,
     sellerFinancingScenario: savedSellerFinancingScenario,
     activeScenario: savedActiveScenario,
     keyObservations: canonical ? Object.freeze({

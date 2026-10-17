@@ -1,0 +1,108 @@
+{
+  "status": "LOCAL_NARRATIVE_PDF_AND_MANUAL_VALIDATION_PASS",
+  "pass": true,
+  "scope": "Narrative source contract, final full tests, 30 actual PDF evidence/content audits and 18 hash-bound L3 manual visual reviews; not a production deployment or authenticated smoke receipt",
+  "sourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+  "implementation": {
+    "module": "src/features/maxxis/export/reportIntegrityViewModel.ts",
+    "packetType": "ReportViewModel.evidencePacket",
+    "packetFields": ["id", "text", "numericValues", "sourceRefs"],
+    "validator": "validateExecutiveNarrative",
+    "requiresKnownEvidenceReferences": true,
+    "requiresClaimTextToMatchReferencedPacketClaim": true,
+    "unsupportedNewNumbersRejectedByExactClaimMatching": true,
+    "rawBackendAndModelResponsesExcluded": true,
+    "deterministicFallbackOnValidationFailure": true,
+    "unsupportedLegacyPreformattedNarrativeNotTrusted": true,
+    "userNotesKeptSeparateFromExecutiveConclusions": true,
+    "newNarrativeProviderAcquisitionIntroduced": false
+  },
+  "sourceTestControls": [
+    {
+      "file": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "control": "rejects arbitrary LLM claims even when they cite a known fact, and falls back deterministically",
+      "expectedBehavior": "Unsupported Guaranteed return 98% is rejected; original evidence-derived thesis remains unchanged"
+    },
+    {
+      "file": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "control": "rejects missing or unknown narrative evidence references",
+      "expectedBehavior": "Known-looking text does not authorize an unknown evidence reference"
+    },
+    {
+      "file": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "control": "accepts an exact packet claim without granting arbitrary numerical synthesis",
+      "expectedBehavior": "Only supported exact packet content can replace deterministic narrative"
+    },
+    {
+      "file": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "control": "creates non-empty localized evidence-backed summary",
+      "expectedBehavior": "PT/EN/ES low-evidence summaries identify the actual property and do not imply strong evidence"
+    },
+    {
+      "file": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "control": "treats publisher notes as notes rather than executive conclusions",
+      "expectedBehavior": "Publisher narrative remains its own safe section, not proof for an analytical claim"
+    }
+  ],
+  "additionalPreservationControl": {
+    "module": "src/features/maxxis/export/reportSavedScenarioProjection.ts",
+    "tests": "src/features/maxxis/export/reportSavedScenarioProjection.test.js",
+    "policy": "Confirmed private premises are preserved; financial outputs require complete existing-calculation basis; unsupported shorthand NOI is omitted without losing the rent premise",
+    "engineMigration": false
+  },
+  "finalSourceBoundFullTests": {
+    "receipt": "qa/report-integrity-final/full/tests.json",
+    "rawReceipt": "qa/report-integrity-final/full/vitest-raw.json",
+    "rawSha256": "f11f330b15b8eb8d28fdde0a264650d72aba8bc2ccc82bb4fbb34f34ce30aba8",
+    "tests": 2613,
+    "passed": 2613,
+    "failed": 0,
+    "skipped": 0,
+    "pass": true
+  },
+  "finalSourceBoundTargetedTests": {
+    "receipt": "qa/report-integrity-final/targeted/tests.json",
+    "origin": "CURRENT_FULL_SUITE_TARGETED_SUBSET",
+    "separateExecution": false,
+    "files": 18,
+    "tests": 453,
+    "passed": 453,
+    "failed": 0,
+    "pass": true
+  },
+  "actualPdfNarrativeEvidenceAudit": {
+    "receipt": "qa/report-integrity-final/golden-report-validation.json",
+    "details": "qa/report-integrity-final/golden-*-validation.json",
+    "actualPdfCount": 30,
+    "auditedClaims": 213,
+    "missingEvidenceRefs": 0,
+    "unknownEvidenceRefs": 0,
+    "missingRenderedClaimTexts": 0,
+    "actionsWithoutBlockers": 0,
+    "duplicateActions": 0,
+    "prohibitedOutputLeaks": 0,
+    "pass": true
+  },
+  "manualExecutiveWowReview": {
+    "receipt": "qa/report-integrity-final/manual-visual-review.json",
+    "actualL3ReportsReviewed": 18,
+    "fixturesReviewed": 6,
+    "locales": ["pt", "en", "es"],
+    "pdfHashesBound": true,
+    "pass": true,
+    "executiveWowPass": true
+  },
+  "authenticatedProductionSmoke": "BLOCKED",
+  "authenticatedProductionSmokeReason": "NO_LEGITIMATE_REAL_USER_SESSION_AVAILABLE",
+  "releaseConsolidation": "PENDING_COORDINATOR_FINAL_SOURCE_BOUND_PIPELINE",
+  "incrementalRevalidation": {
+    "receipt": "qa/report-integrity-final/incremental-validation.json",
+    "currentSourcesMatchSuccessfulFullRun": true,
+    "onlyChangeFromActualBuiltSource": "src/components/maxxis/MaxxisCapabilities.test.jsx",
+    "productionConfigPublicInputChanges": 0,
+    "actualSuccessfulBuildReused": true,
+    "actualBuildRepeated": false,
+    "browserTestedAssetBytesIdentical": true
+  },
+  "updateInstruction": "Current full/static, extracted targeted subset and unchanged real build/browser assets are source-bound. Preserve original receipts and actual PDF hashes; final consolidation remains pending, and local synthetic QA is not authenticated production smoke"
+}

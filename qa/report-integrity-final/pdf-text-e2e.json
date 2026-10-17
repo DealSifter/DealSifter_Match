@@ -1,0 +1,277 @@
+{
+  "reportCount": 30,
+  "actualPdfCount": 30,
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-low-evidence-sell",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l1",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l2",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-en",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-en",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-en",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-es",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-es",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-es",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich",
+      "pages": 4,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l1",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l2",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-en",
+      "pages": 4,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l1-en",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l2-en",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-es",
+      "pages": 4,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l1-es",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-rental-market-rich-l2-es",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-land-conflict",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-land-conflict-en",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-land-conflict-es",
+      "pages": 2,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-arv-rich",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-arv-rich-en",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-arv-rich-es",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-buy-hold",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-buy-hold-en",
+      "pages": 3,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-buy-hold-es",
+      "pages": 4,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-minimal",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-minimal-en",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    },
+    {
+      "report": "golden-minimal-es",
+      "pages": 1,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    }
+  ]
+}

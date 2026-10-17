@@ -1,0 +1,193 @@
+{
+  "generatedAt": "2026-10-17T14:38:31.089Z",
+  "syntheticFixturesOnly": true,
+  "sourceHashes": {
+    "src/domain/maxxis/maxxisReportSchema.js": "a02ecb3fad87304e3a817c1303d0ba560f5e4ba340b86c56393e8d76cffaaaa1",
+    "src/features/maxxis/export/reportIntegrityTypes.ts": "ef4ee66cb59072aaf161500dd38872885e202839dbf7118dc762cd63e5b30672",
+    "src/features/maxxis/export/reportIntegrityViewModel.ts": "d9ccbbc173352858d69c7574a007a0a8d185785be5f78b0ad69fc2f72e3fade1",
+    "src/features/maxxis/export/reportSavedScenarioProjection.ts": "32f9000b562fcaf08aa2afafd46ff778f6320011cdc600907e47909bbe1a59a4",
+    "src/features/maxxis/export/maxxisReportPdf.js": "1d1a62bf267060a295489349dd05402bd014302228eef8587962267ced77c35b",
+    "src/features/maxxis/export/strictReportPdf.ts": "a53230e4705657b12a0401613880b451ba16a07d29dcdeca1442766c4227b0b8",
+    "src/features/maxxis/export/maxxisReportRenderer.js": "5fa95944a6fc2ac82b7384f419a3bf50bcc1ec5a3113397a87b03b5789aa6802",
+    "src/features/maxxis/export/comparableMapGeometry.ts": "3c3efd4fb91fa50b4f0b68ac6a5bd986b7b62773e2002a11ebccab632e9eb72a",
+    "src/features/maxxis/export/marketRentReport.js": "8d7b9eff87391dfb5e0689c66d99ac8982334918b64777928a932945c4603c63",
+    "src/features/maxxis/export/reportPreparedAssets.ts": "890227be6c32f373eeaf8a12765fc6b73e34d5949bb74ba037837bff88c386f3",
+    "src/features/maxxis/export/reportExportEntitlement.js": "0fa88740accf9d46d6580026fe2264955b38cf9117e663513be0d540e38075f8",
+    "src/features/maxxis/presentation/reportNarrativePresentation.js": "87fc2715245cb3add90e5333ecbaca8912c2def6612120f994ae5f4b5ac1816d",
+    "src/services/chatTranslation.js": "b6a413e98243cda8afc93ff2ad64bf91326a04d87f68661c6340aa35c8b09f2b",
+    "src/features/maxxis/export/maxxisReportVisualPolicy.js": "4b2723623000ef16288ba791bb0678b8b8d6977f8bba97a8698d329b48f35557",
+    "src/features/maxxis/qa/maxxisProductionReadiness.js": "8db25382838ce9ef143089719f2f0881574684277052ff299292084f38004c04",
+    "supabase/functions/_shared/maxxis/financialEvidence.ts": "2d687a530dde3644b9751f359f087d87e915130bea1ee3f396b0017c43f6f07d",
+    "supabase/functions/_shared/maxxis/financialReadiness.ts": "8ed46dd87abff04ac47841b0014eb8e0669b7b73d4150909c9793ef3a03c952e",
+    "scripts/report-integrity-fixtures.mjs": "abc24319cc0f469fb05a97d729a87d0c545166a1b7b2439f69bc8f9579578d00",
+    "scripts/report-integrity-qa.mjs": "4c9e50bc2f87a18f8447fcc77a5f889478312061d9f0a5458491144fd97eb622"
+  },
+  "sourceDigest": "620ad9ea15b8245be2cd992d4271724b310c7e400b7ce1203aea0dccb3c745a4",
+  "changedSourcesDuringRun": [],
+  "reportCount": 30,
+  "goldenFixtureCount": 6,
+  "locales": [
+    "pt",
+    "en",
+    "es"
+  ],
+  "actualPdfArtifacts": 30,
+  "goldenReports": [
+    {
+      "id": "LOW_EVIDENCE_SELL",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 2,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 2,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 2,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "RENTAL_MARKET_RICH",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 4,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 4,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 4,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "LAND_CONFLICT",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 2,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 2,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 2,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "ARV_RICH",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 3,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 3,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 3,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "BUY_HOLD",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 3,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 3,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 4,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "MINIMAL",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 1,
+          "pass": true
+        },
+        {
+          "language": "en",
+          "pages": 1,
+          "pass": true
+        },
+        {
+          "language": "es",
+          "pages": 1,
+          "pass": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "dynamic": [
+    {
+      "language": "pt",
+      "weakPages": 2,
+      "richPages": 4,
+      "pass": true
+    },
+    {
+      "language": "en",
+      "weakPages": 2,
+      "richPages": 4,
+      "pass": true
+    },
+    {
+      "language": "es",
+      "weakPages": 2,
+      "richPages": 4,
+      "pass": true
+    }
+  ],
+  "networkAttempts": [],
+  "imageNetworkAttempts": [],
+  "actualRentCastCalls": 0,
+  "actualGISCalls": 0,
+  "reportReopenProviderCalls": 0,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "manualVisualReview": "PENDING_MAIN_AGENT_INSPECTION",
+  "executiveWowReview": "PENDING_MAIN_AGENT_INSPECTION",
+  "failures": [],
+  "pass": true
+}

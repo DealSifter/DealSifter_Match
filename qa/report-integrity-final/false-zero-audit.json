@@ -1,0 +1,293 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-low-evidence-sell",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l1-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-rental-market-rich-l2-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-land-conflict-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-arv-rich-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold",
+      "tokens": [
+        {
+          "token": "US$ 0",
+          "context": "ntCast · fonte única, sem confirmação independente Condomínio / associação US$ 0 · por mês [1] Vacância 5% Premissa privada do investidor [1] Informado pel"
+        }
+      ],
+      "explicitZeroEvidence": [
+        {
+          "id": "financial:hoa",
+          "state": "EXPLICIT_ZERO",
+          "text": "US$ 0 · por mês",
+          "numericValue": 0,
+          "source": "Informado pelo publicador; não verificado de forma independente",
+          "evidenceRefs": [
+            "financial:hoa"
+          ]
+        }
+      ],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold-en",
+      "tokens": [
+        {
+          "token": "$0",
+          "context": "st · single source, without independent confirmation HOA / association fee $0 · per month [1] Vacancy 5% Private investor assumption [1] Publisher provi"
+        }
+      ],
+      "explicitZeroEvidence": [
+        {
+          "id": "financial:hoa",
+          "state": "EXPLICIT_ZERO",
+          "text": "$0 · per month",
+          "numericValue": 0,
+          "source": "Publisher provided; not independently verified",
+          "evidenceRefs": [
+            "financial:hoa"
+          ]
+        }
+      ],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-buy-hold-es",
+      "tokens": [
+        {
+          "token": "$0",
+          "context": "Cast · fuente única, sin confirmación independiente Asociación / comunidad $0 · por mes [1] Vacancia 5% Supuesto privado del inversor [1] Aportado por e"
+        }
+      ],
+      "explicitZeroEvidence": [
+        {
+          "id": "financial:hoa",
+          "state": "EXPLICIT_ZERO",
+          "text": "$0 · por mes",
+          "numericValue": 0,
+          "source": "Aportado por el publicador; sin verificación independiente",
+          "evidenceRefs": [
+            "financial:hoa"
+          ]
+        }
+      ],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-minimal",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-minimal-en",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    },
+    {
+      "report": "golden-minimal-es",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    }
+  ]
+}

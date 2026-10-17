@@ -1,0 +1,11 @@
+# Executive evidence packet and validated synthesis
+
+The strict projector registers a bounded evidence packet of `{ id, text, numericValues[], sourceRefs[] }`. Entries originate from authorized property facts, deterministic calculations, normalized market references, current blockers/actions, permitted source notes and profile compatibility. Raw database/provider/Gemini objects and arbitrary legacy analytical strings are not packet entries merely because they exist in the old DTO. Confirmed saved scenarios retain traceable current-property dealAssumptions record paths and the actual scenario ID when available; a legacy missing ID is not replaced with invented evidence identity.
+
+The opening thesis is deterministic and deal-specific: subject identity, property type, resolved strategy, asking price and qualified evidence readiness. When evidence is weak it explicitly says description is possible but valuation/return conclusions are not supported. Coverage distinguishes usable facts, public/provider records, estimates and conflicts. It does not label attractiveness as confidence or treat Match Score as deal quality.
+
+The first supported opportunity, highest-impact uncertainty and next verification come from the same evidence/blocker set used in later sections. Positive signals require actual supported market/ARV/other evidence; an empty signal collection does not create a panel. The executive summary is not an empty reserved box or a broad endorsement.
+
+`validateExecutiveNarrative` accepts only structured, evidence-referenced claims. Each claim must reference known packet IDs and its text must match a permitted packet claim; a reference alone cannot authorize an invented assertion or numeric calculation. Invalid schema, unknown refs, unsupported text/numbers or prohibited internal output rejects the candidate. The report retains its deterministic executive narrative and records an internal rejection diagnostic.
+
+This conservative contract intentionally does not add a new LLM acquisition, freeform Gemini output path or provider expense to report rendering. Optional validated synthesis is subordinate to evidence; timeout/malformed/invalid output never removes the useful deterministic fallback. No factual report claim may be introduced by an LLM calculation.

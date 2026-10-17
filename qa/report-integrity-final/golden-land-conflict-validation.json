@@ -1,0 +1,408 @@
+{
+  "fixture": "LAND_CONFLICT",
+  "basename": "golden-land-conflict",
+  "language": "pt",
+  "level": "DEAL_INTELLIGENCE",
+  "syntheticFixture": true,
+  "renderedState": "RENDERED",
+  "modelValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "inputHash": "596f57c8933c812d7e3a9e2ccf6731f8b3eff799454af2194d9de77adc47cd57",
+  "rendererNetworkAttempts": 0,
+  "rendererImageNetworkAttempts": 0,
+  "pages": 2,
+  "durationMs": 4871,
+  "pdfSha256": "f567d9788c651a6cc6d6df61b632f0d9e30bf1cb469b2ca4560369055812858e",
+  "reopenedStoredArtifact": true,
+  "strictViewModelVersion": "REPORT_PROJECTION_V3",
+  "identityVisible": true,
+  "leaks": [],
+  "zeroAudit": {
+    "tokens": [],
+    "explicitZeroEvidence": [],
+    "falseMonetaryZeros": 0,
+    "falseCapRateZeros": 0,
+    "pass": true
+  },
+  "sectionAudit": {
+    "emptySections": [],
+    "duplicateTitles": [],
+    "missingExecutiveSummary": false,
+    "substantiveSections": 5,
+    "omittedSections": [],
+    "missingExpectedSections": [],
+    "collapsedDuplicateSections": [],
+    "pass": true
+  },
+  "layout": {
+    "auditedLineCount": 73,
+    "clipping": [],
+    "footerOverlap": [],
+    "textOutsidePage": [],
+    "crossSectionCollisions": [],
+    "maps": [],
+    "mapMarkerClipping": [],
+    "pages": [
+      {
+        "page": 1,
+        "textCharacters": 1218,
+        "auditedLines": 34,
+        "substantiveSections": [
+          "propertyIdentity",
+          "propertyLocation",
+          "propertyPrice",
+          "executiveSnapshot",
+          "evidenceCoverage",
+          "executiveDecisions",
+          "property-facts-0"
+        ],
+        "contentTop": 110,
+        "contentBottom": 671.6000000000001,
+        "usedVerticalRatio": 0.816,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 2,
+        "textCharacters": 1218,
+        "auditedLines": 25,
+        "substantiveSections": [
+          "property-facts-1",
+          "decision-blockers",
+          "next-actions",
+          "publisher-notes",
+          "reportDisclaimer"
+        ],
+        "contentTop": 110,
+        "contentBottom": 554.9,
+        "usedVerticalRatio": 0.647,
+        "possibleSparsePage": false
+      }
+    ],
+    "continuations": [],
+    "genericContinuations": [],
+    "pass": true
+  },
+  "evidenceAudit": {
+    "claims": 10,
+    "evidencePacketEntries": 32,
+    "missingRefs": [],
+    "unknownRefs": [],
+    "pass": true
+  },
+  "marketAudit": {
+    "irrelevantRent": false,
+    "landResidentialRows": [],
+    "noArvViolation": false,
+    "semanticFailures": [],
+    "pass": true
+  },
+  "contentAudit": {
+    "missingRowValues": [],
+    "missingTableCells": [],
+    "missingNotes": [],
+    "missingClaimTexts": [],
+    "actionsWithoutBlockers": [],
+    "duplicateActions": [],
+    "prioritizedActions": 3,
+    "pass": true
+  },
+  "renderedTextValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "images": [
+    "qa/report-integrity-final/golden-land-conflict-page-1.png",
+    "qa/report-integrity-final/golden-land-conflict-page-2.png"
+  ],
+  "contactSheet": "qa/report-integrity-final/golden-land-conflict-contact.png",
+  "maxPagesPass": true,
+  "sourceTraceability": [
+    {
+      "id": "fact:price",
+      "text": "Preço pedido: US$ 42.000 · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [
+        42000
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Quartos: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.beds",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Banheiros: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.baths",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Ano de construção: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Ano do imposto: 2025 · Registro público · fonte única, sem confirmação independente",
+      "numericValues": [
+        2025
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.propertyTaxYear",
+        "PUBLIC_ASSESSOR"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Ano da avaliação fiscal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Área construída: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Área do terreno: 20.000 sqft · Divergência não resolvida; valor não adotado · Registro público · fonte única, sem confirmação independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.lotSizeSqft",
+        "PUBLIC_GIS"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Área do terreno em acres: 0,3 ac · Divergência não resolvida; valor não adotado · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.lotSizeAcres",
+        "PUBLISHER_DECLARATION"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reforma informada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Imposto predial anual: US$ 600 · Registro público · fonte única, sem confirmação independente",
+      "numericValues": [
+        600
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.annualPropertyTax",
+        "PUBLIC_ASSESSOR"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Valor fiscal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Receita operacional líquida: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Última venda registrada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / cadastro fiscal: QA-GABLE-001 · Registro público · fonte única, sem confirmação independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.assessorId",
+        "PUBLIC_GIS"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Zoneamento declarado ou registrado: R2 · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.zoning",
+        "PUBLISHER_DECLARATION"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "Condado: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Descrição legal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Loteamento: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Data da venda registrada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Ocupado pelo proprietário: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Registro de titularidade disponível: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "Cap Rate indisponível sem taxa declarada com proveniência ou NOI válido e base de valor explícita.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "741 Gable Dr · Stuttgart, AR, 72160 · Terreno · Terreno",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:parcel-area",
+      "text": "As áreas do lote divergem. A área utilizável e o preço por acre não podem ser afirmados até a revisão.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:parcel-area"
+      ]
+    },
+    {
+      "id": "action:parcel-area",
+      "text": "Compare a área declarada com o registro parcelário e salve sua escolha na revisão de dados para liberar os indicadores de terreno.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:parcel-area"
+      ]
+    },
+    {
+      "id": "blocker:property-type",
+      "text": "O tipo informado diverge do registro externo; referências de outro tipo não sustentam esta avaliação.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:property-type"
+      ]
+    },
+    {
+      "id": "action:property-type",
+      "text": "Revise a classificação do imóvel com a fonte do cadastro antes de usar a estimativa externa.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:property-type"
+      ]
+    },
+    {
+      "id": "blocker:market-support",
+      "text": "As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:market-support"
+      ]
+    },
+    {
+      "id": "action:market-support",
+      "text": "Obtenha vendas registradas de terrenos comparáveis, com área, data e localização, para avaliar o preço por acre.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:market-support"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic parcel conflict control; zoning R2 is publisher-declared, not legal approval.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "741 Gable Dr: terreno para terreno, com pedido de US$ 42.000. É possível descrever o imóvel, mas as evidências atuais não sustentam conclusões de valor ou retorno.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:executive:thesis"
+      ]
+    }
+  ],
+  "pass": true
+}

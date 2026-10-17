@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { protectNarrativeIdentifiers, restoreNarrativeIdentifiers } from '../../supabase/functions/_shared/presentationText';
+import { parsePresentationTranslation, safeOriginalNarrative } from '../../supabase/functions/_shared/presentationTranslationContract';
 
 const BACKEND_TRANSLATE_URL = import.meta.env.VITE_TRANSLATE_API_URL || '';
 const presentationCache = new Map();
@@ -147,10 +148,11 @@ async function translateWithBackend(text, fromLang, toLang) {
 
     if (!response.ok) return null;
     const data = await response.json();
-    if (!data?.translatedText || typeof data.translatedText !== 'string') return null;
+    const translated = parsePresentationTranslation(data?.translatedText);
+    if (!translated) return null;
 
     return {
-      text: data.translatedText,
+      text: translated,
       provider: 'backend',
     };
   } catch (e) { void e; return null; }
@@ -182,6 +184,7 @@ function localDictionaryTranslate(text, fromLang, toLang) {
 }
 
 export async function translateChatText({ text, fromLang, toLang, presentationOnly = false, protectedNames = [], invoke = null }) {
+  text = safeOriginalNarrative(text);
   const source = fromLang === 'auto' ? detectLanguage(text) : normalizeLang(fromLang);
   const target = normalizeLang(toLang);
 
@@ -199,8 +202,9 @@ export async function translateChatText({ text, fromLang, toLang, presentationOn
         ? body => supabase.functions.invoke('presentation-translate', { body }) : null);
       if (!translate) return { text, fromLang: source, toLang: target, provider: 'original' };
       const { data, error } = await translate({ text, fromLang: source, toLang: target, protectedNames });
-      if (error || typeof data?.translatedText !== 'string') return { text, fromLang: source, toLang: target, provider: 'original' };
-      return { text: data.translatedText, fromLang: source, toLang: target,
+      const translated = error ? null : parsePresentationTranslation(data?.translatedText);
+      if (!translated) return { text, fromLang: source, toLang: target, provider: 'original' };
+      return { text: translated, fromLang: source, toLang: target,
         provider: data.translationSource || 'backend', translatedAt: data.translatedAt || null };
     } catch { return { text, fromLang: source, toLang: target, provider: 'original' }; }
   }
@@ -230,10 +234,11 @@ export async function translateChatText({ text, fromLang, toLang, presentationOn
 // Read-only presentation model, independently cached from provider evidence.
 const presentationKey = (text, locale) => `${normalizeLang(locale)}:${String(text || '')}`;
 export function getCachedPresentationText(text, locale) {
-  return presentationCache.get(presentationKey(text, locale))?.translatedText ?? text;
+  return parsePresentationTranslation(presentationCache.get(presentationKey(text, locale))?.translatedText)
+    || safeOriginalNarrative(text);
 }
 export async function localizePresentationText({ text, sourceLocale = 'auto', targetLocale, protectedNames = [], invoke = null }) {
-  const sourceText = String(text ?? '');
+  const sourceText = safeOriginalNarrative(text);
   const target = normalizeLang(targetLocale), source = sourceLocale === 'auto' ? detectLanguage(sourceText) : normalizeLang(sourceLocale);
   const key = presentationKey(sourceText, target);
   if (presentationCache.has(key)) return presentationCache.get(key);
@@ -243,7 +248,7 @@ export async function localizePresentationText({ text, sourceLocale = 'auto', ta
     const sourceHash = [...new Uint8Array(hash)].map(value => value.toString(16).padStart(2, '0')).join('');
     const result = await translateChatText({ text: sourceText, fromLang: source, toLang: target, presentationOnly: true, protectedNames, invoke });
     const model = Object.freeze({ sourceText, sourceHash, sourceLocale: source, targetLocale: target,
-      translatedText: result.text, translatedAt: result.translatedAt || null, translationSource: result.provider,
+      translatedText: parsePresentationTranslation(result.text) || sourceText, translatedAt: result.translatedAt || null, translationSource: result.provider,
       evidenceStatus: 'USER_PROVIDED' });
     presentationCache.set(key, model);
     // Bounded device-session cache. Durable, user-scoped deduplication is server-side.

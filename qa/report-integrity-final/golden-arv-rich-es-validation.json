@@ -1,0 +1,565 @@
+{
+  "fixture": "ARV_RICH",
+  "basename": "golden-arv-rich-es",
+  "language": "es",
+  "level": "DEAL_INTELLIGENCE",
+  "syntheticFixture": true,
+  "renderedState": "RENDERED",
+  "modelValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "inputHash": "3ee9b224c4fd8a3573bd6099d2dedeaf19996b63bcdb255be9569146f3b591d2",
+  "rendererNetworkAttempts": 0,
+  "rendererImageNetworkAttempts": 0,
+  "pages": 3,
+  "durationMs": 12400,
+  "pdfSha256": "1203ca22a0e82c9d4266878d5419281c411ad0961b86b11d7fc96cc5d4a66ce2",
+  "reopenedStoredArtifact": true,
+  "strictViewModelVersion": "REPORT_PROJECTION_V3",
+  "identityVisible": true,
+  "leaks": [],
+  "zeroAudit": {
+    "tokens": [],
+    "explicitZeroEvidence": [],
+    "falseMonetaryZeros": 0,
+    "falseCapRateZeros": 0,
+    "pass": true
+  },
+  "sectionAudit": {
+    "emptySections": [],
+    "duplicateTitles": [],
+    "missingExecutiveSummary": false,
+    "substantiveSections": 7,
+    "omittedSections": [],
+    "missingExpectedSections": [],
+    "collapsedDuplicateSections": [
+      "positive-signals",
+      "decision-blockers",
+      "next-actions"
+    ],
+    "pass": true
+  },
+  "layout": {
+    "auditedLineCount": 125,
+    "clipping": [],
+    "footerOverlap": [],
+    "textOutsidePage": [],
+    "crossSectionCollisions": [],
+    "maps": [
+      {
+        "sectionId": "arv-market",
+        "page": 2,
+        "bounds": {
+          "x": 42,
+          "y": 246.2,
+          "width": 511.28,
+          "height": 170,
+          "right": 553.28,
+          "bottom": 416.2
+        },
+        "points": [
+          {
+            "id": "subject",
+            "marker": "S",
+            "x": 284.40256944985595,
+            "y": 367.71947924724043,
+            "radius": 10
+          },
+          {
+            "id": "sold:1",
+            "marker": "1",
+            "x": 271.16513889977807,
+            "y": 353.11239472151254,
+            "radius": 8
+          },
+          {
+            "id": "sold:2",
+            "marker": "2",
+            "x": 284.40256944985595,
+            "y": 338.50495664406793,
+            "radius": 8
+          },
+          {
+            "id": "sold:3",
+            "marker": "3",
+            "x": 297.64000000006615,
+            "y": 323.89716498012314,
+            "radius": 8
+          },
+          {
+            "id": "sold:4",
+            "marker": "4",
+            "x": 310.8774305501441,
+            "y": 309.2890196946548,
+            "radius": 8
+          },
+          {
+            "id": "sold:5",
+            "marker": "5",
+            "x": 324.11486110022196,
+            "y": 294.68052075275955,
+            "radius": 8
+          }
+        ]
+      }
+    ],
+    "mapMarkerClipping": [],
+    "pages": [
+      {
+        "page": 1,
+        "textCharacters": 1188,
+        "auditedLines": 33,
+        "substantiveSections": [
+          "propertyIdentity",
+          "propertyLocation",
+          "propertyPrice",
+          "propertyMetrics",
+          "executiveSnapshot",
+          "evidenceCoverage",
+          "executiveDecisions",
+          "arv-market"
+        ],
+        "contentTop": 110,
+        "contentBottom": 720.4,
+        "usedVerticalRatio": 0.887,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 2,
+        "textCharacters": 697,
+        "auditedLines": 42,
+        "substantiveSections": [
+          "arv-market"
+        ],
+        "contentTop": 110,
+        "contentBottom": 600,
+        "usedVerticalRatio": 0.712,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 3,
+        "textCharacters": 1039,
+        "auditedLines": 29,
+        "substantiveSections": [
+          "property-facts-0",
+          "property-facts-1",
+          "publisher-notes",
+          "reportDisclaimer"
+        ],
+        "contentTop": 110,
+        "contentBottom": 569.2,
+        "usedVerticalRatio": 0.667,
+        "possibleSparsePage": false
+      }
+    ],
+    "continuations": [
+      {
+        "sectionId": "arv-market",
+        "title": "ARV: ventas y condición comparable",
+        "kind": "comparables",
+        "page": 2
+      }
+    ],
+    "genericContinuations": [],
+    "pass": true
+  },
+  "evidenceAudit": {
+    "claims": 8,
+    "evidencePacketEntries": 34,
+    "missingRefs": [],
+    "unknownRefs": [],
+    "pass": true
+  },
+  "marketAudit": {
+    "sold": {
+      "sectionId": "arv-market",
+      "tableRows": 5,
+      "expectedRows": 5,
+      "missingTableAddresses": [],
+      "subjectMarker": true,
+      "markers": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "ids": [
+        "sold:1",
+        "sold:2",
+        "sold:3",
+        "sold:4",
+        "sold:5"
+      ],
+      "expectedMarkers": 5,
+      "mapTableOrderMismatch": 0,
+      "mapTableIdMismatch": 0,
+      "pointsInsidePaddedBounds": true
+    },
+    "irrelevantRent": false,
+    "landResidentialRows": [],
+    "noArvViolation": false,
+    "semanticFailures": [],
+    "pass": true
+  },
+  "contentAudit": {
+    "missingRowValues": [],
+    "missingTableCells": [],
+    "missingNotes": [],
+    "missingClaimTexts": [],
+    "actionsWithoutBlockers": [],
+    "duplicateActions": [],
+    "prioritizedActions": 1,
+    "pass": true
+  },
+  "renderedTextValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "images": [
+    "qa/report-integrity-final/golden-arv-rich-es-page-1.png",
+    "qa/report-integrity-final/golden-arv-rich-es-page-2.png",
+    "qa/report-integrity-final/golden-arv-rich-es-page-3.png"
+  ],
+  "contactSheet": "qa/report-integrity-final/golden-arv-rich-es-contact.png",
+  "maxPagesPass": true,
+  "sourceTraceability": [
+    {
+      "id": "fact:price",
+      "text": "Precio solicitado: $200,000 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        200000
+      ],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Habitaciones: 3 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        3
+      ],
+      "sourceRefs": [
+        "fixture:Public GIS:bedrooms",
+        "property:44444444-4444-4444-8444-444444444444:physical.beds",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Baños: 2 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        2
+      ],
+      "sourceRefs": [
+        "fixture:Public GIS:bathrooms",
+        "property:44444444-4444-4444-8444-444444444444:physical.baths",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Año de construcción: 1980 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        1980
+      ],
+      "sourceRefs": [
+        "fixture:Public GIS:yearBuilt",
+        "property:44444444-4444-4444-8444-444444444444:physical.yearBuilt",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Año del impuesto: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:tax.propertyTaxYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Año de valoración fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Área construida: 1,760 sqft · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        1760
+      ],
+      "sourceRefs": [
+        "fixture:Public GIS:livingAreaSqft",
+        "property:44444444-4444-4444-8444-444444444444:physical.livingAreaSqft",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Área del terreno: 7,000 sqft · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        7000
+      ],
+      "sourceRefs": [
+        "fixture:Public GIS:lotSizeSqft",
+        "property:44444444-4444-4444-8444-444444444444:physical.lotSizeSqft",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Área del terreno en acres: 0.1607 ac · Cálculo determinista",
+      "numericValues": [
+        0.16069788797061524
+      ],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:physical.lotSizeAcres",
+        "CALCULATED_UNIT_CONVERSION"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reforma declarada: $45,000 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        45000
+      ],
+      "sourceRefs": [
+        "fixture:Publisher:rehab",
+        "property:44444444-4444-4444-8444-444444444444:financial.rehab",
+        "Publisher"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Impuesto predial anual: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:tax.annualPropertyTax",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Valor fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Ingreso operativo neto: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Última venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / identificador fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:parcel.assessorId",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Zonificación declarada o registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:parcel.zoning",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "Condado: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Descripción legal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Urbanización: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Fecha de venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Ocupado por el propietario: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Registro de titularidad disponible: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "La tasa de capitalización no está disponible sin procedencia explícita o NOI válido y base de valor explícita.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "1200 Mock Sold Avenue · Little Rock, AR, 72204 · Vivienda unifamiliar · Reformar y vender",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:condition",
+      "text": "La condición física no está documentada; la reforma necesaria y la comparabilidad de condición no están confirmadas.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:blocker:condition"
+      ]
+    },
+    {
+      "id": "action:condition",
+      "text": "Confirme la condición actual con inspección o documentación para calificar la reforma y las ventas comparables.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:action:condition"
+      ]
+    },
+    {
+      "id": "market:arv",
+      "text": "Rango de ARV: $310,000 a $340,000.",
+      "numericValues": [
+        310000,
+        340000,
+        5
+      ],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:market:arv"
+      ]
+    },
+    {
+      "id": "sold:1",
+      "text": "1201 Mock Sold Avenue",
+      "numericValues": [
+        310000
+      ],
+      "sourceRefs": [
+        "fixture-sold-1",
+        "property:44444444-4444-4444-8444-444444444444:selected-sold:1"
+      ]
+    },
+    {
+      "id": "sold:2",
+      "text": "1202 Mock Sold Avenue",
+      "numericValues": [
+        317500
+      ],
+      "sourceRefs": [
+        "fixture-sold-2",
+        "property:44444444-4444-4444-8444-444444444444:selected-sold:2"
+      ]
+    },
+    {
+      "id": "sold:3",
+      "text": "1203 Mock Sold Avenue",
+      "numericValues": [
+        325000
+      ],
+      "sourceRefs": [
+        "fixture-sold-3",
+        "property:44444444-4444-4444-8444-444444444444:selected-sold:3"
+      ]
+    },
+    {
+      "id": "sold:4",
+      "text": "1204 Mock Sold Avenue",
+      "numericValues": [
+        332500
+      ],
+      "sourceRefs": [
+        "fixture-sold-4",
+        "property:44444444-4444-4444-8444-444444444444:selected-sold:4"
+      ]
+    },
+    {
+      "id": "sold:5",
+      "text": "1205 Mock Sold Avenue",
+      "numericValues": [
+        340000
+      ],
+      "sourceRefs": [
+        "fixture-sold-5",
+        "property:44444444-4444-4444-8444-444444444444:selected-sold:5"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic documented-renovation and recorded-sale control.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "1200 Mock Sold Avenue: vivienda unifamiliar para reformar y vender, con precio de $200,000. Hay referencias de mercado detalladas abajo, pero no establecen rentabilidad.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:44444444-4444-4444-8444-444444444444:executive:thesis"
+      ]
+    }
+  ],
+  "pass": true
+}

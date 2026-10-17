@@ -1,0 +1,16 @@
+{
+  "reportCount": 1,
+  "actualPdfCount": 1,
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-structured-notes-continuation",
+      "pages": 4,
+      "identityVisible": true,
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    }
+  ]
+}

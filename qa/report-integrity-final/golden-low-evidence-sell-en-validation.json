@@ -1,0 +1,415 @@
+{
+  "fixture": "LOW_EVIDENCE_SELL",
+  "basename": "golden-low-evidence-sell-en",
+  "language": "en",
+  "level": "DEAL_INTELLIGENCE",
+  "syntheticFixture": true,
+  "renderedState": "RENDERED",
+  "modelValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "inputHash": "a4b2dada0c553d2419568cff5cb0d0b71bde2549c048d02f68821aa2842852c6",
+  "rendererNetworkAttempts": 0,
+  "rendererImageNetworkAttempts": 0,
+  "pages": 2,
+  "durationMs": 12603,
+  "pdfSha256": "c9ef6b97acf3aa9fb2a11a7ce5f74b452917edbf3c8841b71776448cbcbf1c0d",
+  "reopenedStoredArtifact": true,
+  "strictViewModelVersion": "REPORT_PROJECTION_V3",
+  "identityVisible": true,
+  "leaks": [],
+  "zeroAudit": {
+    "tokens": [],
+    "explicitZeroEvidence": [],
+    "falseMonetaryZeros": 0,
+    "falseCapRateZeros": 0,
+    "pass": true
+  },
+  "sectionAudit": {
+    "emptySections": [],
+    "duplicateTitles": [],
+    "missingExecutiveSummary": false,
+    "substantiveSections": 7,
+    "omittedSections": [],
+    "missingExpectedSections": [],
+    "collapsedDuplicateSections": [],
+    "pass": true
+  },
+  "layout": {
+    "auditedLineCount": 80,
+    "clipping": [],
+    "footerOverlap": [],
+    "textOutsidePage": [],
+    "crossSectionCollisions": [],
+    "maps": [],
+    "mapMarkerClipping": [],
+    "pages": [
+      {
+        "page": 1,
+        "textCharacters": 898,
+        "auditedLines": 30,
+        "substantiveSections": [
+          "propertyIdentity",
+          "propertyLocation",
+          "propertyPrice",
+          "propertyMetrics",
+          "executiveSnapshot",
+          "evidenceCoverage",
+          "executiveDecisions",
+          "decision-blockers"
+        ],
+        "contentTop": 110,
+        "contentBottom": 638,
+        "usedVerticalRatio": 0.767,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 2,
+        "textCharacters": 1182,
+        "auditedLines": 36,
+        "substantiveSections": [
+          "property-facts-0",
+          "property-facts-1",
+          "property-facts-2",
+          "next-actions",
+          "profile-fit",
+          "publisher-notes",
+          "reportDisclaimer"
+        ],
+        "contentTop": 110,
+        "contentBottom": 738.4,
+        "usedVerticalRatio": 0.913,
+        "possibleSparsePage": false
+      }
+    ],
+    "continuations": [],
+    "genericContinuations": [],
+    "pass": true
+  },
+  "evidenceAudit": {
+    "claims": 8,
+    "evidencePacketEntries": 31,
+    "missingRefs": [],
+    "unknownRefs": [],
+    "pass": true
+  },
+  "marketAudit": {
+    "irrelevantRent": false,
+    "landResidentialRows": [],
+    "noArvViolation": false,
+    "semanticFailures": [],
+    "pass": true
+  },
+  "contentAudit": {
+    "missingRowValues": [],
+    "missingTableCells": [],
+    "missingNotes": [],
+    "missingClaimTexts": [],
+    "actionsWithoutBlockers": [],
+    "duplicateActions": [],
+    "prioritizedActions": 2,
+    "pass": true
+  },
+  "renderedTextValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "images": [
+    "qa/report-integrity-final/golden-low-evidence-sell-en-page-1.png",
+    "qa/report-integrity-final/golden-low-evidence-sell-en-page-2.png"
+  ],
+  "contactSheet": "qa/report-integrity-final/golden-low-evidence-sell-en-contact.png",
+  "maxPagesPass": true,
+  "sourceTraceability": [
+    {
+      "id": "fact:price",
+      "text": "Asking price: $90,000 · Publisher provided; not independently verified",
+      "numericValues": [
+        90000
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Bedrooms: 3 · Publisher provided; not independently verified",
+      "numericValues": [
+        3
+      ],
+      "sourceRefs": [
+        "fixture:Publisher:bedrooms",
+        "property:11111111-1111-4111-8111-111111111111:physical.beds",
+        "Publisher"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Bathrooms: 2 · Publisher provided; not independently verified",
+      "numericValues": [
+        2
+      ],
+      "sourceRefs": [
+        "fixture:Publisher:bathrooms",
+        "property:11111111-1111-4111-8111-111111111111:physical.baths",
+        "Publisher"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Year built: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Tax year: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:tax.propertyTaxYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Assessment year: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Living area: 1,760 sqft · Publisher provided; not independently verified",
+      "numericValues": [
+        1760
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Parcel area: 5,000 sqft · Publisher provided; not independently verified",
+      "numericValues": [
+        5000
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:physical.lotSizeSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Parcel area in acres: 0.1148 ac · Deterministic calculation",
+      "numericValues": [
+        0.1147842056932966
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:physical.lotSizeAcres",
+        "CALCULATED_UNIT_CONVERSION"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reported rehabilitation budget: $35,000 · Publisher provided; not independently verified",
+      "numericValues": [
+        35000
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Annual property tax: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:tax.annualPropertyTax",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Assessed value: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Net operating income: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Latest recorded sale: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / tax parcel ID: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:parcel.assessorId",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Declared or recorded zoning: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:parcel.zoning",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "County: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Legal description: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Subdivision: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Recorded sale date: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Owner occupied: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Ownership record available: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "Cap rate is unavailable without a rate with explicit provenance or valid NOI and an explicit value basis.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "4724 W 26th St · Little Rock, AR, 72204 · Single-family home · Sell",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:market-support",
+      "text": "Current market evidence does not support a valuation conclusion. Asking price is not a valuation.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:blocker:market-support"
+      ]
+    },
+    {
+      "id": "action:market-support",
+      "text": "Confirm closed sales comparable to this property’s type, size and condition to test the asking price.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:action:market-support"
+      ]
+    },
+    {
+      "id": "blocker:condition",
+      "text": "Physical condition is not documented; rehabilitation needs and condition comparability remain unconfirmed.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:blocker:condition"
+      ]
+    },
+    {
+      "id": "action:condition",
+      "text": "Confirm current condition with inspection or documentation to qualify rehabilitation and comparable sales.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:action:condition"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic control. Property condition requires an inspection.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "4724 W 26th St: single-family home for sell, asking $90,000. The property can be described, but current evidence does not support valuation or return conclusions.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:executive:thesis"
+      ]
+    },
+    {
+      "id": "profile:compatibility",
+      "text": "29",
+      "numericValues": [
+        29
+      ],
+      "sourceRefs": [
+        "property:11111111-1111-4111-8111-111111111111:profile:compatibility"
+      ]
+    }
+  ],
+  "pass": true
+}

@@ -1,0 +1,27 @@
+{
+  "baseline": "04950e177e9c6f8237872e60369b8bd90be03b66",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/dealThesis.ts",
+    "supabase/functions/_shared/presentationTranslationContract.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/presentation-translate/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/dealThesis.ts"
+      ]
+    },
+    {
+      "function": "presentation-translate",
+      "changedDependencies": [
+        "supabase/functions/_shared/presentationTranslationContract.ts",
+        "supabase/functions/presentation-translate/index.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

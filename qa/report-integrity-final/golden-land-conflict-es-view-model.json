@@ -1,0 +1,832 @@
+{
+  "type": "strict_report_view_model",
+  "version": "REPORT_PROJECTION_V3",
+  "reportType": "DEAL_INTELLIGENCE",
+  "locale": "es",
+  "header": {
+    "product": "INTELIGENCIA DEL NEGOCIO MAXXIS",
+    "subtitle": "Datos reales. Decisiones más inteligentes.",
+    "plan": "L3",
+    "tagline": "DealSifter Match"
+  },
+  "property": {
+    "title": "741 Gable Dr",
+    "address": "741 Gable Dr",
+    "location": "Stuttgart, AR, 72160",
+    "price": "$42,000",
+    "type": "Terreno",
+    "strategy": "Terreno",
+    "metrics": [],
+    "facts": [
+      {
+        "title": "Terreno y registro parcelario",
+        "rows": [
+          {
+            "label": "Área del terreno",
+            "value": "20,000 sqft · Discrepancia no resuelta; valor no adoptado",
+            "state": "CONFLICTED",
+            "source": "Registro público · fuente única, sin confirmación independiente",
+            "evidenceRefs": [
+              "fact:lotSizeSqft"
+            ]
+          },
+          {
+            "label": "Área del terreno en acres",
+            "value": "0.3 ac · Discrepancia no resuelta; valor no adoptado",
+            "state": "CONFLICTED",
+            "source": "Aportado por el publicador; sin verificación independiente",
+            "evidenceRefs": [
+              "fact:lotSizeAcres"
+            ]
+          },
+          {
+            "label": "APN / identificador fiscal",
+            "value": "QA-GABLE-001",
+            "state": "VALUE",
+            "source": "Registro público · fuente única, sin confirmación independiente",
+            "evidenceRefs": [
+              "fact:assessorId"
+            ]
+          },
+          {
+            "label": "Zonificación declarada o registrada",
+            "value": "R2",
+            "state": "VALUE",
+            "source": "Aportado por el publicador; sin verificación independiente",
+            "evidenceRefs": [
+              "fact:zoning"
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Registros fiscales, no valor de mercado",
+        "rows": [
+          {
+            "label": "Impuesto predial anual",
+            "value": "$600",
+            "state": "VALUE",
+            "source": "Registro público · fuente única, sin confirmación independiente",
+            "evidenceRefs": [
+              "fact:annualPropertyTax"
+            ]
+          },
+          {
+            "label": "Año del impuesto",
+            "value": "2025",
+            "state": "VALUE",
+            "source": "Registro público · fuente única, sin confirmación independiente",
+            "evidenceRefs": [
+              "fact:propertyTaxYear"
+            ]
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "Synthetic parcel conflict control; zoning R2 is publisher-declared, not legal approval."
+    ],
+    "photos": [],
+    "locationPoint": {
+      "id": "subject",
+      "marker": "S",
+      "latitude": 34.5,
+      "longitude": -91.55
+    }
+  },
+  "executive": {
+    "thesis": {
+      "text": "741 Gable Dr: terreno para terreno, con precio de $42,000. Se puede describir el inmueble, pero la evidencia actual no sustenta conclusiones de valor o rentabilidad.",
+      "evidenceRefs": [
+        "executive:thesis",
+        "property:identity",
+        "fact:price"
+      ]
+    },
+    "status": "Análisis limitado por discrepancias",
+    "coverage": [
+      {
+        "label": "Datos utilizables",
+        "value": "5",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      },
+      {
+        "label": "Registros públicos / del proveedor",
+        "value": "3",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      },
+      {
+        "label": "Estimaciones",
+        "value": "0",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      },
+      {
+        "label": "Datos en conflicto",
+        "value": "2",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      }
+    ],
+    "opportunity": null,
+    "risk": {
+      "text": "Las áreas del lote difieren. No se puede afirmar el área utilizable ni el precio por acre hasta revisar.",
+      "evidenceRefs": [
+        "fact:lotSizeSqft",
+        "fact:lotSizeAcres",
+        "blocker:parcel-area"
+      ]
+    },
+    "blocker": {
+      "text": "Compare el área declarada con el registro parcelario y guarde la decisión para habilitar los indicadores de terreno.",
+      "evidenceRefs": [
+        "action:parcel-area"
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "property-facts-0",
+      "title": "Terreno y registro parcelario",
+      "kind": "facts",
+      "priority": 88,
+      "rows": [
+        {
+          "label": "Área del terreno",
+          "value": "20,000 sqft · Discrepancia no resuelta; valor no adoptado",
+          "state": "CONFLICTED",
+          "source": "Registro público · fuente única, sin confirmación independiente",
+          "evidenceRefs": [
+            "fact:lotSizeSqft"
+          ]
+        },
+        {
+          "label": "Área del terreno en acres",
+          "value": "0.3 ac · Discrepancia no resuelta; valor no adoptado",
+          "state": "CONFLICTED",
+          "source": "Aportado por el publicador; sin verificación independiente",
+          "evidenceRefs": [
+            "fact:lotSizeAcres"
+          ]
+        },
+        {
+          "label": "APN / identificador fiscal",
+          "value": "QA-GABLE-001",
+          "state": "VALUE",
+          "source": "Registro público · fuente única, sin confirmación independiente",
+          "evidenceRefs": [
+            "fact:assessorId"
+          ]
+        },
+        {
+          "label": "Zonificación declarada o registrada",
+          "value": "R2",
+          "state": "VALUE",
+          "source": "Aportado por el publicador; sin verificación independiente",
+          "evidenceRefs": [
+            "fact:zoning"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "fact:lotSizeSqft",
+        "fact:lotSizeAcres",
+        "fact:assessorId",
+        "fact:zoning"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    },
+    {
+      "id": "property-facts-1",
+      "title": "Registros fiscales, no valor de mercado",
+      "kind": "facts",
+      "priority": 87,
+      "rows": [
+        {
+          "label": "Impuesto predial anual",
+          "value": "$600",
+          "state": "VALUE",
+          "source": "Registro público · fuente única, sin confirmación independiente",
+          "evidenceRefs": [
+            "fact:annualPropertyTax"
+          ]
+        },
+        {
+          "label": "Año del impuesto",
+          "value": "2025",
+          "state": "VALUE",
+          "source": "Registro público · fuente única, sin confirmación independiente",
+          "evidenceRefs": [
+            "fact:propertyTaxYear"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "fact:annualPropertyTax",
+        "fact:propertyTaxYear"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    },
+    {
+      "id": "decision-blockers",
+      "title": "Incertidumbres que limitan la decisión",
+      "kind": "list",
+      "priority": 78,
+      "items": [
+        {
+          "text": "Las áreas del lote difieren. No se puede afirmar el área utilizable ni el precio por acre hasta revisar.",
+          "evidenceRefs": [
+            "fact:lotSizeSqft",
+            "fact:lotSizeAcres",
+            "blocker:parcel-area"
+          ]
+        },
+        {
+          "text": "El tipo declarado difiere del registro externo; otro tipo no sustenta esta valoración.",
+          "evidenceRefs": [
+            "property:identity",
+            "blocker:property-type"
+          ]
+        },
+        {
+          "text": "La evidencia de mercado actual no sustenta una conclusión de valor. El precio solicitado no es una valoración.",
+          "evidenceRefs": [
+            "property:identity",
+            "blocker:market-support"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "fact:lotSizeSqft",
+        "fact:lotSizeAcres",
+        "blocker:parcel-area",
+        "property:identity",
+        "blocker:property-type",
+        "property:identity",
+        "blocker:market-support"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    },
+    {
+      "id": "next-actions",
+      "title": "Próximas verificaciones prioritarias",
+      "kind": "list",
+      "priority": 40,
+      "items": [
+        {
+          "text": "Compare el área declarada con el registro parcelario y guarde la decisión para habilitar los indicadores de terreno.",
+          "evidenceRefs": [
+            "action:parcel-area",
+            "fact:lotSizeSqft",
+            "fact:lotSizeAcres"
+          ]
+        },
+        {
+          "text": "Revise la clasificación del inmueble con la fuente del registro antes de usar la estimación externa.",
+          "evidenceRefs": [
+            "action:property-type",
+            "property:identity"
+          ]
+        },
+        {
+          "text": "Obtenga ventas registradas de terrenos comparables con área, fecha y ubicación para evaluar el precio por acre.",
+          "evidenceRefs": [
+            "action:market-support",
+            "property:identity"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "action:parcel-area",
+        "fact:lotSizeSqft",
+        "fact:lotSizeAcres",
+        "action:property-type",
+        "property:identity",
+        "action:market-support",
+        "property:identity"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    },
+    {
+      "id": "publisher-notes",
+      "title": "Notas y descripción del publicador",
+      "kind": "notes",
+      "items": [
+        {
+          "text": "Synthetic parcel conflict control; zoning R2 is publisher-declared, not legal approval.",
+          "evidenceRefs": [
+            "notes:0"
+          ]
+        }
+      ],
+      "priority": 10,
+      "evidenceRefs": [
+        "notes:0"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    }
+  ],
+  "values": {
+    "price": {
+      "state": "VALUE",
+      "text": "$42,000",
+      "numericValue": 42000,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:price"
+      ]
+    },
+    "beds": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:beds"
+      ]
+    },
+    "baths": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:baths"
+      ]
+    },
+    "yearBuilt": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:yearBuilt"
+      ]
+    },
+    "propertyTaxYear": {
+      "state": "VALUE",
+      "text": "2025",
+      "numericValue": 2025,
+      "source": "Registro público · fuente única, sin confirmación independiente",
+      "evidenceRefs": [
+        "fact:propertyTaxYear"
+      ]
+    },
+    "assessmentYear": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:assessmentYear"
+      ]
+    },
+    "sqft": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:sqft"
+      ]
+    },
+    "lotSizeSqft": {
+      "state": "CONFLICTED",
+      "text": "20,000 sqft · Discrepancia no resuelta; valor no adoptado",
+      "numericValue": null,
+      "source": "Registro público · fuente única, sin confirmación independiente",
+      "evidenceRefs": [
+        "fact:lotSizeSqft"
+      ]
+    },
+    "lotSizeAcres": {
+      "state": "CONFLICTED",
+      "text": "0.3 ac · Discrepancia no resuelta; valor no adoptado",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:lotSizeAcres"
+      ]
+    },
+    "rehab": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:rehab"
+      ]
+    },
+    "annualPropertyTax": {
+      "state": "VALUE",
+      "text": "$600",
+      "numericValue": 600,
+      "source": "Registro público · fuente única, sin confirmación independiente",
+      "evidenceRefs": [
+        "fact:annualPropertyTax"
+      ]
+    },
+    "assessedValue": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:assessedValue"
+      ]
+    },
+    "noi": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:noi"
+      ]
+    },
+    "latestSalePrice": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:latestSalePrice"
+      ]
+    },
+    "assessorId": {
+      "state": "VALUE",
+      "text": "QA-GABLE-001",
+      "numericValue": null,
+      "source": "Registro público · fuente única, sin confirmación independiente",
+      "evidenceRefs": [
+        "fact:assessorId"
+      ]
+    },
+    "zoning": {
+      "state": "VALUE",
+      "text": "R2",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:zoning"
+      ]
+    },
+    "county": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:county"
+      ]
+    },
+    "legalDescription": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:legalDescription"
+      ]
+    },
+    "subdivision": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:subdivision"
+      ]
+    },
+    "latestSaleDate": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:latestSaleDate"
+      ]
+    },
+    "ownerOccupied": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:ownerOccupied"
+      ]
+    },
+    "ownershipRecordPresent": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "Aportado por el publicador; sin verificación independiente",
+      "evidenceRefs": [
+        "fact:ownershipRecordPresent"
+      ]
+    },
+    "capRate": {
+      "state": "UNAVAILABLE",
+      "text": "No disponible",
+      "numericValue": null,
+      "source": "",
+      "evidenceRefs": [
+        "status:cap-rate"
+      ]
+    }
+  },
+  "diagnostics": [],
+  "evidencePacket": [
+    {
+      "id": "fact:price",
+      "text": "Precio solicitado: $42,000 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        42000
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Habitaciones: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.beds",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Baños: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.baths",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Año de construcción: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Año del impuesto: 2025 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        2025
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.propertyTaxYear",
+        "PUBLIC_ASSESSOR"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Año de valoración fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Área construida: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Área del terreno: 20,000 sqft · Discrepancia no resuelta; valor no adoptado · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.lotSizeSqft",
+        "PUBLIC_GIS"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Área del terreno en acres: 0.3 ac · Discrepancia no resuelta; valor no adoptado · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:physical.lotSizeAcres",
+        "PUBLISHER_DECLARATION"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reforma declarada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Impuesto predial anual: $600 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [
+        600
+      ],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.annualPropertyTax",
+        "PUBLIC_ASSESSOR"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Valor fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Ingreso operativo neto: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Última venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / identificador fiscal: QA-GABLE-001 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.assessorId",
+        "PUBLIC_GIS"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Zonificación declarada o registrada: R2 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.zoning",
+        "PUBLISHER_DECLARATION"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "Condado: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Descripción legal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Urbanización: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Fecha de venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Ocupado por el propietario: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Registro de titularidad disponible: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "La tasa de capitalización no está disponible sin procedencia explícita o NOI válido y base de valor explícita.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "741 Gable Dr · Stuttgart, AR, 72160 · Terreno · Terreno",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:parcel-area",
+      "text": "Las áreas del lote difieren. No se puede afirmar el área utilizable ni el precio por acre hasta revisar.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:parcel-area"
+      ]
+    },
+    {
+      "id": "action:parcel-area",
+      "text": "Compare el área declarada con el registro parcelario y guarde la decisión para habilitar los indicadores de terreno.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:parcel-area"
+      ]
+    },
+    {
+      "id": "blocker:property-type",
+      "text": "El tipo declarado difiere del registro externo; otro tipo no sustenta esta valoración.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:property-type"
+      ]
+    },
+    {
+      "id": "action:property-type",
+      "text": "Revise la clasificación del inmueble con la fuente del registro antes de usar la estimación externa.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:property-type"
+      ]
+    },
+    {
+      "id": "blocker:market-support",
+      "text": "La evidencia de mercado actual no sustenta una conclusión de valor. El precio solicitado no es una valoración.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:blocker:market-support"
+      ]
+    },
+    {
+      "id": "action:market-support",
+      "text": "Obtenga ventas registradas de terrenos comparables con área, fecha y ubicación para evaluar el precio por acre.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:action:market-support"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic parcel conflict control; zoning R2 is publisher-declared, not legal approval.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "741 Gable Dr: terreno para terreno, con precio de $42,000. Se puede describir el inmueble, pero la evidencia actual no sustenta conclusiones de valor o rentabilidad.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:33333333-3333-4333-8333-333333333333:executive:thesis"
+      ]
+    }
+  ],
+  "disclaimer": "Este informe apoya decisiones con la evidencia disponible. No es tasación, asesoramiento financiero ni recomendación de compra o venta. Los registros GIS no sustituyen un levantamiento; la zonificación declarada no prueba aprobación legal."
+}

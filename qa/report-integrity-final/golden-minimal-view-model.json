@@ -1,0 +1,636 @@
+{
+  "type": "strict_report_view_model",
+  "version": "REPORT_PROJECTION_V3",
+  "reportType": "DEAL_INTELLIGENCE",
+  "locale": "pt",
+  "header": {
+    "product": "INTELIGÊNCIA DO NEGÓCIO MAXXIS",
+    "subtitle": "Dados reais. Decisões mais inteligentes.",
+    "plan": "L3",
+    "tagline": "DealSifter Match"
+  },
+  "property": {
+    "title": "Undocumented QA parcel",
+    "address": "Undocumented QA parcel",
+    "location": "Example City, AR",
+    "price": "Não disponível",
+    "type": "Casa unifamiliar",
+    "strategy": "Venda",
+    "metrics": [],
+    "facts": [],
+    "notes": [],
+    "photos": [],
+    "locationPoint": null
+  },
+  "executive": {
+    "thesis": {
+      "text": "Undocumented QA parcel: casa unifamiliar para venda, com pedido de preço não confirmado. É possível descrever o imóvel, mas as evidências atuais não sustentam conclusões de valor ou retorno.",
+      "evidenceRefs": [
+        "executive:thesis",
+        "property:identity",
+        "fact:price"
+      ]
+    },
+    "status": "Cobertura de evidências limitada",
+    "coverage": [
+      {
+        "label": "Dados utilizáveis",
+        "value": "0",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      },
+      {
+        "label": "Registros públicos / do provedor",
+        "value": "0",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      },
+      {
+        "label": "Estimativas",
+        "value": "0",
+        "evidenceRefs": [
+          "property:identity"
+        ]
+      }
+    ],
+    "opportunity": null,
+    "risk": {
+      "text": "As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.",
+      "evidenceRefs": [
+        "property:identity",
+        "blocker:market-support"
+      ]
+    },
+    "blocker": {
+      "text": "Confirme vendas fechadas comparáveis ao tipo, área e condição deste imóvel para testar o preço pedido.",
+      "evidenceRefs": [
+        "action:market-support"
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "decision-blockers",
+      "title": "Incertezas que limitam a decisão",
+      "kind": "list",
+      "priority": 78,
+      "items": [
+        {
+          "text": "As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.",
+          "evidenceRefs": [
+            "property:identity",
+            "blocker:market-support"
+          ]
+        },
+        {
+          "text": "O preço de aquisição não foi estabelecido; a análise de preço fica limitada.",
+          "evidenceRefs": [
+            "fact:price",
+            "blocker:asking-price"
+          ]
+        },
+        {
+          "text": "A condição física não está documentada; não é possível concluir a necessidade de reforma ou a comparabilidade de condição.",
+          "evidenceRefs": [
+            "property:identity",
+            "blocker:condition"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "property:identity",
+        "blocker:market-support",
+        "fact:price",
+        "blocker:asking-price",
+        "property:identity",
+        "blocker:condition"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    },
+    {
+      "id": "next-actions",
+      "title": "Próximas verificações prioritárias",
+      "kind": "list",
+      "priority": 40,
+      "items": [
+        {
+          "text": "Confirme vendas fechadas comparáveis ao tipo, área e condição deste imóvel para testar o preço pedido.",
+          "evidenceRefs": [
+            "action:market-support",
+            "property:identity"
+          ]
+        },
+        {
+          "text": "Confirme o preço pedido ou de aquisição antes de comparar custo e valor.",
+          "evidenceRefs": [
+            "action:asking-price",
+            "fact:price"
+          ]
+        },
+        {
+          "text": "Confirme a condição atual com inspeção ou documentação para qualificar a reforma e a comparação com vendas.",
+          "evidenceRefs": [
+            "action:condition",
+            "property:identity"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "action:market-support",
+        "property:identity",
+        "action:asking-price",
+        "fact:price",
+        "action:condition",
+        "property:identity"
+      ],
+      "continuationPolicy": "SAME_SECTION"
+    }
+  ],
+  "values": {
+    "price": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:price"
+      ]
+    },
+    "beds": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:beds"
+      ]
+    },
+    "baths": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:baths"
+      ]
+    },
+    "yearBuilt": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:yearBuilt"
+      ]
+    },
+    "propertyTaxYear": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:propertyTaxYear"
+      ]
+    },
+    "assessmentYear": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:assessmentYear"
+      ]
+    },
+    "sqft": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:sqft"
+      ]
+    },
+    "lotSizeSqft": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:lotSizeSqft"
+      ]
+    },
+    "lotSizeAcres": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:lotSizeAcres"
+      ]
+    },
+    "rehab": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:rehab"
+      ]
+    },
+    "annualPropertyTax": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:annualPropertyTax"
+      ]
+    },
+    "assessedValue": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:assessedValue"
+      ]
+    },
+    "noi": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:noi"
+      ]
+    },
+    "latestSalePrice": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:latestSalePrice"
+      ]
+    },
+    "assessorId": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:assessorId"
+      ]
+    },
+    "zoning": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:zoning"
+      ]
+    },
+    "county": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:county"
+      ]
+    },
+    "legalDescription": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:legalDescription"
+      ]
+    },
+    "subdivision": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:subdivision"
+      ]
+    },
+    "latestSaleDate": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:latestSaleDate"
+      ]
+    },
+    "ownerOccupied": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:ownerOccupied"
+      ]
+    },
+    "ownershipRecordPresent": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "Informado pelo publicador; não verificado de forma independente",
+      "evidenceRefs": [
+        "fact:ownershipRecordPresent"
+      ]
+    },
+    "capRate": {
+      "state": "UNAVAILABLE",
+      "text": "Não disponível",
+      "numericValue": null,
+      "source": "",
+      "evidenceRefs": [
+        "status:cap-rate"
+      ]
+    }
+  },
+  "diagnostics": [
+    "UNTRUSTED_LEGACY_ZERO:rehab"
+  ],
+  "evidencePacket": [
+    {
+      "id": "fact:price",
+      "text": "Preço pedido: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Quartos: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.beds",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Banheiros: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.baths",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Ano de construção: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Ano do imposto: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:tax.propertyTaxYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Ano da avaliação fiscal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Área construída: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Área do terreno: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.lotSizeSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Área do terreno em acres: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:physical.lotSizeAcres",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reforma informada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Imposto predial anual: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:tax.annualPropertyTax",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Valor fiscal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Receita operacional líquida: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Última venda registrada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / cadastro fiscal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:parcel.assessorId",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Zoneamento declarado ou registrado: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:parcel.zoning",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "Condado: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Descrição legal: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Loteamento: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Data da venda registrada: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Ocupado pelo proprietário: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Registro de titularidade disponível: Não disponível · Informado pelo publicador; não verificado de forma independente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "Cap Rate indisponível sem taxa declarada com proveniência ou NOI válido e base de valor explícita.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "Undocumented QA parcel · Example City, AR · Casa unifamiliar · Venda",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:market-support",
+      "text": "As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:blocker:market-support"
+      ]
+    },
+    {
+      "id": "action:market-support",
+      "text": "Confirme vendas fechadas comparáveis ao tipo, área e condição deste imóvel para testar o preço pedido.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:action:market-support"
+      ]
+    },
+    {
+      "id": "blocker:condition",
+      "text": "A condição física não está documentada; não é possível concluir a necessidade de reforma ou a comparabilidade de condição.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:blocker:condition"
+      ]
+    },
+    {
+      "id": "action:condition",
+      "text": "Confirme a condição atual com inspeção ou documentação para qualificar a reforma e a comparação com vendas.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:action:condition"
+      ]
+    },
+    {
+      "id": "blocker:asking-price",
+      "text": "O preço de aquisição não foi estabelecido; a análise de preço fica limitada.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:blocker:asking-price"
+      ]
+    },
+    {
+      "id": "action:asking-price",
+      "text": "Confirme o preço pedido ou de aquisição antes de comparar custo e valor.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:action:asking-price"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "Undocumented QA parcel: casa unifamiliar para venda, com pedido de preço não confirmado. É possível descrever o imóvel, mas as evidências atuais não sustentam conclusões de valor ou retorno.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:66666666-6666-4666-8666-666666666666:executive:thesis"
+      ]
+    }
+  ],
+  "disclaimer": "Este relatório apoia decisões com as evidências disponíveis. Não é avaliação imobiliária, aconselhamento financeiro ou recomendação de compra ou venda. Registros GIS não substituem levantamento topográfico; zoneamento declarado não comprova aprovação legal."
+}

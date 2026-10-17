@@ -13,6 +13,7 @@ const { invoke } = vi.hoisted(() => ({ invoke: vi.fn(async (_, { body }) => ({ d
 vi.mock('../lib/supabaseClient', () => ({ isSupabaseConfigured: true, supabase: { functions: { invoke } }, getSupabaseFunctionUrl: () => '', supabaseAnonKey: '' }));
 beforeAll(() => { Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true }); });
 const original = 'Welcome to "The Dalegrove MCM", a serene oasis with pool.';
+let rejectedResponseNumber = 0;
 
 describe('presentation-only narrative localization', () => {
   it('PT/EN/ES share an immutable source, source hash and translation cache', async () => {
@@ -44,6 +45,31 @@ describe('presentation-only narrative localization', () => {
     expect(result.translatedText).toBe(input.text);
     await localizePresentationText(input); expect(failed).toHaveBeenCalledTimes(1);
     expect(getCachedPresentationText(input.text, 'es')).toBe(input.text);
+  });
+  it.each([
+    { translation: 'Notas localizadas sem invólucro.' },
+    '{"translation":"Notas localizadas sem invólucro."}',
+  ])('parses validated translation envelopes before cache/UI use (%j)', async (translatedText) => {
+    const text = `Separate envelope source ${typeof translatedText}.`;
+    const input = { text, sourceLocale: 'en', targetLocale: 'pt', invoke: vi.fn(async () => ({ data: { translatedText } })) };
+    const result = await localizePresentationText(input);
+    expect(result.translatedText).toBe('Notas localizadas sem invólucro.');
+    expect(getCachedPresentationText(text, 'pt')).toBe(result.translatedText);
+    expect(result.sourceText).toBe(text);
+  });
+  it.each([
+    '{"translation":', { text: 'arbitrary wrapper' },
+    { translation: 'notes', extra: true }, ['notes'],
+    '{"translation":{"translation":"nested"}}',
+    '```json\n{"translation":"notes"}\n```', '[object Object]',
+  ])('rejects invalid translation responses and caches only original safe copy (%j)', async translatedText => {
+    const text = `Original safe source for rejected response ${++rejectedResponseNumber}.`;
+    const translate = vi.fn(async () => ({ data: { translatedText } }));
+    const result = await localizePresentationText({ text, sourceLocale: 'en', targetLocale: 'pt', invoke: translate });
+    expect(result.translatedText).toBe(text);
+    expect(result.translationSource).toBe('original');
+    expect(getCachedPresentationText(text, 'pt')).toBe(text);
+    expect(translate).toHaveBeenCalledTimes(1);
   });
   it('visible card/portfolio narrative updates on locale changes without changing the source or repeated calls', async () => {
     const { rerender } = render(<LocalizedNarrative text={`${original} UI.`} language="pt-BR" />);

@@ -1,142 +1,139 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+import { buildStrictReportViewModel, validateReportViewModel } from '../export/reportIntegrityViewModel';
 import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
+import { MaxxisAnalysisReportExperience } from './MaxxisAnalysisReportExperience';
 
-const property = {
-  id: 'property-1', title: 'Stored property', city: 'Austin', state: 'TX', zip: '78701',
-  type: 'SFR', price: 320000, rehab: 60000, beds: 3, baths: 2, sqft: 1600,
-  acquisitionCosts: 0, holdingCosts: 0, financingCosts: 0, sellingCosts: 0,
-  capRate: 5.2, lot: '7,500 sqft', objective: 'Fix and Flip', description: 'Stored notes',
-  images: ['https://property-images.example.test/subject.jpg'], published: true,
-};
+const dataPhoto = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aTQAAAABJRU5ErkJggg==';
+const property = { id: 'property-1', address: '4724 W 26th St', city: 'Little Rock', state: 'AR', zip: '72204',
+  type: 'SFR', objective: 'Sell', price: 90000, beds: 3, baths: 2, sqft: 1760, lot: 5000,
+  capRate: 0, rehab: 0, description: 'Original publisher notes.', images: [dataPhoto], latitude: 34.727, longitude: -92.328 };
+const intelligence = { executiveDealOverview: 'Legacy preformatted provider estimate $0, annualPropertyTax, MISSING CAPRATE',
+  whyThisPropertyStandsOut: [], investmentFit: { score: 29 },
+  propertyEvidence: { verifiedRecords: [], userProvided: [], unknown: [{ field: 'propertyTaxYear' }], conflicts: [] },
+  comparableEvidence: { used: [], supporting: [], excluded: [] },
+  valuationIntelligence: { status: 'ARV_UNAVAILABLE', providerEstimate: { value: 0 }, warnings: ['MISSING_CAPRATE'] },
+  limitations: ['annualPropertyTax: UNKNOWN'], nextVerificationSteps: [], provenance: { property: 'USER_PROVIDED' } };
+const schemaFor = (reportType = 'DEAL_INTELLIGENCE', override = {}) => buildMaxxisReportSchema({ reportType,
+  property: { ...property, ...override }, dealIntelligence: intelligence,
+  maxxisAnalysis: { executiveSummary: 'Raw unsupported summary', profileAlignment: { score: 29 }, provenance: { property: 'USER_PROVIDED' } } });
+const render = (schema, language = 'en') => renderToStaticMarkup(<MaxxisDealIntelligenceReportPreview schema={schema} language={language} />);
+const visibleText = html => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
-const maxxisAnalysis = {
-  executiveSummary: 'The available information indicates partial profile fit.',
-  keyObservations: { positives: ['Target market aligned.'], attention: ['Condition is unknown.'] },
-  profileAlignment: { score: 75, semantics: 'PROFILE_FIT_ONLY' },
-  riskAwareness: [{ code: 'UNKNOWN_CONDITION', category: 'DATA_RISK', severity: 'MEDIUM', reason: 'Condition is unknown.' }],
-  limitations: ['Condition is unknown.'], nextSteps: ['Validate condition.'],
-};
-
-function dealIntelligence(status = 'ARV_LIMITED') {
-  const unavailable = status === 'ARV_UNAVAILABLE';
-  return {
-    executiveDealOverview: 'Based on available evidence, profile alignment is partial.',
-    whyThisPropertyStandsOut: [{ explanation: 'Target market aligned.', source: 'CALCULATED' }],
-    investmentFit: { score: 75, strategy: { status: 'matched' }, targetMarket: { status: 'matched' }, propertyType: { status: 'matched' } },
-    propertyEvidence: { strength: 'MEDIUM', verifiedRecords: [{ field: 'sqft' }], userProvided: [{ field: 'price' }], unknown: [{ field: 'yearBuilt' }], conflicts: [] },
-    comparableEvidence: { used: unavailable ? [] : [{ compIdentifier: 'comp-1', address: 'Recorded comp', salePrice: 390000, saleDate: '2026-04-08', distanceMiles: 0.5, similarity: 88, conditionStatus: 'MATCHES_TARGET', role: 'PRIMARY', image: 'https://external-comp-image.example.test/forbidden.jpg' }], supporting: [], excluded: [{ compIdentifier: 'comp-2', address: 'Excluded comp', role: 'EXCLUDED', exclusionReason: 'Structural dissimilarity' }] },
-    valuationIntelligence: { status, range: unavailable ? null : { low: 430000, high: 490000 }, centralReference: unavailable ? null : 460000, confidence: unavailable ? 'LOW' : 'MODERATE', compsUsed: unavailable ? 0 : 1, methodology: unavailable ? null : 'DEALSIFTER_WEIGHTED_ARV_V1', warnings: unavailable ? ['INSUFFICIENT_COMPS'] : ['SCENARIO_BASED'] },
-    riskAnalysis: [{ code: 'UNKNOWN_CONDITION', category: 'DATA_RISK', severity: 'HIGH', reason: 'Condition is unknown.' }],
-    limitations: ['yearBuilt: UNKNOWN'], nextVerificationSteps: ['Validate condition.'],
-    analysisConfidence: { score: 72, classification: 'MODERATE', semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true, contributors: ['Verified property records'], limitations: ['Condition unknown'] },
-    investorPerspective: { persona: 'WHOLESALER', narrativeOnly: true, priorities: ['ARV', 'Potential spread', 'Verification'], message: 'Focus on potential margin and validation requirements.' },
-    executiveSummaryIntelligence: { lines: ['Based on available evidence, confidence is moderate.', 'The property has partial profile compatibility.', 'Verified records support the available characteristics.', 'Comparable evidence supports a preliminary reference.', 'Property condition remains uncertain.', 'Next verification priority: validate condition.'] },
-    provenance: { property: 'PROPERTY_INTELLIGENCE' },
-  };
-}
-
-const render = (schema) => renderToStaticMarkup(<MaxxisDealIntelligenceReportPreview schema={schema} />);
-
-describe('Maxxis Deal Intelligence Report Experience v2', () => {
-  it('renders Free Property Release as one property-only page', () => {
-    const html = render(buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property }));
+describe('strict inline report boundary shared with PDF projection', () => {
+  it('renders L1 as factual property-only content without premium analysis', () => {
+    const html = render(schemaFor('PROPERTY_RELEASE'));
     expect((html.match(/data-report-page=/g) || [])).toHaveLength(1);
-    expect(html).toContain('Investor-ready property release');
-    expect(html).toContain('Property Photos');
+    expect(html).toContain('4724 W 26th St');
+    expect(html).toContain('Original publisher notes.');
     expect(html).toContain('Location Map');
-    expect(html).not.toContain('Comparative Market Analysis');
-    expect(html).not.toContain('Estimated ARV Range');
+    expect(html).toContain(dataPhoto);
+    expect(html).not.toContain('EXECUTIVE_SNAPSHOT');
+    expect(html).not.toContain('MARKET_RENT');
+    expect(html).not.toContain('arv-market');
   });
 
-  it('renders Pro Maxxis Analysis without premium valuation or comparable content', () => {
-    const html = render(buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis }));
-    expect((html.match(/data-report-page=/g) || [])).toHaveLength(3);
-    expect(html).toContain('Investment Fit &amp; Risk Analysis');
-    expect(html).toContain('Key Insights &amp; Verification');
-    expect(html).not.toContain('Estimated ARV Range');
-    expect(html).not.toContain('Sale Price');
-    expect(html).not.toContain('maxxis-report-export-actions');
-    expect(html).not.toContain('PDF export uses the same validated report structure');
+  it('L2 excludes L3 sold/ARV premium content and keeps the existing visual family', () => {
+    const html = render(schemaFor('MAXXIS_ANALYSIS'));
     expect(html).toContain('class="is-level-2">PRO</span>');
+    expect(html).toContain('maxxis-v2-page-body');
     expect(html).toContain('maxxis-v2-info-card is-narrative');
+    expect(html).toContain('EXECUTIVE_SNAPSHOT');
+    expect(html).not.toContain('arv-market');
+    expect(html).not.toContain('<table');
+    expect(html).not.toContain('Raw unsupported summary');
+    expect(html).not.toContain('maxxis-report-export-actions');
   });
 
-  it('renders the six-page Enterprise experience with approved report sections', () => {
-    const html = render(buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence() }));
-    expect((html.match(/data-report-page=/g) || [])).toHaveLength(6);
-    for (const heading of ['Comparative Market Analysis', 'Valuation Intelligence', 'Powered by MAXXIS AI']) expect(html).toContain(heading);
-    expect(html).toContain('data-report-section="INVESTMENT_FIT_RISK"');
-    expect(html).toContain('data-report-section="KEY_INSIGHTS_VERIFICATION"');
-    expect(html).toContain('Match Score represents profile compatibility, not investment quality.');
-    expect(html).toContain('Maxxis Analysis Confidence');
-    expect(html).toContain('72%');
-    expect(html).toContain('Investor Perspective');
-    expect(html).toContain('Wholesaler');
-    expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(1);
-    expect(html.indexOf('MAXXIS EXECUTIVE SUMMARY')).toBeGreaterThan(html.indexOf('data-report-page="5"'));
-    expect(html).toContain('does not constitute appraisal');
-    expect(html).toContain('maxxis-v2-relative-map');
+  it('assembles only substantive L3 sections instead of six fixed pages', () => {
+    const schema = schemaFor(), view = buildStrictReportViewModel({ schema });
+    expect(validateReportViewModel(view).valid).toBe(true);
+    const html = render(schema);
+    for (const section of view.sections) expect(html).toContain(`data-report-section="${section.id}"`);
+    expect(html).toContain('Limited evidence coverage');
+    expect(html).toContain('Executive Deal Snapshot');
+    expect(html).toContain('not deal quality, probability of success or analysis confidence');
     expect(html).toContain('class="is-level-3">ENTERPRISE</span>');
+    expect(html).not.toContain('arv-market');
+    expect(html).not.toContain('positive-signals');
+    expect((html.match(/data-report-page=/g) || [])).toHaveLength(1);
     expect(html).not.toMatch(/\b(?:BUY|SELL|GOOD DEAL|GUARANTEED)\b/);
   });
 
-  it('does not expose confidence or persona in lower report levels', () => {
-    const propertyRelease = render(buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property }));
-    const analysis = render(buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis }));
-    for (const html of [propertyRelease, analysis]) {
-      expect(html).not.toContain('Maxxis Analysis Confidence');
-      expect(html).not.toContain('Investor Perspective');
+  it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('blocks false-zero/raw-object/enum narratives in %s', level => {
+    const schema = schemaFor(level, { localizedPropertyUserNotes: '{"translation":"Notas localizadas seguras."}',
+      owner: { name: { private: 'raw object must not show' }, allowedContacts: [] },
+      materialPropertyFeatures: [{ privatePayload: 'must not appear' }] });
+    const html = visibleText(render(schema, 'pt'));
+    expect(html).toContain('Notas localizadas seguras.');
+    expect(html).not.toMatch(/annualPropertyTax|propertyTaxYear|MISSING[ _]CAPRATE|ARV_UNAVAILABLE|\{"translation"|\[object Object\]|undefined|NaN|Infinity|raw object|privatePayload/);
+    expect(html).not.toMatch(/(?:US\$|\$)\s*0(?:\D|$)|(?:^|\s)0%/);
+  });
+
+  it('never reads arbitrary legacy pages or leaks internal page codes', () => {
+    const original = schemaFor();
+    const html = render({ ...original, pages: [{ page: 100, code: 'INTERNAL_RAW_LEAK', sections: ['PRIVATE_DATA'] }],
+      structuredAnalysis: { executiveSummary: '{"translation":"BAD"}', missingEvidence: ['annualPropertyTax'] } });
+    expect(html).not.toContain('INTERNAL_RAW_LEAK');
+    expect(html).not.toContain('PRIVATE_DATA');
+    expect(html).not.toContain('annualPropertyTax');
+    expect(html).not.toContain('BAD');
+  });
+
+  it('uses the exact same five rental rows and marker numbering with pure coordinate geometry', () => {
+    const initial = schemaFor();
+    const marketRent = { monthlyRentEstimate: 2400, rangeLow: 2100, rangeHigh: 2700,
+      rentPerSqft: { value: 1.36 }, rentPerBedroom: { value: 800 }, retrievedAt: '2026-10-16T12:00:00Z', freshness: 'FRESH',
+      subject: { latitude: 34.727, longitude: -92.328, bedrooms: 3, bathrooms: 2, livingAreaSqft: 1760 },
+      reportRentalComparables: Array.from({ length: 5 }, (_, index) => ({ id: `rental-${index + 1}`, number: index + 1,
+        address: `${index + 1} Safe Rental`, monthlyRent: 2200 + index * 100, distanceMiles: index * .2,
+        providerCorrelation: .95 - index * .01, latitude: 34.728 + index * .001, longitude: -92.329 - index * .001 })) };
+    const html = render({ ...initial, presentation: { ...initial.presentation, marketRent } });
+    expect(html).toContain('data-report-section="MARKET_RENT"');
+    for (let number = 1; number <= 5; number += 1) {
+      expect(html).toContain(`${number} Safe Rental`);
+      expect(html).toContain(`data-report-map-marker="${number}"`);
+      expect(html).toContain(`data-report-comp-number="${number}"`);
     }
+    expect(html).toContain('data-report-map-marker="S"');
+    expect(html).not.toContain('tile.openstreetmap');
+    expect(html).not.toContain('iframe');
+    expect(html).toContain('$2,400');
   });
 
-  it('shows scenario KPIs without false precision or a guaranteed result', () => {
-    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence() });
-    expect(schema.presentation.kpiScenarios).toMatchObject({ available: true, scenarioBased: true, rounded: true, sourceType: 'CALCULATED' });
-    expect(schema.presentation.kpiScenarios.potentialSpread).toEqual([
-      { scenario: 'LOW', value: 50000 }, { scenario: 'EXPECTED', value: 80000 }, { scenario: 'HIGH', value: 110000 },
-    ]);
-    expect(render(schema)).toContain('Scenario-based illustration from existing inputs; not a return forecast or guarantee.');
+  it('rejects raw provider URLs and never fetches from SSR/closed rendering', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('UNEXPECTED_NETWORK'); });
+    try {
+      const html = render(schemaFor('DEAL_INTELLIGENCE', { images: ['https://provider.example.test/raw-property.jpg'],
+        comparableEvidence: [{ image: 'https://provider.example.test/raw-comparable.jpg' }] }));
+      expect(html).not.toContain('https://provider.example.test');
+      expect(html).not.toContain('<table');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally { fetchSpy.mockRestore(); }
   });
 
-  it('uses no external comparable images', () => {
-    const html = render(buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence() }));
-    expect(html).toContain('https://property-images.example.test/subject.jpg');
-    expect(html).not.toContain('external-comp-image.example.test');
-    expect(html).toContain('no external comparable images');
+  it.each([['pt-BR', 'Cobertura de evidências limitada'], ['es-ES', 'Cobertura de evidencia limitada'], ['en-US', 'Limited evidence coverage']])('localizes system narrative from the strict model in %s', (language, expected) => {
+    const html = visibleText(render(schemaFor(), language));
+    expect(html).toContain(expected);
+    expect(html).not.toContain('Legacy preformatted');
+    expect(html).not.toContain('MISSING CAPRATE');
+    if (language !== 'en-US') expect(html).not.toContain('Current market evidence does not support');
   });
 
-  it('keeps ARV unavailable and unknown fields explicit without $0 or KPI substitution', () => {
-    const intelligence = dealIntelligence('ARV_UNAVAILABLE');
-    intelligence.valuationIntelligence.providerEstimate = {
-      value: 455000, status: 'PROVIDER_ESTIMATE_UNVALIDATED', provenance: 'ESTIMATED',
-    };
-    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence });
-    const html = render(schema);
-    expect(schema.presentation.kpiScenarios).toMatchObject({ available: false, sourceType: 'UNKNOWN' });
-    expect(html).toContain('Estimated ARV Range');
-    expect(html).toContain('Unavailable');
-    expect(html).not.toContain('ARV_UNAVAILABLE');
-    expect(html).toContain('UNKNOWN');
-    expect(html).not.toContain('$0');
-    expect(html).toContain('Provider estimate (not DealSifter ARV)');
-    expect(html).toContain('$455,000');
-    expect(JSON.stringify(schema)).not.toMatch(/\bavm\b/i);
+  it('L2 experience delegates summary/highlights to the strict schema rather than raw report fields', () => {
+    const report = { type: 'maxxis_analysis_report', executiveSummary: 'RAW REPORT BYPASS',
+      propertyHighlights: { verified: [{ field: 'annualPropertyTax', label: 'INTERNAL_LABEL', value: { raw: true } }] },
+      riskAwareness: [{ severity: {}, explanation: 'unsafe' }], nextSteps: ['MISSING_CAPRATE'] };
+    const html = renderToStaticMarkup(<MaxxisAnalysisReportExperience report={report} reportSchema={schemaFor('MAXXIS_ANALYSIS')} />);
+    expect(html).toContain('4724 W 26th St');
+    expect(html).not.toMatch(/RAW REPORT BYPASS|INTERNAL_LABEL|annualPropertyTax|\[object Object\]|MISSING_CAPRATE/);
   });
 
-  it('localizes analytical prose in a Portuguese report without mixing known English fallbacks', () => {
-    const html = renderToStaticMarkup(
-      <MaxxisDealIntelligenceReportPreview
-        schema={buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence() })}
-        language="pt"
-      />,
-    );
-    expect(html).toContain('A condição do imóvel é desconhecida');
-    expect(html).toContain('Próxima prioridade de verificação: validar a condição');
-    expect(html).not.toContain('Condition is unknown');
-    expect(html).not.toContain('Next verification priority: validate condition');
-    expect(html).not.toContain('This alignment could not be evaluated');
+  it('does not render unauthorized or missing report schemas', () => {
+    expect(render(null)).toBe('');
+    expect(render({ type: 'raw_provider_response', data: property })).toBe('');
+    expect(renderToStaticMarkup(<MaxxisAnalysisReportExperience report={{ type: 'maxxis_analysis_report', executiveSummary: 'do not render without schema' }} />)).not.toContain('do not render');
   });
 });

@@ -1,0 +1,427 @@
+{
+  "fixture": "RENTAL_MARKET_RICH",
+  "basename": "golden-rental-market-rich-l1-en",
+  "language": "en",
+  "level": "PROPERTY_RELEASE",
+  "syntheticFixture": true,
+  "renderedState": "RENDERED",
+  "modelValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "inputHash": "9a89da3ebf0bff5b2d2ba782959aa810b89250cf3e236cb56ca89d142e76d707",
+  "rendererNetworkAttempts": 0,
+  "rendererImageNetworkAttempts": 0,
+  "pages": 1,
+  "durationMs": 10048,
+  "pdfSha256": "05b71b41524d75c4072fc67ae318c2f36a8a4f8cf6d586d339b67ab238e4d1e4",
+  "reopenedStoredArtifact": true,
+  "strictViewModelVersion": "REPORT_PROJECTION_V3",
+  "identityVisible": true,
+  "leaks": [],
+  "zeroAudit": {
+    "tokens": [],
+    "explicitZeroEvidence": [],
+    "falseMonetaryZeros": 0,
+    "falseCapRateZeros": 0,
+    "pass": true
+  },
+  "sectionAudit": {
+    "emptySections": [],
+    "duplicateTitles": [],
+    "missingExecutiveSummary": false,
+    "substantiveSections": 0,
+    "omittedSections": [],
+    "missingExpectedSections": [],
+    "collapsedDuplicateSections": [],
+    "pass": true
+  },
+  "layout": {
+    "auditedLineCount": 46,
+    "clipping": [],
+    "footerOverlap": [],
+    "textOutsidePage": [],
+    "crossSectionCollisions": [],
+    "maps": [
+      {
+        "sectionId": "propertyLocationMap",
+        "page": 1,
+        "bounds": {
+          "x": 38,
+          "y": 623.2,
+          "width": 299.81519999999995,
+          "height": 143.79999999999995,
+          "right": 337.81519999999995,
+          "bottom": 767
+        },
+        "points": [
+          {
+            "id": "subject",
+            "marker": "S",
+            "x": 187.90759999999997,
+            "y": 695.1,
+            "radius": 10
+          }
+        ]
+      }
+    ],
+    "mapMarkerClipping": [],
+    "pages": [
+      {
+        "page": 1,
+        "textCharacters": 638,
+        "auditedLines": 39,
+        "substantiveSections": [
+          "propertyIdentity",
+          "propertyLocation",
+          "propertyPrice",
+          "propertyMetrics",
+          "propertyFacts0",
+          "propertyFacts1",
+          "propertyPhotos",
+          "propertyLocationMap",
+          "propertyNotes"
+        ],
+        "contentTop": 110,
+        "contentBottom": 784.5,
+        "usedVerticalRatio": 0.98,
+        "possibleSparsePage": false
+      }
+    ],
+    "continuations": [],
+    "genericContinuations": [],
+    "pass": true
+  },
+  "evidenceAudit": {
+    "claims": 0,
+    "evidencePacketEntries": 32,
+    "missingRefs": [],
+    "unknownRefs": [],
+    "pass": true
+  },
+  "marketAudit": {
+    "irrelevantRent": false,
+    "landResidentialRows": [],
+    "noArvViolation": false,
+    "semanticFailures": [],
+    "pass": true
+  },
+  "contentAudit": {
+    "missingRowValues": [],
+    "missingTableCells": [],
+    "missingNotes": [],
+    "missingClaimTexts": [],
+    "actionsWithoutBlockers": [],
+    "duplicateActions": [],
+    "prioritizedActions": 0,
+    "pass": true
+  },
+  "renderedTextValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "images": [
+    "qa/report-integrity-final/golden-rental-market-rich-l1-en-page-1.png"
+  ],
+  "contactSheet": "qa/report-integrity-final/golden-rental-market-rich-l1-en-contact.png",
+  "maxPagesPass": true,
+  "sourceTraceability": [
+    {
+      "id": "fact:price",
+      "text": "Asking price: $2,100,000 · Publisher provided; not independently verified",
+      "numericValues": [
+        2100000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Bedrooms: 5 · Publisher provided; not independently verified",
+      "numericValues": [
+        5
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.beds",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Bathrooms: 3 · Publisher provided; not independently verified",
+      "numericValues": [
+        3
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.baths",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Year built: 1987 · Publisher provided; not independently verified",
+      "numericValues": [
+        1987
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Tax year: 2025 · Provider record · RentCast · single source, without independent confirmation",
+      "numericValues": [
+        2025
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.propertyTaxYear",
+        "RENTCAST_PROPERTY_RECORD"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Assessment year: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Living area: 2,333 sqft · Publisher provided; not independently verified",
+      "numericValues": [
+        2333
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Parcel area: 10,000 sqft · Publisher provided; not independently verified",
+      "numericValues": [
+        10000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.lotSizeSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Parcel area in acres: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.lotSizeAcres",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reported rehabilitation budget: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Annual property tax: $6,500 · Provider record · RentCast · single source, without independent confirmation",
+      "numericValues": [
+        6500
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.annualPropertyTax",
+        "RENTCAST_PROPERTY_RECORD"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Assessed value: $1,800,000 · Publisher provided; not independently verified",
+      "numericValues": [
+        1800000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Net operating income: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Latest recorded sale: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / tax parcel ID: QA-HONOLULU-001 · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.assessorId",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Declared or recorded zoning: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.zoning",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "County: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Legal description: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Subdivision: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Recorded sale date: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Owner occupied: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Ownership record available: Unavailable · Publisher provided; not independently verified",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "Cap rate is unavailable without a rate with explicit provenance or valid NOI and an explicit value basis.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "7081 Kalanianaole Hwy · Honolulu, HI, 96825 · Single-family home · Buy and hold",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:market-support",
+      "text": "Current market evidence does not support a valuation conclusion. Asking price is not a valuation.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:blocker:market-support"
+      ]
+    },
+    {
+      "id": "action:market-support",
+      "text": "Confirm closed sales comparable to this property’s type, size and condition to test the asking price.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:action:market-support"
+      ]
+    },
+    {
+      "id": "blocker:current-rent",
+      "text": "Current contract rent is not confirmed. Market rent does not establish actual income or current NOI.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:blocker:current-rent"
+      ]
+    },
+    {
+      "id": "action:current-rent",
+      "text": "Confirm the lease and income actually received to distinguish current performance from a market scenario.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:action:current-rent"
+      ]
+    },
+    {
+      "id": "blocker:expense-insurance",
+      "text": "Insurance: applicability and amount are unconfirmed; operating costs remain incomplete.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:blocker:expense-insurance"
+      ]
+    },
+    {
+      "id": "action:expense-insurance",
+      "text": "Confirm whether insurance applies and document its amount or an explicit assumption; zero will not be presumed.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:action:expense-insurance"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic rental-evidence control; not an actual property valuation.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "7081 Kalanianaole Hwy: single-family home for buy and hold, asking $2,100,000. The property can be described, but current evidence does not support valuation or return conclusions.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:executive:thesis"
+      ]
+    }
+  ],
+  "pass": true
+}

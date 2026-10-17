@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "sourceDigest": "50ccd885effd3bd05943005f776c128918047baf879aeb0e1b638eea304cf4e2",
+  "preBuildReceipt": "qa/report-integrity-final/source-before-build.json",
+  "buildBindingReceipt": "qa/report-integrity-final/source-binding.json",
+  "sourceFilesChecked": 858,
+  "duringQaCheckedAt": "2026-10-17T14:47:42.841Z",
+  "afterQaCheckedAt": "2026-10-17T14:53:59.542Z",
+  "sourcesUnchanged": true,
+  "frontend": "http://127.0.0.1:4182",
+  "resultPath": "qa/report-integrity-final/browser/browser-local.json",
+  "resultSha256": "12973cc4826bfb2029bf40d89db915d1838b30717d64fe5cbf106d696e616104",
+  "commandExitCode": 0,
+  "reviewCases": 6,
+  "locales": ["pt-BR", "en-US", "es-ES"],
+  "devices": ["desktop", "mobile"],
+  "realBackendWrites": 0,
+  "realUserSession": false,
+  "errors": [],
+  "genericLoaderFlashes": 0,
+  "fullReloadPersistence": true,
+  "productionAuthenticatedSmoke": "BLOCKED_NO_REAL_USER_SESSION"
+}

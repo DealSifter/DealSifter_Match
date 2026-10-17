@@ -1,4 +1,5 @@
 import type { DealDecisionContext, DecisionGap } from './dealDecisionContext.ts';
+import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 
 type Language = 'en' | 'pt' | 'es';
 
@@ -8,12 +9,12 @@ const languageOf = (value: unknown): Language => {
 };
 const localized = (language: Language, en: string, pt: string, es: string) =>
   language === 'pt' ? pt : language === 'es' ? es : en;
-const money = (value: unknown, language: Language) => Number.isFinite(Number(value))
+const money = (value: unknown, language: Language) => toKnownFiniteNumber(value) !== null
   ? new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
       style: 'currency', currency: 'USD', maximumFractionDigits: 0,
     }).format(Number(value))
   : '';
-const decimal = (value: unknown, language: Language) => Number.isFinite(Number(value))
+const decimal = (value: unknown, language: Language) => toKnownFiniteNumber(value) !== null
   ? new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
       minimumFractionDigits: 2, maximumFractionDigits: 2,
     }).format(Number(value))
@@ -98,8 +99,12 @@ export function buildDealThesis(context: DealDecisionContext, languageInput: unk
   const rehabPerSqft = decimal(relationship.rehabPerSqft, language);
   const selected = Number(relationship.selectedCompCount || 0);
   const supporting = Number(relationship.supportingCompCount || 0);
-  const providerEstimate = money(relationship.providerEstimate, language);
-  const reportedCapRate = Number.isFinite(Number(relationship.reportedCapRate))
+  const providerAmount = toKnownFiniteNumber(relationship.providerEstimate);
+  const capRate = toKnownFiniteNumber(relationship.reportedCapRate);
+  const providerEstimate = providerAmount !== null && providerAmount > 0 ? money(providerAmount, language) : '';
+  // This legacy narrative has no explicit-zero provenance: never promote stored
+  // blank/default zero to intelligence. The strict report projection owns proof.
+  const reportedCapRate = capRate !== null && capRate > 0 && capRate < 100
     ? `${Number(relationship.reportedCapRate)}%` : '';
   const benchmarkResemblance = String(relationship.rehabBenchmarkResemblance || '').replaceAll('_', ' ').toLowerCase();
   let summary = '';

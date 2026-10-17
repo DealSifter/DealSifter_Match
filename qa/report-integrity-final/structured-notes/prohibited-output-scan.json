@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-structured-notes-continuation",
+      "leaks": []
+    }
+  ],
+  "scannedActualPdfCount": 1
+}

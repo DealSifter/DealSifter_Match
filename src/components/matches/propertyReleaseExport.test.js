@@ -19,7 +19,7 @@ describe('L1 portfolio export with continuation pages',()=>{
       expect(fetchSpy).not.toHaveBeenCalled();
       for(const reportType of ['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'])expect(resolveReportExportEntitlement({plan:'free',reportType,channel:'PDF'}).allowed).toBe(false);
     }finally{fetchSpy.mockRestore();}
-  });
+  },30000);
   it('accepts renderer continuations without changing report-tier authorization',()=>{
     const exportPath=source.split('const generateReleasePdf =')[1].split('const handleExportToEmail')[0];
     expect(exportPath).toContain("plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE");

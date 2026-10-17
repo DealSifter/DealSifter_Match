@@ -6,6 +6,7 @@ import { renderMaxxisReportPdf } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
 import { localizePresentationText } from '../../../services/chatTranslation';
 import { prepareReportNarrativePresentation } from '../presentation/reportNarrativePresentation';
+import { buildStrictReportViewModel } from './reportIntegrityViewModel';
 
 Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
 
@@ -76,43 +77,38 @@ describe('canonical PDF template behavior', () => {
     const result = await renderMaxxisReportPdf({ schema: report, language: 'pt', generatedAt: '2026-10-09T12:00:00Z',
       exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType, channel: 'PDF' }) });
     const pages = await pdfPages(result);
-    expect(pages[0].text).toContain('Bem-vindo ao The Dalegrove MCM. Piscina privativa.');
+    expect(pages.map(page => page.text).join(' ')).toContain('Bem-vindo ao The Dalegrove MCM. Piscina privativa.');
     expect(registered.notes).toBe(original);
     expect(translate).toHaveBeenCalledTimes(1);
   }, 30000);
   it('uses the original-color official logo only in the shared header, with no brand footer', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
+    const drawing = readFileSync(new URL('./strictReportPdf.ts', import.meta.url), 'utf8');
     expect(source).toContain("import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline'");
-    expect(source).toContain("doc.addImage(officialDealSifterLogo, 'PNG'");
-    expect(source).not.toMatch(/(?:recolor|tint|grayscale)\s*\(/i);
-    const footer = source.split('function pageFooter(')[1].split('function photo(')[0];
+    expect(drawing).toContain("this.doc.addImage(this.logo");
+    expect(`${source}${drawing}`).not.toMatch(/(?:recolor|tint|grayscale)\s*\(/i);
+    const footer = drawing.split('  finish() {')[1].split('const COPY =')[0];
     expect(footer).not.toMatch(/addImage|officialDealSifterLogo|slogan/i);
   });
 
-  it('keeps every page title below the shared graphite masthead', () => {
-    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
-    const header = source.split('function pageHeader(')[1].split('function schematicComparableMap(')[0];
-    expect(header).toContain('doc.rect(0, 0, W, 86');
-    expect(header).toContain('heading(doc, t[pageCode] || pageCode, M, 115');
-    expect(source).toContain('const BODY_OFFSET = 7');
-    expect(source).toContain('doc.setCurrentTransformationMatrix(doc.Matrix(1, 0, 0, 1, 0, -BODY_OFFSET))');
-    expect(source).toContain('doc.line(M, 803 + BODY_OFFSET, W - M, 803 + BODY_OFFSET)');
-  });
+  it('keeps every actual page title below the shared masthead and every body line above the footer', async () => {
+    const result = await render('PROPERTY_RELEASE');
+    const audit = result.document.layoutAudit;
+    const titles = audit.lines.filter(line => line.sectionId === 'headerPageTitle');
+    expect(titles).toHaveLength(result.document.pageCount);
+    expect(titles.every(line => line.y >= 86 && line.bottomY <= 130)).toBe(true);
+    expect(audit.lines.filter(line => !/^(?:header|footer)/.test(line.sectionId)).every(line => line.bottomY <= 790)).toBe(true);
+  }, 30000);
 
   it('preserves complete property facts and expands the layout before the photo section', () => {
-    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
-    const facts = source.split('function propertyFactGrid(')[1].split('function propertyBottom(')[0];
-    expect(facts).toContain('const h = Math.max(126, 39 + contentHeight + 4)');
-    expect(facts).toContain('localizedDate(latestSaleDate, t)');
-    expect(facts).toContain('lineHeight: 12');
-    expect(facts).toContain('rowGap: 4');
-    expect(facts).toContain('valueMaxLines: null');
-    expect(facts).toContain('contentHeight');
-    expect(source).toContain('const step = Math.max(lineHeight, contentHeight + rowGap)');
-    expect(source).toContain('propertyReleaseBottom(doc, property, t, accent, factGridBottom, images, mapImage)');
-    expect(source).toContain('propertyBottom(doc, property, t, accent, factGridBottom, images, array(evidence.conflicts), mapImage)');
-    expect(source).toContain('notes.sectionGapY ?? REPORT_SECTION_GAP_Y');
-  });
+    const model = buildStrictReportViewModel({ schema: buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property }), language: 'en' });
+    const facts = model.property.facts.flatMap(group => group.rows).map(row => `${row.label}: ${row.value}`).join('\n');
+    expect(facts).toContain('2004');
+    expect(facts).toContain('Example County');
+    expect(facts).toContain('682,130');
+    expect(facts).toContain('Mar 7, 2014');
+    expect(facts).not.toMatch(/annualPropertyTax|propertyTaxYear|\[object Object\]/);
+  }, 30000);
 
   it.each([
     ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1', 'Mar 7, 2014'],
@@ -142,28 +138,20 @@ describe('canonical PDF template behavior', () => {
       const result = await render('DEAL_INTELLIGENCE');
       expect(result.state).toBe('RENDERED');
       const pages = await pdfPages(result);
-      expect(pages.length).toBeGreaterThanOrEqual(6);
-      if (pages.length > 6) {
-        // Only the direct P0 containment exception may add continuation pages.
-        expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
-        expect(pages[6].text).toContain('Preserved information');
-        for (const item of result.document.layoutAudit.continuations) expect(item.sourceText).toBeTruthy();
-      }
-      expect(pages[0].text).toContain('4');
-      expect(pages[0].text).toContain('three bedrooms');
-      expect(pages[0].text).toContain('Needs verification');
-      expect(pages[2].text).toContain('ARV unavailable');
-      expect(pages[2].text).not.toContain('$0');
-      expect(pages[5].text).toContain('Maxxis Analysis Confidence');
-      expect(pages[5].text).toContain('87%');
-      expect(pages[5].text).toContain('Positive contributions');
-      expect(pages[5].text).toContain('MAXXIS EXECUTIVE SUMMARY');
-      expect(pages.map(page => page.text).join(' ')).toContain('Only recorded facts and supplied analysis are displayed.');
+      expect(pages.length).toBeLessThan(6);
+      const content = pages.map(page => page.text).join(' ');
+      expect(content).toContain('three bedrooms');
+      expect(content).toContain('Unresolved discrepancy');
+      expect(content).toContain('Current market evidence does not support a valuation conclusion');
+      expect(content).not.toMatch(/\$0|Preserved information|MISSING_|annualPropertyTax|87%/);
+      expect(result.document.strictViewModel.executive.thesis.text).toContain('1200 Fictional Street');
+      expect(result.document.outputValidation.valid).toBe(true);
+      for (const item of result.document.layoutAudit.continuations) expect(item).toMatchObject({ sectionId: expect.any(String), title: expect.any(String), kind: expect.any(String) });
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally { fetchSpy.mockRestore(); }
-  });
+  }, 30000);
 
-  it('binds the existing structured PRO observations rather than dropping their positive/attention groups', async () => {
+  it('preserves PRO facts and compatibility without elevating unsupported legacy narrative into evidence', async () => {
     const reportType = 'MAXXIS_ANALYSIS';
     const maxxisAnalysis = {
       executiveSummary: 'Stored profile fit is 74%.',
@@ -179,17 +167,16 @@ describe('canonical PDF template behavior', () => {
     });
     expect(result.state).toBe('RENDERED');
     const pages = await pdfPages(result);
-    expect(pages).toHaveLength(3);
-    expect(pages[0].text).toContain('Recorded positive signal.');
-    expect(pages[0].text).toContain('Owner Information');
-    expect(pages[0].text).toContain('Property Details');
-    expect(pages[0].text).toContain('Land Information');
-    expect(pages[0].text).toContain('Property Photos');
-    expect(pages[0].text).toContain('Location');
-    expect(pages[0].text).toContain('Sample Owner');
-    expect(pages[0].text).toContain('2004');
-    expect(pages[2].text).toContain('Recorded missing evidence.');
-  });
+    expect(pages.length).toBeLessThanOrEqual(3);
+    const content = pages.map(page => page.text).join(' ');
+    expect(content).toContain('Sample Owner');
+    expect(content).toContain('2004');
+    expect(content).toContain('74%');
+    expect(content).toContain('not deal quality');
+    expect(content).not.toContain('Recorded positive signal.');
+    expect(content).not.toContain('Recorded missing evidence.');
+    expect(result.document.outputValidation.valid).toBe(true);
+  }, 30000);
 
   it('ships one static page asset per physical preview page', () => {
     for (const [product, total] of [['property-release', 1], ['maxxis-analysis', 3], ['deal-intelligence', 6]]) {

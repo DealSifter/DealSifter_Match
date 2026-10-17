@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-structured-notes-continuation",
+      "tokens": [],
+      "explicitZeroEvidence": [],
+      "falseMonetaryZeros": 0,
+      "falseCapRateZeros": 0,
+      "pass": true
+    }
+  ]
+}

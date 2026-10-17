@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "revalidatedAt": "2026-10-17T15:19:04.646Z",
+  "originalSourceDigest": "50ccd885effd3bd05943005f776c128918047baf879aeb0e1b638eea304cf4e2",
+  "sourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+  "changedNonRuntimeFiles": [
+    "src/components/maxxis/MaxxisCapabilities.test.jsx"
+  ],
+  "productionSourceFilesUnchanged": true,
+  "buildConfigurationAndPublicAssetsUnchanged": true,
+  "testMethod": "Targeted assertions extracted from the actual passing current-source full-suite run; not a second claimed execution.",
+  "selectedFiles": 18,
+  "selectedAssertions": 453,
+  "fullRawSha256": "f11f330b15b8eb8d28fdde0a264650d72aba8bc2ccc82bb4fbb34f34ce30aba8",
+  "buildMethod": "Reuse the actual previously passed build because every production source/configuration input is unchanged. Served asset hashes are independently checked before browser receipt reuse.",
+  "originalBuildReceipt": "original-build.json",
+  "originalSourceReceipt": "original-source-before-build.json",
+  "requiresRebuildForAnyProductionInputChange": true
+}

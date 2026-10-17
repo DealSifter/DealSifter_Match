@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "snapshot": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.cache\\report-integrity-qa-snapshots\\1792250182367-19048",
+  "tracked": 1076,
+  "restored": [],
+  "preservedPreexistingDirtyBytes": true,
+  "reason": "Redundant targeted run stopped after passing current full suite; restored original historical QA bytes before commit."
+}

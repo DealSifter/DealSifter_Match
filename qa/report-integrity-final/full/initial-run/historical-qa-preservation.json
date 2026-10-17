@@ -1,0 +1,33 @@
+{
+  "snapshotDirectory": ".cache/report-integrity-qa-snapshots/1792247991198-10600",
+  "trackedFiles": 1076,
+  "preservedPreexistingDirtyBytes": true,
+  "excludedPrefix": "qa/report-integrity",
+  "restored": [
+    "qa/consensus-aware-analytics/phase1/financial-engine-isolation.json",
+    "qa/consensus-aware-analytics/phase1/performance-regression.json",
+    "qa/financial-evidence-stack/phase1/maxxis-financial-evidence-controls-en.json",
+    "qa/financial-evidence-stack/phase1/maxxis-financial-evidence-controls-es.json",
+    "qa/financial-evidence-stack/phase1/maxxis-financial-evidence-controls-pt.json",
+    "qa/financial-evidence-stack/phase1/maxxis-financial-evidence-controls.json",
+    "qa/financial-evidence-stack/phase1/performance-regression.json",
+    "qa/financial-evidence-stack/phase1/readiness-controls.json",
+    "qa/financial-evidence-stack/phase1/tax-controls.json",
+    "qa/rentcast-market-rent/market-rent-e2e.json",
+    "qa/rentcast-market-rent/usage-guard-validation.json",
+    "qa/runtime-orchestration-hardening/land-state-persistence.json",
+    "qa/smart-property-enrichment/canonical-regression/performance-validation.json",
+    "qa/smart-property-enrichment/canonical-regression/property-type-regression.json",
+    "qa/smart-property-enrichment/consensus-regression/consumer-validation.json",
+    "qa/smart-property-enrichment/consensus-regression/performance-validation.json",
+    "qa/smart-property-enrichment/effective-property-facts.json",
+    "qa/smart-property-enrichment/legalDescription-control.json",
+    "qa/smart-property-enrichment/provenance-validation.json",
+    "qa/smart-property-enrichment/provider-budget-validation.json",
+    "qa/smart-property-enrichment/subdivision-control.json",
+    "qa/smart-property-enrichment/user-decision-persistence.json",
+    "qa/smart-property-enrichment/zoning-control.json"
+  ],
+  "errors": [],
+  "pass": true
+}

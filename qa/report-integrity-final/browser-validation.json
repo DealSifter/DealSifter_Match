@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "sourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+  "realBackendWrites": 0,
+  "realUserSession": false,
+  "reviewCases": 6,
+  "mapTransitions": 10,
+  "photoHandoffs": 2,
+  "errors": 0,
+  "underlyingReceipts": [
+    "browser/browser-local.json",
+    "map/full-app.json",
+    "photo/full-app.json"
+  ],
+  "authenticatedProductionSmoke": "BLOCKED",
+  "originalBrowserSourceDigest": "50ccd885effd3bd05943005f776c128918047baf879aeb0e1b638eea304cf4e2",
+  "identicalBuildRevalidation": "browser/identical-build-revalidation.json"
+}

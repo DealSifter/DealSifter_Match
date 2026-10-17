@@ -15,8 +15,8 @@ const products = [
 ];
 const root = new URL('../../../../', import.meta.url);
 
-describe('Maxxis report golden masters', () => {
-  it('has the exact approved 1/3/6 canonical reference set', () => {
+describe('Maxxis archived design references and active branding', () => {
+  it('retains the historical design reference set without using it as an active page-count contract', () => {
     for (const [file] of products) {
       expect(existsSync(new URL(`docs/report-design-reference/${file}`, root)), file).toBe(true);
     }
@@ -35,10 +35,11 @@ describe('Maxxis report golden masters', () => {
 
   it('uses official branding and keeps the footer logo-free', () => {
     const source = readFileSync(new URL('src/features/maxxis/export/maxxisReportPdf.js', root), 'utf8');
-    const footer = source.slice(source.indexOf('function pageFooter'), source.indexOf('function photo'));
+    const drawing = readFileSync(new URL('src/features/maxxis/export/strictReportPdf.ts', root), 'utf8');
+    const footer = drawing.slice(drawing.indexOf('  finish() {'), drawing.indexOf('const COPY ='));
     expect(source).toContain("report-official-logo.png?inline");
     expect(footer).not.toContain('addImage');
-    expect(footer).toContain('generatedAt');
+    expect(footer).toContain('this.meta.generatedAt');
     expect(footer).toContain('total');
   });
 });

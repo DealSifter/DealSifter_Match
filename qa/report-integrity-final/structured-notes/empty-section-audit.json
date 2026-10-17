@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-structured-notes-continuation",
+      "emptySections": [],
+      "duplicateTitles": [],
+      "missingExecutiveSummary": false,
+      "substantiveSections": 3,
+      "omittedSections": [
+        "UNTRUSTED_LEGACY_ZERO:rehab"
+      ],
+      "missingExpectedSections": [],
+      "collapsedDuplicateSections": [],
+      "pass": true
+    }
+  ]
+}

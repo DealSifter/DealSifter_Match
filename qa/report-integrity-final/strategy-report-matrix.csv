@@ -1,0 +1,8 @@
+strategy,primary_context,market_emphasis,key_blockers,not_forced,confidence_semantics
+GENERIC_SELL,asking-price-and-publisher-facts,qualified-sold-or-value-reference,market-support-and-physical-condition,rental-NOI-or-operating-expense-gaps,evidence-readiness-not-deal-attractiveness
+FLIP,acquisition-and-condition,defensible-ARV-and-eligible-sold-comps,condition-then-market-exit-evidence,unsupported-profit-ROI-or-zero-rehab,evidence-readiness-not-deal-attractiveness
+BUY_AND_HOLD,actual-contract-rent-vs-market-scenario,market-rent-range-and-rental-comps,current-contract-rent-and-expense-applicability,market-rent-as-actual-income,evidence-readiness-not-deal-attractiveness
+WHOLESALE,assignment-objective-and-property-context,qualified-market-price-support,condition-and-market-support,unsupported-assignment-margin,evidence-readiness-not-deal-attractiveness
+SUB_TO,subject-to-objective-and-confirmed-facts,available-qualified-market-reference,active-relevant-fact-or-market-blockers,unverified-financing-cash-flow,evidence-readiness-not-deal-attractiveness
+SELLER_FINANCING,seller-financing-objective-and-confirmed-facts,available-qualified-market-reference,active-relevant-fact-or-market-blockers,unverified-loan-terms-or-returns,evidence-readiness-not-deal-attractiveness
+LAND,lot-area-APN-zoning-parcel-and-fiscal-records,separate-land-acquisition-and-explicit-finished-product-exit-evidence,lot-conflict-and-permitted-use-and-supported-development-evidence,bedrooms-baths-living-sqft-rehab-residential-rental-NOI,evidence-readiness-not-deal-attractiveness

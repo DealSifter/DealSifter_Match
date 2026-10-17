@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "originalSourceDigest": "50ccd885effd3bd05943005f776c128918047baf879aeb0e1b638eea304cf4e2",
+  "currentSourceDigest": "6e5451a485ae5bdef64c3615e203f4b3ae2e72446b9c1c968e8ff77ceee60c15",
+  "identicalFiles": 125,
+  "onlySourceChange": "src/components/maxxis/MaxxisCapabilities.test.jsx",
+  "method": "Every actual served build file is byte-identical to the browser-tested build. No browser run was inferred for different assets."
+}

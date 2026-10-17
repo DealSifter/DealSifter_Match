@@ -1,0 +1,22 @@
+{
+  "scope": "Contained origin corrections: narrative translation contract and deal-thesis numeric presentation",
+  "command": "node node_modules/vitest/vitest.mjs run src/services/presentationTranslation.test.jsx supabase/functions/_shared/presentationTranslationContract.vitest.test.ts supabase/functions/_shared/maxxis/dealThesisReportIntegrity.vitest.test.ts supabase/functions/_shared/maxxis/dealDecisionContext.vitest.test.ts supabase/functions/_shared/maxxis/maxxisStructuredAnalysis.vitest.test.ts --reporter=dot",
+  "testFiles": 5,
+  "testsPassed": 84,
+  "testsFailed": 0,
+  "exitCode": 0,
+  "frontendTargetedLint": "PASS",
+  "changedTrackedFilesDiffCheck": "PASS",
+  "affectedEdgeFunctions": ["maxxis-chat", "presentation-translate"],
+  "edgeClosureMethod": "Transitive local static/dynamic import graph, including re-exports",
+  "unresolvedLocalImports": [],
+  "translationAcquisitionValidated": true,
+  "legacyTranslationCacheReadValidated": true,
+  "frontendCacheReadValidated": true,
+  "originalSourceRecordWrites": 0,
+  "liveRentCastCalls": 0,
+  "liveGisCalls": 0,
+  "liveGeminiCalls": 0,
+  "financialEngineMigration": false,
+  "note": "Targeted origin-correction checks only; final strict projection, generated-PDF golden gates and release validation are recorded separately."
+}

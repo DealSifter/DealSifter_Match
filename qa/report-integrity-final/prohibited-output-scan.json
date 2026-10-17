@@ -1,0 +1,126 @@
+{
+  "pass": true,
+  "reports": [
+    {
+      "report": "golden-low-evidence-sell",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l1",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l2",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l1-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-low-evidence-sell-l2-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l1",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l2",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l1-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l2-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l1-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-rental-market-rich-l2-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-land-conflict",
+      "leaks": []
+    },
+    {
+      "report": "golden-land-conflict-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-land-conflict-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-arv-rich",
+      "leaks": []
+    },
+    {
+      "report": "golden-arv-rich-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-arv-rich-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-buy-hold",
+      "leaks": []
+    },
+    {
+      "report": "golden-buy-hold-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-buy-hold-es",
+      "leaks": []
+    },
+    {
+      "report": "golden-minimal",
+      "leaks": []
+    },
+    {
+      "report": "golden-minimal-en",
+      "leaks": []
+    },
+    {
+      "report": "golden-minimal-es",
+      "leaks": []
+    }
+  ],
+  "scannedActualPdfCount": 30
+}

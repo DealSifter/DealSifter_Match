@@ -1,0 +1,628 @@
+{
+  "fixture": "RENTAL_MARKET_RICH",
+  "basename": "golden-rental-market-rich-es",
+  "language": "es",
+  "level": "DEAL_INTELLIGENCE",
+  "syntheticFixture": true,
+  "renderedState": "RENDERED",
+  "modelValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "inputHash": "9a89da3ebf0bff5b2d2ba782959aa810b89250cf3e236cb56ca89d142e76d707",
+  "rendererNetworkAttempts": 0,
+  "rendererImageNetworkAttempts": 0,
+  "pages": 4,
+  "durationMs": 13411,
+  "pdfSha256": "8ab6ae2d1be4f2d3e2ad41743958579d646f963562966e143f7e234f0748e308",
+  "reopenedStoredArtifact": true,
+  "strictViewModelVersion": "REPORT_PROJECTION_V3",
+  "identityVisible": true,
+  "leaks": [],
+  "zeroAudit": {
+    "tokens": [],
+    "explicitZeroEvidence": [],
+    "falseMonetaryZeros": 0,
+    "falseCapRateZeros": 0,
+    "pass": true
+  },
+  "sectionAudit": {
+    "emptySections": [],
+    "duplicateTitles": [],
+    "missingExecutiveSummary": false,
+    "substantiveSections": 8,
+    "omittedSections": [],
+    "missingExpectedSections": [],
+    "collapsedDuplicateSections": [
+      "positive-signals"
+    ],
+    "pass": true
+  },
+  "layout": {
+    "auditedLineCount": 163,
+    "clipping": [],
+    "footerOverlap": [],
+    "textOutsidePage": [],
+    "crossSectionCollisions": [],
+    "maps": [
+      {
+        "sectionId": "market-rent",
+        "page": 2,
+        "bounds": {
+          "x": 42,
+          "y": 406.99999999999994,
+          "width": 511.28,
+          "height": 170,
+          "right": 553.28,
+          "bottom": 577
+        },
+        "points": [
+          {
+            "id": "subject",
+            "marker": "S",
+            "x": 304.25871527500584,
+            "y": 517.7660515908025,
+            "radius": 10
+          },
+          {
+            "id": "rent-comp:1",
+            "marker": "1",
+            "x": 271.1651388997284,
+            "y": 517.7660515908025,
+            "radius": 8
+          },
+          {
+            "id": "rent-comp:2",
+            "marker": "2",
+            "x": 284.4025694499221,
+            "y": 504.8832886334028,
+            "radius": 8
+          },
+          {
+            "id": "rent-comp:3",
+            "marker": "3",
+            "x": 297.63999999991734,
+            "y": 492.0003504643823,
+            "radius": 8
+          },
+          {
+            "id": "rent-comp:4",
+            "marker": "4",
+            "x": 310.87743055011094,
+            "y": 479.1172370631106,
+            "radius": 8
+          },
+          {
+            "id": "rent-comp:5",
+            "marker": "5",
+            "x": 324.11486110028807,
+            "y": 466.23394840919747,
+            "radius": 8
+          }
+        ]
+      }
+    ],
+    "mapMarkerClipping": [],
+    "pages": [
+      {
+        "page": 1,
+        "textCharacters": 1141,
+        "auditedLines": 33,
+        "substantiveSections": [
+          "propertyIdentity",
+          "propertyLocation",
+          "propertyPrice",
+          "propertyMetrics",
+          "executiveSnapshot",
+          "evidenceCoverage",
+          "executiveDecisions",
+          "market-rent"
+        ],
+        "contentTop": 110,
+        "contentBottom": 720.4,
+        "usedVerticalRatio": 0.887,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 2,
+        "textCharacters": 879,
+        "auditedLines": 50,
+        "substantiveSections": [
+          "market-rent"
+        ],
+        "contentTop": 110,
+        "contentBottom": 732.8,
+        "usedVerticalRatio": 0.905,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 3,
+        "textCharacters": 696,
+        "auditedLines": 27,
+        "substantiveSections": [
+          "market-rent",
+          "decision-blockers",
+          "property-facts-0"
+        ],
+        "contentTop": 110,
+        "contentBottom": 458.7,
+        "usedVerticalRatio": 0.507,
+        "possibleSparsePage": false
+      },
+      {
+        "page": 4,
+        "textCharacters": 1147,
+        "auditedLines": 25,
+        "substantiveSections": [
+          "property-facts-1",
+          "property-facts-2",
+          "next-actions",
+          "publisher-notes",
+          "reportDisclaimer"
+        ],
+        "contentTop": 110,
+        "contentBottom": 550.7,
+        "usedVerticalRatio": 0.641,
+        "possibleSparsePage": false
+      }
+    ],
+    "continuations": [
+      {
+        "sectionId": "market-rent",
+        "title": "Alquiler mensual estimado",
+        "kind": "comparables",
+        "page": 2
+      },
+      {
+        "sectionId": "market-rent",
+        "title": "Alquiler mensual estimado",
+        "kind": "comparables",
+        "page": 3
+      }
+    ],
+    "genericContinuations": [],
+    "pass": true
+  },
+  "evidenceAudit": {
+    "claims": 10,
+    "evidencePacketEntries": 39,
+    "missingRefs": [],
+    "unknownRefs": [],
+    "pass": true
+  },
+  "marketAudit": {
+    "rental": {
+      "sectionId": "market-rent",
+      "tableRows": 5,
+      "expectedRows": 5,
+      "missingTableAddresses": [],
+      "subjectMarker": true,
+      "markers": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "ids": [
+        "rent-comp:1",
+        "rent-comp:2",
+        "rent-comp:3",
+        "rent-comp:4",
+        "rent-comp:5"
+      ],
+      "expectedMarkers": 5,
+      "mapTableOrderMismatch": 0,
+      "mapTableIdMismatch": 0,
+      "pointsInsidePaddedBounds": true
+    },
+    "irrelevantRent": false,
+    "landResidentialRows": [],
+    "noArvViolation": false,
+    "semanticFailures": [],
+    "pass": true
+  },
+  "contentAudit": {
+    "missingRowValues": [],
+    "missingTableCells": [],
+    "missingNotes": [],
+    "missingClaimTexts": [],
+    "actionsWithoutBlockers": [],
+    "duplicateActions": [],
+    "prioritizedActions": 2,
+    "pass": true
+  },
+  "renderedTextValidation": {
+    "valid": true,
+    "errors": []
+  },
+  "images": [
+    "qa/report-integrity-final/golden-rental-market-rich-es-page-1.png",
+    "qa/report-integrity-final/golden-rental-market-rich-es-page-2.png",
+    "qa/report-integrity-final/golden-rental-market-rich-es-page-3.png",
+    "qa/report-integrity-final/golden-rental-market-rich-es-page-4.png"
+  ],
+  "contactSheet": "qa/report-integrity-final/golden-rental-market-rich-es-contact.png",
+  "maxPagesPass": true,
+  "sourceTraceability": [
+    {
+      "id": "fact:price",
+      "text": "Precio solicitado: $2,100,000 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        2100000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.askingPrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:beds",
+      "text": "Habitaciones: 5 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        5
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.beds",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:baths",
+      "text": "Baños: 3 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        3
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.baths",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:yearBuilt",
+      "text": "Año de construcción: 1987 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        1987
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.yearBuilt",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:propertyTaxYear",
+      "text": "Año del impuesto: 2025 · Registro del proveedor · RentCast · fuente única, sin confirmación independiente",
+      "numericValues": [
+        2025
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.propertyTaxYear",
+        "RENTCAST_PROPERTY_RECORD"
+      ]
+    },
+    {
+      "id": "fact:assessmentYear",
+      "text": "Año de valoración fiscal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.assessmentYear",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:sqft",
+      "text": "Área construida: 2,333 sqft · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        2333
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.livingAreaSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeSqft",
+      "text": "Área del terreno: 10,000 sqft · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        10000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.lotSizeSqft",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:lotSizeAcres",
+      "text": "Área del terreno en acres: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:physical.lotSizeAcres",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:rehab",
+      "text": "Reforma declarada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.rehab",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:annualPropertyTax",
+      "text": "Impuesto predial anual: $6,500 · Registro del proveedor · RentCast · fuente única, sin confirmación independiente",
+      "numericValues": [
+        6500
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.annualPropertyTax",
+        "RENTCAST_PROPERTY_RECORD"
+      ]
+    },
+    {
+      "id": "fact:assessedValue",
+      "text": "Valor fiscal: $1,800,000 · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [
+        1800000
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:tax.assessedValue",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:noi",
+      "text": "Ingreso operativo neto: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:financial.noi",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSalePrice",
+      "text": "Última venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:sales.lastSalePrice",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:assessorId",
+      "text": "APN / identificador fiscal: QA-HONOLULU-001 · Registro público · fuente única, sin confirmación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "fixture:Public GIS:assessorId",
+        "property:22222222-2222-4222-8222-222222222222:parcel.assessorId",
+        "Public GIS"
+      ]
+    },
+    {
+      "id": "fact:zoning",
+      "text": "Zonificación declarada o registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.zoning",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:county",
+      "text": "Condado: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.county",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:legalDescription",
+      "text": "Descripción legal: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.legalDescription",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:subdivision",
+      "text": "Urbanización: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:parcel.subdivision",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:latestSaleDate",
+      "text": "Fecha de venta registrada: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:sales.lastSaleDate",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownerOccupied",
+      "text": "Ocupado por el propietario: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:ownership.ownerOccupied",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "fact:ownershipRecordPresent",
+      "text": "Registro de titularidad disponible: No disponible · Aportado por el publicador; sin verificación independiente",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:ownership.ownershipRecordPresent",
+        "PROPERTY_APP_VALUE"
+      ]
+    },
+    {
+      "id": "status:cap-rate",
+      "text": "La tasa de capitalización no está disponible sin procedencia explícita o NOI válido y base de valor explícita.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:status:cap-rate"
+      ]
+    },
+    {
+      "id": "property:identity",
+      "text": "7081 Kalanianaole Hwy · Honolulu, HI, 96825 · Vivienda unifamiliar · Comprar y alquilar",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:property:identity"
+      ]
+    },
+    {
+      "id": "blocker:current-rent",
+      "text": "El alquiler contractual actual no está confirmado. El alquiler de mercado no prueba ingresos efectivos ni habilita el NOI actual.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:blocker:current-rent"
+      ]
+    },
+    {
+      "id": "action:current-rent",
+      "text": "Confirme el contrato y los ingresos recibidos para distinguir el resultado actual del escenario de mercado.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:action:current-rent"
+      ]
+    },
+    {
+      "id": "blocker:expense-insurance",
+      "text": "Seguro: aplicabilidad e importe no confirmados; los gastos operativos siguen incompletos.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:blocker:expense-insurance"
+      ]
+    },
+    {
+      "id": "action:expense-insurance",
+      "text": "Confirme si seguro se aplica y documente el importe o un supuesto explícito; no se presumirá cero.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:action:expense-insurance"
+      ]
+    },
+    {
+      "id": "market:rent",
+      "text": "Alquiler mensual estimado: $7,820 por mes",
+      "numericValues": [
+        7820
+      ],
+      "sourceRefs": [
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft",
+        "2026-10-16T12:00:00.000Z"
+      ]
+    },
+    {
+      "id": "market:rent-range",
+      "text": "$5,230 — $10,410",
+      "numericValues": [
+        5230,
+        10410
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:market:rent-range"
+      ]
+    },
+    {
+      "id": "calculation:rentPerSqft",
+      "text": "Los indicadores unitarios son calculados, no registrados por el proveedor.",
+      "numericValues": [
+        3.351907415345049
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:calculation:rentPerSqft"
+      ]
+    },
+    {
+      "id": "calculation:rentPerBedroom",
+      "text": "Los indicadores unitarios son calculados, no registrados por el proveedor.",
+      "numericValues": [
+        1564
+      ],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:calculation:rentPerBedroom"
+      ]
+    },
+    {
+      "id": "rent-comp:1",
+      "text": "7082 Mock Rental St",
+      "numericValues": [
+        7700
+      ],
+      "sourceRefs": [
+        "fixture-rental-1",
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft:comparable:1"
+      ]
+    },
+    {
+      "id": "rent-comp:2",
+      "text": "7083 Mock Rental St",
+      "numericValues": [
+        7550
+      ],
+      "sourceRefs": [
+        "fixture-rental-2",
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft:comparable:2"
+      ]
+    },
+    {
+      "id": "rent-comp:3",
+      "text": "7084 Mock Rental St",
+      "numericValues": [
+        7400
+      ],
+      "sourceRefs": [
+        "fixture-rental-3",
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft:comparable:3"
+      ]
+    },
+    {
+      "id": "rent-comp:4",
+      "text": "7085 Mock Rental St",
+      "numericValues": [
+        7250
+      ],
+      "sourceRefs": [
+        "fixture-rental-4",
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft:comparable:4"
+      ]
+    },
+    {
+      "id": "rent-comp:5",
+      "text": "7086 Mock Rental St",
+      "numericValues": [
+        7100
+      ],
+      "sourceRefs": [
+        "fixture-rental-5",
+        "RentCast:rent-avm:fixture-rent-avm-honolulu-subject-5-bed-2333-sqft:comparable:5"
+      ]
+    },
+    {
+      "id": "notes:0",
+      "text": "Synthetic rental-evidence control; not an actual property valuation.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:notes:0"
+      ]
+    },
+    {
+      "id": "executive:thesis",
+      "text": "7081 Kalanianaole Hwy: vivienda unifamiliar para comprar y alquilar, con precio de $2,100,000. Hay referencias de mercado detalladas abajo, pero no establecen rentabilidad.",
+      "numericValues": [],
+      "sourceRefs": [
+        "property:22222222-2222-4222-8222-222222222222:executive:thesis"
+      ]
+    }
+  ],
+  "pass": true
+}
