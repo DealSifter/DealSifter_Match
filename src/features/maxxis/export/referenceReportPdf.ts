@@ -6,7 +6,11 @@ type Box = { x: number; y: number; w: number; h: number };
 const INK: Color = [12, 28, 65], BODY: Color = [44, 70, 108], LINE: Color = [219, 233, 240];
 const WHITE: Color = [255, 255, 255], DARK: Color = [39, 49, 57], GOLD: Color = [231, 167, 0];
 const X = 26, GAP = 7, WIDTH = 543.28, HALF = (WIDTH - GAP) / 2;
-const CONTENT_TOP = 130, ANALYSIS_TOP = 192;
+const CONTENT_TOP = 130, ANALYSIS_TOP = CONTENT_TOP;
+
+export function reportCategoryAccent(reportType: string): Color {
+  return reportType === 'DEAL_INTELLIGENCE' ? [...GOLD] : reportType === 'MAXXIS_ANALYSIS' ? [0, 145, 95] : [25, 179, 184];
+}
 
 /** Page composition follows the approved nine reference pages. Inputs remain display-only. */
 export class ReferenceReportComposition {
@@ -17,7 +21,7 @@ export class ReferenceReportComposition {
   private nextHeading?: { subtitle: string; icon: string };
   constructor(readonly flow: StrictPdfFlow, readonly vm: ReportViewModel, readonly maps: Record<string, string | null>, readonly location: string | null) {
     this.enterprise = vm.reportType === 'DEAL_INTELLIGENCE';
-    this.accent = this.enterprise ? GOLD : [0, 161, 165];
+    this.accent = reportCategoryAccent(vm.reportType);
     this.flow.referenceHeader = title => this.shell(title, this.nextHeading?.subtitle || this.t('Detalhamento das evidências', 'Evidence detail', 'Detalle de evidencia'), this.nextHeading?.icon || 'document');
   }
   t(pt: string, en: string, es: string) { return this.vm.locale === 'pt' ? pt : this.vm.locale === 'es' ? es : en; }
@@ -74,9 +78,10 @@ export class ReferenceReportComposition {
     }
     d.restoreGraphicsState();
   }
-  brand(x: number, y: number) {
+  brand(x: number, centerY: number) {
     const properties = this.d.getImageProperties(this.flow.logo);
-    this.d.addImage(this.flow.logo, properties.fileType || 'PNG', x, y, 205, 205 * properties.height / properties.width, 'official-dealsifter-logo');
+    const width = 205 * .7, height = width * properties.height / properties.width;
+    this.d.addImage(this.flow.logo, properties.fileType || 'PNG', x, centerY - height / 2, width, height, 'official-dealsifter-logo');
   }
   page(title: string, subtitle: string, icon = 'home') {
     const f = this.flow;
@@ -87,37 +92,37 @@ export class ReferenceReportComposition {
   shell(title: string, subtitle: string, icon = 'home') {
     // Keep the approved identity; recover space from chrome, not maps or charts.
     this.d.setFillColor(...WHITE); this.d.rect(0, 0, 595.28, 841.89, 'F');
-    this.d.setFillColor(...(this.enterprise ? DARK : [0, 70, 88] as Color));
+    this.d.setFillColor(...DARK);
     this.d.roundedRect(14, 9, 567.28, 66, 10, 10, 'F');
-    this.brand(34, 12);
-    this.text(this.enterprise ? 'Maxxis Deal Intelligence Report' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'Maxxis Analysis Report' : this.vm.header.product, { x: 266, y: 24, w: 220, h: 20 }, 'headerProduct', 9, true, WHITE);
-    this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 266, y: 47, w: 220, h: 16 }, 'headerSubtitle', 7.5, false, WHITE);
-    this.d.setFillColor(...(this.enterprise ? [255, 194, 0] as Color : [0, 161, 119] as Color));
+    this.brand(34, 9 + 66 / 2);
+    this.text(this.enterprise ? 'Maxxis Deal Intelligence Report' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'Maxxis Analysis Report' : this.vm.header.product, { x: 220, y: 24, w: 264, h: 20 }, 'headerProduct', 9, true, WHITE);
+    this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 220, y: 47, w: 264, h: 16 }, 'headerSubtitle', 7.5, false, WHITE);
+    this.d.setFillColor(...this.accent);
     this.d.roundedRect(494, 23, 70, 25, 4, 4, 'F');
     this.text(this.enterprise ? 'ENTERPRISE' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'L1', { x: 500, y: 29, w: 60, h: 16 }, 'headerPlan', this.enterprise ? 8 : 9, true, this.enterprise ? INK : WHITE);
     this.d.setFillColor(...WHITE); this.d.roundedRect(14, 70, 567.28, 54, 10, 10, 'F');
-    this.icon(icon, X + 3, 85, 23, this.enterprise ? DARK : [0, 79, 89]);
+    this.icon(icon, X + 3, 85, 23, this.accent);
     this.text(title, { x: X + 35, y: 84, w: WIDTH - 35, h: 24 }, 'headerPageTitle', 16, true, INK);
     this.text(subtitle, { x: X + 35, y: 107, w: WIDTH - 35, h: 18 }, 'headerPageSubtitle', 9, false, BODY);
     this.flow.y = CONTENT_TOP;
   }
-  panel(b: Box, title: string, icon = 'document', tone: 'neutral' | 'warning' | 'positive' = 'neutral', id = title) {
+  panel(b: Box, title: string, icon = 'document', tone: 'neutral' | 'warning' | 'positive' = 'neutral', id = title, padding = 10) {
     const fill: Color = tone === 'warning' ? [255, 251, 239] : tone === 'positive' ? [242, 251, 248] : [249, 252, 254];
     this.d.setFillColor(...fill); this.d.setDrawColor(...(tone === 'warning' ? [248, 225, 166] as Color : LINE)); this.d.setLineWidth(.65);
     this.d.roundedRect(b.x, b.y, b.w, b.h, 7, 7, 'FD');
     const headingHeight = 16 + Math.min(2, this.flow.lines(title, b.w - 41, 10, true).length) * 14;
-    this.icon(icon, b.x + 9, b.y + 10, 16, tone === 'warning' ? GOLD : this.enterprise ? DARK : [0, 76, 93]);
+    this.icon(icon, b.x + 9, b.y + 10, 16, tone === 'warning' ? GOLD : this.accent);
     this.text(title, { x: b.x + 32, y: b.y + 10, w: b.w - 41, h: headingHeight - 12 }, id, 10, true, tone === 'warning' ? [144, 98, 0] : INK);
     this.flow.audit.sections.push({ sectionId: id, title, kind: 'reference-panel', page: this.d.getCurrentPageInfo().pageNumber, availableHeight: b.h, renderedLines: 0, selectedFontSize: 10, clippedLines: 0, overflowPixels: 0,
       bounds: { x: b.x, y: b.y, width: b.w, height: b.h, right: b.x + b.w, bottom: b.y + b.h } });
-    return { x: b.x + 10, y: b.y + headingHeight, w: b.w - 20, h: b.h - headingHeight - 8 };
+    return { x: b.x + padding, y: b.y + headingHeight, w: b.w - padding * 2, h: b.h - headingHeight - 8 };
   }
   list(items: string[], b: Box, id: string, mode: 'check' | 'warning' | 'number' = 'check', size = 10) {
     let y = b.y;
     items.forEach((item, index) => {
       const height = this.flow.lines(item, b.w - 20, size).length * (size + 4);
       if (y + height > b.y + b.h) { this.deferred.push({ id, title: this.section(id)?.title || id, text: item }); return; }
-      this.icon(mode, b.x, y + 1, 12, mode === 'warning' ? GOLD : this.enterprise ? DARK : [0, 124, 100]);
+      this.icon(mode, b.x, y + 1, 12, mode === 'warning' ? GOLD : this.accent);
       if (mode === 'number') this.text(String(index + 1), { x: b.x + 3, y: y + 1, w: 10, h: 12 }, id, 7, true, WHITE);
       this.text(item, { x: b.x + 20, y, w: b.w - 20, h: height }, id, size);
       y += height + 9;
@@ -180,14 +185,6 @@ export class ReferenceReportComposition {
     } else if (s.rows?.length) this.rows(s.rows, { ...body, y, h: Math.max(0, body.y + body.h - y) }, s.id, 8);
     if (s.items?.length) this.list(s.items.map(i => i.text), { ...body, y, h: Math.max(0, body.y + body.h - y) }, s.id, s.status === 'blocked' ? 'warning' : 'check', 8.5);
   }
-  identity(y = CONTENT_TOP) {
-    const p = this.vm.property;
-    this.d.setFillColor(248, 251, 253); this.d.setDrawColor(...LINE); this.d.roundedRect(X, y, WIDTH, 49, 6, 6, 'FD');
-    this.icon('home', X + 10, y + 12, 20, DARK);
-    this.text(p.address, { x: X + 40, y: y + 8, w: 255, h: 20 }, 'propertyIdentity', 11, true, INK);
-    this.text(p.location, { x: X + 40, y: y + 29, w: 255, h: 15 }, 'propertyIdentity', 8);
-    this.text(p.price, { x: X + 315, y: y + 13, w: 210, h: 27 }, 'propertyIdentity', 19, true, this.accent);
-  }
   hero(y: number, height: number) {
     const p = this.vm.property, left = { x: X + 6, y, w: 248, h: height };
     this.text(p.address, { ...left, h: 65 }, 'propertyIdentity', 23, true, INK);
@@ -195,7 +192,7 @@ export class ReferenceReportComposition {
     this.text(p.location, { ...left, y: y + addressHeight + 5, h: 38 }, 'propertyLocation', 13, true);
     this.d.setFillColor(...this.accent); this.d.roundedRect(left.x, y + 77, 237, 23, 4, 4, 'F');
     this.text(`${p.type} · ${p.strategy}`, { x: left.x + 7, y: y + 82, w: 223, h: 17 }, 'propertyStrategy', 9, true, this.enterprise ? INK : WHITE);
-    this.text(p.price, { ...left, y: y + 111, h: 40 }, 'propertyPrice', 27, true, this.enterprise ? GOLD : [0, 111, 239]);
+    this.text(p.price, { ...left, y: y + 111, h: 40 }, 'propertyPrice', 27, true, this.accent);
     const photo = { x: X + 263, y, w: WIDTH - 263, h: height };
     if (!p.photos[0] || !this.flow.image(p.photos[0], photo.x, photo.y, photo.w, photo.h)) {
       this.d.setFillColor(237, 245, 248); this.d.roundedRect(photo.x, photo.y, photo.w, photo.h, 8, 8, 'F');
@@ -218,10 +215,10 @@ export class ReferenceReportComposition {
   }
   landCells(rows: readonly ReportRow[], b: Box, draw = false) {
     const wide = rows.filter(row => row.evidenceRefs.includes('fact:legalDescription'));
-    const short = rows.filter(row => !wide.includes(row)), gap = 10, width = (b.w - gap) / 2;
+    const short = rows.filter(row => !wide.includes(row)), gap = 8, width = (b.w - gap) / 2;
     let y = b.y;
     const height = (row: ReportRow, w: number) => this.flow.lines(this.compactLabel(row), w, 7.5).length * 11.5
-      + this.flow.lines(row.value, w - (row.state === 'CONFLICTED' ? 12 : 0), 8, true).length * 12 + 5;
+      + this.flow.lines(row.value, w - (row.state === 'CONFLICTED' ? 12 : 0), 8, true).length * 12 + 2;
     const cell = (row: ReportRow, x: number, w: number, h: number) => {
       if (!draw) return;
       if (y + h > b.y + b.h) {
@@ -244,22 +241,25 @@ export class ReferenceReportComposition {
     this.page('Property Overview', this.t('Informações gerais do imóvel', 'Property overview and context', 'Información general del inmueble'));
     this.hero(CONTENT_TOP, 174);
     {
-      const groups = this.vm.property.facts, parcelWidth = WIDTH * .48, width = (WIDTH - parcelWidth - 2 * GAP) / 2;
+      const groups = this.vm.property.facts, available = WIDTH - 2 * GAP;
+      const widths = [available * .31, available * .29, available * .40], padding = 7;
       const owner = groups.find(g => /publicador|publisher/i.test(g.title));
       const physical = groups.find(g => /dados do imóvel|property facts|datos del inmueble/i.test(g.title));
       const parcel = groups.filter(g => g !== owner && g !== physical);
       const cards = [owner, physical, { title: this.t('Terreno e dados fiscais', 'Land and tax information', 'Terreno y datos fiscales'), rows: parcel.flatMap(g => g.rows) }];
-      const contentWidth = width - 20, top = CONTENT_TOP + 174 + 8;
-      const heights = cards.slice(0, 2).map(group => 52 + (group?.rows || []).reduce((sum, row) => {
+      const top = CONTENT_TOP + 174 + 8;
+      const heights = cards.slice(0, 2).map((group, i) => 52 + (group?.rows || []).reduce((sum, row) => {
+        const contentWidth = widths[i] - padding * 2;
         const labelWidth = contentWidth * (this.compactLabel(row) === 'APN' ? .2 : .44);
         return sum + Math.max(this.flow.lines(this.compactLabel(row), labelWidth, 7.5).length,
           this.flow.lines(row.value, contentWidth - labelWidth - 8 - (row.state === 'CONFLICTED' ? 13 : 0), 7.5, true).length) * 11.5 + 3;
       }, 0));
-      heights.push(38 + this.landCells(cards[2]!.rows, { x: 0, y: 0, w: parcelWidth - 20, h: 0 }));
+      heights.push(38 + this.landCells(cards[2]!.rows, { x: 0, y: 0, w: widths[2] - padding * 2, h: 0 }));
       const factsHeight = Math.min(250, Math.max(108, Math.max(...heights)));
       cards.forEach((group, i) => {
         const heading = i === 0 ? this.t('Publicador', 'Publisher', 'Publicador') : i === 1 ? this.t('Dados do imóvel', 'Property details', 'Datos del inmueble') : this.t('Dados do terreno', 'Land information', 'Datos del terreno');
-        const body = this.panel({ x: X + i * (width + GAP), y: top, w: i === 2 ? parcelWidth : width, h: factsHeight }, heading, ['user', 'home', 'pin'][i], 'neutral', `overviewFacts${i}`);
+        const x = X + widths.slice(0, i).reduce((sum, width) => sum + width + GAP, 0);
+        const body = this.panel({ x, y: top, w: widths[i], h: factsHeight }, heading, ['user', 'home', 'pin'][i], 'neutral', `overviewFacts${i}`, padding);
         if (group?.rows.length) {
           if (i === 2) this.landCells(group.rows, body, true);
           else this.rows(group.rows, body, `overviewFacts${i}`, 7.5, false, true);
@@ -281,7 +281,7 @@ export class ReferenceReportComposition {
       const photos = this.vm.property.photos.slice(0, 5), photoHeight = photos.length > 1 ? 120 : 100;
       if (791 - next - photoHeight - 7 < 100) {
         this.page(this.t('Fotos, mapa e notas', 'Photos, map and notes', 'Fotos, mapa y notas'), this.t('Detalhes visuais do imóvel', 'Property visual detail', 'Detalle visual del inmueble'));
-        this.identity(); next = ANALYSIS_TOP;
+        next = CONTENT_TOP;
       }
       const photoBody = this.panel({ x: X, y: next, w: WIDTH, h: photoHeight }, this.t('Fotos do imóvel', 'Property photos', 'Fotos del inmueble'), 'document', 'neutral', 'propertyPhotos');
       const unit = (photoBody.w - Math.max(0, photos.length - 1) * 5) / (photos.length + 1);
@@ -304,13 +304,12 @@ export class ReferenceReportComposition {
   }
   market() {
     this.page('Comparative Market Analysis', this.t('Imóveis comparáveis e análise de mercado', 'Comparable properties and market analysis', 'Comparables y análisis de mercado'));
-    this.identity();
     const sections = this.vm.sections.filter(s => s.table?.rows.length), main = sections[0];
-    let tableEnd = 666;
+    let tableEnd = 604;
     if (main) tableEnd = this.marketTable(main, ANALYSIS_TOP);
     else {
       this.locationCard({ x: X, y: ANALYSIS_TOP, w: WIDTH, h: 275 });
-      this.module(this.section('price-positioning') || this.section('land-market-readiness'), { x: X, y: 475, w: WIDTH, h: 191 }, this.t('Imóveis comparáveis', 'Comparable properties', 'Inmuebles comparables'), 'chart');
+      this.module(this.section('price-positioning') || this.section('land-market-readiness'), { x: X, y: 413, w: WIDTH, h: 191 }, this.t('Imóveis comparáveis', 'Comparable properties', 'Inmuebles comparables'), 'chart');
     }
     const pending = this.section('rent-pending');
     const caption = main?.map?.caption || this.vm.executive?.blocker?.text || this.missing;
@@ -324,7 +323,7 @@ export class ReferenceReportComposition {
       this.text(pendingText, { ...notes, y: notes.y + captionHeight + 4, h: Math.max(0, notes.h - captionHeight - 4) }, pending.id, 7.5);
       this.seen.add(pending.id);
     }
-    for (const s of sections.slice(1)) { this.page(s.title, this.t('Referências complementares de mercado', 'Additional market references', 'Referencias adicionales de mercado')); this.identity(); this.marketTable(s, ANALYSIS_TOP); }
+    for (const s of sections.slice(1)) { this.page(s.title, this.t('Referências complementares de mercado', 'Additional market references', 'Referencias adicionales de mercado')); this.marketTable(s, ANALYSIS_TOP); }
   }
   marketTable(s: ReportSection, top: number) {
     this.seen.add(s.id);
@@ -364,14 +363,14 @@ export class ReferenceReportComposition {
     for (const [index, row] of rows.entries()) {
       if (y + heightOf(row, 7.2, false) > tableBottom - 7) {
         this.page(s.title, this.t('Relação de comparáveis — continuação', 'Comparable list — continued', 'Relación de comparables — continuación'), 'chart');
-        this.identity(); header(ANALYSIS_TOP, true, index); line(cols, true, 7);
+        header(ANALYSIS_TOP, true, index); line(cols, true, 7);
       }
       line(row, false, 7.2); this.d.setDrawColor(...LINE); this.d.line(table.x, y - 2, table.x + table.w, y - 2);
     }
     return y + 8;
   }
   valuation() {
-    this.page('Valuation Intelligence / ARV / KPIs', this.t('Análise de valor, métricas e potencial de retorno', 'Valuation, metrics and return potential', 'Valoración, métricas y potencial de rentabilidad'), 'chart'); this.identity();
+    this.page('Valuation Intelligence / ARV / KPIs', this.t('Análise de valor, métricas e potencial de retorno', 'Valuation, metrics and return potential', 'Valoración, métricas y potencial de rentabilidad'), 'chart');
     const main = this.section('arv-market') || this.section('market-rent') || this.section('value-readiness') || this.section('land-market-readiness');
     this.module(main, { x: X, y: ANALYSIS_TOP, w: HALF, h: 249 }, this.t('Faixa estimada de valor', 'Estimated value range', 'Rango de valor estimado'), 'target');
     const costs = this.section('operating-evidence') || this.section('strategy-cost-basis') || this.section('landKnownBasis') || this.section('land-development-readiness') || {
@@ -380,7 +379,7 @@ export class ReferenceReportComposition {
         { label: this.t('Tipo', 'Type', 'Tipo'), value: this.vm.property.type }, { label: this.t('Estratégia', 'Strategy', 'Estrategia'), value: this.vm.property.strategy }].map(row => ({ ...row, evidenceRefs: ['property:identity'] })), evidenceRefs: ['property:identity'], continuationPolicy: 'SAME_SECTION' as const,
     };
     this.module(costs, { x: X + HALF + GAP, y: ANALYSIS_TOP, w: HALF, h: 249 }, this.t('Principais inputs da análise', 'Main analysis inputs', 'Datos principales del análisis'), 'document');
-    const dashboard = this.panel({ x: X, y: 449, w: WIDTH, h: 89 }, 'Investment Scenario Dashboard', 'chart', 'neutral', 'scenarioDashboard');
+    const dashboard = this.panel({ x: X, y: 387, w: WIDTH, h: 89 }, 'Investment Scenario Dashboard', 'chart', 'neutral', 'scenarioDashboard');
     const available = this.vm.sections.filter(s => /^(scenario|saved)/.test(s.id));
     const tiles = [
       { label: this.t('Preço pedido', 'Asking price', 'Precio solicitado'), value: this.vm.property.price },
@@ -398,7 +397,7 @@ export class ReferenceReportComposition {
       const width = (WIDTH - 2 * GAP) / 3;
       const content = [s?.text, ...(s?.rows || []).map(row => `${row.label}: ${row.value}`)].filter(Boolean).join('\n');
       const height = i === 1 && main?.range ? 145 : Math.max(90, Math.min(191, 48 + this.flow.lines(content || this.missing, width - 20, 8.5).length * 12.5));
-      const box = { x: X + i * ((WIDTH + GAP) / 3), y: 546, w: width, h: height };
+      const box = { x: X + i * ((WIDTH + GAP) / 3), y: 484, w: width, h: height };
       if (i === 1 && main?.range) {
         const body = this.panel(box, main.id === 'arv-market' ? this.t('Cenários de valor (ARV)', 'ARV scenarios', 'Escenarios de valor (ARV)') : this.t('Faixa de aluguel', 'Rent range', 'Rango de alquiler'), 'pie', 'neutral', 'valuationScenarios');
         const cx = body.x + 30, cy = body.y + 35, radius = 24;
@@ -412,13 +411,12 @@ export class ReferenceReportComposition {
         this.text(this.t('Referências de cenário, não probabilidades.', 'Scenario references, not probabilities.', 'Referencias de escenario, no probabilidades.'), { ...body, y: body.y + 67, h: 18 }, 'valuationScenarios', 6.5);
       } else this.module(s, box, [this.t('Análise de preço', 'Price analysis', 'Análisis de precio'), this.t('Registros e custos', 'Records and costs', 'Registros y costos'), this.t('Notas da avaliação', 'Valuation notes', 'Notas de valoración')][i], ['target', 'pie', 'document'][i]);
     });
-    this.text(this.vm.disclaimer, { x: X + 12, y: 751, w: WIDTH - 24, h: 40 }, 'reportDisclaimer', 7.5);
+    this.text(this.vm.disclaimer, { x: X + 12, y: 689, w: WIDTH - 24, h: 40 }, 'reportDisclaimer', 7.5);
     available.forEach(s => this.sectionAppendix(s));
   }
   profile() {
     this.page('Investment Fit & Risk Analysis', this.t('Perfil do investidor, análise de adequação e riscos', 'Investor profile, fit and risk analysis', 'Perfil del inversor, compatibilidad y riesgos'));
-    const top = this.enterprise ? ANALYSIS_TOP : CONTENT_TOP;
-    if (this.enterprise) this.identity();
+    const top = CONTENT_TOP;
     const profile = this.section('investor-profile'), fit = this.section('profile-fit');
     this.module(profile, { x: X, y: top, w: HALF, h: 226 }, this.t('Perfil do investidor', 'Investor profile', 'Perfil del inversor'), 'user');
     const gauge = this.panel({ x: X + HALF + GAP, y: top, w: HALF, h: 226 }, this.t('Match Score / Compatibilidade', 'Match Score / Compatibility', 'Match Score / Compatibilidad'), 'target', 'neutral', 'profile-fit');
@@ -477,7 +475,7 @@ export class ReferenceReportComposition {
     }
   }
   conclusion() {
-    this.page('Maxxis AI Analysis', this.t('Conclusão adaptada ao perfil', 'Profile-aware conclusion', 'Conclusión adaptada al perfil'), 'target'); this.identity();
+    this.page('Maxxis AI Analysis', this.t('Conclusão adaptada ao perfil', 'Profile-aware conclusion', 'Conclusión adaptada al perfil'), 'target');
     const cards = [
       { title: 'Opportunity Summary', text: this.vm.executive?.thesis.text || this.missing, icon: 'chart' },
       { title: 'Segment-Specific Conclusion', text: this.vm.executive?.opportunity?.text || this.t('A conclusão depende das evidências do imóvel e dos critérios do investidor. Complete as verificações abaixo.', 'The conclusion depends on property evidence and investor criteria. Complete the checks below.', 'La conclusión depende de la evidencia y los criterios del inversor. Complete las verificaciones.'), icon: 'target' },
@@ -505,13 +503,13 @@ export class ReferenceReportComposition {
       }
       else this.list(this.texts('decision-blockers'), body, 'conclusionQuestions', 'warning', 8.5);
     });
-    const actions = this.panel({ x: X, y: 598, w: WIDTH, h: 115 }, 'Recommended Actions', 'target', 'neutral', 'finalActions');
+    const actions = this.panel({ x: X, y: 536, w: WIDTH, h: 115 }, 'Recommended Actions', 'target', 'neutral', 'finalActions');
     const texts = this.texts('next-actions'), w = (actions.w - GAP * Math.max(0, texts.length - 1)) / Math.max(1, texts.length);
     texts.forEach((text, i) => this.text(text, { x: actions.x + i * (w + GAP), y: actions.y, w, h: actions.h }, 'finalActions', 8));
-    this.d.setFillColor(255, 251, 239); this.d.setDrawColor(248, 225, 166); this.d.roundedRect(X, 725, WIDTH, 66, 6, 6, 'FD');
-    this.icon('warning', X + 10, 740, 17, GOLD);
-    this.text('Disclaimer', { x: X + 37, y: 734, w: WIDTH - 47, h: 14 }, 'reportDisclaimer', 8, true, INK);
-    this.text(this.vm.disclaimer, { x: X + 37, y: 750, w: WIDTH - 47, h: 33 }, 'reportDisclaimer', 7.5);
+    this.d.setFillColor(255, 251, 239); this.d.setDrawColor(248, 225, 166); this.d.roundedRect(X, 663, WIDTH, 66, 6, 6, 'FD');
+    this.icon('warning', X + 10, 678, 17, GOLD);
+    this.text('Disclaimer', { x: X + 37, y: 672, w: WIDTH - 47, h: 14 }, 'reportDisclaimer', 8, true, INK);
+    this.text(this.vm.disclaimer, { x: X + 37, y: 688, w: WIDTH - 47, h: 33 }, 'reportDisclaimer', 7.5);
   }
   sectionAppendix(s: ReportSection) {
     if (this.seen.has(s.id)) return;

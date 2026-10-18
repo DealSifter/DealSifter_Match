@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-10-18T18:23:25.627Z",
+  "syntheticFixturesOnly": true,
+  "sourceHashes": {
+    "src/domain/maxxis/maxxisReportSchema.js": "0e2b73e78e1738cba8665e26a00f3ac8c487fd5acb49b023f7f81dc9f4799982",
+    "src/features/maxxis/export/reportIntegrityTypes.ts": "4e8ab2d14bd5fe49be5ed4501b935062d8bf3b4a79a95f995d43ebb262348d66",
+    "src/features/maxxis/export/reportIntegrityViewModel.ts": "bf3d0d470edd7d13a388757bdf516e63a781f9468f907b556bd505cfdea0b5a1",
+    "src/features/maxxis/export/reportSavedScenarioProjection.ts": "32f9000b562fcaf08aa2afafd46ff778f6320011cdc600907e47909bbe1a59a4",
+    "src/features/maxxis/export/maxxisReportPdf.js": "af27457be646dc565fa5d26df764abc5b2eec36a8c25898d6139957e48cca349",
+    "src/features/maxxis/export/strictReportPdf.ts": "1289b661a9b929b33535b0235f6e9e7d383bd6f492e6d6b3f291684c141786c2",
+    "src/features/maxxis/export/referenceReportPdf.ts": "54a40dcc330ebb02b84d7ae2389221659c56394e658a57180c645592d6984d79",
+    "src/features/maxxis/export/reportMapAssets.js": "ddd931605eecc6ebd649597d410f341e15f3a3c9132ff0391fc8eeecc23ed7fd",
+    "supabase/functions/_shared/maxxis/reportMarketReferences.ts": "c4d7257f3fd20e491103568db96a278f52d1f4658cef99dbe0bac3d0a61c7bbe",
+    "src/features/maxxis/export/maxxisReportRenderer.js": "5fa95944a6fc2ac82b7384f419a3bf50bcc1ec5a3113397a87b03b5789aa6802",
+    "src/features/maxxis/export/comparableMapGeometry.ts": "3c3efd4fb91fa50b4f0b68ac6a5bd986b7b62773e2002a11ebccab632e9eb72a",
+    "src/features/maxxis/export/marketRentReport.js": "7603a0805f01945390bfdc6cb0b3f577a8846ba1e008a54eb1cca816b0169879",
+    "src/features/maxxis/export/reportPreparedAssets.ts": "890227be6c32f373eeaf8a12765fc6b73e34d5949bb74ba037837bff88c386f3",
+    "src/features/maxxis/export/reportExportEntitlement.js": "0fa88740accf9d46d6580026fe2264955b38cf9117e663513be0d540e38075f8",
+    "src/features/maxxis/presentation/reportNarrativePresentation.js": "29b6f9b4b3455b5c75ac25aaddb143d750e6225e34a4b4f08e369924e4e1f6ff",
+    "src/services/chatTranslation.js": "b6a413e98243cda8afc93ff2ad64bf91326a04d87f68661c6340aa35c8b09f2b",
+    "src/features/maxxis/export/maxxisReportVisualPolicy.js": "4b2723623000ef16288ba791bb0678b8b8d6977f8bba97a8698d329b48f35557",
+    "src/features/maxxis/qa/maxxisProductionReadiness.js": "8db25382838ce9ef143089719f2f0881574684277052ff299292084f38004c04",
+    "supabase/functions/_shared/maxxis/financialEvidence.ts": "2d687a530dde3644b9751f359f087d87e915130bea1ee3f396b0017c43f6f07d",
+    "supabase/functions/_shared/maxxis/financialReadiness.ts": "8ed46dd87abff04ac47841b0014eb8e0669b7b73d4150909c9793ef3a03c952e",
+    "scripts/report-integrity-fixtures.mjs": "64925752da303d88f51ebf205cd2ac7fb803c6525b208e37858c92c1524d2b5f",
+    "scripts/report-integrity-qa.mjs": "38ae6a16e29e717f72f75bc39bb43d910a1a66ca0fe61b670f595bdda4669820"
+  },
+  "sourceDigest": "d2683369627f4c5939a41bc9e0a94e1a2f375cf05722a1b7ec787d56fac615bb",
+  "changedSourcesDuringRun": [],
+  "reportCount": 9,
+  "goldenFixtureCount": 3,
+  "locales": [
+    "pt"
+  ],
+  "actualPdfArtifacts": 9,
+  "goldenReports": [
+    {
+      "id": "PROPERTY_PARITY",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 6,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "RENTAL_MARKET_RICH",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 6,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "ARV_RICH",
+      "locales": [
+        {
+          "language": "pt",
+          "pages": 6,
+          "pass": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "dynamic": [
+    {
+      "language": "pt",
+      "richPages": 6,
+      "pass": true
+    }
+  ],
+  "networkAttempts": [],
+  "imageNetworkAttempts": [],
+  "actualRentCastCalls": 0,
+  "actualGISCalls": 0,
+  "reportReopenProviderCalls": 0,
+  "authenticatedProductionSmoke": "BLOCKED",
+  "manualVisualReview": "PENDING_MAIN_AGENT_INSPECTION",
+  "executiveWowReview": "PENDING_MAIN_AGENT_INSPECTION",
+  "failures": [],
+  "pass": true
+}

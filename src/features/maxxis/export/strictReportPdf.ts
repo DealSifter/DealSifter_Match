@@ -1,7 +1,7 @@
 import type { jsPDF } from 'jspdf';
 import { comparableMapViewport } from './comparableMapGeometry';
 import type { ReportViewModel, ReportSection } from './reportIntegrityTypes';
-import { ReferenceReportComposition } from './referenceReportPdf';
+import { ReferenceReportComposition, reportCategoryAccent } from './referenceReportPdf';
 
 type Color = [number, number, number];
 type Tone = 'neutral' | 'positive' | 'warning' | 'accent';
@@ -62,7 +62,7 @@ export class StrictPdfFlow {
   readonly accent: Color;
 
   constructor(readonly doc: jsPDF, readonly meta: SafePdfMeta, readonly logo: string, private readonly plan: FlowPlan = {}) {
-    this.accent = meta.reportType === 'DEAL_INTELLIGENCE' ? [222, 170, 38] : meta.reportType === 'MAXXIS_ANALYSIS' ? [17, 153, 125] : [25, 179, 184];
+    this.accent = reportCategoryAccent(meta.reportType);
   }
 
   panel(x: number, y: number, width: number, height: number, tone: Tone = 'neutral') {
