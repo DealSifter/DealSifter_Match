@@ -27,7 +27,7 @@ export function resolveRentAvmSubjectAttributes(input:{property:Values;effective
     const chosen=!!(fact?.state==='AVAILABLE'&&decision&&['KEEP_MY_VALUE','ACCEPT_EXTERNAL_VALUE'].includes(decision.action)
       &&decision.evidenceHash===proof.evidenceHash&&decision.value===fact.value&&decision.unit===fact.unit&&decision.source===fact.sourceType);
     if(fact?.state==='CONFLICTED'||(projection?.analyticalUsability==='CONFLICTED'||fact?.adopted===true)&&!chosen)
-      return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:field};
+      return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:field,lookup,overrides:{propertyType:overrides.propertyType}};
     const value=fact?.state==='AVAILABLE'?fact.value:projection?.analyticalUsability&&['CONFIRMED','SINGLE_SOURCE'].includes(projection.analyticalUsability)?projection.value:input.property[raw];
     if(key==='propertyType'){
       const token=String(value??'').toUpperCase().replace(/[^A-Z]/g,'');

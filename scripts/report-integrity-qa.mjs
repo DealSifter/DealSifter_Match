@@ -28,6 +28,7 @@ const sourcePaths = [
   'src/features/maxxis/export/strictReportPdf.ts',
   'src/features/maxxis/export/referenceReportPdf.ts',
   'src/features/maxxis/export/reportMapAssets.js',
+  'supabase/functions/_shared/maxxis/reportMarketReferences.ts',
   'src/features/maxxis/export/maxxisReportRenderer.js',
   'src/features/maxxis/export/comparableMapGeometry.ts',
   'src/features/maxxis/export/marketRentReport.js',
@@ -313,7 +314,7 @@ try {
       Object.assign(fixture.input.dealIntelligence, { financialEvidence, financialReadiness });
       Object.assign(fixture.input.maxxisAnalysis, { financialEvidence, financialReadiness });
     }
-    const levels = args.get('recovery') ? (fixture.id === 'RENTAL_MARKET_RICH' ? ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'] : ['DEAL_INTELLIGENCE']) : args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
+    const levels = args.get('parity') ? ['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'] : args.get('recovery') ? (fixture.id === 'RENTAL_MARKET_RICH' ? ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'] : ['DEAL_INTELLIGENCE']) : args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
       ? ['DEAL_INTELLIGENCE'] : ['DEAL_INTELLIGENCE', 'PROPERTY_RELEASE', 'MAXXIS_ANALYSIS'];
     for (const language of languages) for (const level of levels) {
       const levelSuffix = level === 'DEAL_INTELLIGENCE' ? '' : level === 'PROPERTY_RELEASE' ? '-l1' : '-l2';
@@ -383,15 +384,16 @@ try {
       const contentAudit = auditContent(vm, text, logicalBodyChunks.join(' '));
       const renderedTextValidation = validateRenderedReportText(text);
       const identityVisible = text.includes(fixture.expected.address);
+      const firstPageMissingFactValues = args.get('parity') ? vm.property.facts.flatMap(group => group.rows).filter(row => !normalized(pageTexts[0]).includes(normalized(row.value))).map(row => ({ label: row.label, value: row.value })) : [];
       const maxPagesPass = args.get('recovery') ? level !== 'DEAL_INTELLIGENCE' || pageTexts.length >= 5 && pageTexts.length <= 10 : !fixture.expected.maxPages || pageTexts.length <= fixture.expected.maxPages;
       Object.assign(record, { pages: pageTexts.length, durationMs: Math.round(performance.now() - started),
         pdfSha256: hash(binary), reopenedStoredArtifact: true, strictViewModelVersion: vm.version,
-        identityVisible, leaks, zeroAudit, sectionAudit, layout, evidenceAudit, marketAudit, contentAudit, renderedTextValidation,
+        identityVisible, firstPageMissingFactValues, leaks, zeroAudit, sectionAudit, layout, evidenceAudit, marketAudit, contentAudit, renderedTextValidation,
         images: images.map(path => path.replaceAll('\\', '/')), contactSheet: `${directory}/${basename}-contact.png`,
         maxPagesPass, sourceTraceability: vm.evidencePacket,
         pass: modelValidation.valid === true && renderedTextValidation.valid === true && identityVisible
           && !leaks.length && zeroAudit.pass && sectionAudit.pass && layout.pass && evidenceAudit.pass && marketAudit.pass && contentAudit.pass
-          && maxPagesPass && networkAttempts.length === fetchBefore && imageNetworkAttempts.length === imagesBefore });
+          && maxPagesPass && !firstPageMissingFactValues.length && networkAttempts.length === fetchBefore && imageNetworkAttempts.length === imagesBefore });
       results.push(record);
       await saveJson(`${basename}-validation.json`, record);
       await saveJson(`${basename}-view-model.json`, vm);

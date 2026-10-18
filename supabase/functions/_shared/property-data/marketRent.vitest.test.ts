@@ -18,6 +18,7 @@ import {reconcilePropertyFacts,applyFactDecisions} from '../property-fact-reconc
 import {resolveCachedRentAvmSubject} from './marketRentSubjectContext.ts';
 import {marketRentSubjectCandidates} from './marketRentSubjectEvidence.ts';
 import {SupplementalEvidenceService} from './supplementalEvidenceService.ts';
+import {shouldAcquireReportMarketRent,reportMarketRentSubject} from '../maxxis/reportMarketRentPolicy.ts';
 const id='11111111-1111-4111-8111-111111111111';
 const property={id,address:'7081 Kalanianaole Hwy',city:'Honolulu',state:'HI',zip:'96825',type:'SFR',beds:5,baths:3,sqft:2333};
 export const fixture={rent:7820,rentRangeLow:5230,rentRangeHigh:10410,subjectProperty:{id:'subject',addressLine1:property.address,city:property.city,state:'HI',zipCode:'96825',propertyType:'Single Family',bedrooms:5,bathrooms:3,squareFootage:2333,latitude:21.285,longitude:-157.715},
@@ -35,6 +36,40 @@ function setup(extra:{entitled?:boolean;enabled?:boolean;hardLimit?:number;cache
   return {service,fetchImpl,guard,cache,resolveSubject,set:(patch:Partial<typeof property>)=>{current={...current,...patch};},advance:(ms:number)=>{now=new Date(now.getTime()+ms);}};
 }
 const request={propertyId:id,userId:'fixture-user',acquire:true};
+describe('explicit report cache-first acquisition',()=>{
+  it('queries the provider by address without sending disputed bath/area overrides',async()=>{
+    const s=setup();
+    const conflicted=resolveRentAvmSubjectAttributes({property,projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});
+    expect(conflicted.state).toBe('RENT_AVM_REVIEW_REQUIRED');
+    s.resolveSubject.mockResolvedValue(reportMarketRentSubject(conflicted));
+    const result=await s.service.get(request);
+    expect(result.state).toBe('AVAILABLE');
+    expect(result.evidence?.request).not.toHaveProperty('squareFootage');
+    expect(result.evidence?.request).not.toHaveProperty('bathrooms');
+    expect(s.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  it.each(['LAND','Multi-Family','office'])('does not bypass applicability for %s',type=>{
+    const subject=resolveRentAvmSubjectAttributes({property:{...property,type},projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});
+    expect(reportMarketRentSubject(subject).state).not.toBe('READY');
+  });
+  it.each(['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'])('%s queries a cache miss then reuses the result',async reportType=>{
+    const s=setup(),acquire=shouldAcquireReportMarketRent(reportType);
+    const first=await s.service.get({...request,acquire});
+    expect(first).toMatchObject({state:'AVAILABLE',providerCalls:1});
+    expect(first.evidence?.comparables).toHaveLength(5);
+    expect(await s.service.get({...request,acquire})).toMatchObject({state:'AVAILABLE',providerCalls:0,cacheHit:true});
+    expect(s.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  it.each(['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE','PROPERTY_RELEASE','CHAT',''])('does not acquire for background/cache-only %s',async reportType=>{
+    const s=setup();
+    await s.service.get({...request,acquire:shouldAcquireReportMarketRent(reportType,true)});
+    expect(s.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('does not make L1 or ordinary chat implicitly billable',()=>{
+    expect(shouldAcquireReportMarketRent('PROPERTY_RELEASE')).toBe(false);
+    expect(shouldAcquireReportMarketRent('')).toBe(false);
+  });
+});
 describe('Rent AVM subject and identity',()=>{
   it('retains accepted provider choice if the separate record cache is absent',async()=>{
     const raw={...property,owner_id:'publisher'},external=[{field:'buildingArea' as const,originalValue:2500,unit:'SQFT',sourceType:'RENTCAST' as const,sourceId:'rentcast',sourceFamily:'RENTCAST',sourceAuthority:'RentCast',evidenceStatus:'VERIFIED_RECORD' as const}];

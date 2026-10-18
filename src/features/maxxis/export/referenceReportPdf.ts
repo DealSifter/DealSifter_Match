@@ -1,5 +1,5 @@
 import type { StrictPdfFlow, SafePdfSection } from './strictReportPdf';
-import type { ReportViewModel, ReportSection } from './reportIntegrityTypes';
+import type { ReportViewModel, ReportSection, ReportRow } from './reportIntegrityTypes';
 
 type Color = [number, number, number];
 type Box = { x: number; y: number; w: number; h: number };
@@ -73,17 +73,9 @@ export class ReferenceReportComposition {
     }
     d.restoreGraphicsState();
   }
-  brand(x: number, y: number, footer = false) {
-    const d = this.d, r = footer ? 16 : 24, cy = y + r;
-    d.setFillColor(...WHITE); d.setDrawColor(...this.accent); d.setLineWidth(3); d.circle(x + r, cy, r, 'FD');
-    d.setDrawColor(...INK); d.setLineWidth(1); d.circle(x + r, cy, r * .78, 'S');
-    d.setDrawColor(...this.accent); d.circle(x + r + 2, cy - 1, r * .55, 'S');
-    d.setFillColor(...INK); d.circle(x + r + r * .25, cy - r * .27, r * .21, 'F');
-    d.setFillColor(...WHITE); d.circle(x + r + r * .3, cy - r * .35, r * .065, 'F');
-    const bx = x + r * 2 + 10, font = footer ? 12 : 20;
-    this.text('DealSifter', { x: bx, y: y + (footer ? 2 : 4), w: footer ? 83 : 136, h: 28 }, 'headerBrand', font, true, footer ? INK : WHITE);
-    this.text('Match', { x: bx + (footer ? 67 : 111), y: y + (footer ? 2 : 4), w: 70, h: 28 }, 'headerBrand', font, true, this.accent);
-    this.text('Real Data. Smarter Decisions.', { x: bx, y: y + (footer ? 20 : 31), w: 205, h: 18 }, 'headerTagline', footer ? 7 : 10, false, footer ? BODY : this.accent);
+  brand(x: number, y: number) {
+    const properties = this.d.getImageProperties(this.flow.logo);
+    this.d.addImage(this.flow.logo, properties.fileType || 'PNG', x, y, 245, 245 * properties.height / properties.width, 'official-dealsifter-logo');
   }
   page(title: string, subtitle: string, icon = 'home') {
     const f = this.flow;
@@ -96,12 +88,12 @@ export class ReferenceReportComposition {
     this.d.setFillColor(...WHITE); this.d.rect(0, 0, 595.28, 841.89, 'F');
     this.d.setFillColor(...(this.enterprise ? DARK : [0, 70, 88] as Color));
     this.d.roundedRect(14, 9, 567.28, 81, 10, 10, 'F');
-    this.brand(34, 20);
-    this.text(this.enterprise ? 'Maxxis Deal Intelligence Report' : 'Maxxis Analysis Report', { x: 309, y: 29, w: 180, h: 32 }, 'headerProduct', 10.5, true, WHITE);
+    this.brand(34, 13);
+    this.text(this.enterprise ? 'Maxxis Deal Intelligence Report' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'Maxxis Analysis Report' : this.vm.header.product, { x: 309, y: 29, w: 180, h: 32 }, 'headerProduct', 10.5, true, WHITE);
     this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 309, y: 59, w: 180, h: 18 }, 'headerSubtitle', 8, false, WHITE);
     this.d.setFillColor(...(this.enterprise ? [255, 194, 0] as Color : [0, 161, 119] as Color));
     this.d.roundedRect(494, 30, 70, 30, 4, 4, 'F');
-    this.text(this.enterprise ? 'ENTERPRISE' : 'PRO', { x: 500, y: 39, w: 60, h: 17 }, 'headerPlan', this.enterprise ? 8 : 11, true, this.enterprise ? INK : WHITE);
+    this.text(this.enterprise ? 'ENTERPRISE' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'L1', { x: 500, y: 39, w: 60, h: 17 }, 'headerPlan', this.enterprise ? 8 : 11, true, this.enterprise ? INK : WHITE);
     this.d.setFillColor(...WHITE); this.d.roundedRect(14, 82, 567.28, 68, 10, 10, 'F');
     this.icon(icon, X + 4, 101, 31, this.enterprise ? DARK : [0, 79, 89]);
     this.text(title, { x: X + 45, y: 99, w: 384, h: 32 }, 'headerPageTitle', 21, true, INK);
@@ -129,15 +121,26 @@ export class ReferenceReportComposition {
       y += height + 13;
     });
   }
-  rows(rows: readonly { label: string; value: string; source?: string }[], b: Box, id: string, size = 9, sources = true) {
+  compactLabel(row: Pick<ReportRow, 'label' | 'evidenceRefs'>) {
+    const names: Record<string, string> = {
+      lotSizeAcres: this.t('Terreno (acres)', 'Lot (acres)', 'Terreno (acres)'), assessorId: 'APN', annualPropertyTax: this.t('Imposto / ano', 'Annual tax', 'Impuesto / año'),
+      propertyTaxYear: this.t('Ano do imposto', 'Tax year', 'Año fiscal'), assessmentYear: this.t('Ano de avaliação', 'Assessment year', 'Año de valoración'),
+      ownerOccupied: this.t('Ocupação própria', 'Owner occupied', 'Ocupado por dueño'), ownershipRecordPresent: this.t('Titularidade', 'Ownership record', 'Titularidad'),
+      latestSalePrice: this.t('Última venda', 'Last sale', 'Última venta'), latestSaleDate: this.t('Data da venda', 'Sale date', 'Fecha de venta'),
+    };
+    return names[row.evidenceRefs.find(ref => ref.startsWith('fact:'))?.slice(5) || ''] || row.label;
+  }
+  rows(rows: readonly { label: string; value: string; source?: string; state?: string; evidenceRefs?: string[] }[], b: Box, id: string, size = 9, sources = true, compact = false) {
     let y = b.y;
     const shared = sources ? [...new Set(rows.map(row => row.source).filter((s): s is string => !!s))] : [];
     rows.forEach(row => {
-      const lw = b.w * .46, rw = b.w - lw - 8;
-      const height = Math.max(this.flow.lines(row.label, lw, size).length, this.flow.lines(row.value, rw, size, true).length) * (size + 4) + 7;
+      const label = compact ? this.compactLabel({ ...row, evidenceRefs: row.evidenceRefs || [] }) : row.label;
+      const lw = b.w * (compact && label === 'APN' ? .2 : .44), flagged = row.state === 'CONFLICTED', rw = b.w - lw - 8 - (flagged ? 13 : 0);
+      const height = Math.max(this.flow.lines(label, lw, size).length, this.flow.lines(row.value, rw, size, true).length) * (size + 4) + (compact ? 4 : 7);
       if (y + height > b.y + b.h) { this.deferred.push({ id, title: this.section(id)?.title || this.t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), text: `${row.label}: ${row.value}${row.source ? ` · ${row.source}` : ''}`, covered: [row.value, row.source || ''] }); return; }
-      this.text(row.label, { x: b.x, y, w: lw, h: height }, id, size);
-      this.text(row.value, { x: b.x + lw + 8, y, w: rw, h: height }, id, size, true, INK);
+      this.text(label, { x: b.x, y, w: lw, h: height }, id, size);
+      if (flagged) this.icon('warning', b.x + lw + 7, y + 1, 10, GOLD);
+      this.text(row.value, { x: b.x + lw + 8 + (flagged ? 13 : 0), y, w: rw, h: height }, id, size, true, INK);
       y += height;
     });
     if (shared.length) this.text(shared.join(' · '), { x: b.x, y: y + 4, w: b.w, h: Math.max(0, b.y + b.h - y - 4) }, id, 7);
@@ -188,8 +191,8 @@ export class ReferenceReportComposition {
     this.text(p.address, { ...left, h: 65 }, 'propertyIdentity', 23, true, INK);
     const addressHeight = this.flow.lines(p.address, left.w, 23, true).length * 27;
     this.text(p.location, { ...left, y: y + addressHeight + 5, h: 38 }, 'propertyLocation', 13, true);
-    this.d.setFillColor(...this.accent); this.d.roundedRect(left.x, y + 77, 110, 23, 4, 4, 'F');
-    this.text(p.strategy, { x: left.x + 7, y: y + 82, w: 97, h: 17 }, 'propertyStrategy', 9, true, this.enterprise ? INK : WHITE);
+    this.d.setFillColor(...this.accent); this.d.roundedRect(left.x, y + 77, 237, 23, 4, 4, 'F');
+    this.text(`${p.type} · ${p.strategy}`, { x: left.x + 7, y: y + 82, w: 223, h: 17 }, 'propertyStrategy', 9, true, this.enterprise ? INK : WHITE);
     this.text(p.price, { ...left, y: y + 111, h: 40 }, 'propertyPrice', 27, true, this.enterprise ? GOLD : [0, 111, 239]);
     const photo = { x: X + 263, y, w: WIDTH - 263, h: height };
     if (!p.photos[0] || !this.flow.image(p.photos[0], photo.x, photo.y, photo.w, photo.h)) {
@@ -199,30 +202,39 @@ export class ReferenceReportComposition {
     p.metrics.slice(0, 3).forEach((metric, i) => {
       const mx = left.x + i * 82;
       this.icon(['bed', 'bath', 'area'][i], mx, y + height - 27, 16, this.accent);
-      this.text(`${metric.value} ${metric.label}`, { x: mx + 22, y: y + height - 26, w: 59, h: 31 }, 'propertyMetrics', 7.5, true, INK);
+      if (metric.state === 'CONFLICTED') this.icon('warning', mx + 21, y + height - 25, 9, GOLD);
+      this.text(String(metric.value), { x: mx + (metric.state === 'CONFLICTED' ? 34 : 22), y: y + height - 26, w: metric.state === 'CONFLICTED' ? 47 : 59, h: 31 }, 'propertyMetrics', 7.5, true, INK);
     });
   }
   locationCard(b: Box) {
     const body = this.panel(b, this.t('Mapa de localização', 'Location map', 'Mapa de ubicación'), 'pin', 'neutral', 'propertyLocationMap');
+    body.y = b.y + 35; body.h = b.h - 43;
     const mapHeight = body.h - 16;
-    if (this.vm.property.locationPoint && mapHeight > 35) {
-      if (!this.location || !this.flow.image(this.location, body.x, body.y, body.w, mapHeight)) this.flow.drawMap([this.vm.property.locationPoint], body.x, body.y, body.w, mapHeight, 'propertyLocationMap');
+    if (this.vm.property.locationPoint && mapHeight >= 24) {
+      if (!this.location || !this.flow.mapImage(this.location, body.x, body.y, body.w, mapHeight)) this.flow.drawMap([this.vm.property.locationPoint], body.x, body.y, body.w, mapHeight, 'propertyLocationMap');
       this.text(this.location ? '© OpenStreetMap contributors' : this.t('Diagrama de coordenadas; não é levantamento.', 'Coordinate diagram; not a survey.', 'Diagrama de coordenadas; no es un levantamiento.'), { ...body, y: body.y + mapHeight + 4, h: 14 }, 'propertyLocationMap', 6.5);
     } else this.text(this.missing, body, 'propertyLocationMap');
   }
   overview() {
-    this.page(this.enterprise ? 'Property Overview' : 'Executive Summary', this.t('Informações gerais do imóvel', 'Property overview and context', 'Información general del inmueble'));
-    this.hero(163, this.enterprise ? 184 : 222);
-    if (this.enterprise) {
+    this.page('Property Overview', this.t('Informações gerais do imóvel', 'Property overview and context', 'Información general del inmueble'));
+    this.hero(163, 174);
+    {
       const groups = this.vm.property.facts, widths = (WIDTH - 2 * GAP) / 3;
       const owner = groups.find(g => /publicador|publisher/i.test(g.title));
       const physical = groups.find(g => /dados do imóvel|property facts|datos del inmueble/i.test(g.title));
       const parcel = groups.filter(g => g !== owner && g !== physical);
-      [owner, physical, { title: this.t('Terreno e dados fiscais', 'Land and tax information', 'Terreno y datos fiscales'), rows: parcel.flatMap(g => g.rows) }].forEach((group, i) => {
+      const cards = [owner, physical, { title: this.t('Terreno e dados fiscais', 'Land and tax information', 'Terreno y datos fiscales'), rows: parcel.flatMap(g => g.rows) }];
+      const contentWidth = widths - 26, labelWidth = contentWidth * .44;
+      const heights = cards.map(group => 50 + (group?.rows || []).reduce((sum, row) => sum + Math.max(
+        this.flow.lines(this.compactLabel(row), labelWidth, 8).length,
+        this.flow.lines(row.value, contentWidth - labelWidth - 8 - (row.state === 'CONFLICTED' ? 13 : 0), 8, true).length) * 12 + 4, 0));
+      const factsHeight = Math.max(140, Math.min(270, Math.max(...heights)));
+      cards.forEach((group, i) => {
         const heading = i === 0 ? this.t('Publicador', 'Publisher', 'Publicador') : i === 1 ? this.t('Dados do imóvel', 'Property details', 'Datos del inmueble') : this.t('Dados do terreno', 'Land information', 'Datos del terreno');
-        const body = this.panel({ x: X + i * (widths + GAP), y: 358, w: widths, h: 169 }, heading, ['user', 'home', 'pin'][i], 'neutral', `overviewFacts${i}`);
+        const body = this.panel({ x: X + i * (widths + GAP), y: 348, w: widths, h: factsHeight }, heading, ['user', 'home', 'pin'][i], 'neutral', `overviewFacts${i}`);
+        body.y = 390; body.h = factsHeight - 50;
         if (group?.rows.length) {
-          this.rows(group.rows, body, `overviewFacts${i}`, 7.4, false);
+          this.rows(group.rows, body, `overviewFacts${i}`, 8, false, true);
           for (const s of this.vm.sections.filter(s => s.rows?.some(row => group.rows.includes(row)))) {
             const parent = this.flow.audit.sections[this.flow.audit.sections.length - 1];
             this.flow.audit.sections.push({ ...parent, sectionId: s.id, title: s.title, kind: 'reference-facts' });
@@ -231,28 +243,23 @@ export class ReferenceReportComposition {
         else this.text(this.missing, body, `overviewFacts${i}`, 9);
       });
       this.vm.sections.filter(s => /^(property-facts-|property-tax|property-contacts)/.test(s.id)).forEach(s => this.seen.add(s.id));
-      const photoBody = this.panel({ x: X, y: 537, w: WIDTH, h: 91 }, this.t('Fotos do imóvel', 'Property photos', 'Fotos del inmueble'), 'document', 'neutral', 'propertyPhotos');
-      const photos = this.vm.property.photos.slice(0, 4), pw = (photoBody.w - 3 * 5) / 4;
-      photos.forEach((photo, i) => this.flow.image(photo, photoBody.x + i * (pw + 5), 571, pw, 48));
-      if (!photos.length) this.text(this.missing, { ...photoBody, y: 584, h: 25 }, 'propertyPhotos', 9);
-      this.locationCard({ x: X, y: 638, w: WIDTH * .57, h: 153 });
-      const notes = this.panel({ x: X + WIDTH * .57 + GAP, y: 638, w: WIDTH * .43 - GAP, h: 153 }, this.t('Notas', 'Notes', 'Notas'), 'document', 'neutral', 'publisher-notes');
+      let next = 348 + factsHeight + 9;
+      const notice = this.section('data-discrepancies');
+      if (notice?.text) {
+        this.icon('warning', X + 3, next + 2, 12, GOLD);
+        this.text(`${notice.title}: ${notice.text}`, { x: X + 21, y: next, w: WIDTH - 25, h: 29 }, notice.id, 7.5);
+        this.seen.add(notice.id); next += 34;
+      }
+      const photoBody = this.panel({ x: X, y: next, w: WIDTH, h: 69 }, this.t('Fotos do imóvel', 'Property photos', 'Fotos del inmueble'), 'document', 'neutral', 'propertyPhotos');
+      const photos = this.vm.property.photos.slice(0, 5), pw = (photoBody.w - 4 * 5) / 5;
+      photos.forEach((photo, i) => this.flow.image(photo, photoBody.x + i * (pw + 5), next + 33, pw, 29));
+      if (!photos.length) this.text(this.missing, { ...photoBody, y: next + 40, h: 25 }, 'propertyPhotos', 8);
+      next += 78;
+      this.locationCard({ x: X, y: next, w: WIDTH * .57, h: Math.max(55, 791 - next) });
+      const notes = this.panel({ x: X + WIDTH * .57 + GAP, y: next, w: WIDTH * .43 - GAP, h: Math.max(55, 791 - next) }, this.t('Notas', 'Notes', 'Notas'), 'document', 'neutral', 'publisher-notes');
+      notes.y = next + 35; notes.h = Math.max(10, 791 - next - 45);
       this.text(this.vm.property.notes.join('\n') || this.missing, notes, 'publisher-notes', 8);
       if (this.section('publisher-notes')) this.seen.add('publisher-notes');
-    } else {
-      const labels = [this.t('Tipo de imóvel', 'Property type', 'Tipo de inmueble'), this.t('Estratégia', 'Strategy', 'Estrategia'), this.t('Localização', 'Location', 'Ubicación')];
-      [this.vm.property.type, this.vm.property.strategy, this.vm.property.location].forEach((value, i) => {
-        const body = this.panel({ x: X + i * ((WIDTH + GAP) / 3), y: 405, w: (WIDTH - GAP * 2) / 3, h: 106 }, labels[i], ['home', 'target', 'pin'][i], 'neutral', `summary${i}`);
-        this.text(value, body, `summary${i}`, 12, true, INK);
-      });
-      const summary = this.panel({ x: X, y: 525, w: WIDTH, h: 143 }, this.t('Resumo da oportunidade', 'Opportunity summary', 'Resumen de la oportunidad'), 'document', 'neutral', 'executiveSnapshot');
-      const afterSummary = this.text(this.vm.executive?.thesis.text || this.missing, summary, 'executiveSnapshot', 11);
-      if (this.vm.property.notes.length) {
-        this.text(this.vm.property.notes.join('\n'), { ...summary, y: afterSummary + 6, h: Math.max(0, summary.y + summary.h - afterSummary - 6) }, 'publisher-notes', 7.5);
-        this.seen.add('publisher-notes');
-      }
-      const rent = this.section('market-rent') || this.section('rent-pending');
-      this.module(rent, { x: X, y: 680, w: WIDTH, h: 111 }, this.t('Evidências de mercado', 'Market evidence', 'Evidencia de mercado'), 'chart');
     }
   }
   market() {
@@ -265,29 +272,53 @@ export class ReferenceReportComposition {
       this.module(this.section('price-positioning') || this.section('land-market-readiness'), { x: X, y: 498, w: WIDTH, h: 168 }, this.t('Imóveis comparáveis', 'Comparable properties', 'Inmuebles comparables'), 'chart');
     }
     const notes = this.panel({ x: X, y: 678, w: WIDTH, h: 113 }, this.t('Observações da análise', 'Analysis notes', 'Observaciones del análisis'), 'document', 'neutral', 'marketObservations');
-    this.text(main?.map?.caption || this.vm.executive?.blocker?.text || this.missing, notes, 'marketObservations', 9);
+    this.text(main?.map?.caption || this.vm.executive?.blocker?.text || this.missing, { ...notes, h: 32 }, 'marketObservations', 8);
+    const pending = this.section('rent-pending');
+    if (pending?.text) {
+      this.text(`${pending.title}: ${pending.text}`, { ...notes, y: notes.y + 36, h: Math.max(20, notes.h - 36) }, pending.id, 8);
+      this.seen.add(pending.id);
+    }
     for (const s of sections.slice(1)) { this.page(s.title, this.t('Referências complementares de mercado', 'Additional market references', 'Referencias adicionales de mercado')); this.identity(); this.marketTable(s, 236); }
   }
   marketTable(s: ReportSection, top: number) {
     this.seen.add(s.id);
-    const mapBody = this.panel({ x: X, y: top, w: WIDTH, h: 230 }, this.t('Localização dos comparáveis', 'Comparable locations', 'Ubicación de comparables'), 'pin', 'neutral', `${s.id}Map`);
+    const dense = (s.table?.rows.length || 0) > 5 || (s.table?.columns.length || 0) > 5, mapHeight = dense ? 165 : 230;
+    const mapBody = this.panel({ x: X, y: top, w: WIDTH, h: mapHeight }, this.t('Localização dos comparáveis', 'Comparable locations', 'Ubicación de comparables'), 'pin', 'neutral', `${s.id}Map`);
     if (s.map?.points.length) {
-      if (!this.maps[s.id] || !this.flow.image(this.maps[s.id]!, mapBody.x, top + 38, mapBody.w, 172)) this.flow.drawMap(s.map.points, mapBody.x, top + 38, mapBody.w, 172, s.id);
-      this.text(this.maps[s.id] ? '© OpenStreetMap contributors' : this.t('Diagrama de coordenadas; não é mapa cadastral.', 'Coordinate diagram; not a cadastral map.', 'Diagrama de coordenadas; no es mapa catastral.'), { x: mapBody.x, y: top + 212, w: mapBody.w, h: 14 }, s.id, 6.5);
+      if (!this.maps[s.id] || !this.flow.mapImage(this.maps[s.id]!, mapBody.x, top + 53, mapBody.w, mapHeight - 73)) this.flow.drawMap(s.map.points, mapBody.x, top + 53, mapBody.w, mapHeight - 73, s.id);
+      this.text(this.maps[s.id] ? '© OpenStreetMap contributors' : this.t('Diagrama de coordenadas; não é mapa cadastral.', 'Coordinate diagram; not a cadastral map.', 'Diagrama de coordenadas; no es mapa catastral.'), { x: mapBody.x, y: top + mapHeight - 18, w: mapBody.w, h: 14 }, s.id, 6.5);
+      const tones = [['sold', 'SOLD', [230, 164, 22]], ['for-sale', 'FOR SALE', [220, 53, 69]], ['complementary', this.t('Complementares', 'Complementary', 'Complementarios'), [139, 92, 246]]] as const;
+      const legend = tones.filter(([tone]) => s.map!.points.some(p => p.markerTone === tone));
+      if (legend.length) {
+        const x = mapBody.x, y = top + 34;
+        legend.forEach(([, label, color], index) => { this.d.setFillColor(color[0], color[1], color[2]); this.d.circle(x + 7 + index * 124, y + 6, 3, 'F'); this.text(label, { x: x + 16 + index * 124, y: y + 1, w: 106, h: 14 }, `${s.id}Legend`, 7); });
+      }
     } else this.text(this.missing, mapBody, s.id);
-    const table = this.panel({ x: X, y: top + 240, w: WIDTH, h: 190 }, s.title, 'chart', 'neutral', s.id);
     const cols = s.table?.columns || [], rows = s.table?.rows || [];
     const weights = cols.map((_, i) => i === 0 ? .045 : i === 1 ? .36 : (1 - .405) / Math.max(1, cols.length - 2));
-    let y = top + 282;
-    this.d.setFillColor(230, 237, 241); this.d.roundedRect(table.x - 5, y, table.w + 10, 25, 4, 4, 'F');
+    let table = { x: X + 13, y: top + mapHeight + 10, w: WIDTH - 26, h: 0 }, y = 0;
+    const tableBottom = 666;
+    const header = (tableTop: number, continuation = false) => {
+      table = this.panel({ x: X, y: tableTop, w: WIDTH, h: tableBottom - tableTop }, continuation ? `${s.title} — ${this.t('continuação', 'continued', 'continuación')}` : s.title, 'chart', 'neutral', s.id);
+      y = tableTop + 44;
+      this.d.setFillColor(230, 237, 241); this.d.roundedRect(table.x - 5, y, table.w + 10, 30, 4, 4, 'F');
+    };
+    header(top + mapHeight + 10);
+    const heightOf = (cells: readonly string[], size: number, bold: boolean) => Math.max(...cells.map((cell, i) => this.flow.lines(cell, table.w * weights[i] - 6, size, bold).length)) * (size + 4) + 6;
     const line = (cells: readonly string[], bold: boolean, size: number) => {
       let x = table.x;
-      const height = Math.max(...cells.map((cell, i) => this.flow.lines(cell, table.w * weights[i] - 6, size, bold).length)) * (size + 4) + 6;
+      const height = heightOf(cells, size, bold);
       cells.forEach((cell, i) => { this.text(cell, { x: x + 2, y: y + 3, w: table.w * weights[i] - 6, h: height }, s.id, size, bold, INK); x += table.w * weights[i]; });
       y += height;
     };
-    line(cols, true, 7); rows.forEach(row => { line(row, false, 7.2); this.d.setDrawColor(...LINE); this.d.line(table.x, y - 2, table.x + table.w, y - 2); });
-    if (y > top + 425) throw new Error(`REPORT_REFERENCE_TABLE_OVERFLOW:${s.id}`);
+    line(cols, true, 7);
+    for (const row of rows) {
+      if (y + heightOf(row, 7.2, false) > tableBottom - 7) {
+        this.page(s.title, this.t('Relação de comparáveis — continuação', 'Comparable list — continued', 'Relación de comparables — continuación'), 'chart');
+        this.identity(); header(236, true); line(cols, true, 7);
+      }
+      line(row, false, 7.2); this.d.setDrawColor(...LINE); this.d.line(table.x, y - 2, table.x + table.w, y - 2);
+    }
   }
   valuation() {
     this.page('Valuation Intelligence / ARV / KPIs', this.t('Análise de valor, métricas e potencial de retorno', 'Valuation, metrics and return potential', 'Valoración, métricas y potencial de rentabilidad'), 'chart'); this.identity();
@@ -352,15 +383,10 @@ export class ReferenceReportComposition {
     this.module(criteria || this.section('profile-readiness'), { x: X, y: top + 237, w: HALF, h: 198 }, this.t('Fit por critério', 'Fit by criterion', 'Compatibilidad por criterio'), 'chart');
     const riskBody = this.panel({ x: X + HALF + GAP, y: top + 237, w: HALF, h: 198 }, this.t('Análise de risco', 'Risk analysis', 'Análisis de riesgo'), 'warning', 'neutral', 'riskAnalysis');
     this.list(this.texts('decision-blockers'), riskBody, 'decision-blockers', 'warning', 8.5); this.seen.add('decision-blockers');
-    const bottom = this.panel({ x: X, y: top + 447, w: WIDTH, h: this.enterprise ? 112 : 165 }, this.enterprise ? this.t('Resumo de evidências', 'Evidence summary', 'Resumen de evidencia') : this.t('Insights e registros do imóvel', 'Property insights and records', 'Conclusiones y registros del inmueble'), 'document', 'neutral', 'profileInsights');
-    if (this.enterprise) this.text(this.vm.executive?.thesis.text || this.missing, bottom, 'profileInsights', 10);
-    else {
-      const remaining = this.vm.sections.filter(s => /^(property-facts-|property-tax|property-contacts)/.test(s.id));
-      const extra = remaining.flatMap(s => s.rows || []).filter(row => !this.vm.property.metrics.some(metric => metric.label === row.label));
-      const col = (bottom.w - 12) / 3;
-      for (let i = 0; i < 3; i++) this.rows(extra.filter((_, index) => index % 3 === i), { x: bottom.x + i * (col + 6), y: bottom.y, w: col, h: bottom.h }, 'profileInsights', 7, false);
-      remaining.forEach(s => { this.seen.add(s.id); const parent = this.flow.audit.sections[this.flow.audit.sections.length - 1]; this.flow.audit.sections.push({ ...parent, sectionId: s.id, title: s.title, kind: 'reference-facts' }); });
-    }
+    if (this.enterprise) {
+      const bottom = this.panel({ x: X, y: top + 447, w: WIDTH, h: 112 }, this.t('Resumo de evidências', 'Evidence summary', 'Resumen de evidencia'), 'document', 'neutral', 'profileInsights');
+      this.text(this.vm.executive?.thesis.text || this.missing, bottom, 'profileInsights', 10);
+    } else this.module(this.section('market-rent') || this.section('rent-pending'), { x: X, y: top + 447, w: WIDTH, h: 165 }, this.t('Evidências de aluguel', 'Rent evidence', 'Evidencia de alquiler'), 'chart');
   }
   verification() {
     this.page(this.enterprise ? 'Key Insights & Verification' : 'Key Insights & Next Steps', this.t('Principais conclusões e orientações de verificação', 'Key findings and verification guidance', 'Conclusiones y orientación de verificación'));
@@ -434,7 +460,7 @@ export class ReferenceReportComposition {
   async draw(yieldRendering: () => Promise<void>) {
     this.overview(); await yieldRendering();
     if (this.enterprise) { this.market(); await yieldRendering(); this.valuation(); await yieldRendering(); }
-    this.profile(); await yieldRendering(); this.verification(); await yieldRendering();
+    if (this.vm.reportType !== 'PROPERTY_RELEASE') { this.profile(); await yieldRendering(); this.verification(); await yieldRendering(); }
     for (const s of this.vm.sections) this.sectionAppendix(s);
     if (this.enterprise) this.conclusion();
     // Preserve longer sources/notes and additional scenarios in meaningful native sections.
@@ -451,7 +477,7 @@ export class ReferenceReportComposition {
     }
     const result = this.flow.finish(), total = this.d.getNumberOfPages();
     for (let page = 1; page <= total; page++) {
-      this.d.setPage(page); this.d.setFillColor(...WHITE); this.d.rect(0, 799, 595.28, 43, 'F'); this.brand(X + 4, 803, true);
+      this.d.setPage(page); this.d.setFillColor(...WHITE); this.d.rect(0, 799, 595.28, 43, 'F');
       const pageText = `${this.t('Página', 'Page', 'Página')} ${page} ${this.t('de', 'of', 'de')} ${total}`;
       this.text(pageText, { x: 440, y: 816, w: 130, h: 20 }, 'footerPage', 10, true, INK);
     }

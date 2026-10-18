@@ -404,6 +404,7 @@ function valuationEvidence(value) {
     providerEstimateDivergence: toKnownFiniteNumber(value.providerEstimateDivergence) !== null
       ? Number(value.providerEstimateDivergence) : null,
     activeSaleListings: Object.freeze(Array.isArray(value.activeSaleListings) ? value.activeSaleListings.slice(0, 10) : []),
+    providerListingReferences: Object.freeze(Array.isArray(value.providerListingReferences) ? value.providerListingReferences.slice(0, 10) : []),
     marketData: isObject(value.marketData) ? Object.freeze({ ...value.marketData }) : null,
     rentalEvidence: isObject(value.rentalEvidence) ? Object.freeze({ ...value.rentalEvidence }) : null,
   });
@@ -523,7 +524,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
   const canonicalFocusMap = normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
     ? maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
       ? dealIntelligence?.canonicalInvestmentAnalysis?.focusMap : null;
-  const marketRent=projectMarketRentReport(normalizedType==='DEAL_INTELLIGENCE'
+  const rentResult = normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? dealIntelligence?.marketRent : maxxisAnalysis?.marketRent;
+  const marketRent=projectMarketRentReport(rentResult?.state === 'AVAILABLE' && rentResult.evidence ? rentResult.evidence : normalizedType==='DEAL_INTELLIGENCE'
     ?dealIntelligence?.valuationIntelligence?.rentalEvidence?.rentEstimate:maxxisAnalysis?.marketContext?.rentEstimate,property,normalizedType==='DEAL_INTELLIGENCE'?3:normalizedType==='MAXXIS_ANALYSIS'?2:1,
     normalizedType==='DEAL_INTELLIGENCE'?dealIntelligence?.financialEvidence:maxxisAnalysis?.financialEvidence);
   return Object.freeze({
@@ -540,6 +542,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       brand: 'DealSifter Match',
       design: 'PREMIUM_INVESTOR_REPORT_V2',
       ...(marketRent?{marketRent}:{}),
+      marketRentState: normalizedType !== INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE && rentResult
+        ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null }) : null,
       financialEvidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? dealIntelligence?.financialEvidence || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
           ? maxxisAnalysis?.financialEvidence || null : null,

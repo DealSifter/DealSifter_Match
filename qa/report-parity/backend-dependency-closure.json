@@ -1,0 +1,40 @@
+{
+  "baseline": "29adf9f32fcec3d99110e3bc1c32c591df60ba5e",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts",
+    "supabase/functions/_shared/property-data/rentAvmSubject.ts",
+    "supabase/functions/_shared/maxxis/reportMarketReferences.ts",
+    "supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "arv-visual-comp-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+        "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts",
+        "supabase/functions/_shared/maxxis/reportMarketReferences.ts",
+        "supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    },
+    {
+      "function": "property-intelligence",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    }
+  ]
+}

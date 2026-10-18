@@ -1,4 +1,5 @@
 import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
+import { projectProviderListingReferences } from './reportMarketReferences.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   createBackendValuationEvidenceService,
@@ -527,6 +528,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerEstimateRange: toKnownFiniteNumber(providerEstimateLow) !== null && toKnownFiniteNumber(providerEstimateHigh) !== null
       ? { low: Number(providerEstimateLow), high: Number(providerEstimateHigh) } : null,
     providerComparableCount: providerEvidenceState.valuation?.valuation.providerComparableCount || 0,
+    providerListingReferences: requestedReportType === 'DEAL_INTELLIGENCE'
+      ? projectProviderListingReferences(providerEvidenceState.valuation?.valuation.comparables) : [],
     recordedSoldCount: providerEvidenceState.sold?.soldPool.records.length || 0,
     supportingMarketSalesCount: providerEvidenceState.sold?.recordedSoldCompSelection.directSoldCompCandidates.length || 0,
     medianRecordedSalePrice: soldStatistics?.medianRecordedSalePrice ?? null,

@@ -17,6 +17,7 @@ import { publicFinancialTaxProof } from './financialEvidenceContext.ts';
 import { buildFinancialInputReadiness } from './financialReadiness.ts';
 import { createBackendMarketRentService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 import type {RentAvmSubject} from '../property-data/rentAvmSubject.ts';
+import { shouldAcquireReportMarketRent, reportMarketRentSubject } from './reportMarketRentPolicy.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
@@ -105,7 +106,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; rentAvmSubject?:boolean;marketRentAcquisition?:boolean;parcelEvidenceReceipt?:unknown } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; rentAvmSubject?:boolean;marketRentAcquisition?:boolean;providerBudgetBucket?:'chat'|'report';parcelEvidenceReceipt?:unknown } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -133,16 +134,17 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         const admin=createClient(supabaseUrl,supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
         let first=true;
         const service=createBackendMarketRentService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
-          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'},
+          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:context.providerBudgetBucket || 'chat'},
           hasEntitlement:async()=>{
             if(context.plan==='PRO'||context.plan==='ENTERPRISE')return true;
             const check=await authenticated.client.rpc('ds_has_property_intelligence_entitlement',{p_property_id:propertyId,p_unlock_type:'property_record'});
             return !check.error&&check.data===true;
           },
           resolveSubject:async():Promise<RentAvmSubject>=>{
-            if(first){first=false;return initialSubject;}
+            const normalize=(subject:RentAvmSubject)=>context.providerBudgetBucket==='report'?reportMarketRentSubject(subject):subject;
+            if(first){first=false;return normalize(initialSubject);}
             const result=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId},authHeader,{...context,financialEvidence:false,marketRentAcquisition:false,rentAvmSubject:true});
-            return (result.type==='canonical_property_evidence'&&result.state==='available'?result.rentAvmSubject:null)??{propertyId,state:'SUBJECT_UNAVAILABLE'} as RentAvmSubject;
+            return normalize((result.type==='canonical_property_evidence'&&result.state==='available'?result.rentAvmSubject:null)??{propertyId,state:'SUBJECT_UNAVAILABLE'} as RentAvmSubject);
           }});
         return service.get({propertyId,userId:authenticated.userId,acquire:context.marketRentAcquisition===true});
       },
@@ -227,12 +229,20 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
       Boolean(context.cacheOnly),
     );
     if ((args as Record<string, unknown>)?.reportType && report.state === 'available' && report.intelligenceSnapshot) {
-      // Same authorized resolver as conversational answers; never acquire a second AVM here.
+      // Explicit report generation is cache-first, not cache-only. The service
+      // coalesces fresh/cache/in-flight results and enforces subject, entitlement and usage gates.
       const evidence: Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null = await executeMaxxisTool('getCanonicalPropertyEvidence', { propertyId: report.intelligenceSnapshot.propertyId }, authHeader,
-        { ...context, financialEvidence: true, marketRentAcquisition: false, cacheOnly: true }).catch(() => null) as Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null;
+        { ...context, financialEvidence: true, providerBudgetBucket: 'report',
+          marketRentAcquisition: shouldAcquireReportMarketRent((args as Record<string, unknown>)?.reportType, context.cacheOnly),
+        }).catch(() => null) as Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null;
       if (evidence?.type === 'canonical_property_evidence' && evidence.state === 'available' && evidence.financialEvidence) {
         return { ...report, intelligenceSnapshot: { ...report.intelligenceSnapshot,
           financialEvidence: evidence.financialEvidence,
+          marketRent: evidence.marketRent || null,
+          ...(evidence.marketRent?.state === 'AVAILABLE' && evidence.marketRent.evidence ? {
+            rentalEvidence: { ...report.intelligenceSnapshot.rentalEvidence, rentEstimate: evidence.marketRent.evidence },
+            providerMarketContext: { ...report.intelligenceSnapshot.providerMarketContext, rentEstimate: evidence.marketRent.evidence },
+          } : {}),
           financialReadiness: buildFinancialInputReadiness(evidence.financialEvidence, { strategy: evidence.financialStrategy, propertyType: evidence.financialPropertyType }),
         } };
       }

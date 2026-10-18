@@ -74,7 +74,7 @@ const pendingMaps = new WeakMap();
 export function getPreparedReportMaps(schema) { return reportMaps.get(schema) || {}; }
 export function preparedReportMapCacheKey(schema) { return reportMaps.has(schema) ? 'maps-ready' : 'maps-pending'; }
 export async function prepareReportMaps(schema, language = 'en') {
-  if (!schema || schema.reportType === 'PROPERTY_RELEASE' || typeof document === 'undefined') return {};
+  if (!schema || typeof document === 'undefined') return {};
   if (reportMaps.has(schema)) return reportMaps.get(schema);
   if (pendingMaps.has(schema)) return pendingMaps.get(schema);
   const work = (async () => {
@@ -83,7 +83,8 @@ export async function prepareReportMaps(schema, language = 'en') {
     const maps = vm.sections.filter(s => s.map?.points?.length).map(s => [s.id, s.map.points]);
     if (vm.property.locationPoint) maps.push(['location', [vm.property.locationPoint]]);
     const images = Object.fromEntries(await Promise.all(maps.map(async ([id, points]) => [id,
-      await resolveComparableMap(schema, { points: points.map(p => ({ ...p, markerTone: p.marker === 'S' ? '#15384f' : '#0d876f' })) })])));
+      await resolveComparableMap(schema, { points: points.map(p => ({ ...p, markerTone: p.marker === 'S' ? '#15384f'
+        : p.markerTone === 'sold' ? '#e6a416' : p.markerTone === 'for-sale' ? '#dc3545' : p.markerTone === 'complementary' ? '#8b5cf6' : '#0d876f' })) })])));
     reportMaps.set(schema, images); pendingMaps.delete(schema); return images;
   })();
   pendingMaps.set(schema, work); return work;

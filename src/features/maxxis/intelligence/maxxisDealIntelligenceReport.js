@@ -109,6 +109,7 @@ function valuationIntelligence(context, language = 'en') {
     }) : null,
     providerEstimateDivergence: nullableNumber(market.providerEstimateDivergence),
     activeSaleListings: Object.freeze(list(market.saleListings?.records).slice(0, 10).map((item) => Object.freeze({ ...item }))),
+    providerListingReferences: Object.freeze(list(market.providerListingReferences).map(item => Object.freeze({ ...item }))),
     marketData: isObject(market.market) ? Object.freeze({ ...market.market }) : null,
     rentalEvidence: Object.freeze({
       rentEstimate: isObject(market.rentEstimate) ? Object.freeze({ ...market.rentEstimate }) : null,
@@ -195,13 +196,15 @@ function overview(context, valuation) {
 
 export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = null, snapshotOrFacts = null) {
   if (!isObject(context) || context.type !== 'deal_intelligence_context') return null;
+  const snapshot = isObject(snapshotOrFacts?.propertyFacts) ? snapshotOrFacts : { propertyFacts: snapshotOrFacts };
   const canonical = isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
     ? structuredAnalysis : null;
-  const valuation = valuationIntelligence(context, canonical?.language || 'en');
+  const valuation = valuationIntelligence({ ...context, providerMarketContext: {
+    ...context.providerMarketContext, ...snapshot.providerMarketContext,
+  } }, canonical?.language || 'en');
   const comps = comparableEvidence(context);
   const reportLanguage = canonical?.language || 'en';
   const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });
-  const snapshot = isObject(snapshotOrFacts?.propertyFacts) ? snapshotOrFacts : { propertyFacts: snapshotOrFacts };
   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
     ...context,
     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
@@ -244,6 +247,7 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
     investmentFit: canonicalInvestmentAnalysis.profileFit,
     canonicalInvestmentAnalysis,
     financialEvidence: snapshot.financialEvidence || context.financialEvidence || null,
+    marketRent: snapshot.marketRent || null,
     financialReadiness: snapshot.financialReadiness || context.financialReadiness || null,
     sellerFinancingScenario: savedSellerFinancingScenario,
     activeScenario: savedActiveScenario,

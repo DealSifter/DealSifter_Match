@@ -208,6 +208,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     profileAlignment: alignment,
     canonicalInvestmentAnalysis,
     financialEvidence: snapshot.financialEvidence || dealIntelligence.financialEvidence || null,
+    marketRent: snapshot.marketRent || null,
     financialReadiness: snapshot.financialReadiness || dealIntelligence.financialReadiness || null,
     sellerFinancingScenario: savedSellerFinancingScenario,
     activeScenario: savedActiveScenario,

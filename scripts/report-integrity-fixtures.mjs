@@ -234,7 +234,26 @@ export function reportIntegrityFixtures({ heroImage = null } = {}) {
       metadata: { percentageBasis: 'SCHEDULED_RENT' } }),
   ];
 
+  const parityProperty = { ...lowProperty, yearBuilt: 1950, annualPropertyTax: 1166, propertyTaxYear: 2025,
+    assessedValue: 16651, assessmentYear: 2025, assessorId: 'QA-APN-066', county: 'Pulaski', subdivision: 'QA SUBDIVISION',
+    legalDescription: 'LOT 7R, BEING A REPLAT OF LOTS 7 AND 8', ownerOccupied: false, ownershipRecordPresent: true,
+    latestSalePrice: 30000, latestSaleDate: '2022-06-01', lotSizeSqft: 7013, lotSizeAcres: .161,
+    owner: { name: 'QA Publisher', allowedContacts: [{ type: 'phone', value: '+15550123456' }] },
+    canonicalPropertyFacts: { physical: { baths: fact(1, 'CONFLICTED', 'RENTCAST_PROPERTY_RECORD', { semanticState: 'CONFLICTED', conflict: true }),
+      livingAreaSqft: fact(806, 'CONFLICTED', 'RENTCAST_PROPERTY_RECORD', { semanticState: 'CONFLICTED', conflict: true }),
+      lotSizeSqft: fact(7013, 'CONFLICTED', 'PUBLIC_GIS', { semanticState: 'CONFLICTED', conflict: true }),
+      lotSizeAcres: fact(.161, 'CONFLICTED', 'PUBLIC_GIS', { semanticState: 'CONFLICTED', conflict: true }) }, conflicts: [] } };
+  const parityDeal = emptyDeal();
+  parityDeal.comparableEvidence.used = soldComparables();
+  parityDeal.comparableEvidence.supporting = soldComparables().slice(0, 3).map((row, i) => ({ ...row, compIdentifier: `support-${i}`, address: `${1300 + i} Complementary Sold St`, role: 'SUPPORTING', similarity: 65 - i }));
+  parityDeal.valuationIntelligence.providerListingReferences = Array.from({ length: 8 }, (_, i) => ({ address: `${2100 + i} Mock For Sale St`, price: 110000 + i * 1000,
+    priceSemantic: 'PROVIDER_LISTING_PRICE', providerCorrelation: .80 + i * .01, latitude: 34.731 + i * .002, longitude: -92.33 + i * .001, lastSeenDate: '2026-10-17', distanceMiles: .3 + i * .1 }));
+  parityDeal.marketRent = { state: 'RENT_AVM_REVIEW_REQUIRED', reviewField: 'baths' };
+  const parityInput = baseInput(parityProperty, parityDeal); parityInput.maxxisAnalysis.marketRent = parityDeal.marketRent;
   return [
+    { id: 'PROPERTY_PARITY', slug: 'property-parity', input: parityInput,
+      localizedRegressionNotes: { pt: 'Controle sintético de dados completos e divergências.', en: 'Synthetic complete-property and discrepancy control.', es: 'Control sintético de datos completos y discrepancias.' },
+      expected: { address: parityProperty.address, strategy: 'GENERIC_SELL', noZero: true, noArvModule: true } },
     { id: 'LOW_EVIDENCE_SELL', slug: 'low-evidence-sell', input: lowInput,
       localizedRegressionNotes: {
         pt: 'Registro sintético. A condição do imóvel exige inspeção.',

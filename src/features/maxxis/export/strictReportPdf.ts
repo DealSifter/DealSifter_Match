@@ -16,7 +16,7 @@ interface AuditContinuation { sectionId: string; title: string; kind: string; pa
 interface AuditMap { sectionId: string; page: number; bounds: Bounds; points: { id: string; marker: string; x: number; y: number; radius: number }[] }
 export interface StrictPdfAudit { lines: AuditLine[]; sections: AuditSection[]; continuations: AuditContinuation[]; maps: AuditMap[] }
 export interface SafePdfMeta { product: string; subtitle: string; plan: string; tagline: string; generated: string; page: string; continuation: string; generatedAt: string; locale: string; reportType: string }
-export interface SafePdfMapPoint { id: string; marker: string; latitude: number; longitude: number }
+export interface SafePdfMapPoint { id: string; marker: string; latitude: number; longitude: number; markerTone?: string }
 export interface SafePdfRow { label: string; value: string; source?: string }
 export interface SafePdfSection {
   id: string; title: string; kind: 'narrative' | 'list' | 'facts' | 'comparables' | 'map';
@@ -367,7 +367,8 @@ export class StrictPdfFlow {
       const radius = item.marker === 'S' ? 10 : 8;
       if (px - radius < x || px + radius > x + width || py - radius < y || py + radius > y + height) throw new Error('REPORT_MAP_MARKER_OUTSIDE_BOUNDS');
       plotted.push({ id: item.id, marker: item.marker, x: px, y: py, radius });
-      this.doc.setFillColor(...(item.marker === 'S' ? INK : [13, 135, 111] as Color)); this.doc.setDrawColor(...WHITE); this.doc.setLineWidth(2); this.doc.circle(px, py, radius, 'FD');
+      const color: Color = item.marker === 'S' ? INK : item.markerTone === 'sold' ? [230, 164, 22] : item.markerTone === 'for-sale' ? [220, 53, 69] : item.markerTone === 'complementary' ? [139, 92, 246] : [13, 135, 111];
+      this.doc.setFillColor(...color); this.doc.setDrawColor(...WHITE); this.doc.setLineWidth(2); this.doc.circle(px, py, radius, 'FD');
       this.doc.setFont('NotoSans', 'bold'); this.doc.setFontSize(8);
       const markerWidth = this.doc.getTextWidth(item.marker);
       this.drawText(item.marker, px - markerWidth / 2, py - 5, radius * 2, sectionId, 8, true, WHITE, y + height);
@@ -383,6 +384,16 @@ export class StrictPdfFlow {
       const imageWidth = properties.width * scale, imageHeight = properties.height * scale;
       this.doc.saveGraphicsState(); this.doc.roundedRect(x, y, width, height, 6, 6, null); this.doc.clip(); this.doc.discardPath();
       this.doc.addImage(data, properties.fileType || 'JPEG', x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight); this.doc.restoreGraphicsState();
+      return true;
+    } catch { return false; }
+  }
+
+  mapImage(data: string, x: number, y: number, width: number, height: number) {
+    if (!/^data:image\/(?:png|jpeg|jpg|webp);base64,/i.test(data)) return false;
+    try {
+      const properties = this.doc.getImageProperties(data), scale = Math.min(width / properties.width, height / properties.height);
+      const w = properties.width * scale, h = properties.height * scale;
+      this.doc.addImage(data, properties.fileType || 'PNG', x + (width - w) / 2, y + (height - h) / 2, w, h);
       return true;
     } catch { return false; }
   }
@@ -637,7 +648,7 @@ function contentDensity(layout: Awaited<ReturnType<typeof drawReportBody>>) {
 
 /** The only production PDF body entrypoint accepts the strict display model. */
 export async function drawStrictReportPdf(options: StrictDrawOptions) {
-  if (options.viewModel.reportType !== 'PROPERTY_RELEASE') {
+  {
     const copy = COPY[options.viewModel.locale];
     const flow = new StrictPdfFlow(options.doc, { ...options.viewModel.header, reportType: options.viewModel.reportType, locale: options.viewModel.locale,
       generatedAt: options.generatedAt, generated: copy.generated, page: copy.page, continuation: copy.continuation }, options.logo, { referenceLayout: true });
@@ -645,6 +656,4 @@ export async function drawStrictReportPdf(options: StrictDrawOptions) {
     const drawn = await composition.draw(options.yieldRendering || (async () => {}));
     return { ...drawn, layoutPlan: { preflightPasses: 0, forcedBreakBefore: [], mediaRequests: 0, fontSizeReduction: false, composition: 'APPROVED_REFERENCE_PAGES' } };
   }
-  const drawn = await drawReportBody(options);
-  return { ...drawn, layoutPlan: { preflightPasses: 0, forcedBreakBefore: [], mediaRequests: 0, fontSizeReduction: false } };
 }
