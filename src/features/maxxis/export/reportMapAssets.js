@@ -37,7 +37,7 @@ export async function resolveComparableMap(schema,options={}) {
     ...array(landView ? [] : comparables.excluded).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + array(comparables.supporting).length + index + 1), markerTone: '#7b8995' })),
   ].filter((item) => item.latitude != null && item.longitude != null
     && Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
-  if (all.length < 2 || typeof document === 'undefined') return null;
+  if (!all.length || typeof document === 'undefined') return null;
   try {
     const width = 900; const height = 330; const padding = 65;
     const {zoom,world,left,top}=comparableMapViewport(all,width,height,padding);
@@ -67,6 +67,26 @@ export async function resolveComparableMap(schema,options={}) {
     });
     return canvas.toDataURL('image/png');
   } catch { return null; }
+}
+
+const reportMaps = new WeakMap();
+const pendingMaps = new WeakMap();
+export function getPreparedReportMaps(schema) { return reportMaps.get(schema) || {}; }
+export function preparedReportMapCacheKey(schema) { return reportMaps.has(schema) ? 'maps-ready' : 'maps-pending'; }
+export async function prepareReportMaps(schema, language = 'en') {
+  if (!schema || schema.reportType === 'PROPERTY_RELEASE' || typeof document === 'undefined') return {};
+  if (reportMaps.has(schema)) return reportMaps.get(schema);
+  if (pendingMaps.has(schema)) return pendingMaps.get(schema);
+  const work = (async () => {
+    const { buildStrictReportViewModel } = await import('./reportIntegrityViewModel');
+    const vm = buildStrictReportViewModel({ schema, language });
+    const maps = vm.sections.filter(s => s.map?.points?.length).map(s => [s.id, s.map.points]);
+    if (vm.property.locationPoint) maps.push(['location', [vm.property.locationPoint]]);
+    const images = Object.fromEntries(await Promise.all(maps.map(async ([id, points]) => [id,
+      await resolveComparableMap(schema, { points: points.map(p => ({ ...p, markerTone: p.marker === 'S' ? '#15384f' : '#0d876f' })) })])));
+    reportMaps.set(schema, images); pendingMaps.delete(schema); return images;
+  })();
+  pendingMaps.set(schema, work); return work;
 }
 
 

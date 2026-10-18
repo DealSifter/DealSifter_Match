@@ -5,6 +5,8 @@ import { marketRentReportCopy } from './marketRentReport';
 import { getPreparedReportPhotos } from './reportPreparedAssets';
 import { getCachedPresentationText } from '../../../services/chatTranslation';
 import { projectSavedReportScenario } from './reportSavedScenarioProjection';
+import { formatFinancialEvidenceSource } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceLabels';
+import type { FinancialResolvedInput } from '../../../../supabase/functions/_shared/maxxis/financialEvidence';
 
 type Input = Record<string, unknown>;
 const obj = (v: unknown): Input => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Input : {};
@@ -218,6 +220,18 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   if (!land && ['FLIP', 'GENERIC_SELL', 'WHOLESALE'].includes(strategy) && !scalar(property.condition)) addBlocker('condition', t('A condição física não está documentada; não é possível concluir a necessidade de reforma ou a comparabilidade de condição.', 'Physical condition is not documented; rehabilitation needs and condition comparability remain unconfirmed.', 'La condición física no está documentada; la reforma necesaria y la comparabilidad de condición no están confirmadas.'), t('Confirme a condição atual com inspeção ou documentação para qualificar a reforma e a comparação com vendas.', 'Confirm current condition with inspection or documentation to qualify rehabilitation and comparable sales.', 'Confirme la condición actual con inspección o documentación para calificar la reforma y las ventas comparables.'), ['property:identity'], strategy === 'FLIP' ? 92 : 75);
   if (!known('price')) addBlocker('asking-price', t('O preço de aquisição não foi estabelecido; a análise de preço fica limitada.', 'Acquisition price is not established, limiting price analysis.', 'El precio de adquisición no está establecido, lo que limita el análisis de precio.'), t('Confirme o preço pedido ou de aquisição antes de comparar custo e valor.', 'Confirm asking or acquisition price before comparing cost and value.', 'Confirme el precio solicitado o de adquisición antes de comparar costo y valor.'), ['fact:price'], 85);
   const financial = obj(presentation.financialEvidence), financialInputs = obj(financial.inputs);
+  const resolvedTax = obj(financialInputs.propertyTax);
+  if (level > 1 && Object.keys(resolvedTax).length && resolvedTax.sourceClass !== 'INVESTOR_ASSUMPTION') {
+    const amount = number(resolvedTax.value), conflicted = resolvedTax.analyticalUsability === 'CONFLICTED';
+    const usable = !conflicted && amount !== null && amount >= 0 && resolvedTax.cadence === 'ANNUAL' && resolvedTax.unit === 'USD'
+      && ['ACTUAL', 'USER_PROVIDED_ACTUAL', 'PUBLIC_RECORD'].includes(scalar(resolvedTax.sourceClass)) && !!resolvedTax.source;
+    const source = usable ? formatFinancialEvidenceSource(resolvedTax as unknown as FinancialResolvedInput, locale) : '';
+    const text = usable ? money(amount!, locale) : conflicted ? t('Fontes em conflito; imposto não adotado.', 'Conflicting sources; tax not adopted.', 'Fuentes en conflicto; impuesto no adoptado.') : unavailable;
+    const ref = register('financial:shared-tax', `${text} · ${source}`, usable ? [amount!] : []);
+    values.annualPropertyTax = { state: conflicted ? 'CONFLICTED' : usable ? amount === 0 ? 'EXPLICIT_ZERO' : 'VALUE' : 'UNAVAILABLE', text, numericValue: usable ? amount : null, source, evidenceRefs: [ref] };
+    const year = number(obj(resolvedTax.source).periodYear);
+    values.propertyTaxYear = { state: usable && year !== null ? 'VALUE' : 'UNAVAILABLE', text: usable && year !== null ? String(year) : unavailable, numericValue: usable ? year : null, source, evidenceRefs: [ref] };
+  }
   if (rental) {
     const financialRows: ReportRow[] = [];
     for (const key of ['currentContractRent', 'investorRentAssumption', 'propertyTax', 'hoa', 'insurance', 'vacancy', 'maintenance', 'propertyManagement', 'utilities', 'otherOperatingExpenses']) {
@@ -258,6 +272,22 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
       map: { points: mapPoints, caption: t('S: imóvel analisado. Marcadores e linhas usam as mesmas vendas registradas. Posições relativas derivadas das coordenadas; não é mapa cadastral.', 'S: subject property. Markers and rows use the same recorded sales. Coordinate-derived relative view; not a cadastral map.', 'S: inmueble analizado. Marcadores y filas usan las mismas ventas registradas. Vista relativa por coordenadas; no es mapa catastral.') },
       table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Venda', 'Sale', 'Venta'), t('Data', 'Date', 'Fecha'), t('Distância', 'Distance', 'Distancia')], rows: tableRows, evidenceRefs: selectedSold.map((_, i) => [`sold:${i + 1}`]) }, evidenceRefs: [ref, ...selectedSold.map((_, i) => `sold:${i + 1}`)] });
     opportunities.push(claim(t(`${selectedSold.length} vendas elegíveis sustentam a faixa de ARV de ${money(low, locale)} a ${money(high, locale)} para comparar o cenário de reforma; isso não comprova margem ou retorno.`, `${selectedSold.length} eligible sales support an ARV range of ${money(low, locale)} to ${money(high, locale)} for the rehabilitation scenario; this does not establish margin or return.`, `${selectedSold.length} ventas elegibles sustentan el rango de ARV de ${money(low, locale)} a ${money(high, locale)} para comparar la reforma; no prueba margen ni rentabilidad.`), [ref]));
+  }
+  if (!usableArv && !land && level === 3) {
+    const recorded = [...list(comps.used), ...list(comps.supporting)].map(obj).filter(item => positive(item.salePrice) !== null && scalar(item.saleDate) && !Number.isNaN(new Date(scalar(item.saleDate)).getTime())).slice(0, 5);
+    if (recorded.length) {
+      const points: ReportMapPoint[] = finitePoint(property.latitude, property.longitude) ? [{ id: 'subject', marker: 'S', latitude: Number(property.latitude), longitude: Number(property.longitude) }] : [];
+      const refs: string[][] = [];
+      const rows = recorded.map((item, index) => {
+        const ref = register(`recorded-sale:${index}`, reportNarrativeString(item.address) || unavailable, [Number(item.salePrice)], [scalar(item.compIdentifier)].filter(Boolean)); refs.push([ref]);
+        if (finitePoint(item.latitude, item.longitude)) points.push({ id: ref, marker: String(index + 1), latitude: Number(item.latitude), longitude: Number(item.longitude) });
+        return [String(index + 1), reportNarrativeString(item.address) || unavailable, money(Number(item.salePrice), locale), scalar(item.saleDate), number(item.distanceMiles) === null ? '—' : `${numeric(Number(item.distanceMiles), locale)} mi`];
+      });
+      push({ id: 'sold-reference', title: t('Vendas registradas: evidência de apoio', 'Recorded sales: supporting evidence', 'Ventas registradas: evidencia de apoyo'), kind: 'comparables', priority: 85,
+        text: t('Referências de venda disponíveis; não constituem uma faixa de ARV validada. Condição e critérios de comparação ainda precisam de verificação.', 'Available sale references; these do not establish a validated ARV range. Condition and comparison criteria still require verification.', 'Referencias de venta disponibles; no establecen un rango ARV validado. Condición y criterios de comparación requieren verificación.'),
+        map: { points, caption: t('S: imóvel analisado. Mesmas referências no mapa e na tabela.', 'S: subject property. Same references on the map and in the table.', 'S: inmueble analizado. Mismas referencias en mapa y tabla.') },
+        table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Venda', 'Sale', 'Venta'), t('Data', 'Date', 'Fecha'), t('Distância', 'Distance', 'Distancia')], rows, evidenceRefs: refs }, evidenceRefs: refs.flat() });
+    }
   }
   if (rentAmount !== null && level >= 2) {
     const rentCopy = marketRentReportCopy(locale), unit = rentalView.scope === 'UNIT' ? ` · ${rentCopy.perUnit}` : '';
@@ -319,7 +349,9 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
     const benchmarkSource = t('Referência interna estimada de construção de 2026; não é orçamento de construtora', 'Internal estimated 2026 construction benchmark; not a contractor quote', 'Referencia interna estimada de construcción de 2026; no es presupuesto de constructor');
     if (scalar(output.developmentIntent) && output.developmentIntent !== 'NONE') {
       for (const [key, labels] of Object.entries({ low: ['Referência baixa por sqft', 'Low benchmark per sqft', 'Referencia baja por sqft'], average: ['Referência média por sqft', 'Average benchmark per sqft', 'Referencia media por sqft'], high: ['Referência alta por sqft', 'High benchmark per sqft', 'Referencia alta por sqft'] })) addScenarioRow(benchmarkRows, `benchmark-${key}`, t(labels[0], labels[1], labels[2]), rates[key], 'money', benchmarkSource);
-      push({ id: 'landBenchmark', title: t('Referência de construção estimada', 'Estimated construction benchmark', 'Referencia estimada de construcción'), kind: 'facts', priority: 60, rows: benchmarkRows, evidenceRefs: benchmarkRows.flatMap(row => row.evidenceRefs) });
+      push({ id: 'landBenchmark', title: t('Referência de construção estimada', 'Estimated construction benchmark', 'Referencia estimada de construcción'), kind: 'facts', priority: 60, rows: benchmarkRows,
+        ...(positive(rates.low) !== null && positive(rates.average) !== null && positive(rates.high) !== null && Number(rates.low) <= Number(rates.average) && Number(rates.average) <= Number(rates.high)
+          ? { range: { low: money(Number(rates.low), locale), high: money(Number(rates.high), locale), estimate: money(Number(rates.average), locale), position: Number(rates.high) > Number(rates.low) ? (Number(rates.average) - Number(rates.low)) / (Number(rates.high) - Number(rates.low)) : .5 } } : {}), evidenceRefs: benchmarkRows.flatMap(row => row.evidenceRefs) });
     }
     const costs = list(output.costCoverage).map(obj), costLabels: Record<string, [string, string, string]> = {
       landAcquisition: ['Aquisição do terreno', 'Land acquisition', 'Adquisición del terreno'], construction: ['Construção', 'Construction', 'Construcción'], closingCosts: ['Custos de fechamento', 'Closing costs', 'Costos de cierre'],
@@ -360,7 +392,7 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   ownerRows.push(...propertyRows(['ownerOccupied', 'ownershipRecordPresent', 'latestSalePrice', 'latestSaleDate']));
   for (const item of list(owner.allowedContacts).map(obj)) { const contact = reportNarrativeString(item.value); if (contact) ownerRows.push({ label: /mail/i.test(scalar(item.type)) ? 'Email' : t('Contato autorizado', 'Authorized contact', 'Contacto autorizado'), value: contact, evidenceRefs: ['property:identity'] }); }
   const facts = (level === 1 ? [ { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows }, { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e dados fiscais', 'Land and tax records', 'Terreno y datos fiscales'), rows: [...parcelRows, ...taxRows] } ] : [ { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e registro parcelário', 'Land and parcel record', 'Terreno y registro parcelario'), rows: parcelRows }, { title: t('Registros fiscais, não valor de mercado', 'Tax records, not market value', 'Registros fiscales, no valor de mercado'), rows: taxRows }, { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows } ]).filter(group => group.rows.length);
-  if (level > 1) for (const [index, group] of facts.entries()) push({ id: `property-facts-${index}`, title: group.title, kind: 'facts', priority: land ? 88 - index : 50 - index, rows: group.rows, evidenceRefs: group.rows.flatMap(row => row.evidenceRefs) });
+  if (level > 1) for (const [index, group] of facts.entries()) push({ id: group.rows === taxRows ? 'property-tax' : group.rows === ownerRows ? 'property-contacts' : `property-facts-${index}`, title: group.title, kind: 'facts', priority: land ? 88 - index : 50 - index, rows: group.rows, evidenceRefs: group.rows.flatMap(row => row.evidenceRefs) });
   const metrics = propertyRows(land ? [] : ['beds', 'baths', 'sqft']);
   // Cache identity uses the original string; only the returned display string is
   // authorized. An unsafe source token must not hide an already-safe translation.
@@ -386,6 +418,75 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
     const profile = section('investmentProfile'), profileScore = number(profile.score);
     if (profileScore !== null && profileScore >= 0 && profileScore <= 100) { const ref = register('profile:compatibility', numeric(profileScore, locale), [profileScore]);
       push({ id: 'profile-fit', title: t('Compatibilidade com o perfil', 'Profile compatibility', 'Compatibilidad con el perfil'), kind: 'facts', priority: 35, rows: [{ label: t('Match Score', 'Match Score', 'Match Score'), value: `${numeric(profileScore, locale)}%`, source: t('Compatibilidade com o perfil; não é qualidade do negócio, probabilidade de sucesso ou confiança da análise.', 'Profile compatibility; not deal quality, probability of success or analysis confidence.', 'Compatibilidad con el perfil; no es calidad del negocio, probabilidad de éxito ni confianza del análisis.'), evidenceRefs: [ref] }], evidenceRefs: [ref] }); }
+  }
+  if (level === 2 && !land && rentAmount === null) {
+    const text = t('Estimativa de aluguel ainda não disponível neste relatório. Consulte aluguel de mercado no Maxxis; uma consulta autorizada poderá ser reutilizada aqui. Não equivale ao aluguel contratual atual.', 'A rent estimate is not yet available in this report. Check market rent in Maxxis; an authorized query can then be reused here. It is not current contractual rent.', 'La estimación de alquiler aún no está disponible en este informe. Consulte el alquiler de mercado en Maxxis; una consulta autorizada podrá reutilizarse aquí. No equivale al alquiler contractual actual.');
+    const ref = register('market:rent-pending', text);
+    push({ id: 'rent-pending', title: marketRentReportCopy(locale).title, kind: 'narrative', text, priority: 60, evidenceRefs: [ref] });
+  }
+  if (level === 3) {
+    const gap = (id: string, title: string, text: string, action: string) => {
+      const ref = register(`gap:${id}`, text), next = register(`gap-action:${id}`, action);
+      push({ id, title, kind: 'facts', priority: 30, status: 'blocked',
+        rows: [{ label: t('Limitação e impacto', 'Limitation and impact', 'Limitación e impacto'), value: text, evidenceRefs: [ref] },
+          { label: t('Próxima verificação', 'Next verification', 'Próxima verificación'), value: action, evidenceRefs: [next] }], evidenceRefs: [ref, next] });
+    };
+    if (!usableArv && !land && !rental) gap('value-readiness', 'ARV',
+      t('Valor após reforma ainda não estabelecido: faltam vendas elegíveis e/ou condição comparável.', 'After-repair value is not established: qualifying sales and/or comparable condition are missing.', 'Valor tras reforma no establecido: faltan ventas elegibles y/o condición comparable.'),
+      t('Validar vendas fechadas e condição antes de concluir valor de revenda.', 'Validate closed sales and condition before concluding resale value.', 'Validar ventas cerradas y condición antes de concluir valor de reventa.'));
+    if (!usableArv && !land && !rental) gap('price-positioning', t('Posicionamento do preço e vendas recentes', 'Price positioning and recent sales', 'Posicionamiento del precio y ventas recientes'),
+      t(`${values.price.text} é o pedido informado. Sem vendas fechadas qualificadas, não é possível afirmar desconto, sobrepreço ou liquidez.`, `${values.price.text} is the reported asking price. Without qualified closed sales, discount, overpricing or liquidity cannot be established.`, `${values.price.text} es el precio solicitado. Sin ventas cerradas calificadas no se puede afirmar descuento, sobreprecio ni liquidez.`),
+      t('Comparar data, localização, área, tipo e condição de cada venda; anúncios não comprovam preço fechado.', 'Compare sale date, location, size, type and condition; listings do not establish closed-sale prices.', 'Comparar fecha, ubicación, área, tipo y condición; anuncios no prueban precios de cierre.'));
+    if (rental && rentAmount === null) gap('rent-readiness', marketRentReportCopy(locale).title,
+      t('Não há estimativa utilizável neste relatório; isso não demonstra ausência de dados no mercado.', 'This report has no usable estimate; this does not establish that market data is absent.', 'Este informe no tiene estimación utilizable; no demuestra ausencia de datos en el mercado.'),
+      t('Consultar aluguel de mercado pelo fluxo autorizado e confirmar o contrato separadamente.', 'Check market rent through the authorized workflow and confirm the lease separately.', 'Consultar alquiler de mercado por el flujo autorizado y confirmar el contrato por separado.'));
+    if (!land) gap('condition-readiness', t('Condição e reforma', 'Condition and rehabilitation', 'Condición y reforma'),
+      known('rehab') ? t(`Reforma informada: ${values.rehab.text}. O valor não comprova escopo ou condição.`, `Reported rehabilitation: ${values.rehab.text}. The amount does not establish scope or condition.`, `Reforma informada: ${values.rehab.text}. El importe no demuestra alcance ni condición.`)
+        : t('Escopo e custo de reforma não confirmados; não se presume custo zero.', 'Rehabilitation scope and cost are unconfirmed; zero cost is not presumed.', 'Alcance y costo de reforma no confirmados; no se presume costo cero.'),
+      t('Conferir inspeção, escopo e orçamento para testar a estratégia.', 'Review inspection, scope and quote to test the strategy.', 'Revisar inspección, alcance y presupuesto para evaluar la estrategia.'));
+    if (!land && !rental && known('price')) {
+      const keys = ['price', 'rehab'].filter(known);
+      push({ id: 'strategy-cost-basis', title: t('Base informada da estratégia', 'Reported strategy basis', 'Base informada de la estrategia'), kind: 'facts', priority: 30,
+        comparison: keys.map(key => ({ label: reportFieldLabel(key, locale)!, value: values[key].numericValue!, text: values[key].text })),
+        rows: keys.map(rowFor).filter((row): row is ReportRow => !!row),
+        text: t('Valores informados, não um cálculo de lucro. Fechamento, prazo, financiamento e custos de venda precisam de confirmação antes de estimar margem.', 'Reported amounts, not a profit calculation. Closing, timeline, financing and selling costs require confirmation before estimating margin.', 'Importes informados, no un cálculo de beneficio. Cierre, plazo, financiación y costos de venta requieren confirmación antes de estimar margen.'),
+        evidenceRefs: keys.flatMap(key => values[key].evidenceRefs) });
+    }
+    if (land) {
+      const area = list(canonical.conflicts).map(obj).find(c => c.field === 'lotSizeSqft');
+      if (area && positive(area.appValue) !== null && positive(area.providerValue) !== null) {
+        const ref = register('area:comparison', t('Áreas divergentes; nenhuma selecionada automaticamente.', 'Conflicting areas; neither selected automatically.', 'Áreas discrepantes; ninguna seleccionada automáticamente.'), [Number(area.appValue), Number(area.providerValue)]);
+        push({ id: 'parcel-area-comparison', title: t('Divergência de área do lote', 'Parcel area disagreement', 'Discrepancia del área del lote'), kind: 'facts', priority: 80, status: 'blocked',
+          comparison: [{ label: t('Cadastro informado', 'Declared record', 'Registro declarado'), value: Number(area.appValue), text: `${numeric(Number(area.appValue), locale)} sqft` },
+            { label: t('Registro externo', 'External record', 'Registro externo'), value: Number(area.providerValue), text: `${numeric(Number(area.providerValue), locale)} sqft` }],
+          text: t('Comparação das áreas registradas, sem arbitragem automática. Preço por acre permanece bloqueado até resolver a divergência.', 'Recorded area comparison without automatic arbitration. Price per acre remains blocked until the disagreement is resolved.', 'Comparación de áreas sin arbitraje automático. El precio por acre sigue bloqueado hasta resolver la discrepancia.'), evidenceRefs: [ref] });
+      }
+      gap('land-market-readiness', t('Mercado de terrenos e preço por acre', 'Land market and price per acre', 'Mercado de terrenos y precio por acre'),
+        areaConflict ? t('Áreas divergentes bloqueiam a comparação de preço por acre.', 'Conflicting areas block price-per-acre comparison.', 'Áreas discrepantes bloquean la comparación de precio por acre.')
+          : t('Vendas de terrenos comparáveis precisam sustentar o posicionamento do preço.', 'Comparable land sales must support price positioning.', 'Ventas de terrenos comparables deben sustentar el posicionamiento del precio.'),
+        t('Validar área parcelária e vendas de terrenos com uso e infraestrutura comparáveis.', 'Validate parcel area and land sales with comparable use and infrastructure.', 'Validar área parcelaria y ventas con uso e infraestructura comparables.'));
+      if (!resultSections.some(s => s.id === 'landPremises')) gap('land-development-readiness', t('Desenvolvimento e construção', 'Development and construction', 'Desarrollo y construcción'),
+        t('Sem programa construtivo confirmado, não há base para estimar custo total ou viabilidade.', 'Without a confirmed building program, total cost and feasibility cannot be established.', 'Sin programa constructivo confirmado, no se puede establecer costo total ni viabilidad.'),
+        t('Confirmar uso permitido, unidades, área, infraestrutura e orçamento local.', 'Confirm permitted use, units, area, infrastructure and local costs.', 'Confirmar uso permitido, unidades, área, infraestructura y costos locales.'));
+      if (!resultSections.some(s => s.id === 'landBenchmark')) gap('land-benchmark-readiness', t('Referência de construção e orçamento', 'Construction benchmark and budget', 'Referencia de construcción y presupuesto'),
+        t('Sem tipologia e área propostas, uma referência por sqft não define custo de construção. Terreno, infraestrutura e custos indiretos também precisam de base própria.', 'Without proposed type and area, a per-sqft benchmark does not establish construction cost. Land, infrastructure and soft costs also need their own basis.', 'Sin tipología y área propuestas, una referencia por sqft no establece costo de construcción. Terreno, infraestructura y costos indirectos necesitan su propia base.'),
+        t('Definir o programa e obter orçamento local, incluindo preparação do terreno, licenças e contingência.', 'Define the program and obtain local costs including site work, permits and contingency.', 'Definir el programa y obtener costos locales con preparación del terreno, permisos y contingencia.'));
+    }
+    if (rental) gap('financial-readiness', t('Prontidão financeira', 'Financial readiness', 'Preparación financiera'),
+      t('NOI e retorno exigem renda qualificada e custos operacionais completos. Estimativa de aluguel não é renda atual.', 'NOI and returns require qualified income and complete operating costs. Estimated rent is not current income.', 'NOI y rentabilidad requieren ingresos calificados y gastos completos. Alquiler estimado no es ingreso actual.'),
+      blockers.find(b => b.id === 'current-rent' || b.id.startsWith('expense-'))?.action || t('Conferir a base de renda e despesas antes do cálculo.', 'Review income and expense basis before calculation.', 'Revisar ingresos y gastos antes del cálculo.'));
+    const readiness = scalar(obj(obj(obj(presentation.financialReadiness).metrics).NOI).readinessLevel);
+    const readinessSection = resultSections.find(s => s.id === 'financial-readiness');
+    if (readinessSection && readiness.startsWith('READY_')) readinessSection.status = 'available';
+    const fit = resultSections.find(s => s.id === 'profile-fit');
+    if (!opportunities.length) gap('opportunity-readiness', t('Oportunidades a confirmar', 'Opportunities to verify', 'Oportunidades por verificar'),
+      t('Os dados atuais não comprovam desconto, margem ou retorno. Preço e atributos informados são pontos de partida, não sinais confirmados de oportunidade.', 'Current data does not establish discount, margin or return. Reported price and attributes are starting points, not confirmed opportunity signals.', 'Los datos actuales no prueban descuento, margen ni rentabilidad. Precio y atributos son puntos de partida, no señales confirmadas de oportunidad.'),
+      blockers[0]?.action || t('Completar evidências antes de qualificar a oportunidade.', 'Complete evidence before qualifying the opportunity.', 'Completar evidencia antes de calificar la oportunidad.'));
+    const score = number(section('investmentProfile').score);
+    if (fit && score !== null) fit.gauge = { value: score, label: 'Match Score' };
+    if (!fit) gap('profile-readiness', t('Compatibilidade com o perfil', 'Profile compatibility', 'Compatibilidad con el perfil'),
+      t('Perfil ou pontuação não disponível; compatibilidade não pode ser inferida.', 'Profile or score unavailable; compatibility cannot be inferred.', 'Perfil o puntuación no disponible; no se puede inferir compatibilidad.'),
+      t('Confirmar os critérios do investidor para avaliar compatibilidade.', 'Confirm investor criteria to evaluate compatibility.', 'Confirmar criterios del inversor para evaluar compatibilidad.'));
   }
   if (notes.length && level > 1) push({ id: 'publisher-notes', title: t('Notas e descrição do publicador', 'Publisher notes and description', 'Notas y descripción del publicador'), kind: 'notes', items: notes.map((text, index) => claim(text, [`notes:${index}`])), priority: 10, evidenceRefs: notes.map((_, index) => `notes:${index}`) });
   resultSections.sort((a, b) => b.priority - a.priority);
@@ -440,6 +541,8 @@ export function validateReportViewModel(model: ReportViewModel): { valid: boolea
     if (section.rows) addRows(section.rows);
     if (section.hero) visible.push(section.hero.label, section.hero.value, section.hero.qualification);
     if (section.range) visible.push(section.range.low, section.range.high, section.range.estimate);
+    if (section.gauge) { visible.push(section.gauge.label); if (!Number.isFinite(section.gauge.value) || section.gauge.value < 0 || section.gauge.value > 100) errors.push('INVALID_GAUGE'); }
+    if (section.comparison) for (const item of section.comparison) { visible.push(item.label, item.text); if (!Number.isFinite(item.value) || item.value < 0) errors.push('INVALID_COMPARISON'); }
     if (section.map) { visible.push(section.map.caption); if (section.map.points.some(point => !finitePoint(point.latitude, point.longitude))) errors.push('INVALID_MAP_POINT'); }
     for (const item of section.items || []) { assertClaim(item); visible.push(item.text); }
     if (section.table) { visible.push(...section.table.columns, ...section.table.rows.flat()); if (section.table.rows.length !== section.table.evidenceRefs.length) errors.push('TABLE_EVIDENCE_MISMATCH'); }

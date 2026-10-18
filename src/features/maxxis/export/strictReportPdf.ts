@@ -28,8 +28,11 @@ export interface SafePdfSection {
   continuationStart?: boolean;
   compact?: boolean;
   bodySize?: 9 | 10.5;
+  gauge?: { value: number; label: string };
+  comparison?: { label: string; value: number; text: string }[];
+  gap?: boolean;
 }
-interface FlowPlan { forcedBreakBefore?: ReadonlySet<string>; lineCache?: Map<string, readonly string[]> }
+interface FlowPlan { forcedBreakBefore?: ReadonlySet<string>; lineCache?: Map<string, readonly string[]>; preparedMaps?: Record<string, string | null> }
 
 const W = 595.28;
 const H = 841.89;
@@ -68,6 +71,20 @@ export class StrictPdfFlow {
     if (tone !== 'neutral') {
       this.doc.setFillColor(...toneColor(tone, this.accent));
       this.doc.roundedRect(x, y + 7, 3, Math.max(1, height - 14), 1.5, 1.5, 'F');
+    }
+  }
+
+  // Reuses the vector warning/chart/check vocabulary of the previous report.
+  icon(x: number, y: number, tone: Tone = 'accent') {
+    const d = this.doc;
+    d.setFillColor(...toneColor(tone, this.accent)); d.circle(x, y, 9, 'F');
+    d.setDrawColor(...WHITE); d.setLineWidth(1);
+    if (tone === 'warning') {
+      d.triangle(x, y - 5, x - 5, y + 4, x + 5, y + 4, 'S'); d.line(x, y - 2, x, y + 1);
+    } else if (tone === 'positive') {
+      d.line(x - 4, y, x - 1, y + 3); d.line(x - 1, y + 3, x + 4, y - 3);
+    } else {
+      d.rect(x - 5, y + 1, 2, 4, 'S'); d.rect(x - 1, y - 2, 2, 7, 'S'); d.rect(x + 3, y - 5, 2, 10, 'S');
     }
   }
 
@@ -162,7 +179,9 @@ export class StrictPdfFlow {
     this.pages[this.pages.length - 1].sectionKeys.push(section.id);
     const heading = () => {
       if (section.compact) { this.y += 8; return; }
-      this.drawText(section.title, M + 12, this.y + 10, CONTENT - 24, section.id, 11.5, true, toneColor(section.tone || 'accent', this.accent));
+      this.doc.setFillColor(242, 246, 247); this.doc.roundedRect(M, this.y, CONTENT, 30, 5, 5, 'F');
+      this.icon(M + 16, this.y + 15, section.tone);
+      this.drawText(section.title, M + 32, this.y + 8, CONTENT - 44, section.id, 11.5, true, toneColor(section.tone || 'accent', this.accent));
       this.y += 32;
     };
     heading();
@@ -186,6 +205,13 @@ export class StrictPdfFlow {
       }
       this.y += 7;
     };
+    if (section.gap) {
+      continued(55);
+      this.panel(M + 12, this.y + 3, CONTENT - 24, 45, 'warning');
+      this.drawText(this.meta.locale === 'pt' ? 'Análise condicionada à verificação' : this.meta.locale === 'es' ? 'Análisis sujeto a verificación' : 'Analysis pending verification',
+        M + 25, this.y + 15, CONTENT - 50, section.id, 13, true, toneColor('warning', this.accent));
+      this.y += 60;
+    }
     if (section.hero) {
       continued(103);
       this.panel(M + 12, this.y, CONTENT - 24, 90, 'accent');
@@ -203,8 +229,37 @@ export class StrictPdfFlow {
       this.drawText(range.high, W - M - 155, this.y + 28, 143, section.id, 9);
       this.y += 61;
     }
+    if (section.gauge) {
+      continued(75);
+      const n = Math.max(0, Math.min(100, section.gauge.value));
+      this.drawText(`${section.gauge.label} · ${n}%`, M + 14, this.y + 6, CONTENT - 28, section.id, 18, true);
+      this.doc.setFillColor(...LINE); this.doc.roundedRect(M + 14, this.y + 39, CONTENT - 28, 10, 5, 5, 'F');
+      if (n > 0) { this.doc.setFillColor(...this.accent); this.doc.rect(M + 14, this.y + 39, (CONTENT - 28) * n / 100, 10, 'F'); }
+      this.y += 65;
+    }
+    if (section.comparison?.length) {
+      const maximum = Math.max(...section.comparison.map(item => item.value));
+      continued(section.comparison.length * 56 + 12);
+      for (const item of section.comparison) {
+        this.drawText(`${item.label} · ${item.text}`, M + 14, this.y + 5, CONTENT - 28, section.id, 10.5, true);
+        this.doc.setFillColor(...LINE); this.doc.roundedRect(M + 14, this.y + 28, CONTENT - 28, 9, 4, 4, 'F');
+        if (maximum > 0 && item.value > 0) { this.doc.setFillColor(...this.accent); this.doc.rect(M + 14, this.y + 28, (CONTENT - 28) * item.value / maximum, 9, 'F'); }
+        this.y += 56;
+      }
+    }
     if (section.text) paragraph(section.text);
-    for (const item of section.items || []) paragraph(item, true);
+    for (const [index, item] of (section.items || []).entries()) {
+      if (this.meta.reportType === 'DEAL_INTELLIGENCE' && section.id !== 'publisherNotesAppendix' && section.id !== 'publisher-notes') {
+        const height = this.lines(item, CONTENT - 70, bodySize).length * (bodySize + 4) + 30;
+        if (height < 350) {
+          continued(height + 10); this.panel(M + 12, this.y, CONTENT - 24, height, section.tone);
+          this.icon(M + 30, this.y + 22, section.tone);
+          this.y = this.drawText(section.id === 'next-actions' ? `${index + 1}. ${item}` : item, M + 48, this.y + 14, CONTENT - 70, section.id, bodySize) + 23;
+          continue;
+        }
+      }
+      paragraph(item, true);
+    }
     for (const row of section.rows || []) {
       const sharedSource = row.source ? sharedSources.indexOf(row.source) : -1;
       const labelLines = this.lines(row.label, 150, 9, false);
@@ -238,10 +293,15 @@ export class StrictPdfFlow {
       }
     }
     if (section.map && section.map.points.length) {
+      if (section.table?.length && section.columns?.length) {
+        const height = 218 + 36 + section.table.reduce((sum, row) => sum + Math.max(...row.map((cell, i) => this.lines(cell, i === 1 ? 220 : 65, 9).length)) * 13 + 15, 0);
+        if (height < BOTTOM - TOP - 40) continued(height);
+      }
       continued(218);
-      this.drawMap(section.map.points, M + 12, this.y, CONTENT - 24, 170, section.id);
+      const preparedMap = this.plan.preparedMaps?.[section.id];
+      if (!preparedMap || !this.image(preparedMap, M + 12, this.y, CONTENT - 24, 170)) this.drawMap(section.map.points, M + 12, this.y, CONTENT - 24, 170, section.id);
       this.y += 179;
-      this.y = this.drawText(section.map.caption, M + 13, this.y, CONTENT - 26, section.id, 7.5, false, MUTED) + 12;
+      this.y = this.drawText(`${preparedMap ? '© OpenStreetMap contributors · ' : ''}${section.map.caption}`, M + 13, this.y, CONTENT - 26, section.id, 7.5, false, MUTED) + 12;
     }
     if (section.table?.length && section.columns?.length) {
       const count = section.columns.length;
@@ -329,7 +389,7 @@ export class StrictPdfFlow {
     this.perPageMs.push(Math.round((now() - this.pageStartedAt) * 10) / 10);
     const stamp = new Intl.DateTimeFormat(this.meta.locale === 'pt' ? 'pt-BR' : this.meta.locale === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(this.meta.generatedAt));
     for (let page = 1; page <= total; page += 1) {
-      this.doc.setPage(page); this.doc.setDrawColor(...LINE); this.doc.line(M, 810, W - M, 810);
+      this.doc.setPage(page); this.doc.setLineWidth(.6); this.doc.setDrawColor(...LINE); this.doc.line(M, 810, W - M, 810);
       this.drawText(`${this.meta.generated}: ${stamp} UTC`, M, 822, CONTENT - 95, 'footer', 7.4, false, MUTED, H - 4);
       this.drawText(`${this.meta.page} ${page} / ${total}`, W - M - 85, 822, 85, 'footer', 7.4, false, MUTED, H - 4);
     }
@@ -347,8 +407,8 @@ function safeSection(section: ReportSection): SafePdfSection {
   return { id: section.id, title: section.title,
     kind: section.kind === 'notes' ? 'narrative' : section.kind === 'market' ? 'comparables' : section.kind,
     text: section.text, items: section.items?.map(claim => claim.text), rows: section.rows,
-    columns: section.table?.columns, table: section.table?.rows, map: section.map, hero: section.hero, range: section.range,
-    tone: /risk|blocker|limitation|conflict/.test(section.id) ? 'warning' : /opportunity|positive/.test(section.id) ? 'positive' : 'accent' };
+    columns: section.table?.columns, table: section.table?.rows, map: section.map, hero: section.hero, range: section.range, gauge: section.gauge, comparison: section.comparison, gap: section.status === 'blocked',
+    tone: section.status === 'blocked' || /risk|blocker|limitation|conflict/.test(section.id) ? 'warning' : /opportunity|positive/.test(section.id) ? 'positive' : 'accent' };
 }
 
 function propertyHero(flow: StrictPdfFlow, vm: ReportViewModel) {
@@ -442,13 +502,58 @@ function propertyRelease(flow: StrictPdfFlow, vm: ReportViewModel, locationMapDa
 }
 
 interface StrictDrawOptions {
+  preparedMaps?: Record<string, string | null>;
   doc: jsPDF; viewModel: ReportViewModel; logo: string; generatedAt: string; locationMapData?: string | null; yieldRendering?: () => Promise<void>;
 }
 
-async function drawReportBody({ doc, viewModel, logo, generatedAt, locationMapData = null, yieldRendering = async () => {} }: StrictDrawOptions, plan: FlowPlan = {}) {
+async function enterprisePages(flow: StrictPdfFlow, vm: ReportViewModel, map: string | null, yieldRendering: () => Promise<void>) {
+  const t = (pt: string, en: string, es: string) => vm.locale === 'pt' ? pt : vm.locale === 'es' ? es : en;
+  const groups = [
+    { title: t('Imóvel e parcela', 'Property and parcel', 'Inmueble y parcela'), ids: (id: string) => id.startsWith('property-facts-') },
+    { title: t('Inteligência de mercado', 'Market intelligence', 'Inteligencia de mercado'), ids: (id: string) => /^(arv-market|sold-reference|market-rent|provider-reference|value-readiness|price-positioning|rent-readiness|land-market-readiness|parcel-area-comparison)$/.test(id) },
+    { title: t('Estratégia e prontidão financeira', 'Strategy and financial readiness', 'Estrategia y preparación financiera'), ids: (id: string) => /^(land|scenario|saved|operating|condition|financial|strategy|property-tax)/.test(id) },
+    { title: t('Riscos, oportunidades e perfil', 'Risks, opportunities and profile', 'Riesgos, oportunidades y perfil'), ids: (id: string) => /^(positive-signals|decision-blockers|profile-fit|profile-readiness|opportunity-readiness)$/.test(id) },
+    { title: t('Plano de decisão e evidências', 'Decision plan and evidence', 'Plan de decisión y evidencia'), ids: () => true },
+  ];
+  const remaining = new Map(vm.sections.map(s => [s.id, s]));
+  const note = remaining.get('publisher-notes'); remaining.delete('publisher-notes');
+  // Contacts belong with evidence, not among the analytical property tables.
+  const contacts = [...remaining.values()].filter(s => s.rows?.some(row => /contact|contato|publicador|publisher|email/i.test(row.label)));
+  contacts.forEach(s => remaining.delete(s.id));
+  for (const [index, group] of groups.entries()) {
+    const selected = [...remaining.values()].filter(s => group.ids(s.id));
+    flow.newPage(group.title, `ANALYSIS_${index + 2}`);
+    if (index === 0 && vm.property.locationPoint) {
+      flow.drawText(vm.property.address, M + 12, flow.y + 2, CONTENT - 24, 'parcelLocation', 12, true);
+      flow.y += 28;
+      if (!map || !flow.image(map, M + 12, flow.y, CONTENT - 24, 180)) flow.drawMap([vm.property.locationPoint], M + 12, flow.y, CONTENT - 24, 180, 'parcelLocation');
+      flow.y += 188;
+      flow.y = flow.drawText(`${map ? '© OpenStreetMap contributors · ' : ''}${COPY[vm.locale].noMap}`, M + 12, flow.y, CONTENT - 24, 'parcelLocation', 7.5, false, MUTED) + 14;
+    }
+    for (const section of selected) { flow.section(safeSection(section)); remaining.delete(section.id); }
+    if (!selected.length) flow.section({ id: `gap${index}`, title: group.title, kind: 'narrative', tone: 'warning',
+      text: t('Evidências insuficientes para concluir este tema. Confirme os dados do imóvel e as fontes aplicáveis antes de decidir.', 'Insufficient evidence to conclude this topic. Confirm property inputs and applicable sources before deciding.', 'Evidencia insuficiente para concluir este tema. Confirme los datos y las fuentes aplicables antes de decidir.') });
+    if (index === 4) {
+      if (vm.executive) flow.section({ id: 'finalEvidence', title: COPY[vm.locale].coverage, kind: 'facts', rows: vm.executive.coverage });
+      contacts.forEach(section => flow.section(safeSection(section)));
+      if (note) {
+        const excerpt = (note.items || []).map(item => item.text.length > 420 ? `${item.text.slice(0, 417)}…` : item.text);
+        flow.section({ id: note.id, title: note.title, kind: 'narrative', items: excerpt, bodySize: 9 });
+      }
+    }
+    await yieldRendering();
+  }
+  const longNotes = note?.items?.filter(item => item.text.length > 420) || [];
+  if (longNotes.length && note) {
+    flow.newPage(note.title, 'PUBLISHER_NOTES');
+    flow.section({ id: 'publisherNotesAppendix', title: note.title, kind: 'narrative', items: longNotes.map(item => item.text), bodySize: 9 });
+  }
+}
+
+async function drawReportBody({ doc, viewModel, logo, generatedAt, locationMapData = null, preparedMaps, yieldRendering = async () => {} }: StrictDrawOptions, plan: FlowPlan = {}) {
   const copy = COPY[viewModel.locale];
   const flow = new StrictPdfFlow(doc, { ...viewModel.header, reportType: viewModel.reportType, locale: viewModel.locale,
-    generatedAt, generated: copy.generated, page: copy.page, continuation: copy.continuation }, logo, plan);
+    generatedAt, generated: copy.generated, page: copy.page, continuation: copy.continuation }, logo, { ...plan, preparedMaps });
   flow.newPage(viewModel.reportType === 'PROPERTY_RELEASE' ? copy.overview : copy.executive, 'PROPERTY_OVERVIEW');
   propertyHero(flow, viewModel);
   if (viewModel.reportType === 'PROPERTY_RELEASE') {
@@ -480,7 +585,9 @@ async function drawReportBody({ doc, viewModel, logo, generatedAt, locationMapDa
       decisions.forEach(row => snapshotClaims.add(row.value));
       if (decisions.length) flow.section({ id: 'executiveDecisions', title: copy.blocker, kind: 'facts', rows: decisions, tone: 'warning' });
     }
-    for (const section of viewModel.sections) {
+    if (viewModel.reportType === 'DEAL_INTELLIGENCE') {
+      await enterprisePages(flow, viewModel, locationMapData, yieldRendering);
+    } else for (const section of viewModel.sections) {
       const projected = safeSection(section);
       if (projected.items) projected.items = projected.items.filter(text => !snapshotClaims.has(text));
       const useful = projected.text || projected.items?.length || projected.rows?.length || projected.table?.length || projected.map?.points.length || projected.hero;
@@ -495,7 +602,7 @@ async function drawReportBody({ doc, viewModel, logo, generatedAt, locationMapDa
 /** Font metrics and layout only: no drawing operators, media, binary, page allocation or network. */
 function measurementDocument(doc: jsPDF): jsPDF {
   let currentPage = 1, pageCount = 1;
-  const silent = new Set<PropertyKey>(['addImage', 'text', 'rect', 'roundedRect', 'line', 'circle', 'setDrawColor', 'setFillColor', 'setTextColor', 'setLineWidth', 'saveGraphicsState', 'restoreGraphicsState', 'clip', 'discardPath']);
+  const silent = new Set<PropertyKey>(['addImage', 'text', 'rect', 'roundedRect', 'line', 'circle', 'triangle', 'setDrawColor', 'setFillColor', 'setTextColor', 'setLineWidth', 'saveGraphicsState', 'restoreGraphicsState', 'clip', 'discardPath']);
   const proxy = new Proxy(doc, {
     get(target, key) {
       if (key === 'addPage') return () => { currentPage = ++pageCount; return proxy; };
@@ -530,7 +637,7 @@ export async function drawStrictReportPdf(options: StrictDrawOptions) {
   const forcedBreakBefore = new Set<string>();
   let preflightPasses = 0;
   // L1 retains its approved single-page property composition and its own genuine notes continuation.
-  if (options.viewModel.reportType !== 'PROPERTY_RELEASE') {
+  if (options.viewModel.reportType === 'MAXXIS_ANALYSIS') {
     const measure = (breaks: ReadonlySet<string>) => drawReportBody({ ...options, doc: measurementDocument(options.doc), yieldRendering: async () => {} }, { lineCache, forcedBreakBefore: breaks });
     const baseline = await measure(forcedBreakBefore); preflightPasses += 1;
     let best = contentDensity(baseline);

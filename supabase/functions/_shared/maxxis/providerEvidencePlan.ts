@@ -58,7 +58,8 @@ export function buildProviderEvidencePlan(input: {
   const acquisitionDepth = input.reportLevel === 'DEAL_INTELLIGENCE';
   const cacheReadAllowed = commerciallyAuthorized;
   const families = Object.fromEntries(ALL_FAMILIES.map((family) => {
-    const required = desired.has(family);
+    const required = desired.has(family) || (!land && family === 'RENT_ESTIMATE'
+      && (input.reportLevel === 'MAXXIS_ANALYSIS' || input.reportLevel === 'DEAL_INTELLIGENCE'));
     const state = input.cacheState?.[family] || 'UNKNOWN';
     const providerCallAllowed = required && commerciallyAuthorized && acquisitionDepth && !input.cacheOnly;
     return [family, Object.freeze({

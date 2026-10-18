@@ -7,6 +7,7 @@ describe('ProviderEvidencePlan', () => {
     expect(plan.families.PROPERTY_RECORD).toMatchObject({ cacheReadAllowed: true, providerCallAllowed: false });
     expect(plan.families.VALUATION).toMatchObject({ visibleWhenCached: true, providerCallAllowed: false });
     expect(plan.families.RECORDED_SOLD.providerCallAllowed).toBe(false);
+    expect(plan.families.RENT_ESTIMATE).toMatchObject({cacheReadAllowed:true,providerCallAllowed:false});
   });
 
   it('authorizes only strategy-relevant Enterprise acquisition', () => {

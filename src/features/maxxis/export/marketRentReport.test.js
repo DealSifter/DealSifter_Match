@@ -8,6 +8,15 @@ import {MaxxisDealIntelligenceReportPreview} from '../intelligence/MaxxisDealInt
 const property={id:'11111111-1111-4111-8111-111111111111',type:'SFR',address:'7081 Kalanianaole Hwy',city:'Honolulu',state:'HI',zip:'96825',latitude:21.285,longitude:-157.715};
 const evidence={provider:'rentcast',evidenceType:'rent_estimate',status:'AVAILABLE',rent:7820,rangeLow:5230,rangeHigh:10410,retrievedAt:'2026-10-16T00:00:00Z',subjectProperty:{propertyType:'Single Family',bedrooms:5,bathrooms:3,livingAreaSqft:2333,latitude:21.285,longitude:-157.715},comparables:Array.from({length:7},(_,i)=>({listingId:`comp-${i+1}`,address:`${i+1} Mock Rental`,price:7700-i*100,bedrooms:5,bathrooms:3,livingAreaSqft:2300,latitude:21.29+i*.002,longitude:-157.72+i*.002,distanceMiles:1.12+i*.1,providerCorrelation:.958-i*.01}))};
 describe('scoped Market Rent report projection',()=>{
+  it('uses the shared resolved financial estimate and fails closed on conflicts',()=>{
+    const source={sourceFamily:'RENTCAST',retrievedAt:evidence.retrievedAt,metadata:{rangeLow:5230,rangeHigh:10410}};
+    const financialEvidence={inputs:{providerMarketRentEstimate:{value:7820,cadence:'MONTHLY',sourceClass:'PROVIDER_ESTIMATE',analyticalUsability:'ESTIMATED_PROVIDER',source}}};
+    const schema=buildMaxxisReportSchema({reportType:'MAXXIS_ANALYSIS',property,maxxisAnalysis:{financialEvidence}});
+    expect(schema.presentation.marketRent.monthlyRentEstimate).toBe(7820);
+    expect(schema.presentation.marketRent.rangeLow).toBeUndefined();
+    financialEvidence.inputs.providerMarketRentEstimate.analyticalUsability='CONFLICTED';
+    expect(projectMarketRentReport(evidence,property,3,financialEvidence)).toBeNull();
+  });
   it('preserves per-unit scope at both levels and qualifies stale evidence',()=>{const source={...evidence,scope:'UNIT',freshness:'STALE_USABLE'};expect(projectMarketRentReport(source,property,2).scope).toBe('UNIT');expect(projectMarketRentReport(source,property,3)).toMatchObject({scope:'UNIT',freshness:'STALE_USABLE'});});
   it('renders the actual inline L3 component with the same five rental rows',()=>{const schema=buildMaxxisReportSchema({reportType:'DEAL_INTELLIGENCE',property,dealIntelligence:{valuationIntelligence:{status:'ARV_UNAVAILABLE',rentalEvidence:{rentEstimate:evidence}}}});const markup=renderToStaticMarkup(React.createElement(MaxxisDealIntelligenceReportPreview,{schema,language:'en'}));expect(markup).toContain('data-report-section="MARKET_RENT"');for(let n=1;n<=5;n++)expect(markup).toContain(`${n} Mock Rental`);expect(markup).toContain('maxxis-v2-page-body');expect(markup).not.toContain('maxxis-v2-page-content');});
   it('uses exactly one ordered dataset for map and table',()=>{const view=projectMarketRentReport(evidence,property,3),points=rentalReportMapPoints(view);expect(view.reportRentalComparables).toHaveLength(5);expect(points[0].marker).toBe('S');expect(points.slice(1).map(p=>p.id)).toEqual(view.reportRentalComparables.map(p=>p.id));expect(points.slice(1).map(p=>p.marker)).toEqual(['1','2','3','4','5']);});

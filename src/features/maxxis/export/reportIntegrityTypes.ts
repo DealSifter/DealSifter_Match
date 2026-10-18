@@ -25,6 +25,9 @@ export interface ReportSection {
   map?: { points: ReportMapPoint[]; caption: string };
   range?: { low: string; high: string; estimate: string; position: number };
   hero?: { label: string; value: string; qualification: string };
+  status?: 'blocked' | 'available' | 'incomplete';
+  gauge?: { value: number; label: string };
+  comparison?: { label: string; value: number; text: string }[];
   evidenceRefs: string[];
   continuationPolicy: 'SAME_SECTION';
 }

@@ -14,6 +14,7 @@ import { getCanonicalPropertyEvidenceWithDependencies } from './canonicalEvidenc
 import { resolveFeatureFlags } from '../featureFlags.ts';
 import { publicAnalyticalDecisionProofs } from './analyticalPropertyContext.ts';
 import { publicFinancialTaxProof } from './financialEvidenceContext.ts';
+import { buildFinancialInputReadiness } from './financialReadiness.ts';
 import { createBackendMarketRentService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 import type {RentAvmSubject} from '../property-data/rentAvmSubject.ts';
 
@@ -221,10 +222,22 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     const authenticated = authenticatedContext();
     if (!authenticated) throw new Error('UNAUTHORIZED');
     const providerPlan = context.plan === 'ENTERPRISE' ? 'ENTERPRISE' : context.plan === 'PRO' ? 'PRO' : 'FREE';
-    return getDealInsightContextForAuthenticatedUser(
+    const report = await getDealInsightContextForAuthenticatedUser(
       args, authHeader, authenticated.client as unknown as Parameters<typeof getDealInsightContextForAuthenticatedUser>[2], authenticated.userId, context.propertyId, providerPlan, context.language,
       Boolean(context.cacheOnly),
     );
+    if ((args as Record<string, unknown>)?.reportType && report.state === 'available' && report.intelligenceSnapshot) {
+      // Same authorized resolver as conversational answers; never acquire a second AVM here.
+      const evidence: Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null = await executeMaxxisTool('getCanonicalPropertyEvidence', { propertyId: report.intelligenceSnapshot.propertyId }, authHeader,
+        { ...context, financialEvidence: true, marketRentAcquisition: false, cacheOnly: true }).catch(() => null) as Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null;
+      if (evidence?.type === 'canonical_property_evidence' && evidence.state === 'available' && evidence.financialEvidence) {
+        return { ...report, intelligenceSnapshot: { ...report.intelligenceSnapshot,
+          financialEvidence: evidence.financialEvidence,
+          financialReadiness: buildFinancialInputReadiness(evidence.financialEvidence, { strategy: evidence.financialStrategy, propertyType: evidence.financialPropertyType }),
+        } };
+      }
+    }
+    return report;
   }
   if (name === 'getDealCopilotOverview') {
     const input = resolvePropertyDetailsInput({ propertyId: (args as Record<string, unknown>)?.propertyId }, context.propertyId);

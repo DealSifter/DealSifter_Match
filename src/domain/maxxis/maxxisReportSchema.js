@@ -524,7 +524,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     ? maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
       ? dealIntelligence?.canonicalInvestmentAnalysis?.focusMap : null;
   const marketRent=projectMarketRentReport(normalizedType==='DEAL_INTELLIGENCE'
-    ?dealIntelligence?.valuationIntelligence?.rentalEvidence?.rentEstimate:maxxisAnalysis?.marketContext?.rentEstimate,property,normalizedType==='DEAL_INTELLIGENCE'?3:normalizedType==='MAXXIS_ANALYSIS'?2:1);
+    ?dealIntelligence?.valuationIntelligence?.rentalEvidence?.rentEstimate:maxxisAnalysis?.marketContext?.rentEstimate,property,normalizedType==='DEAL_INTELLIGENCE'?3:normalizedType==='MAXXIS_ANALYSIS'?2:1,
+    normalizedType==='DEAL_INTELLIGENCE'?dealIntelligence?.financialEvidence:maxxisAnalysis?.financialEvidence);
   return Object.freeze({
     type: 'maxxis_report_schema',
     version: MAXXIS_REPORT_SCHEMA_VERSION,

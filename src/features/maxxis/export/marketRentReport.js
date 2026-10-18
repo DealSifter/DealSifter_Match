@@ -1,6 +1,15 @@
 const positive=value=>typeof value==='number'&&Number.isFinite(value)&&value>0?value:null;
 const number=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
-export function projectMarketRentReport(evidence,property={},level=3){
+export function projectMarketRentReport(evidence,property={},level=3,financialEvidence=null){
+  const resolved=financialEvidence?.inputs?.providerMarketRentEstimate;
+  if(resolved){
+    if(resolved.analyticalUsability!=='ESTIMATED_PROVIDER'||resolved.sourceClass!=='PROVIDER_ESTIMATE'
+      ||resolved.cadence!=='MONTHLY'||!positive(resolved.value)||resolved.source?.sourceFamily!=='RENTCAST')return null;
+    if(evidence?.rent!==resolved.value)evidence={provider:'rentcast',evidenceType:'rent_estimate',status:'AVAILABLE',rent:resolved.value,
+      rangeLow:resolved.source.metadata?.rangeLow,rangeHigh:resolved.source.metadata?.rangeHigh,
+      subjectProperty:resolved.source.metadata?.subjectProperty,scope:resolved.source.metadata?.scope,
+      queryFingerprint:resolved.source.metadata?.requestFingerprint,retrievedAt:resolved.source.retrievedAt,freshness:resolved.source.freshness};
+  }
   if(!evidence||evidence.provider!=='rentcast'||evidence.evidenceType!=='rent_estimate'||evidence.status!=='AVAILABLE'||!positive(evidence.rent))return null;
   if(level<2)return null;
   const common={monthlyRentEstimate:evidence.rent,currency:'USD',cadence:'MONTHLY',source:'RentCast',evidenceClass:'PROVIDER_ESTIMATE',scope:evidence.scope??'PROPERTY'};

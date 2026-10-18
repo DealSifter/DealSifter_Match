@@ -4,6 +4,7 @@ import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline'
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { buildStrictReportViewModel, validateReportViewModel, validateRenderedReportText } from './reportIntegrityViewModel.ts';
 import { drawStrictReportPdf } from './strictReportPdf.ts';
+import { getPreparedReportMaps } from './reportMapAssets';
 import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
 import { REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS } from './maxxisReportVisualPolicy';
 
@@ -93,7 +94,8 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   emitReportStage('pdf_assets_ready', { durationMs: 0, networkCalls: 0 });
   const rendered = await drawStrictReportPdf({ doc, viewModel, logo: officialDealSifterLogo,
     generatedAt: prepared.document.cover.generatedAt,
-    locationMapData: typeof mapImageData === 'string' && /^data:image\//i.test(mapImageData) ? mapImageData : null,
+    locationMapData: typeof mapImageData === 'string' && /^data:image\//i.test(mapImageData) ? mapImageData : getPreparedReportMaps(schema).location || null,
+    preparedMaps: getPreparedReportMaps(schema),
     yieldRendering: async () => {
       await yieldReportRendering();
     },

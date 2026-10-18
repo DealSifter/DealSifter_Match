@@ -282,6 +282,7 @@ try {
   const initialSourceHashes = await sourceHashes();
   const { buildMaxxisReportSchema } = await server.ssrLoadModule('/src/domain/maxxis/maxxisReportSchema.js');
   const { renderMaxxisReportPdf } = await server.ssrLoadModule('/src/features/maxxis/export/maxxisReportPdf.js');
+  const { prepareReportMaps } = await server.ssrLoadModule('/src/features/maxxis/export/reportMapAssets.js');
   const { buildStrictReportViewModel, validateReportViewModel, validateRenderedReportText } = await server.ssrLoadModule('/src/features/maxxis/export/reportIntegrityViewModel.ts');
   const { comparableMapViewport } = await server.ssrLoadModule('/src/features/maxxis/export/comparableMapGeometry.ts');
   const { resolveReportExportEntitlement } = await server.ssrLoadModule('/src/features/maxxis/export/reportExportEntitlement.js');
@@ -301,7 +302,7 @@ try {
       Object.assign(fixture.input.dealIntelligence, { financialEvidence, financialReadiness });
       Object.assign(fixture.input.maxxisAnalysis, { financialEvidence, financialReadiness });
     }
-    const levels = args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
+    const levels = args.get('recovery') ? (fixture.id === 'RENTAL_MARKET_RICH' ? ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'] : ['DEAL_INTELLIGENCE']) : args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
       ? ['DEAL_INTELLIGENCE'] : ['DEAL_INTELLIGENCE', 'PROPERTY_RELEASE', 'MAXXIS_ANALYSIS'];
     for (const language of languages) for (const level of levels) {
       const levelSuffix = level === 'DEAL_INTELLIGENCE' ? '' : level === 'PROPERTY_RELEASE' ? '-l1' : '-l2';
@@ -315,6 +316,19 @@ try {
       const schema = buildMaxxisReportSchema({ ...currentInput, reportType: level, resolvedUserLocale: language });
       const vm = buildStrictReportViewModel({ schema, language });
       const modelValidation = validateReportViewModel(vm);
+      if (args.get('recovery-maps')) {
+        class PreparedTile extends Image {
+          set src(value) {
+            if (!/^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(value)) throw new Error('QA_TILE_NOT_ALLOWED');
+            originalFetch(value, { headers: { 'User-Agent': 'DealSifter report visual validation' }, signal: AbortSignal.timeout(3000) })
+              .then(r => { if (!r.ok) throw new Error('TILE_UNAVAILABLE'); return r.arrayBuffer(); })
+              .then(bytes => { super.src = Buffer.from(bytes); }).catch(() => this.onerror?.());
+          }
+          get src() { return super.src; }
+        }
+        globalThis.Image = PreparedTile;
+        try { await prepareReportMaps(schema, language); } finally { globalThis.Image = OfflineImage; }
+      }
       const result = await renderMaxxisReportPdf({ schema, language, generatedAt: REPORT_FIXTURE_TIME,
         exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType: level, channel: 'PDF' }) });
       const record = { fixture: fixture.id, basename, language, level, syntheticFixture: true,
@@ -358,7 +372,7 @@ try {
       const contentAudit = auditContent(vm, text, logicalBodyChunks.join(' '));
       const renderedTextValidation = validateRenderedReportText(text);
       const identityVisible = text.includes(fixture.expected.address);
-      const maxPagesPass = !fixture.expected.maxPages || pageTexts.length <= fixture.expected.maxPages;
+      const maxPagesPass = args.get('recovery') ? level !== 'DEAL_INTELLIGENCE' || pageTexts.length >= 5 && pageTexts.length <= 10 : !fixture.expected.maxPages || pageTexts.length <= fixture.expected.maxPages;
       Object.assign(record, { pages: pageTexts.length, durationMs: Math.round(performance.now() - started),
         pdfSha256: hash(binary), reopenedStoredArtifact: true, strictViewModelVersion: vm.version,
         identityVisible, leaks, zeroAudit, sectionAudit, layout, evidenceAudit, marketAudit, contentAudit, renderedTextValidation,

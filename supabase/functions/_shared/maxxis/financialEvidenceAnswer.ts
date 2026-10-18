@@ -91,9 +91,10 @@ export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:Fi
     ?`${lang==='pt'?'Confirmar aplicabilidade':lang==='es'?'Confirmar aplicabilidad':'Confirm applicability'}: ${LABELS[lang][domain]}`:LABELS[lang][domain];
   const reasons=question.listMissing&&missing.length?`${t.missingList}: ${missing.map(gapLabel).join('; ')}.`:'';
   const text=[`${metricLabel}: ${level==='BLOCKED_CONFLICT'?t.blocked:level==='INCOMPLETE'?t.incomplete:level==='NOT_APPLICABLE'?t.notApplicable:t.ready}`,
+    gap?`${t.next}: ${gapLabel(gap)}.`:'',
     readiness.estimatedInputs.length?readiness.estimatedInputs.map(d=>describe(stack.inputs[d],lang)).join('\n'):'',
     stack.inputs.currentContractRent.value===null&&stack.inputs.providerMarketRentEstimate.value!==null?t.scenario:'',reasons,
     ...(readiness.assumedInputs.length?[readiness.assumedInputs.map(d=>describe(stack.inputs[d],lang)).join('\n')]:[]),
-    metric!=='NOI'?FUTURE_INPUTS[lang][metric]:'',gap?`${t.next}: ${gapLabel(gap)}.`:''].filter(Boolean).join('\n\n');
+    metric!=='NOI'?FUTURE_INPUTS[lang][metric]:''].filter(Boolean).join('\n\n');
   return {answer:text,readiness,input:null};
 }
