@@ -15,4 +15,6 @@ New backend modules pass Deno checking. The wider tool-registry check retains 31
 
 No paid provider requests, data migrations, secret changes or authenticated-user impersonation were performed during QA. Read-only production inspection found no saved rental estimate for 4724 W 26th St and 20 AVM listing-price references, not verified closed sales. The new API fallback must be exercised by an authorized live report generation; no claim of fetching the website's $970 screenshot is made.
 
-Publication receipt pending exact source SHA and production readiness verification.
+Published runtime: `51caae59794ba507696d512042c5de2d840b8b02`, pushed to `fix/production-real-defects`. Vercel `dpl_AdYbrVZzbJzmjRvV9kqTavmd5GN6` READY with exact source SHA and public alias verified at 2026-10-18 15:34 UTC. This production build covers the final compact-label/status-copy edits as well.
+
+Backend deployment used the immutable committed archive and exact dependency closure: `maxxis-chat` v91, `arv-visual-comp-review` v15, `property-intelligence` v15 and `property-fact-review` v7 are ACTIVE with JWT checks enabled. Feature-flags v19 and public-parcel v10 are unchanged; no configuration or secret changes. This receipt update is documentation-only, not a new runtime release.
