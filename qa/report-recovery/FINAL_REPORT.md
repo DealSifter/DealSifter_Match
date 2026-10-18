@@ -19,4 +19,10 @@ Production read-only check: Honolulu is registered as Sell and has no retained M
 
 Deployment scope: frontend and `maxxis-chat` only; existing flags, other functions and secrets unchanged.
 
-Commit / push / production deployment: pending release receipt.
+COMMIT (runtime): `58b75c47f8169cfee211c482cf328e566cf1d437`
+
+PUSH: PASS.
+
+PRODUCTION DEPLOY: YES. Vercel `dpl_HHFd2wC68cGZnADFbt1ZkMkk7tSh` READY; exact source SHA and `dealsiftermatch.vercel.app` alias verified on 2026-10-18 02:09 UTC. Backend `maxxis-chat` version 90 ACTIVE, JWT verification enabled. Feature-flags version 19 and public-parcel version 10 unchanged; no configuration or secret changes.
+
+This receipt is a documentation-only follow-up; production runtime remains the SHA above.
