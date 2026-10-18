@@ -10,4 +10,4 @@ Validação: 95 testes passaram em cinco arquivos; TypeScript de relatórios e l
 
 Inspeção visual cobriu as três categorias, marca centralizada, cores, colunas e página de comparáveis sem faixa repetida. São controles sintéticos, não relatórios autenticados de produção. Nenhum cálculo, backend, provedor, segredo ou dado foi alterado. Nenhuma consulta paga foi realizada.
 
-Publicação de frontend pendente de confirmação do commit exato e do alias de produção.
+Publicado em produção: commit de runtime `44b038d556be916798e04f864b8703e7fd158fdf`, enviado à branch `fix/production-real-defects`. Vercel `dpl_FMDyyGRgsRtL2SxWtmkktkfGAB7M` READY com SHA exato e alias `dealsiftermatch.vercel.app` verificados em 18/10/2026 às 15:32 BRT. Build de produção aprovado para este código final. Nenhum deploy de backend foi realizado; esta atualização do comprovante é documental.
