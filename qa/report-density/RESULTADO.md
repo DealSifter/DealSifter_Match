@@ -13,4 +13,4 @@ Verificação: 90 testes em cinco arquivos passaram, incluindo geometria da gale
 
 Os PDFs são controles sintéticos declarados. As cinco fotos do teste são cinco codificações da mesma imagem de amostra, não cinco vistas documentadas de um imóvel real. Nenhum provedor pago foi consultado. O conjunto final foi validado sem alteração de fontes durante a geração: digest `7db9d059da23ff7dd28a9cb7350f7869db498d6cc849f0dd408c6411d3a4232f`. Os cards de resumos, conclusões e detalhes curtos agora ajustam altura ao conteúdo, sem inflar blocos vazios.
 
-Publicação do frontend pendente de confirmação do commit exato e do alias de produção. Nenhum deploy de backend é necessário.
+Publicado em produção: commit de runtime `15dd92a1f158b96320cf5ccac4248cb4ab8e8a72`, enviado à branch `fix/production-real-defects`. Vercel `dpl_EMAn7n5KRkFSVTL4a359FmUSC1ok` em estado READY, com SHA exato e alias `dealsiftermatch.vercel.app` confirmados em 18/10/2026 às 14:36 BRT. O build de produção passou para este código final. Nenhum deploy de backend foi realizado. Esta atualização do comprovante é apenas documental.
