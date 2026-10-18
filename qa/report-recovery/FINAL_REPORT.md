@@ -25,7 +25,7 @@ PUSH: PASS.
 
 PRODUCTION DEPLOY: YES. Vercel `dpl_HHFd2wC68cGZnADFbt1ZkMkk7tSh` READY; exact source SHA and `dealsiftermatch.vercel.app` alias verified on 2026-10-18 02:09 UTC. Backend `maxxis-chat` version 90 ACTIVE, JWT verification enabled. Feature-flags version 19 and public-parcel version 10 unchanged; no configuration or secret changes.
 
-This receipt is a documentation-only follow-up; production runtime remains the SHA above.
+This historical receipt documents the earlier recovery release; the correction below supersedes its frontend runtime.
 
 ## Reference design correction — 2026-10-18
 
@@ -39,4 +39,4 @@ Verification: 56 focused tests, report TypeScript check, selected JavaScript lin
 
 A subsequent narrowly scoped map fix rejects incomplete tile mosaics. Its partial-load regression test and a newly generated ARV PDF passed. The four committed control PDFs have been replaced with the new composition; the additional synthetic ARV control remains in ignored QA storage. Long records can still require clearly identified supporting pages.
 
-Frontend-only production release: pending deployment receipt. Backend version 90 remains the prior release.
+Frontend-only production release: `289148e233a59fd7fcebc7d8c727a0196cb27a50`. Commit and push PASS. Vercel `dpl_3VL2QrMGjketLaRrZFRroJjiDKqQ` READY; exact source SHA and `dealsiftermatch.vercel.app` alias verified on 2026-10-18 03:28 UTC. The production build completed for this exact final source, including the map fallback fix. Backend version 90 remains the prior release. This final receipt is a documentation-only follow-up.
