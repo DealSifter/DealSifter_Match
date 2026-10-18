@@ -419,6 +419,25 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
     if (profileScore !== null && profileScore >= 0 && profileScore <= 100) { const ref = register('profile:compatibility', numeric(profileScore, locale), [profileScore]);
       push({ id: 'profile-fit', title: t('Compatibilidade com o perfil', 'Profile compatibility', 'Compatibilidad con el perfil'), kind: 'facts', priority: 35, rows: [{ label: t('Match Score', 'Match Score', 'Match Score'), value: `${numeric(profileScore, locale)}%`, source: t('Compatibilidade com o perfil; não é qualidade do negócio, probabilidade de sucesso ou confiança da análise.', 'Profile compatibility; not deal quality, probability of success or analysis confidence.', 'Compatibilidad con el perfil; no es calidad del negocio, probabilidad de éxito ni confianza del análisis.'), evidenceRefs: [ref] }], evidenceRefs: [ref] }); }
   }
+  if (level > 1) {
+    const profile = section('investmentProfile'), fit = resultSections.find(s => s.id === 'profile-fit');
+    if (fit && number(profile.score) !== null) fit.gauge = { value: Number(profile.score), label: 'Match Score' };
+    const labels: Record<string, string> = {
+      market: t('Mercado alvo', 'Target market', 'Mercado objetivo'), price: t('Faixa de preço', 'Price range', 'Rango de precio'),
+      property_type: t('Tipo de imóvel', 'Property type', 'Tipo de inmueble'), strategy: t('Estratégia', 'Strategy', 'Estrategia'),
+    };
+    const rows: ReportRow[] = [], comparison: NonNullable<ReportSection['comparison']> = [];
+    for (const item of list(profile.criteria).map(obj)) {
+      const label = labels[scalar(item.key)]; if (!label) continue;
+      const score = number(item.score), explanation = reportNarrativeString(item.explanation);
+      const value = score !== null && score >= 0 && score <= 100 ? `${numeric(score, locale)}%` : unavailable;
+      const ref = register(`profile:criterion:${scalar(item.key)}`, `${label}: ${value}${explanation ? ` · ${explanation}` : ''}`, score === null ? [] : [score]);
+      rows.push({ label, value, ...(explanation ? { source: explanation } : {}), evidenceRefs: [ref] });
+      if (score !== null && score >= 0 && score <= 100) comparison.push({ label, value: score, text: value });
+    }
+    if (rows.length) push({ id: 'profile-criteria', title: t('Fit por critério', 'Fit by criterion', 'Compatibilidad por criterio'), kind: 'facts', priority: 34,
+      rows, comparison, evidenceRefs: rows.flatMap(row => row.evidenceRefs) });
+  }
   if (level === 2 && !land && rentAmount === null) {
     const text = t('Estimativa de aluguel ainda não disponível neste relatório. Consulte aluguel de mercado no Maxxis; uma consulta autorizada poderá ser reutilizada aqui. Não equivale ao aluguel contratual atual.', 'A rent estimate is not yet available in this report. Check market rent in Maxxis; an authorized query can then be reused here. It is not current contractual rent.', 'La estimación de alquiler aún no está disponible en este informe. Consulte el alquiler de mercado en Maxxis; una consulta autorizada podrá reutilizarse aquí. No equivale al alquiler contractual actual.');
     const ref = register('market:rent-pending', text);

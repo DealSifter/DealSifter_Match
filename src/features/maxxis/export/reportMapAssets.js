@@ -55,7 +55,7 @@ export async function resolveComparableMap(schema,options={}) {
           .then((image) => ({ image, x: tileX * MAP_TILE_SIZE - left, y: tileY * MAP_TILE_SIZE - top })));
       }
     }
-    const loaded = await Promise.all(tiles); if (!loaded.some((tile) => tile.image)) return null;
+    const loaded = await Promise.all(tiles); if (!loaded.length || !loaded.every((tile) => tile.image)) return null;
     loaded.forEach((tile) => { if (tile.image) context.drawImage(tile.image, tile.x, tile.y, MAP_TILE_SIZE, MAP_TILE_SIZE); });
     world.forEach(({ x, y, item }) => {
       const px = x - left; const py = y - top;

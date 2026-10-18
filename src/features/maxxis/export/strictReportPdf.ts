@@ -1,6 +1,7 @@
 import type { jsPDF } from 'jspdf';
 import { comparableMapViewport } from './comparableMapGeometry';
 import type { ReportViewModel, ReportSection } from './reportIntegrityTypes';
+import { ReferenceReportComposition } from './referenceReportPdf';
 
 type Color = [number, number, number];
 type Tone = 'neutral' | 'positive' | 'warning' | 'accent';
@@ -32,7 +33,7 @@ export interface SafePdfSection {
   comparison?: { label: string; value: number; text: string }[];
   gap?: boolean;
 }
-interface FlowPlan { forcedBreakBefore?: ReadonlySet<string>; lineCache?: Map<string, readonly string[]>; preparedMaps?: Record<string, string | null> }
+interface FlowPlan { forcedBreakBefore?: ReadonlySet<string>; lineCache?: Map<string, readonly string[]>; preparedMaps?: Record<string, string | null>; referenceLayout?: boolean }
 
 const W = 595.28;
 const H = 841.89;
@@ -54,6 +55,7 @@ export class StrictPdfFlow {
   readonly audit: StrictPdfAudit = { lines: [], sections: [], continuations: [], maps: [] };
   readonly pages: Array<{ page: number; code: string; title: string; sectionKeys: string[] }> = [];
   readonly perPageMs: number[] = [];
+  referenceHeader?: (title: string) => void;
   private pageStartedAt = 0;
   private readonly consumedBreaks = new Set<string>();
   y = TOP;
@@ -142,6 +144,7 @@ export class StrictPdfFlow {
     const number = this.doc.getCurrentPageInfo().pageNumber;
     this.pages.push({ page: number, code, title, sectionKeys: [] });
     this.y = TOP;
+    if (this.plan.referenceLayout) { this.referenceHeader?.(title); return; }
     this.doc.setFillColor(...GRAPHITE); this.doc.rect(0, 0, W, 86, 'F');
     const props = this.doc.getImageProperties(this.logo);
     this.doc.addImage(this.logo, props.fileType || 'PNG', M, 10, 198, 198 * props.height / props.width, 'official-dealsifter-logo');
@@ -389,6 +392,7 @@ export class StrictPdfFlow {
     this.perPageMs.push(Math.round((now() - this.pageStartedAt) * 10) / 10);
     const stamp = new Intl.DateTimeFormat(this.meta.locale === 'pt' ? 'pt-BR' : this.meta.locale === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(this.meta.generatedAt));
     for (let page = 1; page <= total; page += 1) {
+      if (this.plan.referenceLayout) continue;
       this.doc.setPage(page); this.doc.setLineWidth(.6); this.doc.setDrawColor(...LINE); this.doc.line(M, 810, W - M, 810);
       this.drawText(`${this.meta.generated}: ${stamp} UTC`, M, 822, CONTENT - 95, 'footer', 7.4, false, MUTED, H - 4);
       this.drawText(`${this.meta.page} ${page} / ${total}`, W - M - 85, 822, 85, 'footer', 7.4, false, MUTED, H - 4);
@@ -633,32 +637,14 @@ function contentDensity(layout: Awaited<ReturnType<typeof drawReportBody>>) {
 
 /** The only production PDF body entrypoint accepts the strict display model. */
 export async function drawStrictReportPdf(options: StrictDrawOptions) {
-  const lineCache = new Map<string, readonly string[]>();
-  const forcedBreakBefore = new Set<string>();
-  let preflightPasses = 0;
-  // L1 retains its approved single-page property composition and its own genuine notes continuation.
-  if (options.viewModel.reportType === 'MAXXIS_ANALYSIS') {
-    const measure = (breaks: ReadonlySet<string>) => drawReportBody({ ...options, doc: measurementDocument(options.doc), yieldRendering: async () => {} }, { lineCache, forcedBreakBefore: breaks });
-    const baseline = await measure(forcedBreakBefore); preflightPasses += 1;
-    let best = contentDensity(baseline);
-    if (best.sparse.length) {
-      // Keep the shortest packed page count. Move a complete trailing native section
-      // only when its content then shares the last page with notes/qualification.
-      const starts = new Map<string, number>();
-      for (const section of baseline.layoutAudit.sections) if (!starts.has(section.sectionId)) starts.set(section.sectionId, section.page);
-      const candidates = [...starts].filter(([id, page]) => id !== 'reportDisclaimer' && !id.startsWith('executive') && page < baseline.pageCount).reverse().slice(0, 8);
-      for (const [id] of candidates) {
-        const candidateBreaks = new Set([id]);
-        const candidate = await measure(candidateBreaks); preflightPasses += 1;
-        if (candidate.pageCount <= baseline.pageCount) {
-          const density = contentDensity(candidate);
-          if (density.score < best.score) { best = density; forcedBreakBefore.clear(); forcedBreakBefore.add(id); }
-          if (!density.sparse.length) break;
-        }
-        await options.yieldRendering?.();
-      }
-    }
+  if (options.viewModel.reportType !== 'PROPERTY_RELEASE') {
+    const copy = COPY[options.viewModel.locale];
+    const flow = new StrictPdfFlow(options.doc, { ...options.viewModel.header, reportType: options.viewModel.reportType, locale: options.viewModel.locale,
+      generatedAt: options.generatedAt, generated: copy.generated, page: copy.page, continuation: copy.continuation }, options.logo, { referenceLayout: true });
+    const composition = new ReferenceReportComposition(flow, options.viewModel, options.preparedMaps || {}, options.locationMapData || null);
+    const drawn = await composition.draw(options.yieldRendering || (async () => {}));
+    return { ...drawn, layoutPlan: { preflightPasses: 0, forcedBreakBefore: [], mediaRequests: 0, fontSizeReduction: false, composition: 'APPROVED_REFERENCE_PAGES' } };
   }
-  const drawn = await drawReportBody(options, { lineCache, forcedBreakBefore });
-  return { ...drawn, layoutPlan: { preflightPasses, forcedBreakBefore: [...forcedBreakBefore], mediaRequests: 0, fontSizeReduction: false } };
+  const drawn = await drawReportBody(options);
+  return { ...drawn, layoutPlan: { preflightPasses: 0, forcedBreakBefore: [], mediaRequests: 0, fontSizeReduction: false } };
 }
