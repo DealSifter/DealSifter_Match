@@ -302,8 +302,16 @@ try {
   const { buildFinancialInputReadiness } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/financialReadiness.ts');
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const heroImage = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
+  // Synthetic media control: five distinct encodings of the same declared QA photo.
+  // This does not invent five views of a real property or change application assets.
+  let galleryImages = null;
+  if (args.get('five-photos')) {
+    const photo = await loadImage(heroImage), canvas = createCanvas(photo.width, photo.height);
+    canvas.getContext('2d').drawImage(photo, 0, 0);
+    galleryImages = Array.from({ length: 5 }, (_, i) => canvas.toDataURL('image/jpeg', .80 + i * .03));
+  }
   const fixtures = (args.get('long-notes') ? [reportIntegrityLongNotesFixture(languages[0])]
-    : reportIntegrityFixtures({ heroImage })).filter(fixture => !selection || selection.includes(fixture.id));
+    : reportIntegrityFixtures({ heroImage, galleryImages })).filter(fixture => !selection || selection.includes(fixture.id));
   if (!fixtures.length) throw new Error('QA_FIXTURE_SELECTION_EMPTY');
   for (const fixture of fixtures) {
     if (fixture.financialCandidates) {
@@ -314,9 +322,10 @@ try {
       Object.assign(fixture.input.dealIntelligence, { financialEvidence, financialReadiness });
       Object.assign(fixture.input.maxxisAnalysis, { financialEvidence, financialReadiness });
     }
-    const levels = args.get('parity') ? ['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'] : args.get('recovery') ? (fixture.id === 'RENTAL_MARKET_RICH' ? ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'] : ['DEAL_INTELLIGENCE']) : args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
+    const levels = args.get('levels') ? String(args.get('levels')).split(',') : args.get('parity') ? ['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'] : args.get('recovery') ? (fixture.id === 'RENTAL_MARKET_RICH' ? ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'] : ['DEAL_INTELLIGENCE']) : args.get('l3-only') || !['LOW_EVIDENCE_SELL', 'RENTAL_MARKET_RICH'].includes(fixture.id)
       ? ['DEAL_INTELLIGENCE'] : ['DEAL_INTELLIGENCE', 'PROPERTY_RELEASE', 'MAXXIS_ANALYSIS'];
     for (const language of languages) for (const level of levels) {
+      if (!['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(level)) throw new Error('QA_REPORT_LEVEL_INVALID');
       const levelSuffix = level === 'DEAL_INTELLIGENCE' ? '' : level === 'PROPERTY_RELEASE' ? '-l1' : '-l2';
       const localeSuffix = language === 'pt' ? '' : `-${language}`;
       const basename = `golden-${fixture.slug}${levelSuffix}${localeSuffix}`;
@@ -385,14 +394,18 @@ try {
       const renderedTextValidation = validateRenderedReportText(text);
       const identityVisible = text.includes(fixture.expected.address);
       const firstPageMissingFactValues = args.get('parity') ? vm.property.facts.flatMap(group => group.rows).filter(row => !normalized(pageTexts[0]).includes(normalized(row.value))).map(row => ({ label: row.label, value: row.value })) : [];
+      const photoSlots = result.document.layoutAudit.sections.filter(section => section.kind === 'reference-photo');
+      const visualDensityAudit = { photos: photoSlots.map(section => ({ page: section.page, ...section.bounds })),
+        panels: result.document.layoutAudit.sections.filter(section => section.kind === 'reference-panel' && ['overviewFacts0', 'overviewFacts1', 'overviewFacts2', 'propertyLocationMap', 'publisher-notes', 'propertyPhotos'].includes(section.sectionId)).map(section => ({ id: section.sectionId, page: section.page, ...section.bounds })),
+        pass: photoSlots.length === Math.min(5, vm.property.photos.length) && (!args.get('five-photos') || !currentInput.property.images?.length || photoSlots.length === 5 && photoSlots.every(section => section.bounds.height >= 64)) };
       const maxPagesPass = args.get('recovery') ? level !== 'DEAL_INTELLIGENCE' || pageTexts.length >= 5 && pageTexts.length <= 10 : !fixture.expected.maxPages || pageTexts.length <= fixture.expected.maxPages;
       Object.assign(record, { pages: pageTexts.length, durationMs: Math.round(performance.now() - started),
         pdfSha256: hash(binary), reopenedStoredArtifact: true, strictViewModelVersion: vm.version,
-        identityVisible, firstPageMissingFactValues, leaks, zeroAudit, sectionAudit, layout, evidenceAudit, marketAudit, contentAudit, renderedTextValidation,
+        identityVisible, firstPageMissingFactValues, visualDensityAudit, leaks, zeroAudit, sectionAudit, layout, evidenceAudit, marketAudit, contentAudit, renderedTextValidation,
         images: images.map(path => path.replaceAll('\\', '/')), contactSheet: `${directory}/${basename}-contact.png`,
         maxPagesPass, sourceTraceability: vm.evidencePacket,
         pass: modelValidation.valid === true && renderedTextValidation.valid === true && identityVisible
-          && !leaks.length && zeroAudit.pass && sectionAudit.pass && layout.pass && evidenceAudit.pass && marketAudit.pass && contentAudit.pass
+          && !leaks.length && zeroAudit.pass && sectionAudit.pass && layout.pass && evidenceAudit.pass && marketAudit.pass && contentAudit.pass && visualDensityAudit.pass
           && maxPagesPass && !firstPageMissingFactValues.length && networkAttempts.length === fetchBefore && imageNetworkAttempts.length === imagesBefore });
       results.push(record);
       await saveJson(`${basename}-validation.json`, record);

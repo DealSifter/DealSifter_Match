@@ -79,8 +79,8 @@ const baseInput = (property, dealIntelligence = emptyDeal()) => ({
   },
 });
 
-export function reportIntegrityFixtures({ heroImage = null } = {}) {
-  const photos = heroImage ? [heroImage] : [];
+export function reportIntegrityFixtures({ heroImage = null, galleryImages = null } = {}) {
+  const photos = galleryImages || (heroImage ? [heroImage] : []);
   const lowProperty = {
     id: '11111111-1111-4111-8111-111111111111', address: '4724 W 26th St',
     city: 'Little Rock', state: 'AR', zip: '72204', type: 'SFR', objective: 'Sell',
