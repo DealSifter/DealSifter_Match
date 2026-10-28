@@ -2,6 +2,7 @@ import React from 'react';
 import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 import { explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
+import { soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
 
 const COPY = {
   en: { title: 'Maxxis Deal Intelligence', overview: 'Executive deal overview', standsOut: 'Why this property stands out',
@@ -62,7 +63,8 @@ function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, lan
   const t = COPY[language] || COPY.en;
   const valuation = report.valuationIntelligence || {};
   const range = valuation.range;
-  const fit = report.investmentFit || {};
+  const candidateFit = report.investmentFit || {};
+  const fit = candidateFit.profileSource === 'AUTHENTICATED_CURRENT_PROFILE' && candidateFit.sourceProfile ? candidateFit : { score: null };
   const property = reportSchema?.sections?.propertySummary?.available
     ? reportSchema.sections.propertySummary.data || {}
     : {};
@@ -96,7 +98,7 @@ function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, lan
           <div><dt>{t.supportCount}</dt><dd>{supportingCount}</dd></div>
         </dl>
         {providerEstimate?.value ? <small className="maxxis-market-estimate-note">{t.providerNote}</small> : null}
-        {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance"><strong>{language === 'pt' ? 'Por quê?' : language === 'es' ? '¿Por qué?' : 'Why?'}</strong> {t.unavailableReason(supportingCount)}</p> : null}
+        {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance"><strong>{language === 'pt' ? 'Por quê?' : language === 'es' ? '¿Por qué?' : 'Why?'}</strong> {report.soldDelivery ? soldDeliveryAnswer(report.soldDelivery, language) : t.unavailableReason(supportingCount)}</p> : null}
         {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance">{t.improve}</p> : null}
         {valuation.methodology ? <small>{t.methodology}: <strong>{localizeMaxxisValue(valuation.methodology, language, t.unavailable)}</strong></small> : null}
         {valuation.warnings?.length ? <div className="maxxis-arv-warning-list" aria-label={t.warnings}>{valuation.warnings.map((warning) => <span key={warning}>⚠ {localizeMaxxisValue(warning, language)}</span>)}</div> : null}

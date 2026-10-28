@@ -2030,6 +2030,12 @@ export function MessageBubble({
       {message.type === 'maxxis_deal_intelligence' && message.data?.maxxisDealIntelligence ? (
         <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} generatedAt={message.createdAt} />
       ) : null}
+      {['maxxis_analysis_report', 'maxxis_deal_intelligence'].includes(message.type)
+        && !message.data?.maxxisReport?.sections?.investmentProfile?.data?.sourceProfile && onAction ? (
+          <button type="button" className="maxxis-action-link" onClick={() => onAction('onboarding')}>
+            {language === 'pt' ? 'Configurar perfil de investimento' : language === 'es' ? 'Configurar perfil de inversión' : 'Configure Investment Profile'}
+          </button>
+        ) : null}
       {message.type === 'property_details' && message.data?.metrics?.metrics ? (
         <div className="maxxis-action-links" aria-label={(COPY[language] || COPY.en).dealMetricsTitle}>
           <div className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 5, width: '100%', alignItems: 'stretch', justifyContent: 'stretch', borderRadius: 12 }}>

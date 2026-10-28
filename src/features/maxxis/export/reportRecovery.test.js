@@ -53,9 +53,9 @@ describe('report recovery vertical evidence contract', () => {
     expect(projectProviderListingReferences([{ ...listings[0], priceSemantic: 'RECORDED_SALE' }])).toEqual([]);
   });
   it('explains a rental subject review instead of claiming the provider has no rental data', () => {
-    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: { marketRent: { state: 'RENT_AVM_REVIEW_REQUIRED' } } });
+    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: { marketRent: { state: 'RENT_AVM_REVIEW_REQUIRED', reviewField: 'buildingArea' } } });
     const text = buildStrictReportViewModel({ schema, language: 'pt' }).sections.find(s => s.id === 'rent-pending').text;
-    expect(text).toContain('dados físicos em divergência');
+    expect(text).toContain('Área construída');
     expect(text).not.toContain('sem dados');
   });
   it.each(['NO_RESULT','PROVIDER_ERROR','USAGE_BLOCKED','ENTITLEMENT_BLOCKED'])('reports the actual acquisition state %s rather than claiming no query', state => {
@@ -79,7 +79,7 @@ describe('report recovery vertical evidence contract', () => {
     } finally { vi.unstubAllGlobals(); }
   });
   it('projects profile criteria without treating absent scores as zero, in both report levels', () => {
-    const profile = { score: 78, criteria: [{ key: 'market', score: 90 }, { key: 'price', score: null }, { key: 'unrecognized', score: 100 }] };
+    const profile = { score: 78, sourceProfile: { targetMarkets: ['Little Rock, AR'] }, profileSource: 'AUTHENTICATED_CURRENT_PROFILE', criteria: [{ key: 'market', score: 90 }, { key: 'price', score: null }, { key: 'unrecognized', score: 100 }] };
     for (const reportType of ['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']) {
       const schema = buildMaxxisReportSchema({ reportType, property, maxxisAnalysis: { profileAlignment: profile }, dealIntelligence: { investmentFit: profile } });
       const vm = buildStrictReportViewModel({ schema, language: 'en' });

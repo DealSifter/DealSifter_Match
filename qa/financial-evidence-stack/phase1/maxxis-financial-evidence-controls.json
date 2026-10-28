@@ -2,12 +2,23 @@
   "fixtureOnly": true,
   "liveProviderCalls": 0,
   "data": {
-    "answer": "NOI: Ainda não há dados suficientes para calcular com confiabilidade.\n\nAluguel de mercado estimado: US$ 1.800,00 / mês. estimativa, não valor contratual ou despesa efetiva · RentCast.\n\nHá aluguel de mercado estimado, mas ele não substitui o aluguel contratual.\n\nPróximo dado prioritário: Aluguel contratual atual.",
+    "answer": "NOI: Ainda não há dados suficientes para calcular com confiabilidade.\n\nPróximo dado prioritário: Aluguel contratual atual.\n\nAluguel de mercado estimado: US$ 1.800,00 / mês. Estimativa de mercado · RentCast · não é aluguel contratual atual.\n\nHá aluguel de mercado estimado, mas ele não substitui o aluguel contratual.",
     "readiness": {
       "version": "FINANCIAL_INPUT_READINESS_V1",
       "propertyId": "11111111-1111-4111-8111-111111111111",
       "incomeBasis": "CURRENT_ACTUAL",
       "readinessLevel": "INCOMPLETE",
+      "issues": {
+        "currentContractRent": "REQUIRED_VALUE_MISSING",
+        "propertyTax": "REQUIRED_VALUE_MISSING",
+        "insurance": "REQUIRED_VALUE_MISSING",
+        "hoa": "APPLICABILITY_UNCONFIRMED",
+        "vacancy": "ASSUMPTION_REQUIRED",
+        "propertyManagement": "APPLICABILITY_UNCONFIRMED",
+        "maintenance": "ASSUMPTION_REQUIRED",
+        "utilities": "APPLICABILITY_UNCONFIRMED",
+        "otherOperatingExpenses": "APPLICABILITY_UNCONFIRMED"
+      },
       "income": {
         "status": "INCOMPLETE",
         "inputs": [

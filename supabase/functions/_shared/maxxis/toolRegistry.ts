@@ -124,10 +124,11 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
       loadRentAvmState:async propertyId=>{
         const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
         const property=await internal.from('properties').select('id,type,address,city,state,zip,beds,baths,sqft,lot,owner_id,lat,lng,geocode_status').eq('id',propertyId).maybeSingle();
-        if(property.error||!property.data)return null;
+        if(property.error)throw new Error('RENT_SUBJECT_PROPERTY_READ_FAILED');
+        if(!property.data)throw new Error('RENT_SUBJECT_PROPERTY_NOT_FOUND');
         // Only current publisher decisions can become shared AVM overrides.
         const review=await internal.from('property_fact_reviews').select('state').eq('property_id',propertyId).eq('owner_id',property.data.owner_id).maybeSingle();
-        if(review.error)return null;
+        if(review.error)throw new Error('RENT_SUBJECT_REVIEW_READ_FAILED');
         return {property:property.data,snapshot:review.data?.state??null};
       },
       loadMarketRent:async(propertyId,initialSubject)=>{

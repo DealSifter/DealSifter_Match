@@ -515,6 +515,7 @@ export function buildMaxxisLLMContext(value: unknown) {
         .slice(0, 6).map((item) => { const conflict = record(item); return { field: safeText(conflict.field, 60), severity: safeText(conflict.severity, 20) }; }),
     },
     compsSummary: {
+      delivery: snapshot.soldDelivery || null,
       candidatesConsidered: safeNumber(runtime.candidateCount) ?? comps.length,
       structuralCandidates: safeNumber(runtime.structuralCandidateCount) ?? comps.length,
       selectedCount: selected.length,

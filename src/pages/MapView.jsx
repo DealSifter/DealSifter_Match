@@ -27,6 +27,7 @@ import { buildMapInventory } from '../services/mapInventoryService';
 import { PropertyPinPopup } from '../components/map/PropertyPinPopup';
 import { PortfolioPinCarousel } from '../components/map/PortfolioPinCarousel';
 import { linkedPortfolioSlides } from '../components/map/portfolioPinData';
+import { getPersonMapBadges } from '../components/map/personPinBadges';
 import { getLang } from '../i18n/translations';
 import { resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/unlockAccessState';
 import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
@@ -2945,6 +2946,12 @@ export function MapView({
 
               const isPerson = feature.properties.itemType === 'person';
               const payload = feature.payload;
+              const personBadges = isPerson ? getPersonMapBadges(payload, {
+                deals: tMap.deals || 'deals',
+                verified: tCards.verified || 'Verified',
+                fsbo: 'FSBO',
+                business: tMatches.professionalBadge || 'Business',
+              }) : [];
               const isOwnProperty = !isPerson && feature.properties.isOwn === true;
               const isUnlockedMarker = feature.properties.isUnlocked === true;
               const markerKey = feature.properties.featureKey
@@ -3007,23 +3014,24 @@ export function MapView({
                             src={payload.photo || ''}
                             alt={payload.name}
                             className="ds-map-popup-avatar"
-                            fallback={<div className="ds-map-popup-avatar" style={{ background:C.border, display:'flex', alignItems:'center', justifyContent:'center', color:C.t3, fontSize:13, fontWeight:700 }}>{String(payload.name || '?').trim().charAt(0).toUpperCase() || '?'}</div>}
+                            fallback={<div className="ds-map-popup-avatar" style={{ background:C.border, display:'flex', alignItems:'center', justifyContent:'center', color:C.t3, fontSize:11, fontWeight:700 }}>{String(payload.name || '?').trim().charAt(0).toUpperCase() || '?'}</div>}
                           />
-                          <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="ds-map-popup-identity">
                             <div className="ds-map-popup-title">{payload.name}</div>
-                            <div className="ds-map-popup-subtitle">{payload.type} · {payload.loc}</div>
+                            <div className="ds-map-popup-meta">
+                              {getPortfolioSummaryLabel(payload)}
+                              {isPersonUnlocked(payload) ? ` · ${tMatches.unlockedLabel || 'Unlocked'}` : ''}
+                            </div>
                           </div>
+                          <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
                         </div>
-                        <div style={{ marginTop: 2, fontSize: 12, color: C.gold, fontWeight: 700 }}>
-                          {getPortfolioSummaryLabel(payload)}
-                        </div>
-                        <div style={{ marginTop: 1, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: C.t2 }}>
-                          <span>{payload.deals} {tMap.deals || 'deals'}</span>
-                          {isPersonUnlocked(payload) && (
-                            <span style={{ color: '#75ba75', fontWeight: 600, fontSize: 11 }}>{tMatches.unlockedLabel || 'Unlocked'}</span>
-                          )}
-                        </div>
-                        <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
+                        {personBadges.length > 0 && (
+                          <div className="ds-map-person-badges">
+                            {personBadges.map((badge) => (
+                              <span key={badge} className="ds-map-person-badge">{badge}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <PortfolioPinCarousel key={`${payload.ownerId}:${payload.primaryProfile}`} owner={payload} language={getLang()}
                         labelForItem={item => item.kind === 'property' ? getSafePropertyLabel(item) : String(item.title || item.category || payload.name)}

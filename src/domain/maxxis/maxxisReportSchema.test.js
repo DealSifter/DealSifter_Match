@@ -167,7 +167,7 @@ describe('MaxxisReportSchema v2', () => {
     });
     expect(merged).toMatchObject({
       id: 'property-1', type: 'Duplex', resolvedAnalysisPropertyType: 'Duplex', beds: 4, baths: 2, price: 425000,
-      county: 'Provider County', images: ['provider.jpg', 'app.jpg'],
+      county: 'Provider County', images: ['app.jpg', 'provider.jpg'],
       owner: { name: 'Visible Owner', type: 'FSBO', allowedContacts: [{ value: '555-0100' }] },
     });
   });

@@ -1,0 +1,24 @@
+{
+  "mode": "old-frontend-new-backend",
+  "baseURL": "https://dealsiftermatch.vercel.app",
+  "sha": "f96b409f95e99c532a56f6b1760d326c11a166a0",
+  "realAuthenticatedSession": false,
+  "providerCalls": 0,
+  "errors": [],
+  "pass": true,
+  "entry": "/assets/index-ty2HyPKr.js",
+  "pdfAsset": "maxxisReportPdf-D9m0XmyW.js",
+  "pdfAssetHash": "b8da42013f707aa12b1aebd7e63d288b6dbb41ecabffa040da89fcd741054eae",
+  "rootMounted": true,
+  "publicControls": [
+    "EN",
+    "Pricing",
+    "Sign In",
+    "Get Started"
+  ],
+  "loginControlClickable": true,
+  "loginFormVisible": true,
+  "authenticatedNavigation": "PENDING_REAL_USER_SESSION",
+  "maxxisAuthenticatedChat": "PENDING_REAL_USER_SESSION",
+  "reportModalOpenClose": "PENDING_REAL_USER_SESSION"
+}

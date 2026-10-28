@@ -146,12 +146,15 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
   const snapshot = isObject(snapshotOrFacts?.propertyFacts) ? snapshotOrFacts : { propertyFacts: snapshotOrFacts };
   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
     ...dealIntelligence,
+    matchContext: snapshot.investmentProfile?.profile ? dealIntelligence.matchContext : { calculable: false },
     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
     dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
     dealAssumptions: isObject(snapshot.dealAssumptions) ? snapshot.dealAssumptions : {},
     sellerFinancingScenario: isObject(snapshot.sellerFinancingScenario) ? snapshot.sellerFinancingScenario : null,
   }, canonical?.language || 'en');
-  const alignment = canonicalInvestmentAnalysis.profileFit;
+  const alignment = Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
+    sourceProfile: snapshot.investmentProfile?.profile || null,
+    profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null });
   const savedSellerFinancingScenario = isObject(snapshot.dealAssumptions?.sellerFinancingScenario)
     && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
     ? Object.freeze({ ...snapshot.dealAssumptions.sellerFinancingScenario }) : null;

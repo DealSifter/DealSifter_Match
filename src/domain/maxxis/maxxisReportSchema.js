@@ -45,6 +45,7 @@ const COMPARABLE_KEYS = Object.freeze([
   'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
   'baths', 'sqft', 'latitude', 'longitude', 'sourceType', 'provenance',
   'lotSizeSqft', 'yearBuilt', 'providerCorrelation', 'saleAgeDays', 'compClass',
+  'propertyType', 'dataCompletenessScore', 'hardGatesPass',
 ]);
 
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -97,6 +98,9 @@ function canonicalPropertyInput(property) {
 export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   const evidence = canonicalPropertyInput(evidenceProperty);
   const app = canonicalPropertyInput(appProperty);
+  if (evidence.id && app.id && String(evidence.id) !== String(app.id)) {
+    throw new Error('REPORT_PROPERTY_IDENTITY_MISMATCH');
+  }
   const merged = {};
   const appAuthoritative = new Set([
     'id', 'title', 'address', 'city', 'state', 'zip', 'type', 'objective', 'notes',
@@ -126,8 +130,8 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
       ? resolvedStrategyFor(merged.type, merged.objective)
       : evidence.resolvedAnalysisStrategy || resolvedStrategyFor(merged.type, merged.objective));
   if (evidence.canonicalPropertyFacts) merged.resolvedAnalysisStrategy = resolveAnalysisStrategy(merged.resolvedAnalysisPropertyType, evidence.objective || merged.objective);
-  const images = [...(Array.isArray(evidence.images) ? evidence.images : []),
-    ...(Array.isArray(app.images) ? app.images : [])]
+  const images = [...(Array.isArray(app.images) ? app.images : []),
+    ...(Array.isArray(evidence.images) ? evidence.images : [])]
     .filter((item) => typeof item === 'string' && item.trim())
     .filter((item, index, values) => values.indexOf(item) === index);
   if (images.length) merged.images = images;
@@ -543,7 +547,9 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       design: 'PREMIUM_INVESTOR_REPORT_V2',
       ...(marketRent?{marketRent}:{}),
       marketRentState: normalizedType !== INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE && rentResult
-        ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null }) : null,
+        ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null, reviewFields: rentResult.reviewFields || [], reason: rentResult.reason || null,
+          cacheHit: rentResult.cacheHit === true, providerCalls: rentResult.providerCalls ?? null }) : null,
+      soldDelivery: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? dealIntelligence?.soldDelivery || null : null,
       financialEvidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? dealIntelligence?.financialEvidence || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
           ? maxxisAnalysis?.financialEvidence || null : null,

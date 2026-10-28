@@ -6,6 +6,17 @@
     "propertyId": "11111111-1111-4111-8111-111111111111",
     "incomeBasis": "CURRENT_ACTUAL",
     "readinessLevel": "READY_ACTUAL",
+    "issues": {
+      "currentContractRent": "AVAILABLE",
+      "propertyTax": "AVAILABLE",
+      "insurance": "AVAILABLE",
+      "hoa": "AVAILABLE",
+      "vacancy": "AVAILABLE",
+      "propertyManagement": "AVAILABLE",
+      "maintenance": "AVAILABLE",
+      "utilities": "AVAILABLE",
+      "otherOperatingExpenses": "AVAILABLE"
+    },
     "income": {
       "status": "AVAILABLE",
       "inputs": [

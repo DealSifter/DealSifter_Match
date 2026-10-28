@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "cases": [
+    "current",
+    "legacy",
+    "top-level-legacy"
+  ],
+  "nullProfile": "PASS",
+  "contract": "raw persisted payload → existing extractor/normalizer → reportProfileProjection; projection itself accepts normalized profile, not wrappers"
+}

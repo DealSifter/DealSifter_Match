@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
 import * as assets from '../export/reportPreparedAssets';
+import * as projection from '../export/reportIntegrityViewModel';
 import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
 
 const schema = () => buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property: {
@@ -14,6 +15,23 @@ const schema = () => buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', 
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe('real strict inline preview lifecycle', () => {
+  it('does not project or mount a closed browser report and memoizes an open report across parent updates', async () => {
+    const prepare = vi.spyOn(assets, 'prepareReportAssets').mockResolvedValue([]);
+    const build = vi.spyOn(projection, 'buildStrictReportViewModel');
+    const input = schema();
+    const { container, rerender } = render(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />);
+    expect(container.querySelector('[data-report-page]')).toBeNull(); expect(build).not.toHaveBeenCalled();
+    rerender(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />); expect(build).not.toHaveBeenCalled();
+    const details = container.querySelector('details');
+    await act(async () => { details.querySelector('summary').click(); });
+    await waitFor(() => expect(prepare).toHaveBeenCalledOnce());
+    await waitFor(() => expect(build).toHaveBeenCalledTimes(2));
+    expect(container.querySelector('[data-report-page]')).not.toBeNull();
+    const calls = build.mock.calls.length;
+    rerender(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />); expect(build).toHaveBeenCalledTimes(calls);
+    await act(async () => { details.open = false; fireEvent(details, new Event('toggle')); });
+    expect(container.querySelector('[data-report-page]')).toBeNull();
+  });
   it('prepares photos only after opening details and never during startup/render', async () => {
     const prepare = vi.spyOn(assets, 'prepareReportAssets').mockResolvedValue([]);
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('NO_PROVIDER_CALL_ALLOWED'));

@@ -36,6 +36,7 @@ export function PortfolioContactPanel({
   canonicalContact,
   isUnlocked,
   variant = 'desktop',
+  showIdentity = true,
   onUnlockRequest,
   onChatClick,
 }) {
@@ -119,7 +120,7 @@ export function PortfolioContactPanel({
         minWidth: 0,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: compact ? 'none' : '0 1 auto' }}>
+      {showIdentity ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: compact ? 'none' : '0 1 auto' }}>
         {contact.avatarUrl ? (
           <SmartImage
             src={contact.avatarUrl}
@@ -139,7 +140,7 @@ export function PortfolioContactPanel({
             {[contact.category, contact.location].filter(Boolean).join(' · ')}
           </div>
         </div>
-      </div>
+      </div> : null}
 
       <div style={{ minWidth: 0 }}>
         {hasAnyContact ? (

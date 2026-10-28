@@ -1,0 +1,12 @@
+{
+  "baselineSha": "6cefdb1ac4b54b6b4734bbd401667043e226acf1",
+  "command": "deno check supabase/functions/_shared/maxxis/toolRegistry.ts supabase/functions/_shared/maxxis/toolResultForGemini.ts",
+  "baselineErrors": 31,
+  "localDraftErrors": 31,
+  "result": "FAIL_IN_BOTH_BASELINE_AND_DRAFT",
+  "comparison": "Same diagnostics and source locations, accounting for one-line offsets in toolRegistry. No new diagnostic observed in this comparison.",
+  "affectedExistingModules": ["dealCopilotContext.ts", "dealWorkflow.ts", "getPropertyDetails.ts", "getUserPropertyBehavior.ts", "searchMatchedProperties.ts", "searchServices.ts", "toolRegistry.ts"],
+  "frontendReportTypecheck": "PASS",
+  "focusedAnalyticalBackendTypecheck": "PASS",
+  "productionDeploymentPerformed": false
+}

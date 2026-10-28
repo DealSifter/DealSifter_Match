@@ -77,7 +77,12 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
   // cached evidence. An address/subject change invalidates old decisions normally.
   let rentAvmSubject:RentAvmSubject|undefined;
   if((options.financialEvidence||options.rentAvmSubject)&&provider?.entitlementState==='authorized'){
-    const state=options.loadRentAvmState?await options.loadRentAvmState(input.propertyId).catch(()=>null):null;
+    let subjectReason:string|undefined;
+    const state=options.loadRentAvmState?await options.loadRentAvmState(input.propertyId).catch(error=>{
+      const code=error instanceof Error?error.message:'';
+      subjectReason=['RENT_SUBJECT_PROPERTY_READ_FAILED','RENT_SUBJECT_PROPERTY_NOT_FOUND','RENT_SUBJECT_REVIEW_READ_FAILED'].includes(code)?code:'RENT_SUBJECT_STATE_READ_FAILED';
+      return null;
+    }):null;
     const external=candidates.filter(c=>c.sourceFamily!=='PUBLISHER');
     const currentFields=new Set(external.map(c=>`${c.sourceFamily}:${c.field}`));
     const retained=state?.snapshot&&state.snapshot.identityHash===await evidenceHash(propertyIdentity(state.property))
@@ -85,9 +90,13 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
     const fresh=state?await reconcilePropertyFacts(state.property,[...retained,...external],state.snapshot):null;
     rentAvmSubject=resolveRentAvmSubjectAttributes({property:row,effectiveFacts:reconciled?.facts,projections:readModel.analyticalEvidence.fields,
       reviewSnapshot:fresh??(reconciled?.owner?reconciled.reviewSnapshot:null),unavailable:!!options.loadRentAvmState&&!state});
+    if(rentAvmSubject.state==='SUBJECT_UNAVAILABLE')rentAvmSubject={...rentAvmSubject,reason:subjectReason??'RENT_SUBJECT_STATE_UNAVAILABLE'};
   }
   const marketRent:MarketRentResult|undefined=options.financialEvidence?(provider?.entitlementState!=='authorized'?{propertyId:input.propertyId,state:'ENTITLEMENT_BLOCKED' as const,providerCalls:0}
-    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject).catch(()=>({propertyId:input.propertyId,state:'SUBJECT_UNAVAILABLE' as const,providerCalls:0})):undefined):undefined;
+    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject).catch((error)=>({propertyId:input.propertyId,state:'PROVIDER_ERROR' as const,providerCalls:0,
+      // A cache/guard/execution failure is not an invalid physical attribute.
+      // Retain a bounded diagnostic category, never an arbitrary error payload.
+      reason:/CACHE/.test(error instanceof Error?error.message:'')?'RENT_CACHE_READ_FAILED':/ENTITLEMENT/.test(error instanceof Error?error.message:'')?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'})):undefined):undefined;
   const rent=marketRent?.evidence?{evidence:marketRent.evidence,freshness:marketRent.freshness}
     :options.financialEvidence&&!options.loadMarketRent&&provider?.entitlementState==='authorized'
     ?await options.loadCachedMarketRent?.(input.propertyId).catch(()=>null):null;

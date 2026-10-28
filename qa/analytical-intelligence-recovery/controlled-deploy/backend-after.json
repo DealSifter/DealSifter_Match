@@ -1,0 +1,30 @@
+﻿[
+    {
+        "slug":  "maxxis-chat",
+        "version":  92,
+        "updated_at":  1792442773729,
+        "status":  "ACTIVE",
+        "verify_jwt":  true
+    },
+    {
+        "slug":  "property-intelligence",
+        "version":  16,
+        "updated_at":  1792442780852,
+        "status":  "ACTIVE",
+        "verify_jwt":  true
+    },
+    {
+        "slug":  "property-fact-review",
+        "version":  8,
+        "updated_at":  1792442784823,
+        "status":  "ACTIVE",
+        "verify_jwt":  true
+    },
+    {
+        "slug":  "arv-visual-comp-review",
+        "version":  16,
+        "updated_at":  1792442788044,
+        "status":  "ACTIVE",
+        "verify_jwt":  true
+    }
+]

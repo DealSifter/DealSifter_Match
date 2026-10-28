@@ -1,6 +1,7 @@
 {
   "mode": "LOCAL_FULL_APP_MOCK_AUTH",
   "productionUserSession": false,
+  "realBackendWrites": 0,
   "results": [
     {
       "device": "desktop",
@@ -8,27 +9,32 @@
         {
           "from": "mapview",
           "to": "dashboard",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         },
         {
           "from": "mapview",
           "to": "matches",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": true
         },
         {
           "from": "mapview",
           "to": "pricing",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         },
         {
           "from": "mapview",
           "to": "dashboard",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": true
         },
         {
           "from": "mapview",
           "to": "matches",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         }
       ],
       "errors": []
@@ -39,27 +45,32 @@
         {
           "from": "mapview",
           "to": "dashboard",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         },
         {
           "from": "mapview",
           "to": "matches",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": true
         },
         {
           "from": "mapview",
           "to": "pricing",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         },
         {
           "from": "mapview",
           "to": "dashboard",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": true
         },
         {
           "from": "mapview",
           "to": "matches",
-          "pinSelected": true
+          "pinSelected": true,
+          "nativeZoomInFlight": false
         }
       ],
       "errors": []

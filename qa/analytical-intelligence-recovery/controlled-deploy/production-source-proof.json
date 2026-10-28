@@ -1,0 +1,11 @@
+{
+  "baseline": "f96b409f95e99c532a56f6b1760d326c11a166a0",
+  "deployment": "dpl_7aGyqibdEhQAqLvunnnvQoy1j1Gk",
+  "method": "remote uploaded-file SHA1 versus Git blob contents; LF/CRLF accepted",
+  "trackedScopedFiles": 1081,
+  "matched": 1081,
+  "missing": [],
+  "mismatch": [],
+  "extra": [],
+  "result": "PASS"
+}

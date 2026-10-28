@@ -376,11 +376,11 @@ export class StrictPdfFlow {
     this.audit.maps.push({ sectionId, page: this.doc.getCurrentPageInfo().pageNumber, bounds: bounds(x, y, width, height), points: plotted });
   }
 
-  image(data: string, x: number, y: number, width: number, height: number) {
+  image(data: string, x: number, y: number, width: number, height: number, fit: 'cover' | 'contain' = 'cover') {
     if (!/^data:image\/(?:png|jpeg|jpg|webp);base64,/i.test(data)) return false;
     try {
       const properties = this.doc.getImageProperties(data);
-      const scale = Math.max(width / properties.width, height / properties.height);
+      const scale = (fit === 'contain' ? Math.min : Math.max)(width / properties.width, height / properties.height);
       const imageWidth = properties.width * scale, imageHeight = properties.height * scale;
       this.doc.saveGraphicsState(); this.doc.roundedRect(x, y, width, height, 6, 6, null); this.doc.clip(); this.doc.discardPath();
       this.doc.addImage(data, properties.fileType || 'JPEG', x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight); this.doc.restoreGraphicsState();

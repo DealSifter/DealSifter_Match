@@ -764,7 +764,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       ...item,
       address: item?.address || item?.name || null,
       images: reportImages,
-      notes: ownerDesc || owner?.desc || item?.notes || item?.description || null,
+      // Profile copy belongs to the publisher, not to this property. A publisher
+      // can have many listings; never use their bio as a listing's narrative.
+      notes: item?.propertyUserNotes || item?.notes || item?.description || null,
       published: Boolean(item?.isActive),
       portfolio: Boolean(item?.includeInPreview),
       owner: {

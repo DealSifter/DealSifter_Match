@@ -148,14 +148,22 @@ function comparableItem(comp) {
     longitude: nullableNumber(comp?.longitude),
     sourceType: 'VERIFIED_RECORD',
     provenance: 'VERIFIED_RECORD',
+    propertyType: safeText(comp?.propertyType) || null,
+    dataCompletenessScore: nullableNumber(comp?.dataCompletenessScore),
+    hardGatesPass: comp?.hardGatesPass === true,
   });
 }
 
-function comparableEvidence(context) {
-  const items = list(context?.comparableEvidence).map(comparableItem);
+function comparableEvidence(context, diagnostics = []) {
+  const items = list(context?.comparableEvidence).map(comp => {
+    const diagnostic = list(diagnostics).find(row => row.candidateId === comp.compIdentifier);
+    return comparableItem({ ...diagnostic, ...comp,
+      dataCompletenessScore: diagnostic?.dataCompletenessScore ?? comp.dataCompletenessScore,
+      propertyType: diagnostic?.propertyType ?? comp.propertyType });
+  });
   return Object.freeze({
     used: Object.freeze(items.filter((item) => item.role === 'PRIMARY').slice(0, 5)),
-    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 5)),
+    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 8)),
     excluded: Object.freeze(items.filter((item) => item.role === 'EXCLUDED').slice(0, 3)),
   });
 }
@@ -202,11 +210,12 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
   const valuation = valuationIntelligence({ ...context, providerMarketContext: {
     ...context.providerMarketContext, ...snapshot.providerMarketContext,
   } }, canonical?.language || 'en');
-  const comps = comparableEvidence(context);
+  const comps = comparableEvidence(context, snapshot.compPromotionDiagnostics);
   const reportLanguage = canonical?.language || 'en';
   const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });
   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
     ...context,
+    matchContext: snapshot.investmentProfile?.profile ? context.matchContext : { calculable: false },
     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
     dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
     dealAssumptions: isObject(snapshot.dealAssumptions) ? snapshot.dealAssumptions : {},
@@ -244,10 +253,13 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
       })).filter((signal) => signal.explanation).slice(0, 6))
       : standoutSignals(context),
     propertyEvidence: propertyEvidence(context),
-    investmentFit: canonicalInvestmentAnalysis.profileFit,
+    investmentFit: Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
+      sourceProfile: snapshot.investmentProfile?.profile || null,
+      profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null }),
     canonicalInvestmentAnalysis,
     financialEvidence: snapshot.financialEvidence || context.financialEvidence || null,
     marketRent: snapshot.marketRent || null,
+    soldDelivery: snapshot.soldDelivery || null,
     financialReadiness: snapshot.financialReadiness || context.financialReadiness || null,
     sellerFinancingScenario: savedSellerFinancingScenario,
     activeScenario: savedActiveScenario,

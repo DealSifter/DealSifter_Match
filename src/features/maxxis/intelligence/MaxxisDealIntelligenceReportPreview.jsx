@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, Camera, CheckCircle, FileText, Home, MapPin, Target } from 'lucide-react';
 import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png';
 import { buildStrictReportViewModel, validateReportViewModel } from '../export/reportIntegrityViewModel.ts';
@@ -118,29 +118,39 @@ function SafeReportBody({ view, copy, level }) {
 }
 
 function StrictReportPreview({ schema, language }) {
-  const [, setAssetRevision] = useState(0);
+  const [assetRevision, setAssetRevision] = useState(0);
+  // Closed browser disclosures must not build a complete analytical model and
+  // mount every map/table/photo for every report in the conversation. Keep the
+  // static export/SSR path complete; the interactive body is mounted on demand.
+  const [expanded, setExpanded] = useState(() => typeof window === 'undefined');
   const active = useRef(true), request = useRef(0);
   useEffect(() => { active.current = true; return () => { active.current = false; request.current += 1; }; }, [schema]);
-  const view = (() => {
+  const view = useMemo(() => {
+    // Asset preparation updates the schema caches without changing its identity.
+    void assetRevision;
+    if (!expanded) return null;
     try {
       const candidate = buildStrictReportViewModel({ schema, language });
       return validateReportViewModel(candidate).valid ? candidate : null;
     } catch { return null; }
-  })();
+  }, [schema, language, assetRevision, expanded]);
   const locale = view?.locale || (/^pt/i.test(language) ? 'pt' : /^es/i.test(language) ? 'es' : 'en');
   const copy = COPY[locale];
-  if (!view) return <p role="status">{copy.invalid}</p>;
-  const level = view.reportType === 'DEAL_INTELLIGENCE' ? 3 : view.reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
+  if (!view && expanded) return <p role="status">{copy.invalid}</p>;
+  const reportType = view?.reportType || schema.reportType;
+  if (!['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(reportType)) return <p role="status">{copy.invalid}</p>;
+  const level = reportType === 'DEAL_INTELLIGENCE' ? 3 : reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
   const onToggle = async event => {
     const current = ++request.current;
+    setExpanded(event.currentTarget.open);
     if (!event.currentTarget.open) return;
     await prepareReportAssets(schema).catch(() => []);
     if (active.current && current === request.current) setAssetRevision(revision => revision + 1);
   };
-  return <React.Profiler id={`maxxis-inline-${view.reportType}`} onRender={reportProfiler}>
-    <details className={`maxxis-report-preview maxxis-report-v2 is-${view.reportType.toLowerCase()}`} onToggle={onToggle}>
+  return <React.Profiler id={`maxxis-inline-${reportType}`} onRender={reportProfiler}>
+    <details className={`maxxis-report-preview maxxis-report-v2 is-${reportType.toLowerCase()}`} onToggle={onToggle}>
       <summary><span>{copy.open}</span><span className="maxxis-v2-open-hint"><i aria-hidden="true" />{copy.hint}</span><span className="maxxis-v2-badge is-navy">{copy.level} {level}</span></summary>
-      <div className="maxxis-v2-report"><SafeReportBody view={view} copy={copy} level={level} /></div>
+      {view ? <div className="maxxis-v2-report"><SafeReportBody view={view} copy={copy} level={level} /></div> : null}
     </details>
   </React.Profiler>;
 }

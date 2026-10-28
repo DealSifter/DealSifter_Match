@@ -2,72 +2,9 @@
   "mode": "DETERMINISTIC_SYNTHETIC_INTEGRATION",
   "data": {
     "iterations": 1000,
-    "totalMilliseconds": 1068.7928909999973,
+    "totalMilliseconds": 1378.0117299999993,
     "providerCalls": 0,
     "geminiCalls": 0,
     "inputMutations": 0
-  },
-  "browser": [
-    {
-      "device": "desktop",
-      "language": "pt-BR",
-      "startupObservedMs": 10152,
-      "closeObservedMs": 1063,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    },
-    {
-      "device": "desktop",
-      "language": "en-US",
-      "startupObservedMs": 10303,
-      "closeObservedMs": 490,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    },
-    {
-      "device": "desktop",
-      "language": "es-ES",
-      "startupObservedMs": 22529,
-      "closeObservedMs": 945,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    },
-    {
-      "device": "mobile",
-      "language": "pt-BR",
-      "startupObservedMs": 8491,
-      "closeObservedMs": 791,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    },
-    {
-      "device": "mobile",
-      "language": "en-US",
-      "startupObservedMs": 12655,
-      "closeObservedMs": 615,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    },
-    {
-      "device": "mobile",
-      "language": "es-ES",
-      "startupObservedMs": 11157,
-      "closeObservedMs": 1344,
-      "portfolioProviderFanout": 0,
-      "reviewOpenProviderCalls": 0,
-      "radioNetworkMutations": 0,
-      "genericLoaderFlashes": 0
-    }
-  ],
-  "timingCaveat": "Wall-clock browser timings are observations on a concurrently validated workstation, not a controlled production benchmark."
+  }
 }

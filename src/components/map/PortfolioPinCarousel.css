@@ -1,11 +1,63 @@
-.ds-map-person-popup { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.45fr); align-items: stretch; gap: 12px; width: min(440px, calc(100vw - 60px)); padding-right: 26px; box-sizing: border-box; }
-.ds-map-person-popup .ds-map-popup-card { width: auto; gap: 8px; align-content: space-between; }
-.ds-map-person-popup .ds-map-popup-avatar { width: 48px; height: 48px; }
+.ds-map-person-popup { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 8px; width: min(440px, calc(100vw - 60px)); padding-right: 0; box-sizing: border-box; }
+.ds-map-person-popup .ds-map-popup-card { width: auto; gap: 4px; align-content: start; padding-right: 22px; box-sizing: border-box; }
+.ds-map-person-popup .ds-map-popup-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ds-map-person-popup .ds-map-popup-avatar { width: 44.8px; height: 44.8px; }
+.ds-map-person-popup .ds-map-popup-identity { min-width: 0; flex: 1; }
+.ds-map-person-popup .ds-map-popup-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  -webkit-line-clamp: unset;
+}
+.ds-map-person-popup .ds-map-popup-cta {
+  margin: 0;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--ui-active, #20cfc8);
+}
+.ds-map-person-popup .ds-map-popup-meta {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gold-hex, #F5A623);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-map-person-badges { display: flex; flex-wrap: wrap; gap: 3px; }
+.ds-map-person-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 6px;
+  border: 1px solid var(--ui-border, #d6dbe3);
+  border-radius: 999px;
+  background: var(--ui-surface, #fff);
+  color: var(--t1, #1f2937);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .ds-map-person-popup--no-media { width: min(260px, calc(100vw - 60px)); grid-template-columns: minmax(0, 1fr); }
 .ds-map-person-popup--no-media .ds-map-popup-card { align-content: start; }
 .ds-person-leaflet-popup .leaflet-popup-content-wrapper { max-width: min(464px, calc(100vw - 36px)); }
-.ds-person-leaflet-popup .leaflet-popup-content { width: auto !important; max-width: none; }
-.ds-person-leaflet-popup .leaflet-popup-close-button { top: 6px; right: 6px; width: 24px; height: 24px; z-index: 2; }
+.ds-person-leaflet-popup .leaflet-popup-content { width: auto !important; max-width: none; margin: 6px 8px 6px 6px; }
+.ds-person-leaflet-popup .leaflet-popup-close-button { top: 4px; right: 4px; width: 22px; height: 22px; z-index: 2; }
 .ds-pin-portfolio { position: relative; min-width: 0; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; align-self: start; touch-action: pan-y; }
 .ds-pin-portfolio-photo { position: absolute; inset: 0; display: block; border: 0; padding: 0; width: 100%; height: 100%; background: var(--border); cursor: pointer; }
 .ds-pin-portfolio-photo img { height: 100% !important; display: block; }
@@ -16,8 +68,8 @@
 .ds-pin-portfolio button:focus-visible { outline: 2px solid #35cac9; outline-offset: -2px; }
 .ds-pin-portfolio-count { position: absolute; bottom: 5px; right: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 10px; pointer-events: none; }
 @media (max-width: 600px) {
-  .ds-map-person-popup { gap: 8px; }
-  .ds-map-person-popup .ds-map-popup-head { gap: 8px; }
-  .ds-map-person-popup .ds-map-popup-avatar { width: 40px; height: 40px; }
+  .ds-map-person-popup { gap: 6px; }
+  .ds-map-person-popup .ds-map-popup-head { gap: 5px; }
+  .ds-map-person-popup .ds-map-popup-avatar { width: 39.2px; height: 39.2px; }
 }
 @media (max-width: 360px) { .ds-map-person-popup { grid-template-columns: minmax(0, 1fr); } }

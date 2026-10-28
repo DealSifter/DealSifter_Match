@@ -1,0 +1,42 @@
+﻿[
+    {
+        "slug":  "maxxis-chat",
+        "version":  91,
+        "verify_jwt":  true,
+        "status":  "ACTIVE",
+        "updated_at":  1792337369391,
+        "archive":  "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.cache\\analytical-intelligence-recovery\\predeploy-backend\\maxxis-chat.eszip",
+        "sha256":  "6ab4a08d33b07ac791565461967eb6be10f51fcab8eeeb095720206d155c1719",
+        "bytes":  11363875
+    },
+    {
+        "slug":  "property-intelligence",
+        "version":  15,
+        "verify_jwt":  true,
+        "status":  "ACTIVE",
+        "updated_at":  1792337379488,
+        "archive":  "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.cache\\analytical-intelligence-recovery\\predeploy-backend\\property-intelligence.eszip",
+        "sha256":  "19cb4e2a99f78d58026937991ad14b5f46caed9fba1caed3e1ea18deae8f7d44",
+        "bytes":  9241315
+    },
+    {
+        "slug":  "property-fact-review",
+        "version":  7,
+        "verify_jwt":  true,
+        "status":  "ACTIVE",
+        "updated_at":  1792337376048,
+        "archive":  "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.cache\\analytical-intelligence-recovery\\predeploy-backend\\property-fact-review.eszip",
+        "sha256":  "8cf9297c070790dd89b13d4cf2f66a0e0182d3c5fc41663fb8f0417829476470",
+        "bytes":  9528847
+    },
+    {
+        "slug":  "arv-visual-comp-review",
+        "version":  15,
+        "verify_jwt":  true,
+        "status":  "ACTIVE",
+        "updated_at":  1792337353878,
+        "archive":  "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.cache\\analytical-intelligence-recovery\\predeploy-backend\\arv-visual-comp-review.eszip",
+        "sha256":  "ebfc611e4f42f748c3b5405726a40e290c6deed54269cb01c92046104a955e89",
+        "bytes":  9320446
+    }
+]

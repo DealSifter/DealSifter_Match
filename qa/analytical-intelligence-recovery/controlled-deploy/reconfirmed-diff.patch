@@ -1,0 +1,1133 @@
+diff --git a/scripts/acceptance-delivery1.mjs b/scripts/acceptance-delivery1.mjs
+new file mode 100644
+index 0000000..17058c3
+--- /dev/null
++++ b/scripts/acceptance-delivery1.mjs
+@@ -0,0 +1,123 @@
++// Offline regeneration of the SAME four delivery-1 controls. Run from repository root.
++import { mkdir, readFile, writeFile } from 'node:fs/promises';
++import { resolve } from 'node:path';
++import { createHash } from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import assert from 'node:assert/strict';
++import { createServer } from 'vite';
++import { createCanvas, Image, DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas';
++import { reportIntegrityFixtures } from './report-integrity-fixtures.mjs';
++
++const output = resolve(process.env.QA_OUTPUT || 'qa/analytical-intelligence-recovery');
++const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
++const names = ['A-4724-L3-blocker', 'B-Honolulu-L3-rent-fixture', 'C-profile-L2', 'C-no-profile-L2'];
++const before = Object.fromEntries(await Promise.all(names.map(async name => {
++  const path = resolve(output, `${name}.pdf`);
++  return [name, { path, sha256: await readFile(path).then(sha256).catch(error => { if (error.code === 'ENOENT') return null; throw error; }) }];
++})));
++await mkdir(output, { recursive: true });
++let networkAttempts = 0, mockProviderCalls = 0;
++globalThis.fetch = async () => { networkAttempts++; throw Error('LIVE_NETWORK_FORBIDDEN'); };
++Object.assign(globalThis, { DOMMatrix, ImageData, Path2D, Image, document: { createElement(tag) {
++  if (tag === 'canvas') return createCanvas(1, 1); if (tag === 'img') return new Image(); throw Error('UNSUPPORTED_QA_ELEMENT');
++} } });
++const server = await createServer({ configFile: false, server: { middlewareMode: true, watch: null }, appType: 'custom', optimizeDeps: { noDiscovery: true, include: [] } });
++const metadata = { mode: 'QA_SIMULATION_ONLY', simulatedDate: '2026-10-18T00:00:00Z', startedAt: new Date().toISOString(),
++  codeCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), worktree: process.cwd(), output,
++  scriptSha256: sha256(await readFile(new URL(import.meta.url))), before, networkAttempts: 0, cases: [] };
++assert.equal(execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'src', 'scripts', 'supabase'], { encoding: 'utf8' }).trim(), '', 'Generation code must match the recorded commit');
++try {
++  const load = path => server.ssrLoadModule(path);
++  const { orchestrateDealInsightContext } = await load('/supabase/functions/_shared/maxxis/dealInsightContext.ts');
++  const { calculatePropertyMatch } = await load('/supabase/functions/_shared/maxxis/calculatePropertyMatch.ts');
++  const { calculateDealMetrics } = await load('/supabase/functions/_shared/maxxis/dealMetrics.ts');
++  const { projectMaxxisDealIntelligenceResponse: l3 } = await load('/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js');
++  const { projectMaxxisAnalysisResponse: l2 } = await load('/src/features/maxxis/intelligence/maxxisAnalysisReport.js');
++  const { renderMaxxisReportPdf } = await load('/src/features/maxxis/export/maxxisReportPdf.js');
++  const { resolveReportExportEntitlement } = await load('/src/features/maxxis/export/reportExportEntitlement.js');
++  const { buildStrictReportViewModel } = await load('/src/features/maxxis/export/reportIntegrityViewModel.ts');
++  const { MarketRentService } = await load('/supabase/functions/_shared/property-data/marketRentService.ts');
++  const { InMemorySupplementalEvidenceCache } = await load('/supabase/functions/_shared/property-data/supplementalEvidenceCache.ts');
++  const { resolveRentAvmSubjectAttributes } = await load('/supabase/functions/_shared/property-data/rentAvmSubject.ts');
++  const { buildFinancialEvidenceFromAuthorizedContext } = await load('/supabase/functions/_shared/maxxis/financialEvidenceContext.ts');
++  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
++  const controls = reportIntegrityFixtures();
++  // Previous harness overwrote only `lot` with 7013, leaving lotSizeSqft=5000.
++  // This synthetic lot has ONE source: 5000 sqft. 1 acre = 43560 sqft.
++  // Four-decimal acre display tolerance: 0.00005 ac (=2.178 sqft), plus 1e-9 floating error.
++  const notes = 'QA / SIMULAÇÃO — dados e perfil sintéticos; nenhuma sessão autenticada real ou consulta RentCast/GIS. Datas de 18/10/2026 são metadata de teste, não consultas. Execução histórica de vendas não registrada.';
++  const property = { ...controls.find(c => c.id === 'LOW_EVIDENCE_SELL').input.property,
++    baths: 1, sqft: 806, lot: 5000, lotSizeSqft: 5000, lotSizeAcres: 5000 / 43560,
++    owner: { name: 'QA Publisher' }, propertyUserNotes: notes, localizedPropertyUserNotes: null };
++  assert.ok(Math.abs(property.lotSizeSqft - Number(property.lotSizeAcres.toFixed(4)) * 43560) <= 2.178 + 1e-9);
++  const profile = { status: 'complete', targetMarkets: ['AR'], priceRange: 'lt_100k', propertyTypes: ['Single Family'], strategies: ['Fix & Flip'] };
++  async function raw(p, basis = null, extra = {}) {
++    const result = await orchestrateDealInsightContext({ propertyId: p.id,
++      loadPropertyDetails: async () => ({ found: true, property: p, missingFields: [], metrics: calculateDealMetrics(p), analysis: { positiveSignals: [], attentionPoints: [], missingInformation: [], limitations: [] } }),
++      loadInvestmentProfile: async () => ({ profile: basis, exists: !!basis, complete: !!basis }), calculateMatch: calculatePropertyMatch,
++      loadPropertyEvidence: async () => ({ state: 'not_loaded', propertyId: p.id, entitlementState: 'authorized', cacheState: 'miss' }) });
++    return { data: { ...result, intelligenceSnapshot: { propertyFacts: p, investmentProfile: result.investmentProfile, matchScore: result.match, ...extra } } };
++  }
++  const rental = controls.find(c => c.id === 'RENTAL_MARKET_RICH').input;
++  const rentEvidence = { ...rental.dealIntelligence.valuationIntelligence.rentalEvidence.rentEstimate, retrievedAt: metadata.simulatedDate };
++  const now = () => new Date(metadata.simulatedDate);
++  const service = new MarketRentService({ cache: new InMemorySupplementalEvidenceCache(now), now, enabled: true,
++    provider: { getRentEstimate: async input => { mockProviderCalls++; return { ...rentEvidence, queryFingerprint: input.queryFingerprint }; } },
++    hasEntitlement: async () => true, resolveSubject: async () => resolveRentAvmSubjectAttributes({ property: rental.property }) });
++  const acquired = await service.get({ propertyId: rental.property.id, userId: 'SYNTHETIC_ACTOR', acquire: true });
++  const cached = await service.get({ propertyId: rental.property.id, userId: 'SYNTHETIC_ACTOR', acquire: true });
++  assert.equal(cached.cacheHit, true); assert.equal(mockProviderCalls, 1);
++  const financialEvidence = buildFinancialEvidenceFromAuthorizedContext({ propertyId: rental.property.id, cachedRent: { evidence: acquired.evidence, freshness: acquired.freshness } });
++  const valid = await raw(property, profile);
++  assert.deepEqual([valid.data.match.score, valid.data.match.evaluatedCriteria, valid.data.match.earnedPoints, valid.data.match.evaluatedWeight], [100, 3, 85, 85]);
++  const cases = [
++    ['A-4724-L3-blocker', l3(await raw(property, null, { marketRent: { propertyId: property.id, state: 'SUBJECT_UNAVAILABLE', reason: 'HISTORICAL_CAUSE_NOT_RECORDED' } }))],
++    ['B-Honolulu-L3-rent-fixture', l3(await raw({ ...rental.property, propertyUserNotes: notes, localizedPropertyUserNotes: null }, null, { marketRent: cached, financialEvidence }))],
++    ['C-profile-L2', l2(valid)], ['C-no-profile-L2', l2(await raw(property, null))],
++  ];
++  for (const [name, projected] of cases) {
++    const schema = projected.data.maxxisReport, vm = buildStrictReportViewModel({ schema, language: 'pt' });
++    const result = await renderMaxxisReportPdf({ schema, language: 'pt', generatedAt: metadata.simulatedDate, exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType: schema.reportType, channel: 'PDF' }) });
++    assert.equal(result.state, 'RENDERED', JSON.stringify(result.validation));
++    const finalPath = resolve(output, `${name}.pdf`);
++    if (before[name].sha256) {
++      const previous = await getDocument({ data: new Uint8Array(await readFile(finalPath)), useSystemFonts: true }).promise;
++      let previousText = '';
++      for (let n = 1; n <= previous.numPages; n++) previousText += ` ${(await (await previous.getPage(n)).getTextContent()).items.map(i => i.str).join(' ')}`;
++      before[name].extractedTextSha256 = sha256(previousText);
++      before[name].checks = {
++        qa: /QA \/ SIMULAÇÃO/.test(previousText),
++        area: name.startsWith('B-') ? 'NOT_APPLICABLE' : /5\.000\s+sqft/.test(previousText) && /0,1148\s+ac/.test(previousText),
++        soldWording: !/Vendas identificadas|Identified sales|Ventas identificadas/i.test(previousText),
++        coverage: name !== 'C-profile-L2' ? 'NOT_APPLICABLE' : /3\/4 critérios avaliados/.test(previousText) && /Não avaliados: Estratégia/.test(previousText),
++        noRealSessionClaim: !/Perfil do usuário autenticado/i.test(previousText),
++      };
++      previous.cleanup();
++    }
++    await writeFile(finalPath, result.document.binary);
++    const finalBytes = await readFile(finalPath);
++    assert.equal(sha256(finalBytes), sha256(result.document.binary));
++    // Validate the FINAL FILE read from disk, not only the renderer return or ViewModel.
++    const pdf = await getDocument({ data: new Uint8Array(finalBytes), useSystemFonts: true }).promise;
++    let text = ''; const pages = [];
++    for (let n = 1; n <= pdf.numPages; n++) {
++      const page = await pdf.getPage(n), content = (await page.getTextContent()).items.map(i => i.str).join(' ');
++      text += ` ${content}`; pages.push({ page: n, text: content });
++    }
++    assert.match(text, /QA \/ SIMULAÇÃO/); assert.doesNotMatch(text, /Perfil do usuário autenticado|Vendas identificadas ainda não sustentam ARV/i);
++    if (!name.startsWith('B-')) { assert.match(pages[0].text, /5\.000\s+sqft/); assert.match(pages[0].text, /0,1148\s+ac/); }
++    if (name.startsWith('A-') || name.startsWith('C-')) assert.doesNotMatch(text, /Vendas identificadas|Identified sales|Ventas identificadas/i);
++    if (name.startsWith('A-')) { assert.match(text, /execução não comprovada/); assert.match(text, /Consulte e verifique vendas fechadas/); }
++    if (!name.startsWith('B-')) { assert.equal(vm.values.lotSizeSqft.numericValue, 5000); assert.ok(Math.abs(vm.values.lotSizeAcres.numericValue - 5000 / 43560) <= .00005); }
++    if (name === 'C-profile-L2') { assert.match(text, /3\/4 critérios avaliados/); assert.match(text, /Não avaliados: Estratégia/); assert.match(text, /100%/); assert.match(text, /dados e perfil sintéticos/); assert.match(text, /nenhuma sessão autenticada real/); }
++    else { assert.ok(!vm.sections.find(s => s.id === 'profile-fit')); assert.ok(!vm.sections.find(s => s.id === 'profile-criteria')); }
++    if (name.startsWith('B-')) { const rent = vm.sections.find(s => s.id === 'market-rent'); assert.ok(rent.range); assert.equal(rent.table.rows.length, 5); assert.equal(rent.map.points.filter(p => p.id !== 'subject').length, 5); for (const row of rent.table.rows) assert.ok(text.includes(row[1])); }
++    metadata.cases.push({ name, finalPath, sha256: sha256(finalBytes), beforeSha256: before[name].sha256,
++      bytesChanged: before[name].sha256 !== sha256(finalBytes), extractedTextSha256: sha256(text),
++      pages: pdf.numPages, result: 'PASS_FINAL_FILE', profileOrigin: name === 'C-profile-L2' ? 'SYNTHETIC_QA_LOADER' : 'NO_PROFILE', pagesText: pages });
++    pdf.cleanup();
++  }
++  assert.equal(networkAttempts, 0);
++  await writeFile(resolve(output, 'acceptance-verification.json'), JSON.stringify({ ...metadata, networkAttempts, mockProviderCalls, cacheReused: cached.cacheHit }, null, 2));
++  console.log(JSON.stringify({ result: 'PASS', controls: metadata.cases.map(({ pagesText, ...item }) => item), networkAttempts, mockProviderCalls }));
++} finally { await server.close(); }
+diff --git a/src/components/maxxis/MaxxisCapabilities.jsx b/src/components/maxxis/MaxxisCapabilities.jsx
+index 51f4f72..94d1829 100644
+--- a/src/components/maxxis/MaxxisCapabilities.jsx
++++ b/src/components/maxxis/MaxxisCapabilities.jsx
+@@ -2030,6 +2030,12 @@ export function MessageBubble({
+       {message.type === 'maxxis_deal_intelligence' && message.data?.maxxisDealIntelligence ? (
+         <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} generatedAt={message.createdAt} />
+       ) : null}
++      {['maxxis_analysis_report', 'maxxis_deal_intelligence'].includes(message.type)
++        && !message.data?.maxxisReport?.sections?.investmentProfile?.data?.sourceProfile && onAction ? (
++          <button type="button" className="maxxis-action-link" onClick={() => onAction('onboarding')}>
++            {language === 'pt' ? 'Configurar perfil de investimento' : language === 'es' ? 'Configurar perfil de inversión' : 'Configure Investment Profile'}
++          </button>
++        ) : null}
+       {message.type === 'property_details' && message.data?.metrics?.metrics ? (
+         <div className="maxxis-action-links" aria-label={(COPY[language] || COPY.en).dealMetricsTitle}>
+           <div className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 5, width: '100%', alignItems: 'stretch', justifyContent: 'stretch', borderRadius: 12 }}>
+diff --git a/src/domain/maxxis/maxxisReportSchema.js b/src/domain/maxxis/maxxisReportSchema.js
+index 4e4c72f..d5a6312 100644
+--- a/src/domain/maxxis/maxxisReportSchema.js
++++ b/src/domain/maxxis/maxxisReportSchema.js
+@@ -45,6 +45,7 @@ const COMPARABLE_KEYS = Object.freeze([
+   'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
+   'baths', 'sqft', 'latitude', 'longitude', 'sourceType', 'provenance',
+   'lotSizeSqft', 'yearBuilt', 'providerCorrelation', 'saleAgeDays', 'compClass',
++  'propertyType', 'dataCompletenessScore', 'hardGatesPass',
+ ]);
+ 
+ const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+@@ -97,6 +98,9 @@ function canonicalPropertyInput(property) {
+ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
+   const evidence = canonicalPropertyInput(evidenceProperty);
+   const app = canonicalPropertyInput(appProperty);
++  if (evidence.id && app.id && String(evidence.id) !== String(app.id)) {
++    throw new Error('REPORT_PROPERTY_IDENTITY_MISMATCH');
++  }
+   const merged = {};
+   const appAuthoritative = new Set([
+     'id', 'title', 'address', 'city', 'state', 'zip', 'type', 'objective', 'notes',
+@@ -543,7 +547,9 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
+       design: 'PREMIUM_INVESTOR_REPORT_V2',
+       ...(marketRent?{marketRent}:{}),
+       marketRentState: normalizedType !== INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE && rentResult
+-        ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null }) : null,
++        ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null, reviewFields: rentResult.reviewFields || [], reason: rentResult.reason || null,
++          cacheHit: rentResult.cacheHit === true, providerCalls: rentResult.providerCalls ?? null }) : null,
++      soldDelivery: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? dealIntelligence?.soldDelivery || null : null,
+       financialEvidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+         ? dealIntelligence?.financialEvidence || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+           ? maxxisAnalysis?.financialEvidence || null : null,
+diff --git a/src/features/maxxis/export/analyticalDeliveryRecovery.test.js b/src/features/maxxis/export/analyticalDeliveryRecovery.test.js
+new file mode 100644
+index 0000000..863c4cb
+--- /dev/null
++++ b/src/features/maxxis/export/analyticalDeliveryRecovery.test.js
+@@ -0,0 +1,135 @@
++import { describe, expect, it } from 'vitest';
++import { projectSoldDelivery, soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
++import { resolveRentAvmSubjectAttributes } from '../../../../supabase/functions/_shared/property-data/rentAvmSubject';
++import { reportMarketRentSubject } from '../../../../supabase/functions/_shared/maxxis/reportMarketRentPolicy';
++import { marketRentStateAnswer, detectFinancialEvidenceQuestion } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer';
++import { orchestrateDealInsightContext } from '../../../../supabase/functions/_shared/maxxis/dealInsightContext';
++import { calculatePropertyMatch } from '../../../../supabase/functions/_shared/maxxis/calculatePropertyMatch';
++import { calculateDealMetrics } from '../../../../supabase/functions/_shared/maxxis/dealMetrics';
++import { evaluateArv } from '../../../../supabase/functions/_shared/property-data/arvEngine';
++import { projectMaxxisDealIntelligenceResponse } from '../intelligence/maxxisDealIntelligenceReport';
++import { projectMaxxisAnalysisResponse } from '../intelligence/maxxisAnalysisReport';
++import { buildStrictReportViewModel } from './reportIntegrityViewModel';
++import { detectMarketReferenceIntent } from '../../../../supabase/functions/_shared/maxxis/marketReferenceIntent';
++import { buildMarketReferenceAnswer } from '../../../../supabase/functions/_shared/maxxis/marketReferenceAnswer';
++import { getCanonicalPropertyEvidenceWithDependencies } from '../../../../supabase/functions/_shared/maxxis/canonicalEvidenceTool';
++
++const property={id:'11111111-1111-4111-8111-111111111111',address:'4724 W 26th St',city:'Little Rock',state:'AR',zip:'72204',type:'SFR',objective:'Sell',price:90000,beds:3,baths:1,sqft:806,rehab:35000,latitude:34.7285,longitude:-92.3311};
++const candidates=Array.from({length:5},(_,i)=>({source:'ARV_COMP_CANDIDATE',compIdentifier:`synthetic-${i}`,address:`${100+i} Synthetic Sold St`,recordedSalePrice:110000+i*1000,recordedSaleDate:'2026-08-01',recordedSaleEvidenceStatus:'VERIFIED_RECORD',livingAreaSqft:806,
++ structuralComparabilityScore:95,dataCompletenessScore:90,hardGatesPass:true,recordAmbiguousOrCorrupt:false,distanceMiles:.2,daysSinceSale:60,transactionQuality:'ARMS_LENGTH',conditionCompatibility:'MATCHES_TARGET',conditionEvidenceStatus:'USER_PROVIDED',latitude:34.73+i*.001,longitude:-92.33+i*.001}));
++async function response(profile){
++ const arv=evaluateArv({subjectPropertyId:property.id,subjectLivingAreaSqft:806,targetCondition:'TURN_KEY',candidates,calculatedAt:'2026-10-18T00:00:00Z'});
++ const result=await orchestrateDealInsightContext({propertyId:property.id,
++  loadPropertyDetails:async()=>({found:true,property,missingFields:[],metrics:calculateDealMetrics(property),analysis:{positiveSignals:[],attentionPoints:[],missingInformation:[],limitations:[]}}),
++  loadInvestmentProfile:async()=>({profile,exists:!!profile,complete:!!profile}),calculateMatch:calculatePropertyMatch,
++  loadPropertyEvidence:async()=>({state:'available',propertyId:property.id,entitlementState:'authorized',evidence:{fields:{},internalFields:{},conflicts:[],missingFields:[]}}),
++  loadArvEvaluation:async()=>arv});
++ const soldDelivery=projectSoldDelivery({soldEvidence:'HIT',soldRawCandidateCount:5,soldNormalizedCandidateCount:5,structuralCandidateCount:5,arvEligibleCount:arv.eligibleCompCount,arvStatus:arv.status,targetConditionConfirmed:true});
++ return {data:{...result,intelligenceSnapshot:{propertyFacts:property,investmentProfile:result.investmentProfile,matchScore:result.match,soldDelivery}}};
++}
++describe('analytical delivery recovery — deterministic integration, no live provider',()=>{
++ it('uses the existing deterministic route for SOLD/ARV, profile-fit and rent-input blockers',async()=>{
++  expect(detectMarketReferenceIntent('Existem vendas fechadas comparáveis?')).toBe('SOLD_ARV_EVIDENCE');
++  expect(detectMarketReferenceIntent('Por que o ARV não foi calculado?')).toBe('SOLD_ARV_EVIDENCE');
++  expect(detectMarketReferenceIntent('Por que este imóvel tem Match Score 29%?')).toBe('PROFILE_FIT_EVIDENCE');
++  expect(detectFinancialEvidenceQuestion('Qual atributo bloqueia o aluguel?')).toMatchObject({domain:'providerMarketRentEstimate',subjectReadiness:true});
++  const raw=await response(null), snapshot=raw.data.intelligenceSnapshot;
++  expect(buildMarketReferenceAnswer(snapshot,'SOLD_ARV_EVIDENCE','pt').answer).toBe(soldDeliveryAnswer(snapshot.soldDelivery,'pt'));
++  expect(buildMarketReferenceAnswer({...snapshot,matchScore:{score:29,calculable:true}},'PROFILE_FIT_EVIDENCE','pt').answer).not.toContain('29%');
++ });
++ it('retains the first authorized subject-read failure through canonical evidence and report preparation',async()=>{
++  const evidence=await getCanonicalPropertyEvidenceWithDependencies({input:{propertyId:property.id},propertyId:property.id,userId:'offline-actor',secret:'offline-only',parcelEnabled:false,financialEvidence:true,
++   loadPublicProperty:async()=>property,loadCachedProvider:async()=>({propertyId:property.id,state:'available',entitlementState:'authorized',evidence:{fields:{},internalFields:{},conflicts:[],missingFields:[]}}),
++   loadRentAvmState:async()=>{throw Error('RENT_SUBJECT_REVIEW_READ_FAILED');},
++   loadMarketRent:async(id,subject)=>({propertyId:id,state:subject.state,providerCalls:0,reason:subject.reason})});
++  expect(evidence.marketRent).toMatchObject({state:'SUBJECT_UNAVAILABLE',reason:'RENT_SUBJECT_REVIEW_READ_FAILED',providerCalls:0});
++  const raw=await response(null);raw.data.intelligenceSnapshot.marketRent=evidence.marketRent;
++  const model=buildStrictReportViewModel({schema:projectMaxxisDealIntelligenceResponse(raw).data.maxxisReport,language:'pt'});
++  expect(model.sections.find(s=>s.id==='rent-pending').text).toBe(marketRentStateAnswer(evidence.marketRent,'pt'));
++ });
++ it('does not mislabel an area/calculation blocker as missing target condition and omits private candidate data',()=>{
++  const receipt=projectSoldDelivery({soldEvidence:'HIT',soldRawCandidateCount:5,soldNormalizedCandidateCount:5,structuralCandidateCount:5,arvEligibleCount:0,targetConditionConfirmed:true,arvBlockers:['MISSING_SUBJECT_LIVING_AREA'],
++    compPromotionDiagnostics:[{candidateId:'PRIVATE_SENTINEL',address:'PRIVATE_SENTINEL',finalClassification:'EXCLUDED',promotionBlockers:['FAILED_HARD_GATE']}]});
++  expect(receipt.status).not.toBe('CONDITION_UNCONFIRMED');
++  expect(soldDeliveryAnswer(receipt,'pt')).toContain('Área construída');
++  expect(receipt.candidates[0]).toMatchObject({candidate:1,reasons:['FAILED_HARD_GATE']});
++  expect(JSON.stringify(receipt)).not.toContain('PRIVATE_SENTINEL');
++  const failed=projectSoldDelivery({soldEvidence:'HIT',soldRawCandidateCount:5,soldNormalizedCandidateCount:5,structuralCandidateCount:5,arvEligibleCount:0,stopReason:'ARV_REVIEW_READ_FAILED'});
++  expect(failed).toMatchObject({status:'EVALUATION_BLOCKED',eligible:null});
++  expect(soldDeliveryAnswer(failed,'pt')).toContain('revisões de condição');
++ });
++ it.each([
++  [{},'UNKNOWN_EXECUTION'],
++  [{soldProviderAttempted:false,soldEvidence:'NOT_REQUIRED'},'NOT_QUERIED'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:0},'NO_PROVIDER_RESULTS'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:4,soldNormalizedCandidateCount:0},'NO_SOLD_RECORDS'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:4,soldNormalizedCandidateCount:4,structuralCandidateCount:0},'FILTERED_OUT'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:4,soldNormalizedCandidateCount:4,structuralCandidateCount:4,arvEligibleCount:0,targetConditionConfirmed:false},'CONDITION_UNCONFIRMED'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:4,soldNormalizedCandidateCount:4,structuralCandidateCount:4,arvEligibleCount:1,targetConditionConfirmed:true},'INSUFFICIENT_ELIGIBLE_COMPS'],
++  [{soldEvidence:'HIT',soldRawCandidateCount:4,soldNormalizedCandidateCount:4,structuralCandidateCount:4,arvEligibleCount:4,arvStatus:'ARV_AVAILABLE'},'ELIGIBLE_FOR_ARV'],
++ ])('retains SOLD stage distinctions: %s', (trace,status)=>expect(projectSoldDelivery(trace).status).toBe(status));
++ it('does not manufacture zero counts or a provider query for historical absence of telemetry',()=>{
++  expect(projectSoldDelivery()).toMatchObject({queryExecuted:null,returned:null,normalized:null,eligible:null});
++ });
++ it('explains a recorded cache prerequisite failure instead of claiming no sales',()=>{
++  const receipt=projectSoldDelivery({soldEvidence:'UNAVAILABLE',soldProviderAttempted:false,soldEvidenceReason:'VALUATION_EVIDENCE_CACHE_REQUIRED'});
++  expect(soldDeliveryAnswer(receipt,'pt')).toContain('subject AVM compatível ausente no cache');
++  expect(receipt.returned).toBeNull();
++ });
++ it('reports every critical conflict but never blocks rent for lot area alone',()=>{
++  const projections={lotArea:{analyticalUsability:'CONFLICTED'},baths:{analyticalUsability:'CONFLICTED'},buildingArea:{analyticalUsability:'CONFLICTED'}};
++  const subject=reportMarketRentSubject(resolveRentAvmSubjectAttributes({property,projections}));
++  expect(subject).toMatchObject({state:'RENT_AVM_REVIEW_REQUIRED',reviewFields:['baths','buildingArea']});
++  expect(marketRentStateAnswer({...subject,providerCalls:0},'pt')).toContain('banheiros, área construída');
++  expect(resolveRentAvmSubjectAttributes({property,projections:{lotArea:projections.lotArea}}).state).toBe('READY');
++ });
++ it('preserves optional missing attributes and routes explicit rental comps deterministically',()=>{
++  const subject=resolveRentAvmSubjectAttributes({property:{...property,beds:null,baths:null,sqft:null}});
++  expect(subject.state).toBe('READY');expect(subject.overrides).not.toHaveProperty('squareFootage');
++  expect(detectFinancialEvidenceQuestion('Quais os Rental Comps?')).toMatchObject({domain:'providerMarketRentEstimate',listComparables:true});
++ });
++ it('existing ARV engine → context → preparation → L3 retains sold evidence and receipt',async()=>{
++  const raw=await response(null),projected=projectMaxxisDealIntelligenceResponse(raw),model=buildStrictReportViewModel({schema:projected.data.maxxisReport,language:'pt'});
++  expect(projected.data.maxxisDealIntelligence.valuationIntelligence.status).toMatch(/ARV_AVAILABLE|ARV_LIMITED/);
++  const table=model.sections.find(s=>s.id==='sales-comparables');
++  expect(table.table.rows).toHaveLength(5);expect(table.table.rows.every(row=>row.includes('SOLD'))).toBe(true);
++  expect(table.map.points.filter(p=>p.id!=='subject')).toHaveLength(5);
++  const receipt=raw.data.intelligenceSnapshot.soldDelivery;
++  expect(model.sections.find(s=>s.id==='sold-delivery').text).toBe(soldDeliveryAnswer(receipt,'pt'));
++ });
++ it.each([true,false])('current profile → unchanged match engine → L2/L3, profile present=%s',async present=>{
++  const profile=present?{status:'complete',targetMarkets:['AR'],priceRange:'lt_100k',propertyTypes:['Single Family'],strategies:['Fix & Flip']}:null;
++  const raw=await response(profile);
++  for(const project of [projectMaxxisAnalysisResponse,projectMaxxisDealIntelligenceResponse]){
++   const result=project(raw),model=buildStrictReportViewModel({schema:result.data.maxxisReport,language:'pt'}),fit=model.sections.find(s=>s.id==='profile-fit');
++   if(present){
++    expect(fit.gauge.value).toBe(raw.data.match.score);
++    expect(raw.data.match).toMatchObject({score:100,evaluatedCriteria:3,possibleCriteria:4,earnedPoints:85,evaluatedWeight:85});
++    expect(fit.rows[0].source).toContain('3/4 critérios avaliados');
++    expect(fit.rows[0].source).toContain('Não avaliados: Estratégia');
++    expect(model.sections.find(s=>s.id==='profile-criteria').comparison).toHaveLength(3);
++    expect(JSON.stringify(model.sections.find(s=>s.id==='investor-profile'))).toContain('AR');
++    expect(JSON.stringify(model)).not.toContain('perfil do usuário autenticado');
++   }
++   else {expect(fit).toBeUndefined();expect(model.sections.find(s=>s.id==='profile-criteria')).toBeUndefined();expect(JSON.stringify(model)).toContain('Perfil de investimento não configurado');}
++  }
++ });
++ it('historical absence of execution cannot imply sales were identified',async()=>{
++  const raw=await response(null);delete raw.data.intelligenceSnapshot.soldDelivery;delete raw.data.arv;
++  raw.data.intelligenceSnapshot.arvEvaluation=null;
++  const model=buildStrictReportViewModel({schema:projectMaxxisDealIntelligenceResponse(raw).data.maxxisReport,language:'pt'});
++  expect(JSON.stringify(model)).not.toContain('Vendas identificadas ainda não sustentam ARV');
++  expect(soldDeliveryAnswer(projectSoldDelivery(),'pt')).toContain('execução não comprovada');
++ });
++ it('restricts report sourceProfile to four authorized criteria without changing score',async()=>{
++  const profile={status:'complete',targetMarkets:['AR'],priceRange:'lt_100k',propertyTypes:['Single Family'],strategies:['Fix & Flip'],email:'PRIVATE_SENTINEL',financialDetails:{balance:'PRIVATE_SENTINEL'},privateNotes:'PRIVATE_SENTINEL'};
++  const raw=await response(profile);
++  for(const project of [projectMaxxisAnalysisResponse,projectMaxxisDealIntelligenceResponse]){
++   const projected=project(raw),schema=projected.data.maxxisReport;
++   expect(Object.keys(schema.sections.investmentProfile.data.sourceProfile).sort()).toEqual(['priceRange','propertyTypes','strategies','targetMarkets']);
++   expect(JSON.stringify(schema)).not.toContain('PRIVATE_SENTINEL');
++   const fit=buildStrictReportViewModel({schema,language:'pt'}).sections.find(s=>s.id==='profile-fit');
++   expect(fit.gauge.value).toBe(raw.data.match.score);
++  }
++ });
++});
+diff --git a/src/features/maxxis/export/referenceReportLayout.test.js b/src/features/maxxis/export/referenceReportLayout.test.js
+index 10e0cf8..463f30e 100644
+--- a/src/features/maxxis/export/referenceReportLayout.test.js
++++ b/src/features/maxxis/export/referenceReportLayout.test.js
+@@ -8,7 +8,8 @@ function setup(reportType, locale = 'pt') {
+   const input = reportIntegrityFixtures().find(f => f.id === 'PROPERTY_PARITY').input;
+   input.property.owner.allowedContacts[0].value = '+15551234567890';
+   const original = buildStrictReportViewModel({ schema: buildMaxxisReportSchema({ ...input, reportType,
+-    dealIntelligence: { ...input.dealIntelligence, investmentFit: { score: 78 } } }), language: locale });
++    dealIntelligence: { ...input.dealIntelligence, investmentFit: { score: 78,
++      sourceProfile: { targetMarkets: ['AR'], priceRange: 'lt_100k', propertyTypes: ['SFR'], strategies: ['Fix & Flip'] }, profileSource: 'AUTHENTICATED_CURRENT_PROFILE' } } }), language: locale });
+   const vm = { ...original, property: { ...original.property, photos: ['photo1', 'photo2', 'photo3', 'photo4', 'photo5'] } };
+   const audit = { lines: [], sections: [], maps: [] }, pages = [];
+   const doc = new Proxy({ getCurrentPageInfo: () => ({ pageNumber: pages.length }), getImageProperties: () => ({ width: 1000, height: 240, fileType: 'PNG' }), getTextWidth: value => String(value).length * 5.2 }, {
+@@ -45,7 +46,7 @@ describe('incremental report density, without analytical changes', () => {
+     flow.image.mockImplementation(() => { linesAtImage = flow.audit.lines.length; return true; });
+     const composition = new ReferenceReportComposition(flow, vm, {}, 'prepared-location-map');
+     composition.locationCard(box);
+-    expect(flow.image).toHaveBeenCalledWith('prepared-location-map', box.x, box.y, box.w, box.h, 'cover');
++    expect(flow.image).toHaveBeenCalledWith('prepared-location-map', box.x, box.y, box.w, box.h);
+     expect(flow.mapImage).not.toHaveBeenCalled();
+     const lines = flow.audit.lines.slice(linesAtImage);
+     expect(lines[0].text).toBe('Mapa de localização');
+diff --git a/src/features/maxxis/export/referenceReportPdf.ts b/src/features/maxxis/export/referenceReportPdf.ts
+index 8ff53dc..c9aa379 100644
+--- a/src/features/maxxis/export/referenceReportPdf.ts
++++ b/src/features/maxxis/export/referenceReportPdf.ts
+@@ -214,7 +214,7 @@ export class ReferenceReportComposition {
+     // Only the location card is full-bleed. Keep comparable-map framing unchanged.
+     this.d.saveGraphicsState();
+     this.d.roundedRect(b.x, b.y, b.w, b.h, 7, 7, null); this.d.clip(); this.d.discardPath();
+-    const raster = !!this.location && this.flow.image(this.location, b.x, b.y, b.w, b.h, 'cover');
++    const raster = !!this.location && this.flow.image(this.location, b.x, b.y, b.w, b.h);
+     if (!raster) this.flow.drawMap([this.vm.property.locationPoint], b.x, b.y, b.w, b.h, id);
+     this.d.setFont('NotoSans', 'bold'); this.d.setFontSize(10);
+     const headingWidth = Math.min(b.w - 14, this.d.getTextWidth(title) + 36);
+@@ -332,13 +332,15 @@ export class ReferenceReportComposition {
+       this.module(this.section('price-positioning') || this.section('land-market-readiness'), { x: X, y: 413, w: WIDTH, h: 191 }, this.t('Imóveis comparáveis', 'Comparable properties', 'Inmuebles comparables'), 'chart');
+     }
+     const pending = this.section('rent-pending');
+-    const caption = main?.map?.caption || this.vm.executive?.blocker?.text || this.missing;
++    const delivery = this.section('sold-delivery');
++    const caption = [main?.map?.caption || this.vm.executive?.blocker?.text || this.missing, delivery?.text].filter(Boolean).join('\n');
+     const captionHeight = this.flow.lines(caption, WIDTH - 20, 7.5).length * 11.5;
+     const pendingText = pending?.text ? `${pending.title}: ${pending.text}` : '';
+     const pendingHeight = pendingText ? this.flow.lines(pendingText, WIDTH - 20, 7.5).length * 11.5 + 4 : 0;
+     const notesTop = tableEnd + 8;
+     const notes = this.panel({ x: X, y: notesTop, w: WIDTH, h: Math.min(791 - notesTop, Math.max(65, 38 + captionHeight + pendingHeight)) }, this.t('Observações da análise', 'Analysis notes', 'Observaciones del análisis'), 'document', 'neutral', 'marketObservations');
+     this.text(caption, { ...notes, h: Math.min(notes.h, captionHeight) }, 'marketObservations', 7.5);
++    if (delivery) this.seen.add(delivery.id);
+     if (pending?.text) {
+       this.text(pendingText, { ...notes, y: notes.y + captionHeight + 4, h: Math.max(0, notes.h - captionHeight - 4) }, pending.id, 7.5);
+       this.seen.add(pending.id);
+diff --git a/src/features/maxxis/export/reportIntegrityViewModel.ts b/src/features/maxxis/export/reportIntegrityViewModel.ts
+index 6ba7c91..6354b60 100644
+--- a/src/features/maxxis/export/reportIntegrityViewModel.ts
++++ b/src/features/maxxis/export/reportIntegrityViewModel.ts
+@@ -7,9 +7,10 @@ import { getCachedPresentationText } from '../../../services/chatTranslation';
+ import { projectSavedReportScenario } from './reportSavedScenarioProjection';
+ import { formatFinancialEvidenceSource } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceLabels';
+ import type { FinancialResolvedInput } from '../../../../supabase/functions/_shared/maxxis/financialEvidence';
+-import { projectProviderListingReferences, rankReportComparables } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
++import { projectProviderListingReferences, rankReportComparables, projectSoldDelivery, soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
+ import { marketRentStateAnswer } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer';
+ import type { MarketRentResult } from '../../../../supabase/functions/_shared/property-data/marketRentService';
++import { INVESTMENT_PRICE_RANGE_OPTIONS } from '../../../lib/investmentProfile';
+ 
+ type Input = Record<string, unknown>;
+ const obj = (v: unknown): Input => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Input : {};
+@@ -218,7 +219,7 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+   const marketKnown = usableArv || rentAmount !== null && rental || selectedSold.length > 0 || providerEstimate !== null;
+   if (!marketKnown) addBlocker('market-support', t('As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.', 'Current market evidence does not support a valuation conclusion. Asking price is not a valuation.', 'La evidencia de mercado actual no sustenta una conclusión de valor. El precio solicitado no es una valoración.'), land
+     ? t('Obtenha vendas registradas de terrenos comparáveis, com área, data e localização, para avaliar o preço por acre.', 'Obtain recorded comparable land sales with area, date and location to evaluate price per acre.', 'Obtenga ventas registradas de terrenos comparables con área, fecha y ubicación para evaluar el precio por acre.')
+-    : t('Confirme vendas fechadas comparáveis ao tipo, área e condição deste imóvel para testar o preço pedido.', 'Confirm closed sales comparable to this property’s type, size and condition to test the asking price.', 'Confirme ventas cerradas comparables en tipo, área y condición para contrastar el precio solicitado.'), ['property:identity'], 90);
++    : t('Consulte e verifique vendas fechadas comparáveis em tipo, área e condição; a execução da busca deve ser documentada antes de concluir ARV.', 'Query and verify closed sales comparable in type, size and condition; document query execution before concluding ARV.', 'Consulte y verifique ventas cerradas comparables en tipo, área y condición; documente la ejecución antes de concluir ARV.'), ['property:identity'], 90);
+   if (land && !known('zoning')) addBlocker('land-use', t('O uso permitido não está documentado; isso limita a análise de aproveitamento do terreno.', 'Permitted use is not documented, limiting land feasibility analysis.', 'El uso permitido no está documentado, lo que limita la viabilidad del terreno.'), t('Confirme o código de zoneamento e os usos permitidos junto à jurisdição competente antes de projetar construção.', 'Confirm the zoning code and permitted uses with the relevant jurisdiction before planning construction.', 'Confirme el código de zonificación y los usos permitidos con la jurisdicción competente antes de proyectar construcción.'), ['fact:zoning'], 80);
+   if (!land && ['FLIP', 'GENERIC_SELL', 'WHOLESALE'].includes(strategy) && !scalar(property.condition)) addBlocker('condition', t('A condição física não está documentada; não é possível concluir a necessidade de reforma ou a comparabilidade de condição.', 'Physical condition is not documented; rehabilitation needs and condition comparability remain unconfirmed.', 'La condición física no está documentada; la reforma necesaria y la comparabilidad de condición no están confirmadas.'), t('Confirme a condição atual com inspeção ou documentação para qualificar a reforma e a comparação com vendas.', 'Confirm current condition with inspection or documentation to qualify rehabilitation and comparable sales.', 'Confirme la condición actual con inspección o documentación para calificar la reforma y las ventas comparables.'), ['property:identity'], strategy === 'FLIP' ? 92 : 75);
+   if (!known('price')) addBlocker('asking-price', t('O preço de aquisição não foi estabelecido; a análise de preço fica limitada.', 'Acquisition price is not established, limiting price analysis.', 'El precio de adquisición no está establecido, lo que limita el análisis de precio.'), t('Confirme o preço pedido ou de aquisição antes de comparar custo e valor.', 'Confirm asking or acquisition price before comparing cost and value.', 'Confirme el precio solicitado o de adquisición antes de comparar costo y valor.'), ['fact:price'], 85);
+@@ -441,7 +442,23 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+     if (blockers.length) push({ id: 'decision-blockers', title: t('Incertezas que limitam a decisão', 'Uncertainties limiting the decision', 'Incertidumbres que limitan la decisión'), kind: 'list', priority: 78, items: blockers.slice(0, 5).map(item => claim(item.impact, item.refs)), evidenceRefs: blockers.slice(0, 5).flatMap(item => item.refs) });
+     const actions = blockers.slice(0, 3).map(item => claim(item.action, [`action:${item.id}`, ...item.refs.filter(ref => !ref.startsWith('blocker:'))]));
+     if (actions.length) push({ id: 'next-actions', title: t('Próximas verificações prioritárias', 'Prioritized next checks', 'Próximas verificaciones prioritarias'), kind: 'list', priority: 40, items: actions, evidenceRefs: actions.flatMap(item => item.evidenceRefs) });
+-    const profile = section('investmentProfile'), profileScore = number(profile.score);
++    const profile = section('investmentProfile'), basis = obj(profile.sourceProfile);
++    const profileVerified = profile.profileSource === 'AUTHENTICATED_CURRENT_PROFILE' && Object.keys(basis).length > 0;
++    const profileScore = profileVerified ? number(profile.score) : null;
++    if (!profileVerified) {
++      const text = t('Perfil de investimento não configurado ou indisponível.', 'Investment Profile not configured or unavailable.', 'Perfil de inversión no configurado o no disponible.');
++      const ref = register('profile:unavailable', text);
++      push({ id: 'investor-profile', title: t('Perfil do investidor', 'Investor profile', 'Perfil del inversor'), kind: 'narrative', text, priority: 36, evidenceRefs: [ref] });
++    }
++    if (profileVerified) {
++      const profileRows: ReportRow[] = [];
++      for (const [key, label] of [['targetMarkets', t('Mercados alvo', 'Target markets', 'Mercados objetivo')], ['priceRange', t('Faixa de preço', 'Price range', 'Rango de precio')], ['propertyTypes', t('Tipos de imóvel', 'Property types', 'Tipos de inmueble')], ['strategies', t('Estratégias', 'Strategies', 'Estrategias')]]) {
++        let value = Array.isArray(basis[key]) ? list(basis[key]).map(reportNarrativeString).filter(Boolean).join(', ') : reportNarrativeString(basis[key]);
++        if (key === 'priceRange' && value) value = value === 'lt_100k' ? t('Abaixo de US$ 100 mil', 'Below $100K', 'Menos de US$ 100 mil') : INVESTMENT_PRICE_RANGE_OPTIONS.find(option => option.value === value)?.label || unavailable;
++        if (value) { const ref = register(`profile:basis:${key}`, value); profileRows.push({ label, value, evidenceRefs: [ref] }); }
++      }
++      if (profileRows.length) push({ id: 'investor-profile', title: t('Perfil atual do investidor', 'Current investor profile', 'Perfil actual del inversor'), kind: 'facts', rows: profileRows, priority: 36, text: t('Fonte: perfil utilizado na preparação desta análise.', 'Source: profile used to prepare this analysis.', 'Fuente: perfil utilizado al preparar este análisis.'), evidenceRefs: profileRows.flatMap(row => row.evidenceRefs) });
++    }
+     if (profileScore !== null && profileScore >= 0 && profileScore <= 100) { const ref = register('profile:compatibility', numeric(profileScore, locale), [profileScore]);
+       push({ id: 'profile-fit', title: t('Compatibilidade com o perfil', 'Profile compatibility', 'Compatibilidad con el perfil'), kind: 'facts', priority: 35, rows: [{ label: t('Match Score', 'Match Score', 'Match Score'), value: `${numeric(profileScore, locale)}%`, source: t('Compatibilidade com o perfil; não é qualidade do negócio, probabilidade de sucesso ou confiança da análise.', 'Profile compatibility; not deal quality, probability of success or analysis confidence.', 'Compatibilidad con el perfil; no es calidad del negocio, probabilidad de éxito ni confianza del análisis.'), evidenceRefs: [ref] }], evidenceRefs: [ref] }); }
+   }
+@@ -453,9 +470,18 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+       property_type: t('Tipo de imóvel', 'Property type', 'Tipo de inmueble'), strategy: t('Estratégia', 'Strategy', 'Estrategia'),
+     };
+     const rows: ReportRow[] = [], comparison: NonNullable<ReportSection['comparison']> = [];
+-    for (const item of list(profile.criteria).map(obj)) {
++    const criteria = list(profile.criteria).map(obj);
++    const evaluated = criteria.filter(item => number(item.score) !== null && item.status !== 'not_evaluated');
++    const omitted = criteria.filter(item => !evaluated.includes(item)).map(item => labels[scalar(item.key)]).filter(Boolean);
++    if (fit?.rows?.[0] && criteria.length) {
++      const coverage = `${evaluated.length}/${criteria.length}`;
++      fit.rows[0].source = t(`${coverage} critérios avaliados. ${omitted.length ? `Não avaliados: ${omitted.join(', ')}. ` : ''}Score restrito aos critérios avaliados; não mede qualidade ou sucesso.`, `${coverage} criteria evaluated. ${omitted.length ? `Not evaluated: ${omitted.join(', ')}. ` : ''}Score covers evaluated criteria only; not quality or success.`, `${coverage} criterios evaluados. ${omitted.length ? `No evaluados: ${omitted.join(', ')}. ` : ''}Score limitado a criterios evaluados; no mide calidad ni éxito.`);
++    }
++    for (const item of (fit ? list(profile.criteria) : []).map(obj)) {
+       const label = labels[scalar(item.key)]; if (!label) continue;
+-      const score = number(item.score), explanation = reportNarrativeString(item.explanation);
++      const score = number(item.score);
++      if (score === null) continue;
++      const explanation = locale === 'en' ? reportNarrativeString(item.explanation) : item.status === 'matched' ? t('Critério atendido pelo motor de compatibilidade.', 'Criterion matched by the compatibility engine.', 'Criterio cumplido por el motor de compatibilidad.') : item.status === 'not_matched' ? t('Critério não atendido pelo motor de compatibilidade.', 'Criterion not matched by the compatibility engine.', 'Criterio no cumplido por el motor de compatibilidad.') : t('Critério não avaliado.', 'Criterion not evaluated.', 'Criterio no evaluado.');
+       const value = score !== null && score >= 0 && score <= 100 ? `${numeric(score, locale)}%` : unavailable;
+       const ref = register(`profile:criterion:${scalar(item.key)}`, `${label}: ${value}${explanation ? ` · ${explanation}` : ''}`, score === null ? [] : [score]);
+       rows.push({ label, value, ...(explanation ? { source: explanation } : {}), evidenceRefs: [ref] });
+@@ -465,12 +491,13 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+       rows, comparison, evidenceRefs: rows.flatMap(row => row.evidenceRefs) });
+   }
+   if (level >= 2 && !land && rentAmount === null) {
+-    const state = scalar(obj(presentation.marketRentState).state);
+-    const text = state === 'RENT_AVM_REVIEW_REQUIRED'
++    const rentState = obj(presentation.marketRentState), state = scalar(rentState.state);
++    const legacyText = state === 'RENT_AVM_REVIEW_REQUIRED'
+       ? t('Aluguel pendente: confirme os dados físicos em divergência com o publicador antes da consulta ao RentCast.', 'Rent pending: confirm disputed physical facts with the publisher before querying RentCast.', 'Alquiler pendiente: confirme los datos físicos en conflicto con el publicador antes de consultar RentCast.')
+       : state && state !== 'NOT_QUERIED'
+         ? marketRentStateAnswer({ state: state as MarketRentResult['state'], propertyId: '', providerCalls: 0 }, locale)
+         : t('Aluguel ainda não consultado neste relatório. Gere uma análise atualizada para consultar o provedor e reutilizar o resultado.', 'Rent has not yet been queried in this report. Generate an updated analysis to query the provider and reuse the result.', 'Alquiler aún no consultado en este informe. Genere un análisis actualizado para consultar el proveedor y reutilizar el resultado.');
++    const text = marketRentStateAnswer({ ...rentState, state: (state || 'NOT_QUERIED') as MarketRentResult['state'], propertyId: scalar(property.id), providerCalls: number(rentState.providerCalls) ?? undefined } as MarketRentResult, locale) || legacyText;
+     const ref = register('market:rent-pending', text);
+     push({ id: 'rent-pending', title: marketRentReportCopy(locale).title, kind: 'narrative', text, priority: 60, evidenceRefs: [ref] });
+   }
+@@ -539,6 +566,10 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+       t('Confirmar os critérios do investidor para avaliar compatibilidade.', 'Confirm investor criteria to evaluate compatibility.', 'Confirmar criterios del inversor para evaluar compatibilidad.'));
+   }
+   if (level === 3 && !land) {
++    const delivery = presentation.soldDelivery ? obj(presentation.soldDelivery) : projectSoldDelivery();
++    const deliveryText = soldDeliveryAnswer(delivery as ReturnType<typeof projectSoldDelivery>, locale);
++    const deliveryRef = register('market:sold-delivery', deliveryText);
++    push({ id: 'sold-delivery', title: t('Busca SOLD e elegibilidade para ARV', 'SOLD search and ARV eligibility', 'Búsqueda SOLD y elegibilidad ARV'), kind: 'narrative', text: deliveryText, priority: 88, evidenceRefs: [deliveryRef] });
+     const sold = resultSections.find(s => s.id === 'arv-market' || s.id === 'sold-reference');
+     const advertised = resultSections.find(s => s.id === 'provider-listing-references');
+     const primary = sold?.table?.rows || [], forSale = advertised?.table?.rows || [];
+@@ -568,7 +599,7 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
+       const caption = t('Amarelo: SOLD. Vermelho: FOR SALE. Roxo: complementares. Até 5 principais por grupo e 3 SOLDs complementares, ordenados por similaridade disponível. Anúncios não comprovam vendas nem entram no ARV.', 'Yellow: SOLD. Red: FOR SALE. Purple: complementary. Up to 5 main references per group and 3 complementary SOLDs, ordered by available similarity. Listings do not prove sales or enter ARV.', 'Amarillo: SOLD. Rojo: FOR SALE. Morado: complementarios. Hasta 5 principales por grupo y 3 SOLD complementarios, según similitud disponible. Anuncios no prueban ventas ni entran en ARV.');
+       push({ id: 'sales-comparables', title: t('Comparáveis de venda: SOLD e FOR SALE', 'Sales comparables: SOLD and FOR SALE', 'Comparables de venta: SOLD y FOR SALE'), kind: 'comparables', priority: 90,
+         table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Preço', 'Price', 'Precio'), t('Data', 'Date', 'Fecha'), t('Distância', 'Distance', 'Distancia'), 'Status', t('Similaridade', 'Similarity', 'Similitud')], rows, evidenceRefs: refs },
+-        map: { points, caption }, evidenceRefs: refs.flat() });
++        map: { points, caption: `${caption} ${t('FOR SALE identifica preço de anúncio, inclusive histórico/inativo; não significa oferta ativa hoje.', 'FOR SALE identifies a listing price, including historical/inactive listings; it does not mean the offer is active today.', 'FOR SALE identifica un precio anunciado, incluso histórico/inactivo; no significa una oferta activa hoy.')}` }, evidenceRefs: refs.flat() });
+       for (const original of [sold, advertised]) if (original?.table) {
+         delete original.table; delete original.map;
+         if (!original.text && !original.hero && !original.rows?.length) resultSections.splice(resultSections.indexOf(original), 1);
+diff --git a/src/features/maxxis/intelligence/MaxxisDealIntelligenceExperience.jsx b/src/features/maxxis/intelligence/MaxxisDealIntelligenceExperience.jsx
+index d63258e..9c1ed66 100644
+--- a/src/features/maxxis/intelligence/MaxxisDealIntelligenceExperience.jsx
++++ b/src/features/maxxis/intelligence/MaxxisDealIntelligenceExperience.jsx
+@@ -2,6 +2,7 @@ import React from 'react';
+ import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
+ import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
+ import { explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
++import { soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
+ 
+ const COPY = {
+   en: { title: 'Maxxis Deal Intelligence', overview: 'Executive deal overview', standsOut: 'Why this property stands out',
+@@ -62,7 +63,8 @@ function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, lan
+   const t = COPY[language] || COPY.en;
+   const valuation = report.valuationIntelligence || {};
+   const range = valuation.range;
+-  const fit = report.investmentFit || {};
++  const candidateFit = report.investmentFit || {};
++  const fit = candidateFit.profileSource === 'AUTHENTICATED_CURRENT_PROFILE' && candidateFit.sourceProfile ? candidateFit : { score: null };
+   const property = reportSchema?.sections?.propertySummary?.available
+     ? reportSchema.sections.propertySummary.data || {}
+     : {};
+@@ -96,7 +98,7 @@ function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, lan
+           <div><dt>{t.supportCount}</dt><dd>{supportingCount}</dd></div>
+         </dl>
+         {providerEstimate?.value ? <small className="maxxis-market-estimate-note">{t.providerNote}</small> : null}
+-        {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance"><strong>{language === 'pt' ? 'Por quê?' : language === 'es' ? '¿Por qué?' : 'Why?'}</strong> {t.unavailableReason(supportingCount)}</p> : null}
++        {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance"><strong>{language === 'pt' ? 'Por quê?' : language === 'es' ? '¿Por qué?' : 'Why?'}</strong> {report.soldDelivery ? soldDeliveryAnswer(report.soldDelivery, language) : t.unavailableReason(supportingCount)}</p> : null}
+         {valuation.status === 'ARV_UNAVAILABLE' ? <p className="maxxis-arv-chat-guidance">{t.improve}</p> : null}
+         {valuation.methodology ? <small>{t.methodology}: <strong>{localizeMaxxisValue(valuation.methodology, language, t.unavailable)}</strong></small> : null}
+         {valuation.warnings?.length ? <div className="maxxis-arv-warning-list" aria-label={t.warnings}>{valuation.warnings.map((warning) => <span key={warning}>⚠ {localizeMaxxisValue(warning, language)}</span>)}</div> : null}
+diff --git a/src/features/maxxis/intelligence/maxxisAnalysisReport.js b/src/features/maxxis/intelligence/maxxisAnalysisReport.js
+index c1a59f6..8b841e4 100644
+--- a/src/features/maxxis/intelligence/maxxisAnalysisReport.js
++++ b/src/features/maxxis/intelligence/maxxisAnalysisReport.js
+@@ -2,6 +2,7 @@ import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxx
+ import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
+ import { explainMaxxisEvidenceList } from './maxxisUserFacingEvidence';
+ import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
++import { reportProfileProjection } from './reportProfileProjection';
+ 
+ export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
+ 
+@@ -146,12 +147,15 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
+   const snapshot = isObject(snapshotOrFacts?.propertyFacts) ? snapshotOrFacts : { propertyFacts: snapshotOrFacts };
+   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
+     ...dealIntelligence,
++    matchContext: snapshot.investmentProfile?.profile ? dealIntelligence.matchContext : { calculable: false },
+     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
+     dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
+     dealAssumptions: isObject(snapshot.dealAssumptions) ? snapshot.dealAssumptions : {},
+     sellerFinancingScenario: isObject(snapshot.sellerFinancingScenario) ? snapshot.sellerFinancingScenario : null,
+   }, canonical?.language || 'en');
+-  const alignment = canonicalInvestmentAnalysis.profileFit;
++  const alignment = Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
++    sourceProfile: reportProfileProjection(snapshot.investmentProfile?.profile),
++    profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null });
+   const savedSellerFinancingScenario = isObject(snapshot.dealAssumptions?.sellerFinancingScenario)
+     && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
+     ? Object.freeze({ ...snapshot.dealAssumptions.sellerFinancingScenario }) : null;
+diff --git a/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js b/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
+index 538d2dc..31a14c5 100644
+--- a/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
++++ b/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
+@@ -2,6 +2,7 @@ import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../dom
+ import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
+ import { explainMaxxisEvidenceList, explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
+ import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
++import { reportProfileProjection } from './reportProfileProjection';
+ import { describeStoredMarketReference } from '../presentation/evidenceFreshnessPresentation';
+ 
+ export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
+@@ -148,14 +149,22 @@ function comparableItem(comp) {
+     longitude: nullableNumber(comp?.longitude),
+     sourceType: 'VERIFIED_RECORD',
+     provenance: 'VERIFIED_RECORD',
++    propertyType: safeText(comp?.propertyType) || null,
++    dataCompletenessScore: nullableNumber(comp?.dataCompletenessScore),
++    hardGatesPass: comp?.hardGatesPass === true,
+   });
+ }
+ 
+-function comparableEvidence(context) {
+-  const items = list(context?.comparableEvidence).map(comparableItem);
++function comparableEvidence(context, diagnostics = []) {
++  const items = list(context?.comparableEvidence).map(comp => {
++    const diagnostic = list(diagnostics).find(row => row.candidateId === comp.compIdentifier);
++    return comparableItem({ ...diagnostic, ...comp,
++      dataCompletenessScore: diagnostic?.dataCompletenessScore ?? comp.dataCompletenessScore,
++      propertyType: diagnostic?.propertyType ?? comp.propertyType });
++  });
+   return Object.freeze({
+     used: Object.freeze(items.filter((item) => item.role === 'PRIMARY').slice(0, 5)),
+-    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 5)),
++    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 8)),
+     excluded: Object.freeze(items.filter((item) => item.role === 'EXCLUDED').slice(0, 3)),
+   });
+ }
+@@ -202,11 +211,12 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis =
+   const valuation = valuationIntelligence({ ...context, providerMarketContext: {
+     ...context.providerMarketContext, ...snapshot.providerMarketContext,
+   } }, canonical?.language || 'en');
+-  const comps = comparableEvidence(context);
++  const comps = comparableEvidence(context, snapshot.compPromotionDiagnostics);
+   const reportLanguage = canonical?.language || 'en';
+   const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });
+   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
+     ...context,
++    matchContext: snapshot.investmentProfile?.profile ? context.matchContext : { calculable: false },
+     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
+     dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
+     dealAssumptions: isObject(snapshot.dealAssumptions) ? snapshot.dealAssumptions : {},
+@@ -244,10 +254,13 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis =
+       })).filter((signal) => signal.explanation).slice(0, 6))
+       : standoutSignals(context),
+     propertyEvidence: propertyEvidence(context),
+-    investmentFit: canonicalInvestmentAnalysis.profileFit,
++    investmentFit: Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
++      sourceProfile: reportProfileProjection(snapshot.investmentProfile?.profile),
++      profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null }),
+     canonicalInvestmentAnalysis,
+     financialEvidence: snapshot.financialEvidence || context.financialEvidence || null,
+     marketRent: snapshot.marketRent || null,
++    soldDelivery: snapshot.soldDelivery || null,
+     financialReadiness: snapshot.financialReadiness || context.financialReadiness || null,
+     sellerFinancingScenario: savedSellerFinancingScenario,
+     activeScenario: savedActiveScenario,
+diff --git a/src/features/maxxis/intelligence/reportProfileProjection.js b/src/features/maxxis/intelligence/reportProfileProjection.js
+new file mode 100644
+index 0000000..51ea5bd
+--- /dev/null
++++ b/src/features/maxxis/intelligence/reportProfileProjection.js
+@@ -0,0 +1,11 @@
++// Report payload boundary: never copy the complete private Investment Profile.
++export function reportProfileProjection(profile) {
++  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return null;
++  const texts = value => Object.freeze(Array.isArray(value) ? value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean) : []);
++  return Object.freeze({
++    targetMarkets: texts(profile.targetMarkets),
++    priceRange: typeof profile.priceRange === 'string' ? profile.priceRange : null,
++    propertyTypes: texts(profile.propertyTypes),
++    strategies: texts(profile.strategies),
++  });
++}
+diff --git a/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts b/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
+index 7159501..64be678 100644
+--- a/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
++++ b/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
+@@ -77,7 +77,12 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
+   // cached evidence. An address/subject change invalidates old decisions normally.
+   let rentAvmSubject:RentAvmSubject|undefined;
+   if((options.financialEvidence||options.rentAvmSubject)&&provider?.entitlementState==='authorized'){
+-    const state=options.loadRentAvmState?await options.loadRentAvmState(input.propertyId).catch(()=>null):null;
++    let subjectReason:string|undefined;
++    const state=options.loadRentAvmState?await options.loadRentAvmState(input.propertyId).catch(error=>{
++      const code=error instanceof Error?error.message:'';
++      subjectReason=['RENT_SUBJECT_PROPERTY_READ_FAILED','RENT_SUBJECT_PROPERTY_NOT_FOUND','RENT_SUBJECT_REVIEW_READ_FAILED'].includes(code)?code:'RENT_SUBJECT_STATE_READ_FAILED';
++      return null;
++    }):null;
+     const external=candidates.filter(c=>c.sourceFamily!=='PUBLISHER');
+     const currentFields=new Set(external.map(c=>`${c.sourceFamily}:${c.field}`));
+     const retained=state?.snapshot&&state.snapshot.identityHash===await evidenceHash(propertyIdentity(state.property))
+@@ -85,9 +90,13 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
+     const fresh=state?await reconcilePropertyFacts(state.property,[...retained,...external],state.snapshot):null;
+     rentAvmSubject=resolveRentAvmSubjectAttributes({property:row,effectiveFacts:reconciled?.facts,projections:readModel.analyticalEvidence.fields,
+       reviewSnapshot:fresh??(reconciled?.owner?reconciled.reviewSnapshot:null),unavailable:!!options.loadRentAvmState&&!state});
++    if(rentAvmSubject.state==='SUBJECT_UNAVAILABLE')rentAvmSubject={...rentAvmSubject,reason:subjectReason??'RENT_SUBJECT_STATE_UNAVAILABLE'};
+   }
+   const marketRent:MarketRentResult|undefined=options.financialEvidence?(provider?.entitlementState!=='authorized'?{propertyId:input.propertyId,state:'ENTITLEMENT_BLOCKED' as const,providerCalls:0}
+-    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject).catch(()=>({propertyId:input.propertyId,state:'SUBJECT_UNAVAILABLE' as const,providerCalls:0})):undefined):undefined;
++    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject).catch((error)=>({propertyId:input.propertyId,state:'PROVIDER_ERROR' as const,providerCalls:0,
++      // A cache/guard/execution failure is not an invalid physical attribute.
++      // Retain a bounded diagnostic category, never an arbitrary error payload.
++      reason:/CACHE/.test(error instanceof Error?error.message:'')?'RENT_CACHE_READ_FAILED':/ENTITLEMENT/.test(error instanceof Error?error.message:'')?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'})):undefined):undefined;
+   const rent=marketRent?.evidence?{evidence:marketRent.evidence,freshness:marketRent.freshness}
+     :options.financialEvidence&&!options.loadMarketRent&&provider?.entitlementState==='authorized'
+     ?await options.loadCachedMarketRent?.(input.propertyId).catch(()=>null):null;
+diff --git a/supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts b/supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts
+index 6929be8..76e0b22 100644
+--- a/supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts
++++ b/supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts
+@@ -3,13 +3,15 @@ import type {FinancialDomain,FinancialEvidenceStack,FinancialResolvedInput} from
+ import {formatFinancialEvidenceSource} from './financialEvidenceLabels.ts';
+ import type {MarketRentResult} from '../property-data/marketRentService.ts';
+ type Language='pt'|'en'|'es';
+-export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean;marketScenario?:boolean};
++export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean;marketScenario?:boolean;listComparables?:boolean;subjectReadiness?:boolean};
+ export function detectFinancialEvidenceQuestion(message:unknown):FinancialQuestion|null {
+   const text=String(message??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+   if(/\b(?:report|relatorio|pdf|export|reporte|informe|salvar|save|guardar|alterar|change|mude|assuma|assume|simule|simulate|simulacao|scenario|cenario|escenario)\b/.test(text)||/\b(?:what if|e se|y si)\b/.test(text))return null;
+   // Numeric declarations belong to the existing user-input/gap workflow, not a read-only lookup.
++  if(/\b(?:rental comps|rent comps|comparaveis de aluguel|comparables de alquiler)\b/.test(text))return {domain:'providerMarketRentEstimate',listComparables:true};
+   if(/\d/.test(text)&&!/[?¿]/.test(text)&&!/^\s*(?:qual|quanto|what|how|cual|cuanto|is|does|can|tem)\b/.test(text))return null;
+   const marketQuestion=/\b(?:market rent|estimated rent|aluguel (?:de mercado|estimado)|alquiler (?:de mercado|estimado)|alugaria|alquilaria)\b/.test(text);
++  if (/\b(?:aluguel|rent|alquiler)\b/.test(text) && /\b(?:bloqueia|bloqueado|blocks|blocking|bloquea|qual atributo|which attribute|which field)\b/.test(text)) return {domain:'providerMarketRentEstimate',subjectReadiness:true};
+   if(/\b(?:what is|o que e|que es)\b/.test(text)&&!/(?:deste|desse|this property|esta propiedad|imovel)/.test(text)&&!marketQuestion)return null;
+   const metric=/\bnoi\b/.test(text)?'NOI':/\bcap rate\b/.test(text)?'CAP_RATE':/\bdscr\b/.test(text)?'DSCR':/\b(?:coc|cash on cash)\b/.test(text)?'COC':/\broi\b/.test(text)?'ROI':/\b(?:cash flow|fluxo de caixa|flujo de caja)\b/.test(text)?'CASH_FLOW':null;
+   if(metric){
+@@ -45,6 +47,8 @@ function describe(input:FinancialResolvedInput,lang:Language){
+   const amount=input.unit==='PERCENT'?`${input.value}%`:new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(input.value);
+   const cadenceLabels={pt:{MONTHLY:'mês',QUARTERLY:'trimestre',SEMIANNUAL:'semestre',ANNUAL:'ano',ONE_TIME:'pontual',UNKNOWN:''},en:{MONTHLY:'month',QUARTERLY:'quarter',SEMIANNUAL:'half-year',ANNUAL:'year',ONE_TIME:'one-time',UNKNOWN:''},es:{MONTHLY:'mes',QUARTERLY:'trimestre',SEMIANNUAL:'semestre',ANNUAL:'año',ONE_TIME:'puntual',UNKNOWN:''}};
+   const notes=[formatFinancialEvidenceSource(input,lang),
++    ...(input.domain==='providerMarketRentEstimate'&&input.source?.retrievedAt&&Number.isFinite(Date.parse(input.source.retrievedAt))
++      ?[`${lang==='pt'?'Referência':lang==='es'?'Referencia':'Reference'}: ${new Intl.DateTimeFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{dateStyle:'short',timeZone:'UTC'}).format(new Date(input.source.retrievedAt))}`]:[]),
+     ...(input.cadence==='UNKNOWN'?[t.cadence]:[]),...(input.cadence==='ONE_TIME'?[t.oneTime]:[]),
+     ...(input.conflictPreserved?[t.choice]:[])].filter(Boolean);
+   const money=(value:number)=>new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(value);
+@@ -71,13 +75,39 @@ export function marketRentStateAnswer(result:MarketRentResult|undefined,language
+     ADDRESS_REQUIRED:['É necessário um endereço completo e autorizado para esta consulta.','A complete authorized address is required for this query.','Se requiere una dirección completa y autorizada para esta consulta.'],
+     SUBJECT_CHANGED:['Os dados do imóvel mudaram durante a consulta. Confira o cadastro antes de tentar novamente.','Property inputs changed during the query. Review the property before trying again.','Los datos del inmueble cambiaron durante la consulta. Revise el registro antes de reintentar.'],
+     SUBJECT_UNAVAILABLE:['Não foi possível validar os dados atuais do imóvel.','Current property inputs could not be validated.','No fue posible validar los datos actuales del inmueble.']};
+-  return (messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[lang==='pt'?0:lang==='es'?2:1];
++  const i=lang==='pt'?0:lang==='es'?2:1;
++  const fields:Record<string,string[]>={propertyType:['tipo de imóvel','property type','tipo de inmueble'],beds:['quartos','bedrooms','habitaciones'],baths:['banheiros','bathrooms','baños'],buildingArea:['área construída','living area','superficie construida']};
++  const review=[...new Set(result?.reviewFields?.length?result.reviewFields:[result?.reviewField].filter(Boolean) as string[])].map(field=>fields[field]?.[i]).filter(Boolean).join(', ');
++  const stages:Record<string,string[]>={
++    RENT_SUBJECT_PROPERTY_READ_FAILED:['Falha na leitura autorizada do cadastro do imóvel.','Authorized property record read failed.','Falló la lectura autorizada del inmueble.'],
++    RENT_SUBJECT_PROPERTY_NOT_FOUND:['Cadastro do imóvel não encontrado na preparação.','Property record not found during preparation.','Registro del inmueble no encontrado durante la preparación.'],
++    RENT_SUBJECT_REVIEW_READ_FAILED:['Falha na leitura das decisões de revisão do publicador.','Publisher review decisions could not be read.','No se pudieron leer las decisiones del publicador.'],
++    RENT_CACHE_READ_FAILED:['Falha na leitura do cache de aluguel.','Rent cache read failed.','Falló la lectura del caché de alquiler.'],
++    RENT_ENTITLEMENT_CHECK_FAILED:['Falha ao verificar a autorização do aluguel.','Rent authorization check failed.','Falló la verificación de autorización de alquiler.'],
++    RENT_SUBJECT_STATE_READ_FAILED:['Falha na leitura do estado autorizado para o aluguel.','Authorized rent subject state read failed.','Falló la lectura del estado autorizado para el alquiler.'],
++  };
++  const text=stages[result?.reason||'']?.[i]??(messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[i];
++  const action=result?.state==='RENT_AVM_REVIEW_REQUIRED'&&review?[
++    `Campos: ${review}. Editar imóvel → página 2 → revisar esses campos com o publicador.`,
++    `Fields: ${review}. Edit Property → page 2 → review these fields with the publisher.`,
++    `Campos: ${review}. Editar inmueble → página 2 → revisar estos campos con el publicador.`,
++  ][i]:'';
++  const execution=result?.cacheHit?['Cache válido reutilizado.','Valid cache reused.','Caché válido reutilizado.'][i]
++    :result?.providerCalls===0?['Nenhuma consulta ao provedor foi executada neste fluxo.','No provider query executed in this flow.','No se ejecutó consulta al proveedor en este flujo.'][i]
++      :typeof result?.providerCalls==='number'?['Consulta ao provedor executada.','Provider query executed.','Consulta al proveedor ejecutada.'][i]
++        :['Execução anterior não registrada; não comprova ausência de dados no provedor.','Previous execution not recorded; this does not establish missing provider data.','Ejecución anterior no registrada; no prueba ausencia de datos en el proveedor.'][i];
++  return [text,action,execution].filter(Boolean).join(' ');
+ }
+ export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:FinancialEvidenceStack,language:string,context:Parameters<typeof buildFinancialInputReadiness>[1]&{marketRent?:MarketRentResult}={}){
+   const lang:Language=language==='pt'?'pt':language==='es'?'es':'en',t=COPY[lang];
+   if(question.domain){
+     const input=stack.inputs[question.domain];
+     if(question.domain==='providerMarketRentEstimate'&&input.value===null)return {answer:marketRentStateAnswer(context.marketRent,lang),readiness:null,input};
++    if(question.listComparables){
++      const comps=context.marketRent?.state==='AVAILABLE'?context.marketRent.evidence?.comparables??[]:[];
++      const rows=comps.filter(comp=>comp.price!==null&&comp.price>0&&comp.address).slice(0,5).map((comp,i)=>`${i+1}. ${comp.address}: ${new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(comp.price!)} / ${lang==='pt'?'mês':lang==='es'?'mes':'month'}`);
++      return {answer:[describe(input,lang),...rows,rows.length?'':lang==='pt'?'O provedor não retornou comparáveis de aluguel utilizáveis.':lang==='es'?'El proveedor no devolvió comparables de alquiler utilizables.':'Provider returned no usable rental comparables.'].filter(Boolean).join('\n'),readiness:null,input};
++    }
+     const text=question.domain==='currentContractRent'&&input.value===null&&input.analyticalUsability!=='CONFLICTED'
+       ?`${t.currentMissing}${stack.inputs.providerMarketRentEstimate.value!==null?` ${describe(stack.inputs.providerMarketRentEstimate,lang)}`:''}`:describe(input,lang);
+     return {answer:text,readiness:null,input};
+diff --git a/supabase/functions/_shared/maxxis/getDealInsightContext.ts b/supabase/functions/_shared/maxxis/getDealInsightContext.ts
+index 6d94969..e1953f8 100644
+--- a/supabase/functions/_shared/maxxis/getDealInsightContext.ts
++++ b/supabase/functions/_shared/maxxis/getDealInsightContext.ts
+@@ -1,5 +1,5 @@
+ import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
+-import { projectProviderListingReferences } from './reportMarketReferences.ts';
++import { projectProviderListingReferences, projectSoldDelivery } from './reportMarketReferences.ts';
+ import { createClient } from 'npm:@supabase/supabase-js@2';
+ import {
+   createBackendValuationEvidenceService,
+@@ -137,6 +137,8 @@ export async function getDealInsightContextForAuthenticatedUser(
+     usableCandidateCount: 0,
+     compPromotionDiagnostics: [] as Array<Record<string, unknown>>,
+     arvStatus: 'UNAVAILABLE',
++    targetConditionConfirmed: false,
++    arvBlockers: [] as string[],
+     recomputeMode: cacheOnly ? 'GAP_UPDATE_CACHE_ONLY' : 'STANDARD',
+     stopReason: '',
+   };
+@@ -227,12 +229,11 @@ export async function getDealInsightContextForAuthenticatedUser(
+       runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length
+         + (sold.recordedSoldCompSelection.supportingStructuralCandidates?.length || 0);
+       runtimeTrace.usableCandidateCount = sold.recordedSoldCompSelection.conditionVerifiedArvComps.length;
+-      runtimeTrace.compPromotionDiagnostics = directCandidates.filter((candidate) =>
+-        (candidate.weightedAssessment?.structuralComparabilityScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.structuralScoreFloor
+-        && (candidate.weightedAssessment?.dataCompletenessScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.completenessFloor)
+-        .map((candidate) => buildStructuralCandidatePromotionDiagnostic(
+-          candidate, sold.valuation.subjectProperty,
+-        ));
++      runtimeTrace.compPromotionDiagnostics = directCandidates.map((candidate) => ({
++        ...buildStructuralCandidatePromotionDiagnostic(candidate, sold.valuation.subjectProperty),
++        promotionBlockers: [...new Set([...(candidate.weightedAssessment?.primaryEligibilityBlockers || []),
++          ...(candidate.weightedAssessment?.hardGates.failures || [])])],
++      }));
+     } catch (error) {
+       const code = error instanceof Error ? error.message : 'SOLD_EVIDENCE_FAILED';
+       runtimeTrace.soldEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
+@@ -285,6 +286,8 @@ export async function getDealInsightContextForAuthenticatedUser(
+         },
+       });
+       runtimeTrace.arvStatus = evaluation?.status || 'UNAVAILABLE';
++      runtimeTrace.targetConditionConfirmed = Boolean(evaluation?.targetCondition && evaluation.targetCondition !== 'UNKNOWN');
++      runtimeTrace.arvBlockers = evaluation?.confidenceReasons || [];
+       runtimeTrace.arvEligibleCount = evaluation?.eligibleCompCount || 0;
+       runtimeTrace.supportingCandidateCount = evaluation?.supportingCompCount
+         ?? runtimeTrace.supportingCandidateCount;
+@@ -389,7 +392,9 @@ export async function getDealInsightContextForAuthenticatedUser(
+         supabaseAdmin: admin, getEnv: (name) => Deno.env.get(name),
+         providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket },
+       });
+-      const providerFamilies = familyPlan.filter(([family, planFamily]) => families.includes(family)
++      // MarketRentService owns report acquisition and its subject fingerprint.
++      // Do not purchase a second address-only estimate in the generic bundle.
++      const providerFamilies = familyPlan.filter(([family, planFamily]) => family !== 'rentEstimate' && families.includes(family)
+         && activeProviderEvidencePlan.families[planFamily].providerCallAllowed).map(([family]) => family);
+       // Cache-only levels never purchase missing market/listing/rental evidence.
+       supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
+@@ -562,6 +567,7 @@ export async function getDealInsightContextForAuthenticatedUser(
+     providerMarketContext,
+   } : null;
+   const intelligenceSnapshotBase = {
++    soldDelivery: projectSoldDelivery(runtimeTrace),
+     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
+     propertyId: result.propertyId,
+     propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
+diff --git a/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts b/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
+index 4ea7e87..f769e79 100644
+--- a/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
++++ b/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
+@@ -4,12 +4,35 @@ import { calculateLandUnitMetrics, resolveLotDimensions } from './landMetrics.ts
+ import { calculateAreaMetrics } from './areaMetrics.ts';
+ import { formatAreaPriceMetric } from './areaAnalyticalAnswer.ts';
+ import type { AnalyticalPropertyInputs } from './analyticalPropertyFacts.ts';
++import { projectSoldDelivery, soldDeliveryAnswer } from './reportMarketReferences.ts';
+ 
+ type Values = Record<string, any>;
+ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, language = 'en', analyticalInputs?: AnalyticalPropertyInputs) {
+   const t = (pt: string, en: string, es: string) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
+   const facts = snapshot.propertyFacts || snapshot.property || {};
+   const propertyId = String(snapshot.propertyId || facts.id || '');
++  if (intent === 'SOLD_ARV_EVIDENCE') {
++    const receipt = snapshot.soldDelivery || projectSoldDelivery();
++    return { answer: soldDeliveryAnswer(receipt, language), type: 'market_reference' as const,
++      data: { propertyId, intelligenceSnapshot: snapshot, reference: null, landMetrics: null, stateVersion: String(snapshot.generatedAt || 'v1'), providerCalls: 0 }, actions: [] };
++  }
++  if (intent === 'PROFILE_FIT_EVIDENCE') {
++    const profile = snapshot.investmentProfile?.profile, match = snapshot.matchScore;
++    const lines: string[] = [];
++    if (!profile) lines.push(t('Perfil de investimento não configurado ou indisponível. Nenhum Match Score atual pode ser fundamentado.', 'Investment Profile is not configured or unavailable. No current Match Score can be substantiated.', 'Perfil de inversión no configurado o no disponible. No se puede fundamentar un Match Score actual.'));
++    else {
++      for (const [key, label] of [['targetMarkets', t('Mercados', 'Markets', 'Mercados')], ['priceRange', t('Faixa de preço', 'Price range', 'Rango de precio')], ['propertyTypes', t('Tipos', 'Types', 'Tipos')], ['strategies', t('Estratégias', 'Strategies', 'Estrategias')]]) {
++        let value=Array.isArray(profile[key]) ? profile[key].join(', ') : profile[key];
++        if (key === 'priceRange') value=({lt_100k:'< US$ 100,000','100_200k':'US$ 100,000–200,000','200_400k':'US$ 200,000–400,000','400_800k':'US$ 400,000–800,000','800k_plus':'>= US$ 800,000'} as Record<string,string>)[value] || t('Não configurada', 'Not configured', 'No configurado');
++        if (value) lines.push(`${label}: ${value}`);
++      }
++      lines.push(match?.calculable && typeof match.score === 'number' ? `Match Score: ${match.score}%` : t('Sem critérios suficientes para calcular compatibilidade.', 'Insufficient criteria to calculate compatibility.', 'Criterios insuficientes para calcular compatibilidad.'));
++      for (const reason of match?.reasons || []) lines.push(`${reason.label}: ${reason.status === 'not_evaluated' ? t('não avaliado', 'not evaluated', 'no evaluado') : `${reason.points}/${reason.maxPoints}`}`);
++      lines.push(t('Fonte: perfil autenticado usado nesta análise. Compatibilidade com o perfil, não qualidade do negócio ou ROI.', 'Source: authenticated profile used in this analysis. Profile fit, not deal quality or ROI.', 'Fuente: perfil autenticado usado en este análisis. Compatibilidad, no calidad del negocio ni ROI.'));
++    }
++    return { answer: lines.join('\n'), type: 'market_reference' as const,
++      data: { propertyId, intelligenceSnapshot: snapshot, reference: null, landMetrics: null, stateVersion: String(snapshot.generatedAt || 'v1'), providerCalls: 0 }, actions: [] };
++  }
+   const land = propertyTypeFamily(resolveAnalysisPropertyType(facts)) === 'LAND';
+   const assumptions = { ...(snapshot.dealAssumptions?.activeScenario?.assumptions || {}), ...(snapshot.dealAssumptions || {}) };
+   const evidence = snapshot.developmentEvidence;
+diff --git a/supabase/functions/_shared/maxxis/marketReferenceIntent.ts b/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
+index b76eb04..03bd556 100644
+--- a/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
++++ b/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
+@@ -3,6 +3,9 @@ import { propertyTypeFamily, resolveAnalysisPropertyType } from './canonicalFact
+ /** Topic detection is shared by chat UI and the authenticated runtime, not chosen by the LLM. */
+ export function detectMarketReferenceIntent(message: unknown, property?: Record<string, unknown> | null) {
+   const text = String(message || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
++  if (/\b(?:match score|profile fit)\b/.test(text) && /\b(?:por que|porque|why|expli|qual|what)\b/.test(text)) return 'PROFILE_FIT_EVIDENCE';
++  if (/\b(?:arv|sold|vendas fechadas|closed sales|ventas cerradas)\b/.test(text)
++    && /\b(?:existem|exist|ha|there|hay|por que|porque|why|nao|not|no|which|quais)\b/.test(text)) return 'SOLD_ARV_EVIDENCE';
+   if (/(como|how|como).*?(cheg|calcul|estim|arriv|derive|obtain|lleg|obtu)|(?:explique|explain|explica).*?(estimativa|estimate|estimacion|avm|market|mercado)/.test(text)
+     && /estim|market|mercado|avm|valor/.test(text)) return 'EXPLAIN_MARKET_ESTIMATE';
+   const land = propertyTypeFamily(resolveAnalysisPropertyType(property)) === 'LAND';
+diff --git a/supabase/functions/_shared/maxxis/reportMarketReferences.ts b/supabase/functions/_shared/maxxis/reportMarketReferences.ts
+index fcbb2b6..27ea84c 100644
+--- a/supabase/functions/_shared/maxxis/reportMarketReferences.ts
++++ b/supabase/functions/_shared/maxxis/reportMarketReferences.ts
+@@ -3,13 +3,25 @@ export function projectProviderListingReferences(input: unknown) {
+   const number = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : null;
+   const text = (v: unknown) => typeof v === 'string' ? v.trim() : '';
+   const seen = new Set<string>();
++  const normalize = (v: unknown) => text(v).toUpperCase().replace(/[^A-Z0-9#]/g, '');
+   return (Array.isArray(input) ? input : []).flatMap((raw: unknown) => {
+     if (!raw || typeof raw !== 'object') return [];
+     const row = raw as Record<string, unknown>, address = text(row.formattedAddress || row.address || row.addressLine1);
+     const price = number(row.price);
+-    if (row.priceSemantic !== 'PROVIDER_LISTING_PRICE' || !address || price === null || price <= 0 || seen.has(address)) return [];
+-    seen.add(address);
+-    return [{ address, price, priceSemantic: 'PROVIDER_LISTING_PRICE' as const, latitude: number(row.latitude), longitude: number(row.longitude),
++    if (row.priceSemantic !== 'PROVIDER_LISTING_PRICE' || !address || price === null || price <= 0) return [];
++    const providerPropertyId = text(row.providerPropertyId), assessorId = text(row.assessorId);
++    // City aliases are not identity. Require street + state + ZIP + exact
++    // coordinates + matching structural attributes; retain unit identifiers.
++    const street = text(row.addressLine1), zip = text(row.zipCode), state = text(row.state);
++    const geoIdentity = street && zip && state && number(row.latitude) !== null && number(row.longitude) !== null
++      && number(row.livingAreaSqft) !== null && number(row.bedrooms) !== null && number(row.bathrooms) !== null
++      ? JSON.stringify([normalize(street), normalize(state), zip, row.latitude, row.longitude, row.livingAreaSqft, row.bedrooms, row.bathrooms]) : '';
++    const keys = [`address:${normalize(address)}`, ...(providerPropertyId ? [`id:${providerPropertyId}`] : []),
++      ...(assessorId && state && zip ? [`apn:${normalize(state)}:${zip}:${normalize(assessorId)}`] : []), ...(geoIdentity ? [`geo:${geoIdentity}`] : [])];
++    if (keys.some(key => seen.has(key))) return [];
++    keys.forEach(key => seen.add(key));
++    return [{ address, providerPropertyId, assessorId, addressLine1: street, zipCode: zip, state, listingStatus: text(row.listingStatus),
++      price, priceSemantic: 'PROVIDER_LISTING_PRICE' as const, latitude: number(row.latitude), longitude: number(row.longitude),
+       bedrooms: number(row.bedrooms), bathrooms: number(row.bathrooms), livingAreaSqft: number(row.livingAreaSqft),
+       distanceMiles: number(row.distanceMiles), providerCorrelation: number(row.providerCorrelation), lastSeenDate: text(row.lastSeenDate) }];
+   }).sort((a, b) => (b.providerCorrelation ?? -1) - (a.providerCorrelation ?? -1)).slice(0, 5);
+@@ -23,3 +35,71 @@ export function rankReportComparables<T extends Record<string, unknown>>(rows: T
+   };
+   return [...rows].sort((a, b) => score(b) - score(a));
+ }
++
++/** Bounded delivery receipt, from actual execution telemetry, not listing counts. */
++export function projectSoldDelivery(trace: Record<string, unknown> = {}) {
++  const count = (key:string) => typeof trace[key] === 'number' && Number.isFinite(trace[key]) ? Math.max(0, Number(trace[key])) : null;
++  const loaded = ['HIT','MISS_REFRESHED'].includes(String(trace.soldEvidence));
++  const returned = loaded ? count('soldRawCandidateCount') : null;
++  const normalized = loaded ? count('soldNormalizedCandidateCount') : null;
++  const evaluationFailed = /^ARV_(?:TARGET|REVIEW)_READ_FAILED$/.test(String(trace.stopReason));
++  const eligible = loaded && !evaluationFailed ? count('arvEligibleCount') : null;
++  const structural = loaded ? count('structuralCandidateCount') : null;
++  const blockers = [...(Array.isArray(trace.arvBlockers) ? trace.arvBlockers.filter((v): v is string => typeof v === 'string') : []),
++    ...(evaluationFailed ? [String(trace.stopReason)] : [])];
++  const recorded = typeof trace.soldProviderAttempted === 'boolean' || loaded;
++  const status = !recorded ? 'UNKNOWN_EXECUTION' : !loaded ? 'NOT_QUERIED' : returned === 0 ? 'NO_PROVIDER_RESULTS'
++    : normalized === 0 ? 'NO_SOLD_RECORDS' : structural === 0 ? 'FILTERED_OUT'
++      : evaluationFailed ? 'EVALUATION_BLOCKED'
++      : ['ARV_AVAILABLE','ARV_LIMITED'].includes(String(trace.arvStatus)) && (eligible ?? 0) > 0 ? 'ELIGIBLE_FOR_ARV'
++        : trace.targetConditionConfirmed === false ? 'CONDITION_UNCONFIRMED' : 'INSUFFICIENT_ELIGIBLE_COMPS';
++  return Object.freeze({ status, queryExecuted: typeof trace.soldProviderAttempted === 'boolean' ? trace.soldProviderAttempted : loaded ? !Boolean(trace.soldEvidence === 'HIT') : null, cacheHit: trace.soldEvidence === 'HIT',
++    reason: String(trace.soldEvidenceReason || 'EXECUTION_NOT_RECORDED'), returned, normalized,
++    hardGatePass: loaded ? count('hardGatePassCount') : null, structural, eligible,
++    supporting: loaded ? count('supportingCandidateCount') : null, excluded: loaded ? count('excludedCandidateCount') : null,
++    arvStatus: String(trace.arvStatus || 'UNAVAILABLE'), blockers,
++    candidates: (Array.isArray(trace.compPromotionDiagnostics) ? trace.compPromotionDiagnostics : []).slice(0, 100).map((raw, index) => {
++      const row = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
++      return { candidate: index + 1,
++        classification: ['SELECTED','SUPPORTING','EXCLUDED','UNRESOLVED'].includes(String(row.finalClassification)) ? String(row.finalClassification) : 'UNRESOLVED',
++        reasons: (Array.isArray(row.promotionBlockers) ? row.promotionBlockers : []).filter((r): r is string => typeof r === 'string' && /^[A-Z][A-Z0-9_]{0,100}$/.test(r)) };
++    }) });
++}
++
++export function soldDeliveryAnswer(receipt: ReturnType<typeof projectSoldDelivery>, language:string) {
++  const i=language==='pt'?0:language==='es'?2:1;
++  const reasons:Record<string,string[]>={
++    NOT_QUERIED:['Sem resultado rastreável da busca SOLD; não é possível concluir que não existem vendas.','No traceable SOLD search result; this does not establish that no sales exist.','Sin resultado trazable de búsqueda SOLD; no prueba ausencia de ventas.'],
++    NO_PROVIDER_RESULTS:['Busca sem registros retornados.','Search returned no records.','Búsqueda sin registros devueltos.'],
++    NO_SOLD_RECORDS:['Registros retornados sem vendas fechadas normalizáveis.','Returned records contained no normalizable closed sales.','Registros devueltos sin ventas cerradas normalizables.'],
++    FILTERED_OUT:['Vendas rejeitadas pelos critérios estruturais existentes.','Sales rejected by the existing structural criteria.','Ventas rechazadas por criterios estructurales existentes.'],
++    CONDITION_UNCONFIRMED:['Condição-alvo e/ou condição comparável não confirmada; ARV não liberado.','Target and/or comparable condition unconfirmed; ARV withheld.','Condición objetivo y/o comparable no confirmada; ARV bloqueado.'],
++    INSUFFICIENT_ELIGIBLE_COMPS:['Vendas elegíveis insuficientes para o motor ARV.','Insufficient eligible sales for the ARV engine.','Ventas elegibles insuficientes para el motor ARV.'],
++    ELIGIBLE_FOR_ARV:['Vendas elegíveis utilizadas pelo motor ARV.','Eligible sales used by the ARV engine.','Ventas elegibles utilizadas por el motor ARV.'],
++    EVALUATION_BLOCKED:['Avaliação ARV bloqueada na leitura dos dados de revisão.','ARV evaluation blocked while reading review data.','Evaluación ARV bloqueada al leer las revisiones.'],
++  };
++  const n=(v:number|null)=>v===null?'—':String(v);
++  const blocked:Record<string,string[]>={
++    VALUATION_EVIDENCE_CACHE_REQUIRED:['Busca SOLD bloqueada antes do provedor: subject AVM compatível ausente no cache.','SOLD search blocked before provider: compatible AVM subject missing from cache.','Búsqueda SOLD bloqueada antes del proveedor: falta subject AVM compatible en caché.'],
++    SOLD_EVIDENCE_CACHE_MISS:['Sem cache SOLD válido neste fluxo de leitura; uma busca atual autorizada é necessária.','No valid SOLD cache in this read flow; an authorized current search is required.','Sin caché SOLD válido en este flujo de lectura; se requiere búsqueda actual autorizada.'],
++    PROVIDER_DISABLED:['A consulta está desativada; não se trata de ausência de vendas.','Query disabled; this does not establish an absence of sales.','Consulta deshabilitada; no prueba ausencia de ventas.'],
++    PROVIDER_NOT_CONFIGURED:['Provedor não configurado para a busca SOLD.','Provider not configured for SOLD search.','Proveedor no configurado para búsqueda SOLD.'],
++    ADDRESS_MISMATCH:['Identidade/endereço do subject rejeitados antes de utilizar as vendas.','Subject identity/address rejected before sales could be used.','Identidad/dirección del subject rechazadas antes de utilizar ventas.'],
++    MONTHLY_PROVIDER_LIMIT_REACHED:['Limite de uso bloqueou a aquisição de vendas.','Usage limit blocked sales acquisition.','Límite de uso bloqueó adquisición de ventas.'],
++    NOT_REQUESTED:['Busca SOLD não solicitada neste fluxo.','SOLD search not requested in this flow.','Búsqueda SOLD no solicitada en este flujo.'],
++    REPORT_LEVEL_NOT_REQUIRED:['Este nível de relatório não solicitou busca SOLD.','This report level did not request a SOLD search.','Este nivel de informe no solicitó búsqueda SOLD.'],
++  };
++  const source=receipt.cacheHit?['cache válido','valid cache','caché válido'][i]:receipt.queryExecuted?['consulta ao provedor executada','provider queried','proveedor consultado'][i]:['execução não comprovada','execution not evidenced','ejecución no acreditada'][i];
++  const counts=[`Retornados: ${n(receipt.returned)}; normalizados: ${n(receipt.normalized)}; filtros estruturais: ${n(receipt.structural)}; elegíveis ARV: ${n(receipt.eligible)}.`,`Returned: ${n(receipt.returned)}; normalized: ${n(receipt.normalized)}; structural candidates: ${n(receipt.structural)}; ARV eligible: ${n(receipt.eligible)}.`,`Devueltos: ${n(receipt.returned)}; normalizados: ${n(receipt.normalized)}; candidatos estructurales: ${n(receipt.structural)}; elegibles ARV: ${n(receipt.eligible)}.`][i];
++  const rejected=[`Apoio: ${n(receipt.supporting)}; excluídos: ${n(receipt.excluded)}.`,`Supporting: ${n(receipt.supporting)}; excluded: ${n(receipt.excluded)}.`,`Apoyo: ${n(receipt.supporting)}; excluidos: ${n(receipt.excluded)}.`][i];
++  const details:Record<string,string[]>={
++    MISSING_SUBJECT_LIVING_AREA:['Área construída do imóvel ausente para o cálculo.','Subject living area is missing for the calculation.','Falta superficie construida del inmueble para el cálculo.'],
++    INSUFFICIENT_CONDITION_COMPATIBLE_COMPS:['Quantidade insuficiente de vendas com condição compatível revisada.','Insufficient sales with reviewed compatible condition.','Ventas insuficientes con condición compatible revisada.'],
++    INSUFFICIENT_PRICE_PER_SQFT_EVIDENCE:['Evidência de preço por área insuficiente.','Insufficient price-per-area evidence.','Evidencia insuficiente de precio por superficie.'],
++    EXTREME_VALUATION_DISPERSION:['Dispersão das vendas excede o limite do motor.','Sales dispersion exceeds the engine limit.','Dispersión de ventas supera el límite del motor.'],
++    ARV_TARGET_READ_FAILED:['Falha ao ler a condição-alvo salva.','Saved target condition could not be read.','No se pudo leer la condición objetivo guardada.'],
++    ARV_REVIEW_READ_FAILED:['Falha ao ler as revisões de condição dos comparáveis.','Comparable condition reviews could not be read.','No se pudieron leer las revisiones de condición de comparables.'],
++  };
++  const detail=(receipt.blockers||[]).map(code=>details[code]?.[i]).filter(Boolean).join(' ');
++  return `SOLD: ${source}. ${counts} ${rejected} ${(!receipt.cacheHit && blocked[receipt.reason]?.[i]) || (reasons[receipt.status]||reasons.NOT_QUERIED)[i]}${detail?` ${detail}`:''}`;
++}
+diff --git a/supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts b/supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts
+index 9103f82..8df70bf 100644
+--- a/supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts
++++ b/supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts
+@@ -8,12 +8,8 @@ export function shouldAcquireReportMarketRent(reportType: unknown, cacheOnly = f
+   return !cacheOnly && (reportType === 'MAXXIS_ANALYSIS' || reportType === 'DEAL_INTELLIGENCE');
+ }
+ 
+-/** Let the provider discover its own subject by validated address. Disputed
+- * physical measurements must not be submitted as AVM overrides or adopted as facts.
+- * Unknown/land/multi-unit types still require their existing applicability checks.
+- */
++/** Missing optional attributes may be discovered by the provider, but an
++ * unresolved material disagreement is not an absent attribute. */
+ export function reportMarketRentSubject(subject: RentAvmSubject): RentAvmSubject {
+-  if (subject.state !== 'RENT_AVM_REVIEW_REQUIRED' || !subject.lookup
+-    || !['Single Family', 'Condo', 'Townhouse', 'Manufactured'].includes(subject.overrides?.propertyType || '')) return subject;
+-  return { ...subject, state: 'READY', overrides: {}, scope: 'PROPERTY' };
++  return subject;
+ }
+diff --git a/supabase/functions/_shared/maxxis/toolRegistry.ts b/supabase/functions/_shared/maxxis/toolRegistry.ts
+index 1191573..de89c47 100644
+--- a/supabase/functions/_shared/maxxis/toolRegistry.ts
++++ b/supabase/functions/_shared/maxxis/toolRegistry.ts
+@@ -124,10 +124,11 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
+       loadRentAvmState:async propertyId=>{
+         const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
+         const property=await internal.from('properties').select('id,type,address,city,state,zip,beds,baths,sqft,lot,owner_id,lat,lng,geocode_status').eq('id',propertyId).maybeSingle();
+-        if(property.error||!property.data)return null;
++        if(property.error)throw new Error('RENT_SUBJECT_PROPERTY_READ_FAILED');
++        if(!property.data)throw new Error('RENT_SUBJECT_PROPERTY_NOT_FOUND');
+         // Only current publisher decisions can become shared AVM overrides.
+         const review=await internal.from('property_fact_reviews').select('state').eq('property_id',propertyId).eq('owner_id',property.data.owner_id).maybeSingle();
+-        if(review.error)return null;
++        if(review.error)throw new Error('RENT_SUBJECT_REVIEW_READ_FAILED');
+         return {property:property.data,snapshot:review.data?.state??null};
+       },
+       loadMarketRent:async(propertyId,initialSubject)=>{
+diff --git a/supabase/functions/_shared/maxxis/toolResultForGemini.ts b/supabase/functions/_shared/maxxis/toolResultForGemini.ts
+index f665c5a..5d86992 100644
+--- a/supabase/functions/_shared/maxxis/toolResultForGemini.ts
++++ b/supabase/functions/_shared/maxxis/toolResultForGemini.ts
+@@ -515,6 +515,7 @@ export function buildMaxxisLLMContext(value: unknown) {
+         .slice(0, 6).map((item) => { const conflict = record(item); return { field: safeText(conflict.field, 60), severity: safeText(conflict.severity, 20) }; }),
+     },
+     compsSummary: {
++      delivery: snapshot.soldDelivery || null,
+       candidatesConsidered: safeNumber(runtime.candidateCount) ?? comps.length,
+       structuralCandidates: safeNumber(runtime.structuralCandidateCount) ?? comps.length,
+       selectedCount: selected.length,
+diff --git a/supabase/functions/_shared/property-data/marketRent.vitest.test.ts b/supabase/functions/_shared/property-data/marketRent.vitest.test.ts
+index d37b9c8..7757b22 100644
+--- a/supabase/functions/_shared/property-data/marketRent.vitest.test.ts
++++ b/supabase/functions/_shared/property-data/marketRent.vitest.test.ts
+@@ -37,16 +37,14 @@ function setup(extra:{entitled?:boolean;enabled?:boolean;hardLimit?:number;cache
+ }
+ const request={propertyId:id,userId:'fixture-user',acquire:true};
+ describe('explicit report cache-first acquisition',()=>{
+-  it('queries the provider by address without sending disputed bath/area overrides',async()=>{
++  it('does not bypass unresolved AVM-critical conflicts during report generation',async()=>{
+     const s=setup();
+     const conflicted=resolveRentAvmSubjectAttributes({property,projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});
+     expect(conflicted.state).toBe('RENT_AVM_REVIEW_REQUIRED');
+     s.resolveSubject.mockResolvedValue(reportMarketRentSubject(conflicted));
+     const result=await s.service.get(request);
+-    expect(result.state).toBe('AVAILABLE');
+-    expect(result.evidence?.request).not.toHaveProperty('squareFootage');
+-    expect(result.evidence?.request).not.toHaveProperty('bathrooms');
+-    expect(s.fetchImpl).toHaveBeenCalledTimes(1);
++    expect(result).toMatchObject({state:'RENT_AVM_REVIEW_REQUIRED',reviewField:'buildingArea',providerCalls:0});
++    expect(s.fetchImpl).not.toHaveBeenCalled();
+   });
+   it.each(['LAND','Multi-Family','office'])('does not bypass applicability for %s',type=>{
+     const subject=resolveRentAvmSubjectAttributes({property:{...property,type},projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});
+diff --git a/supabase/functions/_shared/property-data/marketRentService.ts b/supabase/functions/_shared/property-data/marketRentService.ts
+index 1cecdbb..302e323 100644
+--- a/supabase/functions/_shared/property-data/marketRentService.ts
++++ b/supabase/functions/_shared/property-data/marketRentService.ts
+@@ -5,7 +5,7 @@ import {InMemoryPropertySingleFlight,type PropertySingleFlight} from './singleFl
+ import {rentAvmRequestIdentity,type RentAvmSubject} from './rentAvmSubject.ts';
+ 
+ export type MarketRentResult={state:RentAvmSubject['state']|'AVAILABLE'|'NOT_QUERIED'|'NO_RESULT'|'PROVIDER_ERROR'|'ENTITLEMENT_BLOCKED'|'USAGE_BLOCKED'|'PROVIDER_DISABLED'|'SUBJECT_CHANGED';
+-  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number;reviewField?:string;reason?:string};
++  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number;reviewField?:string;reviewFields?:string[];reason?:string};
+ let providerQueue:Promise<unknown>=Promise.resolve();
+ async function serialProvider<T>(work:()=>Promise<T>):Promise<T>{
+   const task=providerQueue.then(async()=>{const start=Date.now();try{return await work();}finally{const wait=250-(Date.now()-start);if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));}});
+@@ -24,7 +24,7 @@ export class MarketRentService {
+     if(!input.userId||!await this.options.hasEntitlement())return {...base,state:'ENTITLEMENT_BLOCKED'};
+     const subject=await this.options.resolveSubject();
+     if(subject.propertyId!==input.propertyId)return {...base,state:'SUBJECT_UNAVAILABLE'};
+-    if(subject.state!=='READY')return {...base,state:subject.state,reviewField:subject.reviewField};
++    if(subject.state!=='READY')return {...base,state:subject.state,reviewField:subject.reviewField,reviewFields:subject.reviewFields,reason:subject.reason};
+     const identity=await rentAvmRequestIdentity(subject);
+     const read=()=>this.options.cache.get(input.propertyId,'rentEstimate',identity.addressFingerprint,identity.queryFingerprint,{allowStale:true});
+     const present=(entry:NonNullable<Awaited<ReturnType<typeof read>>>,calls=0):MarketRentResult=>({
+diff --git a/supabase/functions/_shared/property-data/rentAvmSubject.ts b/supabase/functions/_shared/property-data/rentAvmSubject.ts
+index 5d67e34..7a0b0d1 100644
+--- a/supabase/functions/_shared/property-data/rentAvmSubject.ts
++++ b/supabase/functions/_shared/property-data/rentAvmSubject.ts
+@@ -6,7 +6,7 @@ import type {PropertyLookupInput} from './types.ts';
+ export const RENTCAST_MARKET_RENT_POLICY = Object.freeze({maxRadius:5, daysOld:270, compCount:20, lookupSubjectAttributes:true});
+ export type RentAvmOverrides = {propertyType?:string; bedrooms?:number; bathrooms?:number; squareFootage?:number};
+ export type RentAvmSubject = {state:'READY'|'RENT_AVM_REVIEW_REQUIRED'|'NOT_APPLICABLE'|'UNSUPPORTED_TYPE'|'UNIT_CONTEXT_REQUIRED'|'ADDRESS_REQUIRED'|'SUBJECT_UNAVAILABLE';
+-  propertyId:string; lookup?:PropertyLookupInput; overrides?:RentAvmOverrides; scope?:'PROPERTY'|'UNIT'; unitId?:string; reviewField?:string};
++  propertyId:string; lookup?:PropertyLookupInput; overrides?:RentAvmOverrides; scope?:'PROPERTY'|'UNIT'; unitId?:string; reviewField?:string; reviewFields?:string[]; reason?:string};
+ type Values=Record<string,any>;
+ const TYPE_MAP:Record<string,string>={SFR:'Single Family',SINGLEFAMILY:'Single Family',SFH:'Single Family',CONDO:'Condo',CONDOMINIUM:'Condo',TOWNHOUSE:'Townhouse',TOWNHOME:'Townhouse',MANUFACTURED:'Manufactured',MOBILEHOME:'Manufactured',MULTIFAMILY:'Multi-Family',MF:'Multi-Family',APARTMENT:'Apartment'};
+ export function rentCastRentPropertyType(value:unknown){return TYPE_MAP[String(value??'').toUpperCase().replace(/[^A-Z]/g,'')]??null;}
+@@ -20,14 +20,16 @@ export function resolveRentAvmSubjectAttributes(input:{property:Values;effective
+   try{lookup=validatePropertyLookupInput({street:input.property.address,city:input.property.city,state:input.property.state,zipCode:input.property.zip,propertyId});}
+   catch{return {...base,state:'ADDRESS_REQUIRED'};}
+   const overrides:RentAvmOverrides={};
++  const reviewFields:string[]=[];
+   const snapshot=input.reviewSnapshot?.propertyId===propertyId?input.reviewSnapshot:null;
+   for(const [field,key,raw]of [['propertyType','propertyType','type'],['beds','bedrooms','beds'],['baths','bathrooms','baths'],['buildingArea','squareFootage','sqft']] as const){
+     const row=snapshot?.rows?.[field],fact=row?.effective??input.effectiveFacts?.[field],projection=row?.projection??input.projections?.[field];
+     const proof=row??input.decisionProofs?.[field],decision=proof?.decision;
+     const chosen=!!(fact?.state==='AVAILABLE'&&decision&&['KEEP_MY_VALUE','ACCEPT_EXTERNAL_VALUE'].includes(decision.action)
+       &&decision.evidenceHash===proof.evidenceHash&&decision.value===fact.value&&decision.unit===fact.unit&&decision.source===fact.sourceType);
+-    if(fact?.state==='CONFLICTED'||(projection?.analyticalUsability==='CONFLICTED'||fact?.adopted===true)&&!chosen)
+-      return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:field,lookup,overrides:{propertyType:overrides.propertyType}};
++    if(fact?.state==='CONFLICTED'||(projection?.analyticalUsability==='CONFLICTED'||fact?.adopted===true)&&!chosen){
++      reviewFields.push(field);continue;
++    }
+     const value=fact?.state==='AVAILABLE'?fact.value:projection?.analyticalUsability&&['CONFIRMED','SINGLE_SOURCE'].includes(projection.analyticalUsability)?projection.value:input.property[raw];
+     if(key==='propertyType'){
+       const token=String(value??'').toUpperCase().replace(/[^A-Z]/g,'');
+@@ -41,6 +43,7 @@ export function resolveRentAvmSubjectAttributes(input:{property:Values;effective
+       if(n!==null)overrides[key]=n;
+     }
+   }
++  if(reviewFields.length)return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:reviewFields[0],reviewFields,lookup,overrides:{propertyType:overrides.propertyType}};
+   const multi=['Multi-Family','Apartment'].includes(overrides.propertyType??'');
+   if(multi){
+     const unit=input.unitContext;
+diff --git a/supabase/functions/maxxis-chat/index.ts b/supabase/functions/maxxis-chat/index.ts
+index 1cce46d..c2afd7e 100644
+--- a/supabase/functions/maxxis-chat/index.ts
++++ b/supabase/functions/maxxis-chat/index.ts
+@@ -819,10 +819,19 @@ Deno.serve(async (req) => {
+       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
+     }
+     const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
++    if (!body.requestedCapability && !body.requestedReportLevel
++      && /\b(?:qual|what|cual)\b.*\b(?:meu|my|mi)\b.*\b(?:investment profile|perfil de investimento|perfil de inversion)\b/.test(normalizeIntentText(message))) {
++      const profileResult = await executeMaxxisTool('getMyInvestmentProfile', {}, req.headers.get('Authorization') || '', {userId, plan:runtimeAccess.plan});
++      if (profileResult.type === 'investment_profile') {
++        const text = investmentProfileMessage(language, profileResult.exists, profileResult.complete);
++        return response({message:text,answer:text,type:'investment_profile',data:{profile:profileResult.profile,complete:profileResult.complete},actions:[],language,
++          runtime:{provider:'deterministic',toolName:'getMyInvestmentProfile',providerCalls:0,secondPass:false}},200,origin,requestId);
++      }
++    }
+     const financialQuestion=propertyContextId&&!body.requestedCapability&&!body.requestedReportLevel&&!bodyContext.propertyAnalysis?detectFinancialEvidenceQuestion(message):null;
+     if(financialQuestion){
+       const evidence=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',
+-        {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,financialEvidence:true,marketRentAcquisition:financialQuestion.domain==='providerMarketRentEstimate',parcelEvidenceReceipt:body.parcelEvidenceReceipt});
++        {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,financialEvidence:true,marketRentAcquisition:financialQuestion.domain==='providerMarketRentEstimate'&&!financialQuestion.subjectReadiness,parcelEvidenceReceipt:body.parcelEvidenceReceipt});
+       if(evidence.type==='canonical_property_evidence'){
+         const result=evidence.state==='available'&&evidence.financialEvidence?buildFinancialEvidenceAnswer(financialQuestion,evidence.financialEvidence,language,
+           {strategy:evidence.financialStrategy,propertyType:evidence.financialPropertyType,marketRent:evidence.marketRent}):null;
+@@ -931,7 +940,8 @@ Deno.serve(async (req) => {
+           },
+         }
+       : marketReferenceIntent || propertyFactIntent || dealScenarioIntent
+-        ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId } } : null;
++        ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId,
++            ...(marketReferenceIntent === 'SOLD_ARV_EVIDENCE' ? { reportType: 'DEAL_INTELLIGENCE' } : {}) } } : null;
+     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
+     if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
+       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
+@@ -1088,7 +1098,7 @@ Deno.serve(async (req) => {
+           functionArgs,
+           req.headers.get('Authorization') || '',
+           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
+-            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
++            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent) || ['SOLD_ARV_EVIDENCE','PROFILE_FIT_EVIDENCE'].includes(marketReferenceIntent || ''),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
+         );
+       } catch (error) {
+         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {

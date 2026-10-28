@@ -1,0 +1,59 @@
+{
+  "baseline": "6cefdb1ac4b54b6b4734bbd401667043e226acf1",
+  "mode": "DETERMINISTIC_OFFLINE_CONTROLS_NOT_AUTHENTICATED_SMOKE",
+  "liveProviderCalls": 0,
+  "liveBackendCalls": 0,
+  "cases": [
+    {
+      "name": "A-4724-L3-blocker",
+      "mode": "historical-reconstruction",
+      "pdf": "qa/analytical-delivery-recovery/A-4724-L3-blocker.pdf",
+      "pages": 6,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": null
+    },
+    {
+      "name": "B-Honolulu-L3-rent-fixture",
+      "mode": "mock-provider-cache-pipeline",
+      "pdf": "qa/analytical-delivery-recovery/B-Honolulu-L3-rent-fixture.pdf",
+      "pages": 7,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": null
+    },
+    {
+      "name": "C-profile-L2",
+      "mode": "mock-current-profile",
+      "pdf": "qa/analytical-delivery-recovery/C-profile-L2.pdf",
+      "pages": 3,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": 100
+    },
+    {
+      "name": "C-profile-L3",
+      "mode": "mock-current-profile",
+      "pdf": "qa/analytical-delivery-recovery/C-profile-L3.pdf",
+      "pages": 6,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": 100
+    },
+    {
+      "name": "C-no-profile-L2",
+      "mode": "mock-absent-profile",
+      "pdf": "qa/analytical-delivery-recovery/C-no-profile-L2.pdf",
+      "pages": 3,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": null
+    },
+    {
+      "name": "C-no-profile-L3",
+      "mode": "mock-absent-profile",
+      "pdf": "qa/analytical-delivery-recovery/C-no-profile-L3.pdf",
+      "pages": 6,
+      "contractChecks": "PASS_OFFLINE_ONLY",
+      "profileScore": null
+    }
+  ],
+  "mockProviderCalls": 1,
+  "cacheReused": true,
+  "networkAttempts": 0
+}

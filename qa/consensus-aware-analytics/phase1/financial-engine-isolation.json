@@ -85,36 +85,5 @@
     "acquisitionPlusRehabChanged": false,
     "storedCapRateChanged": false,
     "financialInputsMigrated": 0
-  },
-  "baseline": "bf8f870ea821c3758e35c7157fbfbd07ac7f7587",
-  "financialFunctions": [
-    {
-      "name": "calculateBuyAndHoldScenario",
-      "unchanged": true
-    },
-    {
-      "name": "calculateFlipScenario",
-      "unchanged": true
-    },
-    {
-      "name": "calculateSubToScenario",
-      "unchanged": true
-    },
-    {
-      "name": "calculateWholesaleScenario",
-      "unchanged": true
-    },
-    {
-      "name": "solveScenarioTarget",
-      "unchanged": true
-    }
-  ],
-  "financialMetricBranchUnchanged": true,
-  "landROIExpressionUnchanged": true,
-  "migratedInputs": [
-    "LOT_AREA",
-    "LIVING_AREA",
-    "BUILDING_AREA"
-  ],
-  "migration": "NONE"
+  }
 }

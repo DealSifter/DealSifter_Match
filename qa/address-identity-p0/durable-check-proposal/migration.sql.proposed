@@ -1,0 +1,171 @@
+-- PROPOSTA APENAS. Fora de supabase/migrations: NAO APLICAR sem autorizacao.
+-- Nenhum scheduler/extensao/secret instalado por este arquivo.
+begin;
+
+-- Fingerprints do job; NAO sao o identityHash/evidenceHash do consenso.
+create function public.ds_fact_job_inputs(p jsonb) returns jsonb
+language sql immutable set search_path=pg_catalog as $$
+ select jsonb_build_array(p->'owner_id',p->'address',p->'city',p->'state',p->'zip',
+ p->'type',p->'lot',p->'sqft',p->'beds',p->'baths',p->'rehab',
+ p->'lat',p->'lng',p->'geocode_status',p->'publish_to_showcase');
+$$;
+create function public.ds_fact_job_hash(p jsonb) returns text
+language sql immutable set search_path=pg_catalog,public as $$
+ select encode(sha256(convert_to(public.ds_fact_job_inputs(p)::text,'UTF8')),'hex');
+$$;
+create function public.ds_fact_job_identity(p jsonb) returns text
+language sql immutable set search_path=pg_catalog as $$
+ select encode(sha256(convert_to(jsonb_build_array(p->'address',p->'city',
+ p->'state',p->'zip',p->'lat',p->'lng',p->'geocode_status')::text,'UTF8')),'hex');
+$$;
+
+create table public.property_fact_check_jobs (
+ property_id uuid primary key references public.properties(id) on delete cascade,
+ owner_id uuid not null references auth.users(id) on delete cascade,
+ generation bigint not null default 1 check(generation>0),
+ identity_hash text not null check(identity_hash ~ '^[a-f0-9]{64}$'),
+ input_hash text not null check(input_hash ~ '^[a-f0-9]{64}$'),
+ source_updated_at timestamptz,
+ status text not null default 'PENDING' check(status in
+ ('PENDING','PROCESSING','RETRY','SUCCEEDED','BLOCKED','FAILED')),
+ attempts integer not null default 0 check(attempts between 0 and 3),
+ next_attempt_at timestamptz not null default now(),
+ lease_token uuid, lease_until timestamptz,
+ result_code text check(result_code is null or result_code ~ '^[A-Z_]{1,64}$'),
+ created_at timestamptz not null default now(),
+ queued_at timestamptz not null default now(),
+ updated_at timestamptz not null default now(),
+ completed_at timestamptz,
+ check ((status='PROCESSING')=(lease_token is not null and lease_until is not null))
+);
+create index property_fact_check_jobs_due on public.property_fact_check_jobs(next_attempt_at)
+ where status in ('PENDING','RETRY');
+create index property_fact_check_jobs_lease on public.property_fact_check_jobs(lease_until)
+ where status='PROCESSING';
+alter table public.property_fact_check_jobs enable row level security;
+-- Tarefas operacionais somente backend; nem A nem B recebem tokens de lease.
+revoke all on public.property_fact_check_jobs from public,anon,authenticated;
+grant all on public.property_fact_check_jobs to service_role;
+
+create function public.ds_enqueue_saved_fact_check() returns trigger
+language plpgsql security definer set search_path=pg_catalog,public as $$
+begin
+ -- Ignora fotos/preco/UI e upserts sem mudanca material, mesmo updated_at mudando.
+ if tg_op='UPDATE' then
+  if public.ds_fact_job_inputs(to_jsonb(new))=public.ds_fact_job_inputs(to_jsonb(old)) then
+   return new;
+  end if;
+ end if;
+ insert into public.property_fact_check_jobs as j
+ (property_id,owner_id,identity_hash,input_hash,source_updated_at)
+ values(new.id,new.owner_id,public.ds_fact_job_identity(to_jsonb(new)),
+ public.ds_fact_job_hash(to_jsonb(new)),new.updated_at)
+ on conflict(property_id) do update set owner_id=excluded.owner_id,
+ generation=j.generation+1,identity_hash=excluded.identity_hash,
+ input_hash=excluded.input_hash,source_updated_at=excluded.source_updated_at,
+ status='PENDING',attempts=0,next_attempt_at=now(),lease_token=null,lease_until=null,
+ result_code=null,queued_at=now(),updated_at=now(),completed_at=null;
+ return new;
+end $$;
+revoke all on function public.ds_enqueue_saved_fact_check() from public,anon,authenticated;
+-- AFTER observa invalidacao de geocode e updated_at dos BEFORE triggers existentes.
+-- Se enfileirar falhar, o SAVE inteiro falha: nunca confirmar SAVE sem tarefa.
+create trigger properties_enqueue_fact_check after insert or update on public.properties
+for each row execute function public.ds_enqueue_saved_fact_check();
+-- Sem INSERT SELECT/backfill de registros existentes.
+
+-- Filtro apenas backend: CTA manual autenticado usa o mesmo lease da rotina agendada.
+create function public.ds_claim_fact_check(p_property_id uuid default null) returns setof public.property_fact_check_jobs
+language plpgsql security definer set search_path=pg_catalog,public as $$
+begin
+ if coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role',
+ current_setting('request.jwt.claim.role',true),'')<>'service_role' then
+  raise exception 'BACKEND_ONLY';
+ end if;
+ -- Crash na ultima tentativa termina honestamente, nunca SUCCEEDED.
+ update public.property_fact_check_jobs set status='FAILED',result_code='LEASE_EXHAUSTED',
+ lease_token=null,lease_until=null,completed_at=now(),updated_at=now()
+ where status='PROCESSING' and lease_until<now() and attempts>=3;
+ return query
+ with due as (
+  select property_id from public.property_fact_check_jobs
+  where (p_property_id is null or property_id=p_property_id) and attempts<3 and ((status in ('PENDING','RETRY') and next_attempt_at<=now())
+   or (status='PROCESSING' and lease_until<now()))
+  order by next_attempt_at,property_id for update skip locked limit 1
+ )
+ update public.property_fact_check_jobs j set status='PROCESSING',
+ attempts=j.attempts+1,lease_token=gen_random_uuid(),lease_until=now()+interval '2 minutes',
+ updated_at=now(),completed_at=null
+ from due where j.property_id=due.property_id returning j.*;
+end $$;
+
+-- Um commit para snapshot/historico/notificacao + resultado do job.
+-- O worker calcula via runPropertyFactReview com store adaptado para ESTE wrapper.
+create function public.ds_finish_fact_check(
+ p_property_id uuid,p_generation bigint,p_lease_token uuid,
+ p_outcome text,p_code text,p_review_revision bigint,p_state jsonb,p_public_facts jsonb,p_notify boolean
+) returns boolean
+language plpgsql security definer set search_path=pg_catalog,public as $$
+declare p public.properties; j public.property_fact_check_jobs; terminal text;
+begin
+ if coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role',
+ current_setting('request.jwt.claim.role',true),'')<>'service_role' then
+  raise exception 'BACKEND_ONLY';
+ end if;
+ if p_outcome is null or p_outcome not in ('SUCCEEDED','BLOCKED','RETRY') or p_code is null
+ or p_code !~ '^[A-Z_]{1,64}$' then raise exception 'INVALID_JOB_RESULT';end if;
+ -- Ordem properties -> jobs igual ao trigger; nao manter locks durante rede.
+ select * into p from public.properties where id=p_property_id for update;
+ if not found then return false;end if;
+ select * into j from public.property_fact_check_jobs where property_id=p_property_id for update;
+ if not found or j.owner_id is distinct from p.owner_id or j.generation is distinct from p_generation
+ or j.status<>'PROCESSING' or j.lease_token is distinct from p_lease_token
+ or j.lease_until<=now() or j.input_hash<>public.ds_fact_job_hash(to_jsonb(p))
+ then return false;end if;
+ -- Erro/ausencia de execucao nao pode virar job verificado/concluido com sucesso.
+ if p_outcome='SUCCEEDED' and (p_state is null
+ or coalesce(p_state->'acquisition'->>'gis','UNKNOWN') not in ('COVERAGE_AVAILABLE','PARCEL_NOT_FOUND')
+ or coalesce(p_state->'acquisition'->>'provider','UNKNOWN') not in ('CACHE_HIT','CACHE_MISS'))
+ then raise exception 'INCOMPLETE_ACQUISITION';end if;
+ if p_state is not null then
+  if p_review_revision is null or p_review_revision<0 or jsonb_typeof(p_state)<>'object'
+  then raise exception 'INVALID_REVIEW_REQUEST';end if;
+  if p_state->>'publisherUpdatedAt' is null
+   or (p_state->>'publisherUpdatedAt')::timestamptz is distinct from p.updated_at
+  then raise exception 'PROPERTY_FACTS_CHANGED';end if;
+  perform public.ds_store_property_fact_review(p.id,p.owner_id,p_review_revision,
+   p_state,p_public_facts,p_notify);
+ end if;
+ terminal:=case when p_outcome='RETRY' then case when j.attempts>=3 then 'FAILED' else 'RETRY' end else p_outcome end;
+ update public.property_fact_check_jobs set status=terminal,result_code=p_code,
+ lease_token=null,lease_until=null,updated_at=now(),
+ next_attempt_at=case when terminal='RETRY' then now()+case when j.attempts=1
+  then interval '1 minute' else interval '5 minutes' end else next_attempt_at end,
+ completed_at=case when terminal in ('SUCCEEDED','BLOCKED','FAILED') then now() else null end
+ where property_id=p.id;
+ return true;
+end $$;
+
+create function public.ds_prune_fact_checks() returns integer
+language plpgsql security definer set search_path=pg_catalog,public as $$
+declare deleted integer;
+begin
+ if coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role',
+ current_setting('request.jwt.claim.role',true),'')<>'service_role' then
+  raise exception 'BACKEND_ONLY';
+ end if;
+ with expired as (
+ select property_id from public.property_fact_check_jobs
+ where status in ('SUCCEEDED','BLOCKED','FAILED') and completed_at<now()-interval '14 days'
+ order by completed_at for update skip locked limit 100
+ )
+ delete from public.property_fact_check_jobs j using expired where j.property_id=expired.property_id;
+ get diagnostics deleted=row_count;return deleted;
+end $$;
+revoke all on function public.ds_claim_fact_check(uuid) from public,anon,authenticated;
+revoke all on function public.ds_finish_fact_check(uuid,bigint,uuid,text,text,bigint,jsonb,jsonb,boolean) from public,anon,authenticated;
+revoke all on function public.ds_prune_fact_checks() from public,anon,authenticated;
+grant execute on function public.ds_claim_fact_check(uuid) to service_role;
+grant execute on function public.ds_finish_fact_check(uuid,bigint,uuid,text,text,bigint,jsonb,jsonb,boolean) to service_role;
+grant execute on function public.ds_prune_fact_checks() to service_role;
+commit;

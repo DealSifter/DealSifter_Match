@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "DealSifter - Diagnostico local temporario",
+  "version": "1.0.0",
+  "description": "Captura tecnica sanitizada iniciada pelo usuario. Sem envio de dados.",
+  "permissions": ["activeTab", "debugger", "downloads", "storage", "alarms"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Iniciar/parar captura DealSifter (3 minutos)" }
+}

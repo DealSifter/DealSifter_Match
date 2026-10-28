@@ -8,12 +8,8 @@ export function shouldAcquireReportMarketRent(reportType: unknown, cacheOnly = f
   return !cacheOnly && (reportType === 'MAXXIS_ANALYSIS' || reportType === 'DEAL_INTELLIGENCE');
 }
 
-/** Let the provider discover its own subject by validated address. Disputed
- * physical measurements must not be submitted as AVM overrides or adopted as facts.
- * Unknown/land/multi-unit types still require their existing applicability checks.
- */
+/** Missing optional attributes may be discovered by the provider, but an
+ * unresolved material disagreement is not an absent attribute. */
 export function reportMarketRentSubject(subject: RentAvmSubject): RentAvmSubject {
-  if (subject.state !== 'RENT_AVM_REVIEW_REQUIRED' || !subject.lookup
-    || !['Single Family', 'Condo', 'Townhouse', 'Manufactured'].includes(subject.overrides?.propertyType || '')) return subject;
-  return { ...subject, state: 'READY', overrides: {}, scope: 'PROPERTY' };
+  return subject;
 }

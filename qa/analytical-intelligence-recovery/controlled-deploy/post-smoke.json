@@ -1,0 +1,32 @@
+{
+  "mode": "post",
+  "baseURL": "https://dealsiftermatch.vercel.app",
+  "sha": "f96b409f95e99c532a56f6b1760d326c11a166a0",
+  "realAuthenticatedSession": false,
+  "providerCalls": 0,
+  "errors": [],
+  "pass": true,
+  "entry": "/assets/index-BkgkfQSt.js",
+  "pdfAsset": "maxxisReportPdf-_mBhydJj.js",
+  "pdfAssetHash": "22212e67f5d0806e4c0a79d457789aea8a412f0b5439d01c4a65f6c887a7be2f",
+  "rootMounted": true,
+  "publicControls": [
+    "EN",
+    "Pricing",
+    "Sign In",
+    "Get Started"
+  ],
+  "loginControlClickable": true,
+  "loginFormVisible": true,
+  "authenticatedNavigation": "PENDING_REAL_USER_SESSION",
+  "maxxisAuthenticatedChat": "PENDING_REAL_USER_SESSION",
+  "reportModalOpenClose": "PENDING_REAL_USER_SESSION",
+  "pdf": {
+    "state": "RENDERED",
+    "pages": 6,
+    "bytes": 141307,
+    "eventLoopTicks": 0,
+    "scope": "SYNTHETIC_SCHEMA_PUBLISHED_PRODUCTION_RENDERER_NOT_REAL_PROPERTY",
+    "download": true
+  }
+}

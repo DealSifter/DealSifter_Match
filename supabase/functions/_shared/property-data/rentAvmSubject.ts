@@ -6,7 +6,7 @@ import type {PropertyLookupInput} from './types.ts';
 export const RENTCAST_MARKET_RENT_POLICY = Object.freeze({maxRadius:5, daysOld:270, compCount:20, lookupSubjectAttributes:true});
 export type RentAvmOverrides = {propertyType?:string; bedrooms?:number; bathrooms?:number; squareFootage?:number};
 export type RentAvmSubject = {state:'READY'|'RENT_AVM_REVIEW_REQUIRED'|'NOT_APPLICABLE'|'UNSUPPORTED_TYPE'|'UNIT_CONTEXT_REQUIRED'|'ADDRESS_REQUIRED'|'SUBJECT_UNAVAILABLE';
-  propertyId:string; lookup?:PropertyLookupInput; overrides?:RentAvmOverrides; scope?:'PROPERTY'|'UNIT'; unitId?:string; reviewField?:string};
+  propertyId:string; lookup?:PropertyLookupInput; overrides?:RentAvmOverrides; scope?:'PROPERTY'|'UNIT'; unitId?:string; reviewField?:string; reviewFields?:string[]; reason?:string};
 type Values=Record<string,any>;
 const TYPE_MAP:Record<string,string>={SFR:'Single Family',SINGLEFAMILY:'Single Family',SFH:'Single Family',CONDO:'Condo',CONDOMINIUM:'Condo',TOWNHOUSE:'Townhouse',TOWNHOME:'Townhouse',MANUFACTURED:'Manufactured',MOBILEHOME:'Manufactured',MULTIFAMILY:'Multi-Family',MF:'Multi-Family',APARTMENT:'Apartment'};
 export function rentCastRentPropertyType(value:unknown){return TYPE_MAP[String(value??'').toUpperCase().replace(/[^A-Z]/g,'')]??null;}
@@ -20,14 +20,16 @@ export function resolveRentAvmSubjectAttributes(input:{property:Values;effective
   try{lookup=validatePropertyLookupInput({street:input.property.address,city:input.property.city,state:input.property.state,zipCode:input.property.zip,propertyId});}
   catch{return {...base,state:'ADDRESS_REQUIRED'};}
   const overrides:RentAvmOverrides={};
+  const reviewFields:string[]=[];
   const snapshot=input.reviewSnapshot?.propertyId===propertyId?input.reviewSnapshot:null;
   for(const [field,key,raw]of [['propertyType','propertyType','type'],['beds','bedrooms','beds'],['baths','bathrooms','baths'],['buildingArea','squareFootage','sqft']] as const){
     const row=snapshot?.rows?.[field],fact=row?.effective??input.effectiveFacts?.[field],projection=row?.projection??input.projections?.[field];
     const proof=row??input.decisionProofs?.[field],decision=proof?.decision;
     const chosen=!!(fact?.state==='AVAILABLE'&&decision&&['KEEP_MY_VALUE','ACCEPT_EXTERNAL_VALUE'].includes(decision.action)
       &&decision.evidenceHash===proof.evidenceHash&&decision.value===fact.value&&decision.unit===fact.unit&&decision.source===fact.sourceType);
-    if(fact?.state==='CONFLICTED'||(projection?.analyticalUsability==='CONFLICTED'||fact?.adopted===true)&&!chosen)
-      return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:field,lookup,overrides:{propertyType:overrides.propertyType}};
+    if(fact?.state==='CONFLICTED'||(projection?.analyticalUsability==='CONFLICTED'||fact?.adopted===true)&&!chosen){
+      reviewFields.push(field);continue;
+    }
     const value=fact?.state==='AVAILABLE'?fact.value:projection?.analyticalUsability&&['CONFIRMED','SINGLE_SOURCE'].includes(projection.analyticalUsability)?projection.value:input.property[raw];
     if(key==='propertyType'){
       const token=String(value??'').toUpperCase().replace(/[^A-Z]/g,'');
@@ -41,6 +43,7 @@ export function resolveRentAvmSubjectAttributes(input:{property:Values;effective
       if(n!==null)overrides[key]=n;
     }
   }
+  if(reviewFields.length)return {...base,state:'RENT_AVM_REVIEW_REQUIRED',reviewField:reviewFields[0],reviewFields,lookup,overrides:{propertyType:overrides.propertyType}};
   const multi=['Multi-Family','Apartment'].includes(overrides.propertyType??'');
   if(multi){
     const unit=input.unitContext;

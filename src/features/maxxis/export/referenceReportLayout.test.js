@@ -11,7 +11,7 @@ function setup(reportType, locale = 'pt') {
     dealIntelligence: { ...input.dealIntelligence, investmentFit: { score: 78 } } }), language: locale });
   const vm = { ...original, property: { ...original.property, photos: ['photo1', 'photo2', 'photo3', 'photo4', 'photo5'] } };
   const audit = { lines: [], sections: [], maps: [] }, pages = [];
-  const doc = new Proxy({ getCurrentPageInfo: () => ({ pageNumber: pages.length }), getImageProperties: () => ({ width: 1000, height: 240, fileType: 'PNG' }) }, {
+  const doc = new Proxy({ getCurrentPageInfo: () => ({ pageNumber: pages.length }), getImageProperties: () => ({ width: 1000, height: 240, fileType: 'PNG' }), getTextWidth: value => String(value).length * 5.2 }, {
     get(target, key) { return target[key] || (target[key] = vi.fn()); },
   });
   const flow = { doc, logo: 'official-logo', audit, pages, image: vi.fn(() => true), mapImage: vi.fn(() => false), drawMap: vi.fn(),
@@ -31,6 +31,39 @@ function setup(reportType, locale = 'pt') {
 }
 
 describe('incremental report density, without analytical changes', () => {
+  it('labels the basic report badge Basic without changing its internal report type', () => {
+    const { flow, vm, composition } = setup('PROPERTY_RELEASE');
+    composition.overview();
+    expect(flow.audit.lines.find(line => line.sectionId === 'headerPlan').text).toBe('Basic');
+    expect(vm.reportType).toBe('PROPERTY_RELEASE');
+    expect(composition.accent).toEqual([25, 179, 184]);
+  });
+  it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('%s fills the location card with the map and overlays its title and attribution', type => {
+    const { flow, vm } = setup(type);
+    const box = { x: 26, y: 500, w: 310, h: 160 };
+    let linesAtImage;
+    flow.image.mockImplementation(() => { linesAtImage = flow.audit.lines.length; return true; });
+    const composition = new ReferenceReportComposition(flow, vm, {}, 'prepared-location-map');
+    composition.locationCard(box);
+    expect(flow.image).toHaveBeenCalledWith('prepared-location-map', box.x, box.y, box.w, box.h, 'cover');
+    expect(flow.mapImage).not.toHaveBeenCalled();
+    const lines = flow.audit.lines.slice(linesAtImage);
+    expect(lines[0].text).toBe('Mapa de localização');
+    expect(lines[0].y).toBe(box.y + 12);
+    expect(lines.some(line => line.text === '© OpenStreetMap contributors')).toBe(true);
+    expect(flow.drawMap).not.toHaveBeenCalled();
+    expect(flow.doc.clip).toHaveBeenCalled();
+    expect(flow.audit.sections.find(s => s.sectionId === 'propertyLocationMap').bounds.width).toBe(box.w);
+  });
+  it('keeps a full-size coordinate fallback with an accurate caption when the map image cannot be drawn', () => {
+    const { flow, vm } = setup('PROPERTY_RELEASE');
+    flow.image.mockReturnValue(false);
+    const composition = new ReferenceReportComposition(flow, vm, {}, 'invalid-map');
+    composition.locationCard({ x: 26, y: 500, w: 310, h: 160 });
+    expect(flow.drawMap).toHaveBeenCalledWith([vm.property.locationPoint], 26, 500, 310, 160, 'propertyLocationMap');
+    expect(flow.audit.lines.some(line => line.text.includes('© OpenStreetMap'))).toBe(false);
+    expect(flow.audit.lines.some(line => line.text.includes('Diagrama de coordenadas'))).toBe(true);
+  });
   it.each(['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('%s keeps five photos with a larger main photo and usable map/notes space', reportType => {
     const { flow, composition, vm } = setup(reportType), before = JSON.stringify(vm.sections);
     composition.overview();

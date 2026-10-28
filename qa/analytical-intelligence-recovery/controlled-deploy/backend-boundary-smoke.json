@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "results": [
+    {
+      "slug": "maxxis-chat",
+      "options": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthorized": 401
+    },
+    {
+      "slug": "property-intelligence",
+      "options": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthorized": 401
+    },
+    {
+      "slug": "property-fact-review",
+      "options": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthorized": 401
+    },
+    {
+      "slug": "arv-visual-comp-review",
+      "options": 200,
+      "allowedOrigin": "https://dealsiftermatch.vercel.app",
+      "unauthorized": 401
+    }
+  ],
+  "scope": "CORS_AND_UNAUTHENTICATED_BOUNDARY_ONLY",
+  "providerCalls": 0,
+  "realAuthenticatedSession": false
+}

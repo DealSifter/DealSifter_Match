@@ -1,0 +1,81 @@
+{
+  "commit": "f96b409f95e99c532a56f6b1760d326c11a166a0",
+  "worktree": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.tmp-codex\\analytical-intelligence-20261019",
+  "generationStartedAt": "2026-10-19T19:44:30.229Z",
+  "generatorExecutionsThisTask": 1,
+  "networkAttempts": 0,
+  "scriptSha256": "bcb4f095f7f8c757eaf431a1ffd6fe3686d4d1dda1defa5cc1a131adfacc54a1",
+  "checks": {
+    "areaA": "PASS",
+    "noUnsupportedSoldClaimsAC": "PASS",
+    "profileCoverage": "PASS",
+    "noRealSessionClaim": "PASS",
+    "allQaSimulation": "PASS"
+  },
+  "files": [
+    {
+      "name": "A-4724-L3-blocker",
+      "path": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\qa\\analytical-intelligence-recovery\\delivery-f96b409\\A-4724-L3-blocker.pdf",
+      "sha256": "ced198aa8afc4ed7898da2b15b2ffa0dfb4804a59d6887577a728997bacb1b7c",
+      "beforeSha256": "8bc246036e15a5b0c1db90fee969d400054abad5f4bb5b6ade05110327812a6e",
+      "textUnchanged": true,
+      "previousChecks": {
+        "qa": true,
+        "area": true,
+        "soldWording": true,
+        "coverage": "NOT_APPLICABLE",
+        "noRealSessionClaim": true
+      },
+      "identicalToGeneratedFile": true,
+      "finalPdfChecks": "PASS"
+    },
+    {
+      "name": "B-Honolulu-L3-rent-fixture",
+      "path": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\qa\\analytical-intelligence-recovery\\delivery-f96b409\\B-Honolulu-L3-rent-fixture.pdf",
+      "sha256": "c2a4191bf3ec38107163553e89c7499cfaf6a8ca958991590cc212712177eb29",
+      "beforeSha256": "b4aeab82059ea4aef20a6e435a5fb0dbf78384e01044707397211101dcf1d758",
+      "textUnchanged": true,
+      "previousChecks": {
+        "qa": true,
+        "area": "NOT_APPLICABLE",
+        "soldWording": true,
+        "coverage": "NOT_APPLICABLE",
+        "noRealSessionClaim": true
+      },
+      "identicalToGeneratedFile": true,
+      "finalPdfChecks": "PASS"
+    },
+    {
+      "name": "C-profile-L2",
+      "path": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\qa\\analytical-intelligence-recovery\\delivery-f96b409\\C-profile-L2.pdf",
+      "sha256": "59c043504736a0dd3ac5c61c8274422e6e0f436eb8d45fdef3b81460dd2a02e8",
+      "beforeSha256": "37b7d169993bfe713a0889e3b4ef5458b3a9138506d06349981e9c4d38395c90",
+      "textUnchanged": true,
+      "previousChecks": {
+        "qa": true,
+        "area": true,
+        "soldWording": true,
+        "coverage": true,
+        "noRealSessionClaim": true
+      },
+      "identicalToGeneratedFile": true,
+      "finalPdfChecks": "PASS"
+    },
+    {
+      "name": "C-no-profile-L2",
+      "path": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\qa\\analytical-intelligence-recovery\\delivery-f96b409\\C-no-profile-L2.pdf",
+      "sha256": "c4fa231b5443690eea12e1e511115b6e34a565654902834a8dfaaf57c64b7c9f",
+      "beforeSha256": "c027e8b7914f56ea28b3c2a3f98ddfcfcb17b4aa801f7039faaea471515287fb",
+      "textUnchanged": true,
+      "previousChecks": {
+        "qa": true,
+        "area": true,
+        "soldWording": true,
+        "coverage": "NOT_APPLICABLE",
+        "noRealSessionClaim": true
+      },
+      "identicalToGeneratedFile": true,
+      "finalPdfChecks": "PASS"
+    }
+  ]
+}

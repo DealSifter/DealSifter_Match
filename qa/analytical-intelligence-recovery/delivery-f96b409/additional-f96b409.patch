@@ -1,0 +1,164 @@
+diff --git a/scripts/acceptance-delivery1.mjs b/scripts/acceptance-delivery1.mjs
+index 91c4095..17058c3 100644
+--- a/scripts/acceptance-delivery1.mjs
++++ b/scripts/acceptance-delivery1.mjs
+@@ -1,12 +1,20 @@
+ // Offline regeneration of the SAME four delivery-1 controls. Run from repository root.
+-import { mkdir, writeFile } from 'node:fs/promises';
++import { mkdir, readFile, writeFile } from 'node:fs/promises';
+ import { resolve } from 'node:path';
++import { createHash } from 'node:crypto';
++import { execFileSync } from 'node:child_process';
+ import assert from 'node:assert/strict';
+ import { createServer } from 'vite';
+ import { createCanvas, Image, DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas';
+ import { reportIntegrityFixtures } from './report-integrity-fixtures.mjs';
+ 
+ const output = resolve(process.env.QA_OUTPUT || 'qa/analytical-intelligence-recovery');
++const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
++const names = ['A-4724-L3-blocker', 'B-Honolulu-L3-rent-fixture', 'C-profile-L2', 'C-no-profile-L2'];
++const before = Object.fromEntries(await Promise.all(names.map(async name => {
++  const path = resolve(output, `${name}.pdf`);
++  return [name, { path, sha256: await readFile(path).then(sha256).catch(error => { if (error.code === 'ENOENT') return null; throw error; }) }];
++})));
+ await mkdir(output, { recursive: true });
+ let networkAttempts = 0, mockProviderCalls = 0;
+ globalThis.fetch = async () => { networkAttempts++; throw Error('LIVE_NETWORK_FORBIDDEN'); };
+@@ -14,7 +22,10 @@ Object.assign(globalThis, { DOMMatrix, ImageData, Path2D, Image, document: { cre
+   if (tag === 'canvas') return createCanvas(1, 1); if (tag === 'img') return new Image(); throw Error('UNSUPPORTED_QA_ELEMENT');
+ } } });
+ const server = await createServer({ configFile: false, server: { middlewareMode: true, watch: null }, appType: 'custom', optimizeDeps: { noDiscovery: true, include: [] } });
+-const metadata = { mode: 'QA_SIMULATION_ONLY', simulatedDate: '2026-10-18T00:00:00Z', networkAttempts: 0, cases: [] };
++const metadata = { mode: 'QA_SIMULATION_ONLY', simulatedDate: '2026-10-18T00:00:00Z', startedAt: new Date().toISOString(),
++  codeCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), worktree: process.cwd(), output,
++  scriptSha256: sha256(await readFile(new URL(import.meta.url))), before, networkAttempts: 0, cases: [] };
++assert.equal(execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'src', 'scripts', 'supabase'], { encoding: 'utf8' }).trim(), '', 'Generation code must match the recorded commit');
+ try {
+   const load = path => server.ssrLoadModule(path);
+   const { orchestrateDealInsightContext } = await load('/supabase/functions/_shared/maxxis/dealInsightContext.ts');
+@@ -68,19 +79,42 @@ try {
+     const schema = projected.data.maxxisReport, vm = buildStrictReportViewModel({ schema, language: 'pt' });
+     const result = await renderMaxxisReportPdf({ schema, language: 'pt', generatedAt: metadata.simulatedDate, exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType: schema.reportType, channel: 'PDF' }) });
+     assert.equal(result.state, 'RENDERED', JSON.stringify(result.validation));
+-    const pdf = await getDocument({ data: result.document.binary.slice(), useSystemFonts: true }).promise;
++    const finalPath = resolve(output, `${name}.pdf`);
++    if (before[name].sha256) {
++      const previous = await getDocument({ data: new Uint8Array(await readFile(finalPath)), useSystemFonts: true }).promise;
++      let previousText = '';
++      for (let n = 1; n <= previous.numPages; n++) previousText += ` ${(await (await previous.getPage(n)).getTextContent()).items.map(i => i.str).join(' ')}`;
++      before[name].extractedTextSha256 = sha256(previousText);
++      before[name].checks = {
++        qa: /QA \/ SIMULAÇÃO/.test(previousText),
++        area: name.startsWith('B-') ? 'NOT_APPLICABLE' : /5\.000\s+sqft/.test(previousText) && /0,1148\s+ac/.test(previousText),
++        soldWording: !/Vendas identificadas|Identified sales|Ventas identificadas/i.test(previousText),
++        coverage: name !== 'C-profile-L2' ? 'NOT_APPLICABLE' : /3\/4 critérios avaliados/.test(previousText) && /Não avaliados: Estratégia/.test(previousText),
++        noRealSessionClaim: !/Perfil do usuário autenticado/i.test(previousText),
++      };
++      previous.cleanup();
++    }
++    await writeFile(finalPath, result.document.binary);
++    const finalBytes = await readFile(finalPath);
++    assert.equal(sha256(finalBytes), sha256(result.document.binary));
++    // Validate the FINAL FILE read from disk, not only the renderer return or ViewModel.
++    const pdf = await getDocument({ data: new Uint8Array(finalBytes), useSystemFonts: true }).promise;
+     let text = ''; const pages = [];
+     for (let n = 1; n <= pdf.numPages; n++) {
+       const page = await pdf.getPage(n), content = (await page.getTextContent()).items.map(i => i.str).join(' ');
+       text += ` ${content}`; pages.push({ page: n, text: content });
+     }
+     assert.match(text, /QA \/ SIMULAÇÃO/); assert.doesNotMatch(text, /Perfil do usuário autenticado|Vendas identificadas ainda não sustentam ARV/i);
++    if (!name.startsWith('B-')) { assert.match(pages[0].text, /5\.000\s+sqft/); assert.match(pages[0].text, /0,1148\s+ac/); }
++    if (name.startsWith('A-') || name.startsWith('C-')) assert.doesNotMatch(text, /Vendas identificadas|Identified sales|Ventas identificadas/i);
++    if (name.startsWith('A-')) { assert.match(text, /execução não comprovada/); assert.match(text, /Consulte e verifique vendas fechadas/); }
+     if (!name.startsWith('B-')) { assert.equal(vm.values.lotSizeSqft.numericValue, 5000); assert.ok(Math.abs(vm.values.lotSizeAcres.numericValue - 5000 / 43560) <= .00005); }
+-    if (name === 'C-profile-L2') { assert.match(text, /3\/4 critérios avaliados/); assert.match(text, /Não avaliados: Estratégia/); }
++    if (name === 'C-profile-L2') { assert.match(text, /3\/4 critérios avaliados/); assert.match(text, /Não avaliados: Estratégia/); assert.match(text, /100%/); assert.match(text, /dados e perfil sintéticos/); assert.match(text, /nenhuma sessão autenticada real/); }
+     else { assert.ok(!vm.sections.find(s => s.id === 'profile-fit')); assert.ok(!vm.sections.find(s => s.id === 'profile-criteria')); }
+     if (name.startsWith('B-')) { const rent = vm.sections.find(s => s.id === 'market-rent'); assert.ok(rent.range); assert.equal(rent.table.rows.length, 5); assert.equal(rent.map.points.filter(p => p.id !== 'subject').length, 5); for (const row of rent.table.rows) assert.ok(text.includes(row[1])); }
+-    await writeFile(resolve(output, `${name}.pdf`), result.document.binary);
+-    metadata.cases.push({ name, pages: pdf.numPages, result: 'PASS', profileOrigin: name === 'C-profile-L2' ? 'SYNTHETIC_QA_LOADER' : 'NO_PROFILE', pagesText: pages });
++    metadata.cases.push({ name, finalPath, sha256: sha256(finalBytes), beforeSha256: before[name].sha256,
++      bytesChanged: before[name].sha256 !== sha256(finalBytes), extractedTextSha256: sha256(text),
++      pages: pdf.numPages, result: 'PASS_FINAL_FILE', profileOrigin: name === 'C-profile-L2' ? 'SYNTHETIC_QA_LOADER' : 'NO_PROFILE', pagesText: pages });
+     pdf.cleanup();
+   }
+   assert.equal(networkAttempts, 0);
+diff --git a/src/features/maxxis/export/analyticalDeliveryRecovery.test.js b/src/features/maxxis/export/analyticalDeliveryRecovery.test.js
+index 878ce23..863c4cb 100644
+--- a/src/features/maxxis/export/analyticalDeliveryRecovery.test.js
++++ b/src/features/maxxis/export/analyticalDeliveryRecovery.test.js
+@@ -121,4 +121,15 @@ describe('analytical delivery recovery — deterministic integration, no live pr
+   expect(JSON.stringify(model)).not.toContain('Vendas identificadas ainda não sustentam ARV');
+   expect(soldDeliveryAnswer(projectSoldDelivery(),'pt')).toContain('execução não comprovada');
+  });
++ it('restricts report sourceProfile to four authorized criteria without changing score',async()=>{
++  const profile={status:'complete',targetMarkets:['AR'],priceRange:'lt_100k',propertyTypes:['Single Family'],strategies:['Fix & Flip'],email:'PRIVATE_SENTINEL',financialDetails:{balance:'PRIVATE_SENTINEL'},privateNotes:'PRIVATE_SENTINEL'};
++  const raw=await response(profile);
++  for(const project of [projectMaxxisAnalysisResponse,projectMaxxisDealIntelligenceResponse]){
++   const projected=project(raw),schema=projected.data.maxxisReport;
++   expect(Object.keys(schema.sections.investmentProfile.data.sourceProfile).sort()).toEqual(['priceRange','propertyTypes','strategies','targetMarkets']);
++   expect(JSON.stringify(schema)).not.toContain('PRIVATE_SENTINEL');
++   const fit=buildStrictReportViewModel({schema,language:'pt'}).sections.find(s=>s.id==='profile-fit');
++   expect(fit.gauge.value).toBe(raw.data.match.score);
++  }
++ });
+ });
+diff --git a/src/features/maxxis/intelligence/maxxisAnalysisReport.js b/src/features/maxxis/intelligence/maxxisAnalysisReport.js
+index 209e141..8b841e4 100644
+--- a/src/features/maxxis/intelligence/maxxisAnalysisReport.js
++++ b/src/features/maxxis/intelligence/maxxisAnalysisReport.js
+@@ -2,6 +2,7 @@ import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxx
+ import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
+ import { explainMaxxisEvidenceList } from './maxxisUserFacingEvidence';
+ import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
++import { reportProfileProjection } from './reportProfileProjection';
+ 
+ export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
+ 
+@@ -153,7 +154,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
+     sellerFinancingScenario: isObject(snapshot.sellerFinancingScenario) ? snapshot.sellerFinancingScenario : null,
+   }, canonical?.language || 'en');
+   const alignment = Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
+-    sourceProfile: snapshot.investmentProfile?.profile || null,
++    sourceProfile: reportProfileProjection(snapshot.investmentProfile?.profile),
+     profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null });
+   const savedSellerFinancingScenario = isObject(snapshot.dealAssumptions?.sellerFinancingScenario)
+     && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
+diff --git a/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js b/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
+index a93f06d..31a14c5 100644
+--- a/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
++++ b/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js
+@@ -2,6 +2,7 @@ import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../dom
+ import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
+ import { explainMaxxisEvidenceList, explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
+ import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
++import { reportProfileProjection } from './reportProfileProjection';
+ import { describeStoredMarketReference } from '../presentation/evidenceFreshnessPresentation';
+ 
+ export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
+@@ -254,7 +255,7 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis =
+       : standoutSignals(context),
+     propertyEvidence: propertyEvidence(context),
+     investmentFit: Object.freeze({ ...canonicalInvestmentAnalysis.profileFit,
+-      sourceProfile: snapshot.investmentProfile?.profile || null,
++      sourceProfile: reportProfileProjection(snapshot.investmentProfile?.profile),
+       profileSource: snapshot.investmentProfile?.profile ? 'AUTHENTICATED_CURRENT_PROFILE' : null }),
+     canonicalInvestmentAnalysis,
+     financialEvidence: snapshot.financialEvidence || context.financialEvidence || null,
+diff --git a/src/features/maxxis/intelligence/reportProfileProjection.js b/src/features/maxxis/intelligence/reportProfileProjection.js
+new file mode 100644
+index 0000000..51ea5bd
+--- /dev/null
++++ b/src/features/maxxis/intelligence/reportProfileProjection.js
+@@ -0,0 +1,11 @@
++// Report payload boundary: never copy the complete private Investment Profile.
++export function reportProfileProjection(profile) {
++  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return null;
++  const texts = value => Object.freeze(Array.isArray(value) ? value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean) : []);
++  return Object.freeze({
++    targetMarkets: texts(profile.targetMarkets),
++    priceRange: typeof profile.priceRange === 'string' ? profile.priceRange : null,
++    propertyTypes: texts(profile.propertyTypes),
++    strategies: texts(profile.strategies),
++  });
++}

@@ -3,11 +3,12 @@ import type {FinancialDomain,FinancialEvidenceStack,FinancialResolvedInput} from
 import {formatFinancialEvidenceSource} from './financialEvidenceLabels.ts';
 import type {MarketRentResult} from '../property-data/marketRentService.ts';
 type Language='pt'|'en'|'es';
-export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean;marketScenario?:boolean};
+export type FinancialQuestion={domain?:FinancialDomain;metric?:FinancialMetric;listMissing?:boolean;marketScenario?:boolean;listComparables?:boolean};
 export function detectFinancialEvidenceQuestion(message:unknown):FinancialQuestion|null {
   const text=String(message??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   if(/\b(?:report|relatorio|pdf|export|reporte|informe|salvar|save|guardar|alterar|change|mude|assuma|assume|simule|simulate|simulacao|scenario|cenario|escenario)\b/.test(text)||/\b(?:what if|e se|y si)\b/.test(text))return null;
   // Numeric declarations belong to the existing user-input/gap workflow, not a read-only lookup.
+  if(/\b(?:rental comps|rent comps|comparaveis de aluguel|comparables de alquiler)\b/.test(text))return {domain:'providerMarketRentEstimate',listComparables:true};
   if(/\d/.test(text)&&!/[?¿]/.test(text)&&!/^\s*(?:qual|quanto|what|how|cual|cuanto|is|does|can|tem)\b/.test(text))return null;
   const marketQuestion=/\b(?:market rent|estimated rent|aluguel (?:de mercado|estimado)|alquiler (?:de mercado|estimado)|alugaria|alquilaria)\b/.test(text);
   if(/\b(?:what is|o que e|que es)\b/.test(text)&&!/(?:deste|desse|this property|esta propiedad|imovel)/.test(text)&&!marketQuestion)return null;
@@ -71,13 +72,39 @@ export function marketRentStateAnswer(result:MarketRentResult|undefined,language
     ADDRESS_REQUIRED:['É necessário um endereço completo e autorizado para esta consulta.','A complete authorized address is required for this query.','Se requiere una dirección completa y autorizada para esta consulta.'],
     SUBJECT_CHANGED:['Os dados do imóvel mudaram durante a consulta. Confira o cadastro antes de tentar novamente.','Property inputs changed during the query. Review the property before trying again.','Los datos del inmueble cambiaron durante la consulta. Revise el registro antes de reintentar.'],
     SUBJECT_UNAVAILABLE:['Não foi possível validar os dados atuais do imóvel.','Current property inputs could not be validated.','No fue posible validar los datos actuales del inmueble.']};
-  return (messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[lang==='pt'?0:lang==='es'?2:1];
+  const i=lang==='pt'?0:lang==='es'?2:1;
+  const fields:Record<string,string[]>={propertyType:['tipo de imóvel','property type','tipo de inmueble'],beds:['quartos','bedrooms','habitaciones'],baths:['banheiros','bathrooms','baños'],buildingArea:['área construída','living area','superficie construida']};
+  const review=[...new Set(result?.reviewFields?.length?result.reviewFields:[result?.reviewField].filter(Boolean) as string[])].map(field=>fields[field]?.[i]).filter(Boolean).join(', ');
+  const stages:Record<string,string[]>={
+    RENT_SUBJECT_PROPERTY_READ_FAILED:['Falha na leitura autorizada do cadastro do imóvel.','Authorized property record read failed.','Falló la lectura autorizada del inmueble.'],
+    RENT_SUBJECT_PROPERTY_NOT_FOUND:['Cadastro do imóvel não encontrado na preparação.','Property record not found during preparation.','Registro del inmueble no encontrado durante la preparación.'],
+    RENT_SUBJECT_REVIEW_READ_FAILED:['Falha na leitura das decisões de revisão do publicador.','Publisher review decisions could not be read.','No se pudieron leer las decisiones del publicador.'],
+    RENT_CACHE_READ_FAILED:['Falha na leitura do cache de aluguel.','Rent cache read failed.','Falló la lectura del caché de alquiler.'],
+    RENT_ENTITLEMENT_CHECK_FAILED:['Falha ao verificar a autorização do aluguel.','Rent authorization check failed.','Falló la verificación de autorización de alquiler.'],
+    RENT_SUBJECT_STATE_READ_FAILED:['Falha na leitura do estado autorizado para o aluguel.','Authorized rent subject state read failed.','Falló la lectura del estado autorizado para el alquiler.'],
+  };
+  const text=stages[result?.reason||'']?.[i]??(messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[i];
+  const action=result?.state==='RENT_AVM_REVIEW_REQUIRED'&&review?[
+    `Campos: ${review}. Editar imóvel → página 2 → revisar esses campos com o publicador.`,
+    `Fields: ${review}. Edit Property → page 2 → review these fields with the publisher.`,
+    `Campos: ${review}. Editar inmueble → página 2 → revisar estos campos con el publicador.`,
+  ][i]:'';
+  const execution=result?.cacheHit?['Cache válido reutilizado.','Valid cache reused.','Caché válido reutilizado.'][i]
+    :result?.providerCalls===0?['Nenhuma consulta ao provedor foi executada neste fluxo.','No provider query executed in this flow.','No se ejecutó consulta al proveedor en este flujo.'][i]
+      :typeof result?.providerCalls==='number'?['Consulta ao provedor executada.','Provider query executed.','Consulta al proveedor ejecutada.'][i]
+        :['Execução anterior não registrada; não comprova ausência de dados no provedor.','Previous execution not recorded; this does not establish missing provider data.','Ejecución anterior no registrada; no prueba ausencia de datos en el proveedor.'][i];
+  return [text,action,execution].filter(Boolean).join(' ');
 }
 export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:FinancialEvidenceStack,language:string,context:Parameters<typeof buildFinancialInputReadiness>[1]&{marketRent?:MarketRentResult}={}){
   const lang:Language=language==='pt'?'pt':language==='es'?'es':'en',t=COPY[lang];
   if(question.domain){
     const input=stack.inputs[question.domain];
     if(question.domain==='providerMarketRentEstimate'&&input.value===null)return {answer:marketRentStateAnswer(context.marketRent,lang),readiness:null,input};
+    if(question.listComparables){
+      const comps=context.marketRent?.state==='AVAILABLE'?context.marketRent.evidence?.comparables??[]:[];
+      const rows=comps.filter(comp=>comp.price!==null&&comp.price>0&&comp.address).slice(0,5).map((comp,i)=>`${i+1}. ${comp.address}: ${new Intl.NumberFormat(lang==='pt'?'pt-BR':lang==='es'?'es-US':'en-US',{style:'currency',currency:'USD'}).format(comp.price!)} / ${lang==='pt'?'mês':lang==='es'?'mes':'month'}`);
+      return {answer:[describe(input,lang),...rows,rows.length?'':lang==='pt'?'O provedor não retornou comparáveis de aluguel utilizáveis.':lang==='es'?'El proveedor no devolvió comparables de alquiler utilizables.':'Provider returned no usable rental comparables.'].filter(Boolean).join('\n'),readiness:null,input};
+    }
     const text=question.domain==='currentContractRent'&&input.value===null&&input.analyticalUsability!=='CONFLICTED'
       ?`${t.currentMissing}${stack.inputs.providerMarketRentEstimate.value!==null?` ${describe(stack.inputs.providerMarketRentEstimate,lang)}`:''}`:describe(input,lang);
     return {answer:text,readiness:null,input};

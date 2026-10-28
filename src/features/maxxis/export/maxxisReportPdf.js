@@ -76,6 +76,7 @@ export function downloadMaxxisReportPdf(document, fileName = 'maxxis-report.pdf'
 export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
   const startedAt = performanceNow();
   emitReportStage('pdf_generation_start');
+  await yieldReportRendering();
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
   const viewModel = buildStrictReportViewModel({ schema, language: prepared.document.language });
@@ -90,6 +91,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold.split(',')[1]);
   doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
   doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+  await yieldReportRendering();
   const bodyStartedAt = performanceNow();
   emitReportStage('pdf_assets_ready', { durationMs: 0, networkCalls: 0 });
   const rendered = await drawStrictReportPdf({ doc, viewModel, logo: officialDealSifterLogo,
@@ -104,6 +106,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const outputValidation = validateRenderedReportText(rendered.layoutAudit.lines.map(line => line.text).join('\n'));
   if (!outputValidation.valid) return Object.freeze({ state: 'VALIDATION_FAILED', document: null, validation: outputValidation });
   const assemblyStartedAt = performanceNow();
+  await yieldReportRendering();
   const binary = new Uint8Array(doc.output('arraybuffer'));
   const assemblyMs = roundedMs(performanceNow() - assemblyStartedAt);
   const timings = Object.freeze({ totalMs: roundedMs(performanceNow() - startedAt), preparationMs, moduleMs, assetsMs: 0,

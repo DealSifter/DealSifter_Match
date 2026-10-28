@@ -1,0 +1,40 @@
+{
+  "candidate": "f96b409f95e99c532a56f6b1760d326c11a166a0",
+  "production": "b989d7bf4de5550d006663ae67c3fc22f7b3fd06",
+  "productionProof": "1078 uploaded source/configuration hashes match Git blobs (LF/CRLF equivalent)",
+  "backendBaseline": "51caae59794ba507696d512042c5de2d840b8b02",
+  "backendProof": "Current versions and updated_at match immutable deployment receipt; no Git backend/config diff from 51caae5 to b989d7b",
+  "functions": [
+    {
+      "slug": "maxxis-chat",
+      "version": 91,
+      "verify_jwt": true
+    },
+    {
+      "slug": "property-intelligence",
+      "version": 15,
+      "verify_jwt": true
+    },
+    {
+      "slug": "property-fact-review",
+      "version": 7,
+      "verify_jwt": true
+    },
+    {
+      "slug": "arv-visual-comp-review",
+      "version": 15,
+      "verify_jwt": true
+    }
+  ],
+  "rollbackFrontend": "dpl_GwdT5vyhpd5cGfnSAgm7XMRhyXDW",
+  "rollbackBackendStage": ".cache/analytical-intelligence-recovery/rollback-source-51caae5",
+  "preDeploy": "PASS",
+  "profileShape": "PASS",
+  "frontendBackendContractCompatibility": "PASS",
+  "rollbackReady": "PASS",
+  "deployReady": "YES_PENDING_EXPLICIT_AUTHORIZATION",
+  "notValidated": "Authenticated real-session functional/performance smoke remains pending; no claim of resolved Edge freezing",
+  "pdfRegenerations": 0,
+  "liveProviderCalls": 0,
+  "deployed": false
+}

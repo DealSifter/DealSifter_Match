@@ -1,0 +1,62 @@
+{
+  "baseline": "b989d7bf4de5550d006663ae67c3fc22f7b3fd06",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+    "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceIntent.ts",
+    "supabase/functions/_shared/maxxis/reportMarketReferences.ts",
+    "supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts",
+    "supabase/functions/_shared/maxxis/toolResultForGemini.ts",
+    "supabase/functions/_shared/property-data/marketRentService.ts",
+    "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/maxxis-chat/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "arv-visual-comp-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-data/marketRentService.ts",
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceIntent.ts",
+        "supabase/functions/_shared/maxxis/reportMarketReferences.ts",
+        "supabase/functions/_shared/maxxis/reportMarketRentPolicy.ts",
+        "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "supabase/functions/_shared/maxxis/toolResultForGemini.ts",
+        "supabase/functions/_shared/property-data/marketRentService.ts",
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts",
+        "supabase/functions/maxxis-chat/index.ts"
+      ]
+    },
+    {
+      "function": "property-fact-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+        "supabase/functions/_shared/property-data/marketRentService.ts",
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    },
+    {
+      "function": "property-intelligence",
+      "changedDependencies": [
+        "supabase/functions/_shared/property-data/marketRentService.ts",
+        "supabase/functions/_shared/property-data/rentAvmSubject.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

@@ -1,0 +1,36 @@
+﻿{
+    "observedAt":  "2026-10-19T20:45:41.3608612Z",
+    "candidate":  "f96b409f95e99c532a56f6b1760d326c11a166a0",
+    "deployment":  "dpl_GwdT5vyhpd5cGfnSAgm7XMRhyXDW",
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  91,
+                          "updated_at":  1792337369391,
+                          "verify_jwt":  true,
+                          "status":  "ACTIVE"
+                      },
+                      {
+                          "slug":  "property-intelligence",
+                          "version":  15,
+                          "updated_at":  1792337379488,
+                          "verify_jwt":  true,
+                          "status":  "ACTIVE"
+                      },
+                      {
+                          "slug":  "arv-visual-comp-review",
+                          "version":  15,
+                          "updated_at":  1792337353878,
+                          "verify_jwt":  true,
+                          "status":  "ACTIVE"
+                      },
+                      {
+                          "slug":  "property-fact-review",
+                          "version":  7,
+                          "updated_at":  1792337376048,
+                          "verify_jwt":  true,
+                          "status":  "ACTIVE"
+                      }
+                  ],
+    "diffSha256":  "8B550529B1F2613C6711B35B378BA3DCA9C5A370E68BE7648BD72DF8C9CE73FC"
+}

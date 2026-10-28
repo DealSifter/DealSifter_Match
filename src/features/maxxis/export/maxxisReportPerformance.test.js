@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
-import { renderMaxxisReportPdfCached } from './maxxisReportPdf';
+import { renderMaxxisReportPdf, renderMaxxisReportPdfCached } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
 
 const schema = buildMaxxisReportSchema({
@@ -35,10 +35,13 @@ describe('Maxxis report generation performance contract', () => {
   }, 30000);
 
   it('single-flights preview and export generation', () => expect(secondPromise).toBe(firstPromise));
-  it('contracts weak-evidence reports without empty analytical pages or generic overflow', () => {
+  it('preserves the approved layout without repeated preflight rendering', () => {
     expect(result.state).toBe('RENDERED');
     expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
-    expect(result.document.pageCount).toBeLessThan(6);
+    // The approved reference design and substantive note continuations must not
+    // be removed merely to satisfy an obsolete fixed page-count target.
+    expect(result.document.layoutPlan.composition).toBe('APPROVED_REFERENCE_PAGES');
+    expect(result.document.layoutPlan.preflightPasses).toBe(0);
     expect(result.document.pages).toHaveLength(result.document.pageCount);
     expect(result.document.strictViewModel.type).toBe('strict_report_view_model');
     expect(result.document.outputValidation.valid).toBe(true);
@@ -56,6 +59,17 @@ describe('Maxxis report generation performance contract', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     expect(source).toContain('await yieldReportRendering()');
     expect(source).toContain("globalThis.scheduler?.yield");
+  });
+  it('actually schedules browser task breaks during setup, appendices and assembly', async () => {
+    let scheduledTasks = 0;
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('scheduler', { yield: () => new Promise(resolve => setTimeout(() => { scheduledTasks += 1; resolve(); }, 0)) });
+    try {
+      const rendered = await renderMaxxisReportPdf(options);
+      expect(rendered.state).toBe('RENDERED');
+      expect(scheduledTasks).toBeGreaterThan(rendered.document.pageCount);
+      expect(rendered.document.outputValidation.valid).toBe(true);
+    } finally { vi.unstubAllGlobals(); }
   });
   it('uses cached exports while the inline experience avoids PDF rasterization and provider work', () => {
     const actions = readFileSync(new URL('./MaxxisReportExportActions.jsx', import.meta.url), 'utf8');

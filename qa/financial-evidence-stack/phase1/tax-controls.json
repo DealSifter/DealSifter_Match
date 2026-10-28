@@ -6,7 +6,7 @@
       "value": 100000,
       "status": "VERIFIED_RECORD",
       "source": "rentcast",
-      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "retrievedAt": "2026-10-28T18:43:04.052Z",
       "effectiveDate": "2025",
       "providerPropertyId": "fixture",
       "confidence": null
@@ -15,7 +15,7 @@
       "value": 2025,
       "status": "VERIFIED_RECORD",
       "source": "rentcast",
-      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "retrievedAt": "2026-10-28T18:43:04.052Z",
       "effectiveDate": "2025",
       "providerPropertyId": "fixture",
       "confidence": null
@@ -24,7 +24,7 @@
       "value": 1500,
       "status": "VERIFIED_RECORD",
       "source": "rentcast",
-      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "retrievedAt": "2026-10-28T18:43:04.052Z",
       "effectiveDate": "2025",
       "providerPropertyId": "fixture",
       "confidence": null
@@ -33,7 +33,7 @@
       "value": 2025,
       "status": "VERIFIED_RECORD",
       "source": "rentcast",
-      "retrievedAt": "2026-10-16T19:26:52.527Z",
+      "retrievedAt": "2026-10-28T18:43:04.052Z",
       "effectiveDate": "2025",
       "providerPropertyId": "fixture",
       "confidence": null

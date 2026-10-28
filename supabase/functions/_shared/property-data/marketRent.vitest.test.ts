@@ -37,16 +37,14 @@ function setup(extra:{entitled?:boolean;enabled?:boolean;hardLimit?:number;cache
 }
 const request={propertyId:id,userId:'fixture-user',acquire:true};
 describe('explicit report cache-first acquisition',()=>{
-  it('queries the provider by address without sending disputed bath/area overrides',async()=>{
+  it('does not bypass unresolved AVM-critical conflicts during report generation',async()=>{
     const s=setup();
     const conflicted=resolveRentAvmSubjectAttributes({property,projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});
     expect(conflicted.state).toBe('RENT_AVM_REVIEW_REQUIRED');
     s.resolveSubject.mockResolvedValue(reportMarketRentSubject(conflicted));
     const result=await s.service.get(request);
-    expect(result.state).toBe('AVAILABLE');
-    expect(result.evidence?.request).not.toHaveProperty('squareFootage');
-    expect(result.evidence?.request).not.toHaveProperty('bathrooms');
-    expect(s.fetchImpl).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({state:'RENT_AVM_REVIEW_REQUIRED',reviewField:'buildingArea',providerCalls:0});
+    expect(s.fetchImpl).not.toHaveBeenCalled();
   });
   it.each(['LAND','Multi-Family','office'])('does not bypass applicability for %s',type=>{
     const subject=resolveRentAvmSubjectAttributes({property:{...property,type},projections:{buildingArea:{analyticalUsability:'CONFLICTED'}}});

@@ -2,6 +2,7 @@ import { mergeVerifiedPropertyEvidenceIntoFacts } from '../../../supabase/functi
 
 /** L1 shares the exact factual projection used by chat/L2/L3. */
 export function mergePropertyReleaseEvidence(property, response, parcelResponse = null) {
+  if (response?.propertyId && property?.id && response.propertyId !== property.id) throw new Error('REPORT_PROPERTY_IDENTITY_MISMATCH');
   const record=response?.state==='unlocked'?response.intelligence:null;
   const parcel=parcelResponse?.propertyId===property?.id?parcelResponse:null;
   const publicApn=parcel?.state==='available'&&parcel.fields?.assessorId?.status==='VERIFIED_RECORD'&&typeof parcel.fields.assessorId.value==='string'&&parcel.fields.assessorId.value.trim()?parcel.fields.assessorId:null;

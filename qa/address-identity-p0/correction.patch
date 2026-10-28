@@ -1,0 +1,648 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index 021450f..ea2f35a 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -2,7 +2,7 @@ import React, { Activity, useState, useEffect, useMemo, useRef, useCallback, laz
+ import './App.css';
+ import {PropertyFactReviewProvider} from './features/propertyFacts/PropertyFactReviewProvider';
+ import {PropertyFactNotificationSync} from './features/propertyFacts/PropertyFactNotificationSync';
+-import {notifyPropertySaved,openPropertyFactReview} from './services/propertyFactReviewService';
++import {notifyPropertySaved,openPropertyFactReview,rememberPropertyReviewBasis} from './services/propertyFactReviewService';
+ import {useLang} from './i18n/translations';
+ import loaderMark from './assets/logo.png';
+ import { ThemeProvider } from './theme/theme';
+@@ -3350,6 +3350,7 @@ export default function App() {
+         const hydratedProperties = propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+           ownerId: row.owner_id || supabaseUserId,
+         }));
++        rememberPropertyReviewBasis(supabaseUserId,propertyRows); // hydration is not a legacy backfill
+         const hydratedServices = serviceRows.map((row) => mapDbServiceToLocal(row, {
+           ownerId: row.owner_id || supabaseUserId,
+         }));
+@@ -3605,6 +3606,8 @@ export default function App() {
+           return;
+         }
+ 
++        for (const row of payload) notifyPropertySaved(supabaseUserId,row.id,row);
++
+         for (const row of payload) {
+           const localProperty = userOwnedProperties.find((item) => String(item.id) === String(row.id));
+           const images = normalizePortfolioImages(localProperty?.images);
+@@ -3706,7 +3709,7 @@ export default function App() {
+       .select('id,lat,lng,geocode_status,geocode_source,geocode_confidence,geocode_input,geocoded_at,is_active,publish_to_showcase'));
+     if (error) throw error;
+     if (!Array.isArray(data) || data.length !== records.length) throw new Error('PROPERTY_SAVE_NOT_CONFIRMED');
+-    if(!publish&&records.length===1)notifyPropertySaved(supabaseUserId,records[0].id);
++    for(const record of records)notifyPropertySaved(supabaseUserId,record.id,record,{publication:publish});
+     const persisted = new Map(data.map((row) => [String(row.id), row]));
+     return records.map((record) => {
+       const row = persisted.get(String(record.id));
+diff --git a/src/features/propertyFacts/PropertyFactNotificationSync.jsx b/src/features/propertyFacts/PropertyFactNotificationSync.jsx
+index 25e2504..4325313 100644
+--- a/src/features/propertyFacts/PropertyFactNotificationSync.jsx
++++ b/src/features/propertyFacts/PropertyFactNotificationSync.jsx
+@@ -1,9 +1,19 @@
+-import {useEffect,useMemo} from 'react';
++import {useEffect,useMemo,useRef} from 'react';
+ import {usePropertyFactReview} from './PropertyFactReviewContext';
+ import {actionableReview} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
+ import {factCopy} from './copy';
+ export function PropertyFactNotificationSync({notifications,setNotifications,language}){
+  const review=usePropertyFactReview();
++ const seen=useRef(new Set()),queue=useRef(Promise.resolve());
++ useEffect(()=>{
++  if(!review?.read)return;
++  for(const item of notifications||[]){
++   if(item.type!=='property_data'||!review.ownedProperties.has(String(item.propertyId)))continue;
++   const key=`${review.userId}:${item.id}`;if(seen.current.has(key))continue;seen.current.add(key);
++   // New private owner notification refreshes the persisted state, never providers.
++   queue.current=queue.current.catch(()=>{}).then(()=>review.read(item.propertyId)).catch(()=>null);
++  }
++ },[notifications,review?.userId,review?.read,review?.ownedProperties]);
+  const notices=useMemo(()=>{
+   const copy=factCopy(language);
+   return (notifications||[]).filter(item=>item.type==='property_data'&&review?.ownedProperties.has(String(item.propertyId))).flatMap(item=>{
+diff --git a/src/features/propertyFacts/PropertyFactReviewProvider.jsx b/src/features/propertyFacts/PropertyFactReviewProvider.jsx
+index 739a18b..e6527be 100644
+--- a/src/features/propertyFacts/PropertyFactReviewProvider.jsx
++++ b/src/features/propertyFacts/PropertyFactReviewProvider.jsx
+@@ -7,6 +7,7 @@ import {actionableReview,publicEffectiveFacts,reviewCandidateIdentity} from '../
+ export function PropertyFactReviewProvider({userId='',properties=[],publicProperties=[],inventoryVersion=0,onOpenEditor,children}){
+  const [owned,setOwned]=useState({actor:'',records:{}}),[publicState,setPublicState]=useState({actor:'',facts:{}}),[request,setRequest]=useState(null),[notice,setNotice]=useState(null);
+  const actorRef=useRef(userId),recordsRef=useRef({}),pendingMutations=useRef(new Map()),alive=useRef(false);
++ const saveQueue=useRef(Promise.resolve()),savedKeys=useRef(new Map()),savedPending=useRef(new Set());
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
+  useEffect(()=>{actorRef.current=userId;},[userId]);
+  const ownedProperties=useMemo(()=>new Map(properties.filter(p=>String(p.ownerId||p.owner_id)===userId).map(p=>[String(p.id),p])),[properties,userId]);
+@@ -42,7 +43,19 @@ export function PropertyFactReviewProvider({userId='',properties=[],publicProper
+    if(active)setPublicState({actor:userId,facts});};void load().catch(()=>null);return()=>{active=false;};
+  },[publicKeys,userId,inventoryVersion]); // Decisions never refetch the entire public inventory.
+  useEffect(()=>{
+-  const saved=event=>{if(event.detail?.userId===userId&&ownedProperties.has(String(event.detail.propertyId)))void check(event.detail.propertyId,{cacheOnly:true}).catch(()=>null);};
++  const saved=event=>{
++   const detail=event.detail,id=String(detail?.propertyId||'');
++   if(detail?.userId!==userId||!userId||!/^[a-f0-9-]{36}$/i.test(id))return;
++   const key=`${userId}:${id}`,version=detail.saveKey??null,pendingKey=JSON.stringify([key,version]);
++   if(savedPending.current.has(pendingKey)||version!==null&&savedKeys.current.get(key)===version)return;
++   savedPending.current.add(pendingKey);
++   // A newly saved row may not yet be in the React-owned map. The backend enforces ownership.
++   saveQueue.current=saveQueue.current.catch(()=>{}).then(async()=>{
++    if(!alive.current||actorRef.current!==userId)return;
++    await check(id,{cacheOnly:false}); // existing public GIS policy + provider CACHE ONLY, never paid fallback
++    if(version!==null)savedKeys.current.set(key,version);
++   }).catch(()=>null).finally(()=>savedPending.current.delete(pendingKey));
++  };
+   const parcel=event=>{if(event.detail?.userId===userId&&ownedProperties.has(String(event.detail.propertyId)))void check(event.detail.propertyId,{cacheOnly:true}).catch(()=>null);};
+   const deepLink=event=>{if(event.detail?.userId===userId)open(event.detail.propertyId,event.detail.field);};
+   window.addEventListener('ds:property-saved',saved);window.addEventListener('ds:parcel-evidence-ready',parcel);window.addEventListener('ds:open-property-fact-review',deepLink);
+diff --git a/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx b/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx
+index 1bf236a..a95b781 100644
+--- a/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx
++++ b/src/features/propertyFacts/PropertyFactReviewProvider.test.jsx
+@@ -16,6 +16,12 @@ const candidate={field:'lotArea',originalValue:7000,value:7000,unit:'SQFT',sourc
+ beforeEach(()=>{mock.request.mockReset();mock.load.mockReset().mockResolvedValue({data:[],error:null});mock.rpc.mockReset().mockResolvedValue({data:[],error:null});mock.context=null;});
+ afterEach(cleanup);
+ describe('non-blocking owner review repository',()=>{
++ it('queues one public/cache CHECK after persisted creation even before the owned map hydrates',async()=>{
++  mock.request.mockResolvedValue({propertyId:id,snapshot:null,revision:1});render(shell([]));
++  const detail={userId:actor,propertyId:id,saveKey:'persisted-v1'};
++  act(()=>{window.dispatchEvent(new CustomEvent('ds:property-saved',{detail}));window.dispatchEvent(new CustomEvent('ds:property-saved',{detail}));});
++  await waitFor(()=>expect(mock.request).toHaveBeenCalledTimes(1));expect(mock.request.mock.calls[0]).toEqual([actor,id,'CHECK',{cacheOnly:false}]);
++ });
+  it('opens/queues only client state, without a mandatory READ/CHECK or independent drawer',async()=>{
+   const navigate=vi.fn(),view=render(shell([],actor,navigate));
+   act(()=>window.dispatchEvent(new CustomEvent('ds:open-property-fact-review',{detail:{userId:actor,propertyId:id,field:'lotArea'}})));
+diff --git a/src/features/propertyFacts/copy.js b/src/features/propertyFacts/copy.js
+index 9bc51dc..98e42b5 100644
+--- a/src/features/propertyFacts/copy.js
++++ b/src/features/propertyFacts/copy.js
+@@ -8,7 +8,7 @@ const inlineCopy={
+  es:{back:'Volver a la edición',yourData:'Su registro',warningLabel:'Hay datos divergentes para revisar',newFacts:n=>`${n} datos nuevos`,neutralTitle:'Nuevos datos disponibles',conflictsTitle:'Datos divergentes',refreshError:'No se pudieron consultar datos más recientes. Los datos guardados siguen disponibles.',bulk:'Seleccionar datos nuevos',sources:'Sobre las fuentes'},
+ };
+ const reviewCta={pt:'Revise clicando aqui',en:'Review — click here',es:'Revise haciendo clic aquí'};
+-export const factCopy=language=>({...sharedCopy(baseLanguage(language)),...(inlineCopy[baseLanguage(language)]||inlineCopy.en),reviewCta:reviewCta[baseLanguage(language)]||reviewCta.en});
++export const factCopy=language=>({...sharedCopy(baseLanguage(language)),...(inlineCopy[baseLanguage(language)]||inlineCopy.en),reviewCta:reviewCta[baseLanguage(language)]||reviewCta.en,verificationPending:({pt:'Verificação pendente — consultar dados disponíveis',en:'Verification pending — check available facts',es:'Verificación pendiente — consultar datos disponibles'})[baseLanguage(language)]||'Verification pending — check available facts'});
+ const sourceNames={pt:{PUBLIC_PARCEL_GIS:'GIS público',PUBLIC_ASSESSOR:'Assessor público',PUBLIC_TAX:'Registro fiscal público',PUBLIC_ZONING:'Zoneamento público'},en:{PUBLIC_PARCEL_GIS:'Public GIS',PUBLIC_ASSESSOR:'Public assessor',PUBLIC_TAX:'Public tax record',PUBLIC_ZONING:'Public zoning'},es:{PUBLIC_PARCEL_GIS:'GIS público',PUBLIC_ASSESSOR:'Asesor público',PUBLIC_TAX:'Registro fiscal público',PUBLIC_ZONING:'Zonificación pública'}};
+ export const factSource=(source,language)=>(sourceNames[baseLanguage(language)]||sourceNames.en)[source]||sharedSource(source,baseLanguage(language));
+ export const factValue=(fact,field,language)=>sharedValue(fact,field,baseLanguage(language));
+diff --git a/src/features/propertyFacts/saveTimeValidation.test.ts b/src/features/propertyFacts/saveTimeValidation.test.ts
+new file mode 100644
+index 0000000..cea0f0f
+--- /dev/null
++++ b/src/features/propertyFacts/saveTimeValidation.test.ts
+@@ -0,0 +1,95 @@
++import {describe,it,expect,vi,afterEach,beforeEach} from 'vitest';
++import {readFileSync} from 'node:fs';
++import {reconcilePropertyFacts,applyFactDecisions,shouldNotify} from '../../../supabase/functions/_shared/property-fact-reconciliation/model';
++import {actionableReview,reviewVerificationState} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
++import {runPropertyFactReview} from '../../../supabase/functions/_shared/property-fact-reconciliation/runtime';
++import {parcelMatchesPropertyAddress} from '../../../supabase/functions/_shared/property-fact-reconciliation/acquisition';
++import {propertyAddressFingerprint,rentCastAddressMatches} from '../../../supabase/functions/_shared/property-data/address';
++import {detectMarketReferenceIntent} from '../../../supabase/functions/_shared/maxxis/marketReferenceIntent';
++import {buildMarketReferenceAnswer} from '../../../supabase/functions/_shared/maxxis/marketReferenceAnswer';
++import {projectSoldDelivery} from '../../../supabase/functions/_shared/maxxis/reportMarketReferences';
++import {InMemoryPropertyIntelligenceCache} from '../../../supabase/functions/_shared/property-data/cache';
++import {PropertyEvidenceService} from '../../../supabase/functions/_shared/property-data/propertyEvidenceService';
++import {mapRentCastProperty} from '../../../supabase/functions/_shared/property-data/rentcast/rentcastMapper';
++import {reconcileAcquiredOwnerEvidence,reconcileAuthorizedParcelEvidence} from '../../../supabase/functions/_shared/property-fact-reconciliation/ownerEvidence';
++import {getCanonicalPropertyEvidenceWithDependencies} from '../../../supabase/functions/_shared/maxxis/canonicalEvidenceTool';
++const id='11111111-1111-4111-8111-111111111111',owner='owner-A';
++const property={id,owner_id:owner,type:'SFR',address:'501 Avenue A Wahneta W',city:'Winter Garden',state:'FL',zip:'33881',beds:2,baths:1,lot:5000,geocode_status:'resolved'};
++const lookup=(p=property)=>({propertyId:p.id,street:p.address,city:p.city,state:p.state,zipCode:p.zip});
++const ev=(area:number)=>({field:'lotArea' as const,originalValue:area,value:area,unit:'SQFT',sourceType:'PUBLIC_PARCEL_GIS' as const,sourceId:'qa-public',sourceFamily:'COUNTY_GIS:00000',evidenceStatus:'PUBLIC_RECORD' as const,freshness:'FRESH' as const});
++beforeEach(()=>vi.stubGlobal('fetch',vi.fn(()=>{throw Error('LIVE_NETWORK_FORBIDDEN');})));
++afterEach(()=>vi.unstubAllGlobals());
++describe('save-time validation / legacy reconciliation — offline only',()=>{
++ it('new conflict → persisted notification → same page-2 decision; no repeat notification',async()=>{
++  let stored:any=null;const notifications:any[]=[];
++  const deps={userId:owner,loadOwnedProperty:async()=>property,loadReview:async()=>stored,acquire:vi.fn(async()=>[ev(9000)]),store:vi.fn(async(_id:any,_owner:any,revision:any,state:any,_pub:any,notify:any)=>{stored={state,revision:revision+1};if(notify)notifications.push(state.evidenceHash);return revision+1;})};
++  const first=await runPropertyFactReview({propertyId:id,action:'CHECK'},deps);
++  expect(actionableReview(first.snapshot).summary.conflicts).toBe(1);expect(notifications).toHaveLength(1);
++  const chosen=await runPropertyFactReview({propertyId:id,action:'DECIDE',revision:first.revision,evidenceHash:first.snapshot!.evidenceHash,decisions:[{field:'lotArea',action:'KEEP_MY_VALUE'}]},deps);
++  expect(chosen.snapshot!.rows.lotArea.originalValue).toBe(5000);expect(actionableReview(chosen.snapshot).summary.conflicts).toBe(0);
++  await runPropertyFactReview({propertyId:id,action:'CHECK'},deps);expect(notifications).toHaveLength(1);
++ });
++ it('new matching evidence has no yellow conflict and one matching field does not verify the whole property',async()=>{const snapshot=await reconcilePropertyFacts(property,[ev(5000)]);expect(actionableReview(snapshot).summary.conflicts).toBe(0);expect(reviewVerificationState(snapshot)).toBe('INSUFFICIENT_EVIDENCE');});
++ it('legacy publisher-only record is NOT_CHECKED, not verified or yellow',async()=>{const snapshot=await reconcilePropertyFacts(property,[]);expect(reviewVerificationState(snapshot)).toBe('NOT_CHECKED');expect(actionableReview(snapshot).summary.conflicts).toBe(0);});
++ it('legacy record with a newly discovered conflict reuses the same reconciliation engine',async()=>{const prior=await reconcilePropertyFacts(property,[]),next=await reconcilePropertyFacts(property,[ev(9000)],prior);expect(shouldNotify(prior,next)).toBe(true);expect(reviewVerificationState(next)).toBe('REVIEW_REQUIRED');});
++ it('Winter Garden/33881 does not match the same street in Winter Haven/33880',()=>{
++  expect(parcelMatchesPropertyAddress(property,'501 Avenue A Wahneta W, Winter Haven, FL 33880')).toBe(false);
++  expect(parcelMatchesPropertyAddress({...property,city:'Winter Haven',zip:'33880'},'501 Avenue A Wahneta W, Winter Haven, FL 33880')).toBe(true);
++  expect(rentCastAddressMatches(lookup(),{addressLine1:property.address,city:'Winter Haven',state:'FL',zipCode:'33880'})).toBe(false);
++ });
++ it.each(['PARCEL_NOT_FOUND','SOURCE_TEMPORARILY_UNAVAILABLE'])('%s is not VERIFIED',async gis=>{const snapshot=await reconcilePropertyFacts(property,[]);snapshot.publicCheckedAt=new Date().toISOString();snapshot.acquisition={gis};expect(reviewVerificationState(snapshot)).toBe(gis==='PARCEL_NOT_FOUND'?'NO_MATCH':'PROVIDER_UNAVAILABLE');expect(actionableReview(snapshot).summary.conflicts).toBe(0);});
++ it('preserves same-identity cache and isolates another property and a changed identity without network',async()=>{
++  let current={...property};const cache=new InMemoryPropertyIntelligenceCache();
++  await cache.setPropertyRecord(id,mapRentCastProperty({id:'QA-PROVIDER',addressLine1:property.address,city:property.city,state:'FL',zipCode:'33881',propertyType:'Single Family'},new Date().toISOString()));
++  const provider={getPropertyRecord:vi.fn(async()=>{throw Error('PAID_REQUEST_FORBIDDEN');})};
++  const service=new PropertyEvidenceService({repository:{getById:async key=>key===id?current:null},cache,provider,logger:()=>{}});
++  expect((await service.getCachedPropertyEvidence({propertyId:id})).cacheHit).toBe(true);
++  await expect(service.getCachedPropertyEvidence({propertyId:'22222222-2222-4222-8222-222222222222'})).rejects.toThrow('PROPERTY_NOT_FOUND');
++  const before=await propertyAddressFingerprint(lookup());current={...current,city:'Winter Haven',zip:'33880'};
++  expect(await propertyAddressFingerprint(lookup(current))).not.toBe(before);
++  await expect(service.getCachedPropertyEvidence({propertyId:id})).rejects.toThrow('CACHE_INVALID');
++  expect(provider.getPropertyRecord).not.toHaveBeenCalled();
++ });
++ it('third party cannot READ private owner state or inject a value',async()=>{
++  const loadReview=vi.fn(),acquire=vi.fn(),store=vi.fn();
++  await expect(runPropertyFactReview({propertyId:id,action:'CHECK'},{userId:'viewer-B',loadOwnedProperty:async()=>property,loadReview,acquire,store})).rejects.toThrow('PROPERTY_OWNER_REQUIRED');
++  expect(loadReview).not.toHaveBeenCalled();expect(store).not.toHaveBeenCalled();expect(acquire).not.toHaveBeenCalled();
++ });
++ it('a forged parcel receipt cannot relay candidates or disclose owner state',async()=>{
++  const relay=vi.fn();
++  const result=await getCanonicalPropertyEvidenceWithDependencies({input:{propertyId:id},propertyId:id,userId:'viewer-B',receipt:'FORGED',secret:'QA_ONLY_SECRET',parcelEnabled:true,
++   onAuthorizedParcelEvidence:relay,loadPublicProperty:async()=>({...property,is_active:true,publish_to_showcase:true,privateNotes:'PRIVATE_SENTINEL'}),
++   loadCachedProvider:async()=>({type:'property_evidence',propertyId:id,state:'not_loaded',entitlementState:'authorized',cacheState:'miss'})});
++  expect(relay).not.toHaveBeenCalled();expect(JSON.stringify(result)).not.toContain('PRIVATE_SENTINEL');expect(JSON.stringify(result)).not.toContain(owner);
++ });
++ it('trusted acquired evidence routes privately to owner A, never changes property, returns no decisions',async()=>{
++  const record=mapRentCastProperty({id:'QA-PROVIDER',addressLine1:property.address,city:property.city,state:'FL',zipCode:'33881',propertyType:'Single Family',lotSize:9000},new Date().toISOString());
++  let saved:any;const rpc=vi.fn(async(_name,args)=>{saved=args;return{data:1,error:null};});
++  const db:any={from:(table:string)=>({select:()=>{const q:any={eq:()=>q,maybeSingle:async()=>({data:table==='properties'?property:null,error:null})};return q;}}),rpc};
++  const result:any={propertyId:id,cacheHit:false,externalData:record};
++  expect(await reconcileAcquiredOwnerEvidence(result,db)).toBeUndefined();
++  expect(saved.p_owner_id).toBe(owner);expect(saved.p_notify).toBe(true);expect(saved.p_state.rows.lotArea.originalValue).toBe(5000);
++  expect(JSON.stringify(saved.p_public_facts)).not.toContain(owner);expect(property.lot).toBe(5000);
++ });
++ it('multi-intent separates SOLD, ARV, land, identity and next action without claiming query results',()=>{
++  const message='Por que não há comps, ARV e dados do terreno?';expect(detectMarketReferenceIntent(message)).toBe('EVIDENCE_GAPS');
++  const response=buildMarketReferenceAnswer({propertyFacts:property,soldDelivery:projectSoldDelivery()},'EVIDENCE_GAPS','pt');
++  for(const label of ['SOLD:','ARV:','Terreno:','Identidade/endereço:','Próxima ação:'])expect(response.answer).toContain(label);
++  expect(response.answer).toContain('execução não comprovada');expect(response.data.providerCalls).toBe(0);expect(response.answer).not.toContain('vendas encontradas');
++ });
++ it('verified GIS relay preserves provider evidence and never renotifies the same material evidence',async()=>{
++  const rentcast={...ev(9000),sourceType:'RENTCAST' as const,sourceId:'rentcast',sourceFamily:'RENTCAST'};
++  let previous:any={state:await reconcilePropertyFacts(property,[rentcast]),revision:1},writes:any[]=[];
++  const db:any={from:(table:string)=>({select:()=>{const q:any={eq:()=>q,maybeSingle:async()=>({data:table==='properties'?property:previous,error:null})};return q;}}),rpc:vi.fn(async(_name,args)=>{writes.push(args);previous={state:args.p_state,revision:previous.revision+1};return{data:previous.revision,error:null};})};
++  await reconcileAuthorizedParcelEvidence(property,[ev(8000)],db);
++  expect(previous.state.rows.lotArea.candidates.some((c:any)=>c.sourceFamily==='RENTCAST')).toBe(true);
++  expect(writes[0].p_owner_id).toBe(owner);const count=writes.length;
++  await reconcileAuthorizedParcelEvidence(property,[ev(8000)],db);expect(writes).toHaveLength(count);
++  await reconcileAuthorizedParcelEvidence({...property,city:'Winter Haven',zip:'33880'},[ev(8000)],db);expect(writes).toHaveLength(count);
++ });
++ it('all persisted paths signal only after success; saving/review never purchases RentCast',()=>{
++  const app=readFileSync('src/App.jsx','utf8');expect(app).toContain('for (const row of payload) notifyPropertySaved');expect(app).toContain('for(const record of records)notifyPropertySaved');expect(app).not.toContain('if(!publish&&records.length===1)');
++  const backend=readFileSync('supabase/functions/property-fact-review/index.ts','utf8');expect(backend).toContain('String(property.id),false,{plan');expect(backend).toContain('acquire:false');expect(backend).not.toContain('api.rentcast');
++  const ui=readFileSync('src/pages/Onboarding.jsx','utf8');expect(ui).toContain('propertyFactCopy.verificationPending');expect(ui).toContain("summary.conflicts>0?<FactReviewIndicator variant=\"modal\"");
++ });
++});
+diff --git a/src/pages/Onboarding.jsx b/src/pages/Onboarding.jsx
+index ed05969..722c75e 100644
+--- a/src/pages/Onboarding.jsx
++++ b/src/pages/Onboarding.jsx
+@@ -55,6 +55,7 @@ import {usePropertyFactReview} from '../features/propertyFacts/PropertyFactRevie
+ import {factCopy} from '../features/propertyFacts/copy';
+ import {useLang} from '../i18n/translations';
+ import {PropertyFactReview} from '../features/propertyFacts/PropertyFactReview';
++import {reviewVerificationState} from '../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
+ import {FactReviewIndicator} from '../features/propertyFacts/FactReviewIndicator';
+ import {actionableReview} from '../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
+ import {overlayEffectiveDraft,publisherEditValue} from '../features/propertyFacts/editReviewDraft';
+@@ -5074,6 +5075,7 @@ export function Onboarding({
+             {propertyEditPage==='review'?propertyFactCopy.title:t.editProperty || 'Edit Property'}
+             {propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.conflicts>0?<FactReviewIndicator variant="modal" language={propertyFactLanguage} onClick={()=>setPropertyEditPage('review')}/>:propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.complements>0?<button type="button" onClick={()=>setPropertyEditPage('review')} style={{border:0,background:'transparent',color:C.accent,fontSize:12,cursor:'pointer'}}>{propertyFactCopy.newFacts(actionableReview(propertyFacts.records[editingPropertyRecord.id].snapshot).summary.complements)}</button>:null}
+           </h3>
++          {propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.pending===0&&reviewVerificationState(propertyFacts?.records[editingPropertyRecord.id]?.snapshot)!=='VERIFIED'?<button type="button" onClick={()=>setPropertyEditPage('review')} style={{border:0,background:'transparent',color:C.t3,fontSize:12,cursor:'pointer'}}>{propertyFactCopy.verificationPending}</button>:null}
+           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} · {editingPropertyRecord.city}</p>
+           {propertyEditPage==='review'?<PropertyFactReview key={editingPropertyRecord.id} request={{propertyId:editingPropertyRecord.id,field:propertyReviewField}} property={editingPropertyRecord} record={propertyFacts?.records[editingPropertyRecord.id]} language={propertyFactLanguage} onLoad={propertyFacts?.read} onCheck={()=>propertyFacts.check(editingPropertyRecord.id,{force:true})} onSubmit={(action,values)=>propertyFacts.mutate(editingPropertyRecord.id,action,values)} onReturn={result=>{
+             if(result?.snapshot){const prior=propertyFacts?.records[editingPropertyRecord.id]?.snapshot;
+diff --git a/src/services/propertyFactReviewService.js b/src/services/propertyFactReviewService.js
+index 3cfc816..df51dc6 100644
+--- a/src/services/propertyFactReviewService.js
++++ b/src/services/propertyFactReviewService.js
+@@ -1,6 +1,9 @@
+ import {supabase,isSupabaseConfigured} from '../lib/supabaseClient';
+ import {cachedParcelEvidenceReceipt} from '../features/parcel/parcelEvidenceReceipt';
+ const pending=new Map();
++const persistedBasis=new Map();
++const saveKeyFor=property=>JSON.stringify(['address','city','state','zip','type','lot','sqft','beds','baths','rehab','lat','lng'].map(key=>String(property[key]??'').trim()));
++export function rememberPropertyReviewBasis(userId,properties){for(const property of properties||[])persistedBasis.set(`${userId}:${property.id}`,saveKeyFor(property));}
+ export async function requestPropertyFactReview(userId,propertyId,action='READ',values={},override=null){
+  if(!userId||!propertyId)throw new Error('PROPERTY_OWNER_REQUIRED');
+  if(!override){if(!isSupabaseConfigured||!supabase)throw new Error('REVIEW_UNAVAILABLE');const session=await supabase.auth.getSession();if(session.data?.session?.user?.id!==userId)throw new Error('SESSION_CHANGED');}
+@@ -10,5 +13,13 @@ export async function requestPropertyFactReview(userId,propertyId,action='READ',
+   if(error||!data?.success){let detail=data;if(!detail&&error?.context?.json)detail=await error.context.clone().json().catch(()=>null);throw new Error(String(detail?.error||'REVIEW_UNAVAILABLE'));}return data.data;
+  })();pending.set(key,run);try{return await run;}finally{if(pending.get(key)===run)pending.delete(key);}
+ }
+-export function notifyPropertySaved(userId,propertyId){if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('ds:property-saved',{detail:{userId,propertyId}}));}
++export function notifyPropertySaved(userId,propertyId,property,{publication=false}={}){
++ if(typeof window==='undefined'||!userId||!propertyId)return;
++ // Only persisted identity/reconciliation inputs; photos, typing and UI state are not acquisitions.
++ const basis=property?saveKeyFor(property):null,key=`${userId}:${propertyId}`;
++ if(!publication&&basis!==null&&persistedBasis.get(key)===basis)return;
++ if(basis!==null)persistedBasis.set(key,basis);
++ const saveKey=publication?JSON.stringify(['PUBLICATION',basis]):basis;
++ window.dispatchEvent(new CustomEvent('ds:property-saved',{detail:{userId,propertyId,...(saveKey!==null?{saveKey}:{})}}));
++}
+ export function openPropertyFactReview(userId,propertyId,field=''){if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('ds:open-property-fact-review',{detail:{userId,propertyId,field}}));}
+diff --git a/src/services/propertyFactReviewService.test.js b/src/services/propertyFactReviewService.test.js
+index 16521f2..58c53db 100644
+--- a/src/services/propertyFactReviewService.test.js
++++ b/src/services/propertyFactReviewService.test.js
+@@ -1,7 +1,15 @@
+ // @vitest-environment jsdom
+ import {describe,expect,it,vi} from 'vitest';
+-import {requestPropertyFactReview,notifyPropertySaved,openPropertyFactReview} from './propertyFactReviewService';
++import {requestPropertyFactReview,notifyPropertySaved,openPropertyFactReview,rememberPropertyReviewBasis} from './propertyFactReviewService';
+ describe('owner-scoped review transport',()=>{
++ it('hydration is not backfill: autosave signals only changed records, explicit publication can verify legacy',()=>{
++  const saved=vi.fn(),a={id:'legacy-a',address:'100 QA Street',lot:5000},b={id:'legacy-b',address:'200 QA Street',lot:9000};
++  window.addEventListener('ds:property-saved',saved);rememberPropertyReviewBasis('qa-actor',[a,b]);
++  notifyPropertySaved('qa-actor',a.id,a);notifyPropertySaved('qa-actor',b.id,b);expect(saved).not.toHaveBeenCalled();
++  notifyPropertySaved('qa-actor',a.id,{...a,lot:7000});expect(saved).toHaveBeenCalledTimes(1);
++  notifyPropertySaved('qa-actor',b.id,b,{publication:true});expect(saved).toHaveBeenCalledTimes(2);
++  expect(saved.mock.calls[0][0].detail.propertyId).toBe(a.id);window.removeEventListener('ds:property-saved',saved);
++ });
+  it('coalesces a concurrent request without allowing identity/action override',async()=>{
+   let done;const invoke=vi.fn(body=>new Promise(resolve=>{done=()=>resolve({data:{success:true,data:body}});}));
+   const values={propertyId:'forged',action:'DECIDE',cacheOnly:true};
+diff --git a/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts b/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
+index 64be678..8d63345 100644
+--- a/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
++++ b/supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts
+@@ -9,6 +9,7 @@ import { buildFinancialEvidenceFromAuthorizedContext } from './financialEvidence
+ import {resolveRentAvmSubjectAttributes,type RentAvmSubject} from '../property-data/rentAvmSubject.ts';
+ import type {MarketRentResult} from '../property-data/marketRentService.ts';
+ import {reconcilePropertyFacts,propertyIdentity,evidenceHash,type ReviewSnapshot} from '../property-fact-reconciliation/model.ts';
++import {parcelMatchesPropertyAddress} from '../property-fact-reconciliation/acquisition.ts';
+ 
+ const FIELD_MAP:Record<string,ConsensusField>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType',livingAreaSqft:'buildingArea',yearBuilt:'yearBuilt'};
+ export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|null,id:string):CandidateInput[]{
+@@ -23,6 +24,7 @@ export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|n
+  }return rows;
+ }
+ type Options={input:unknown;propertyId:string;userId:string;receipt?:unknown;secret:string;parcelEnabled:boolean;financialEvidence?:boolean;rentAvmSubject?:boolean;
++  onAuthorizedParcelEvidence?:(property:Record<string,unknown>,candidates:CandidateInput[])=>Promise<void>;
+   loadRentAvmState?:(id:string)=>Promise<{property:Record<string,unknown>;snapshot:ReviewSnapshot|null}|null>;
+   loadMarketRent?:(id:string,subject:RentAvmSubject)=>Promise<MarketRentResult>;
+   loadCachedMarketRent?:(id:string)=>Promise<{evidence:Record<string,any>;freshness?:{state:string}}|null>;
+@@ -42,8 +44,11 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
+   const publisher={id:property.id,type:property.type,address:property.address??null,city:property.city,state:property.state,zip:property.zip,
+     price:property.price,beds:property.beds,baths:property.baths,sqft:property.sqft,lot:property.lot};
+   const point=typeof property.latitude==='number'&&typeof property.longitude==='number'?{lat:property.latitude,lng:property.longitude}:null;
+-  const parcels=await readParcelEvidenceReceipt(options.receipt,{userId:options.userId,point,secret:options.secret,enabled:options.parcelEnabled});
++  const parcels=(await readParcelEvidenceReceipt(options.receipt,{userId:options.userId,point,secret:options.secret,enabled:options.parcelEnabled})).filter(entry=>parcelMatchesPropertyAddress(row,entry.parcel.situsAddress));
+   const candidates=candidatesFromAuthorizedBundle({publisher,publicParcels:parcels});
++  // A geometry-only match cannot persist an owner conflict discovered by B.
++  const bound=parcels.filter(entry=>typeof entry.parcel.situsAddress==='string'&&entry.parcel.situsAddress.trim());
++  if(bound.length&&options.onAuthorizedParcelEvidence)await options.onAuthorizedParcelEvidence(row,candidatesFromAuthorizedBundle({publicParcels:bound})).catch(()=>null);
+   const own=await options.loadUserFacts?.(input.propertyId,options.userId).catch(()=>null);
+   if(own){
+     for(const [name,field,unit]of [['zoning','zoning',null],['apn','apn',null],['ownerName','owner',null],['lotSizeAcres','lotArea','ACRES'],['lotSizeSqft','lotArea','SQFT']] as const){
+diff --git a/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts b/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
+index f769e79..244587c 100644
+--- a/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
++++ b/supabase/functions/_shared/maxxis/marketReferenceAnswer.ts
+@@ -11,6 +11,18 @@ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, lan
+   const t = (pt: string, en: string, es: string) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
+   const facts = snapshot.propertyFacts || snapshot.property || {};
+   const propertyId = String(snapshot.propertyId || facts.id || '');
++  if(intent==='EVIDENCE_GAPS'){
++    const receipt=snapshot.soldDelivery||projectSoldDelivery(),arv=snapshot.arv||{};
++    const area=snapshot.effectivePropertyFacts?.lotArea;
++    const value=area?.state==='AVAILABLE'?`${area.value} ${area.unit||''}`:facts.lotSizeSqft??facts.lot;
++    const conflict=area?.state==='CONFLICTED';
++    const lines=[soldDeliveryAnswer(receipt,language),
++      `ARV: ${['ARV_AVAILABLE','ARV_LIMITED'].includes(arv.status)?arv.status:t('não estabelecido neste snapshot; verificar execução/elegibilidade das vendas e condição comparável. Isso não comprova ausência de vendas.','not established in this snapshot; verify sales query execution/eligibility and comparable condition. This does not establish an absence of sales.','no establecido en este snapshot; verificar ejecución/elegibilidad de ventas y condición comparable. No prueba ausencia de ventas.')}`,
++      t(`Terreno: ${conflict?'evidências em conflito, sem área adotada':value!=null&&value!==''?`área informada/disponível ${value}; verificar provenance`:'sem evidência utilizável de área; ausência não comprova área zero'}.`,`Land: ${conflict?'conflicting evidence; no area adopted':value!=null&&value!==''?`reported/available area ${value}; verify provenance`:'no usable area evidence; absence does not establish zero area'}.`,`Terreno: ${conflict?'evidencia en conflicto; sin área adoptada':value!=null&&value!==''?`área informada/disponible ${value}; verificar procedencia`:'sin evidencia utilizable; ausencia no prueba área cero'}.`),
++      t('Identidade/endereço: coordenadas não confirmam cidade/ZIP. Sem prova postal independente neste snapshot, não é possível confirmar ou corrigir a identidade.','Address identity: coordinates do not confirm city/ZIP. Without independent postal proof in this snapshot, identity cannot be confirmed or corrected.','Identidad/dirección: coordenadas no confirman ciudad/ZIP. Sin prueba postal independiente en este snapshot no se confirma ni corrige la identidad.'),
++      t('Próxima ação: abrir a edição e a página de revisão; usar Consultar dados disponíveis. Cache primeiro; consultas pagas exigem autorização específica.','Next: open editing and its review page; use Check available facts. Cache first; paid queries require specific authorization.','Siguiente: abrir edición y revisión; Consultar datos disponibles. Caché primero; consultas pagadas requieren autorización específica.')];
++    return {answer:lines.join('\n\n'),type:'market_reference' as const,data:{propertyId,intelligenceSnapshot:snapshot,reference:null,landMetrics:null,stateVersion:String(snapshot.generatedAt||'v1'),providerCalls:0},actions:[]};
++  }
+   if (intent === 'SOLD_ARV_EVIDENCE') {
+     const receipt = snapshot.soldDelivery || projectSoldDelivery();
+     return { answer: soldDeliveryAnswer(receipt, language), type: 'market_reference' as const,
+diff --git a/supabase/functions/_shared/maxxis/marketReferenceIntent.ts b/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
+index 03bd556..98508b9 100644
+--- a/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
++++ b/supabase/functions/_shared/maxxis/marketReferenceIntent.ts
+@@ -3,6 +3,7 @@ import { propertyTypeFamily, resolveAnalysisPropertyType } from './canonicalFact
+ /** Topic detection is shared by chat UI and the authenticated runtime, not chosen by the LLM. */
+ export function detectMarketReferenceIntent(message: unknown, property?: Record<string, unknown> | null) {
+   const text = String(message || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
++  if(/\b(?:comps|arv|sold|comparaveis|comparables)\b/.test(text)&&/\b(?:terreno|lote|land|lot|parcela)\b/.test(text))return 'EVIDENCE_GAPS';
+   if (/\b(?:match score|profile fit)\b/.test(text) && /\b(?:por que|porque|why|expli|qual|what)\b/.test(text)) return 'PROFILE_FIT_EVIDENCE';
+   if (/\b(?:arv|sold|vendas fechadas|closed sales|ventas cerradas)\b/.test(text)
+     && /\b(?:existem|exist|ha|there|hay|por que|porque|why|nao|not|no|which|quais)\b/.test(text)) return 'SOLD_ARV_EVIDENCE';
+diff --git a/supabase/functions/_shared/maxxis/toolRegistry.ts b/supabase/functions/_shared/maxxis/toolRegistry.ts
+index de89c47..c4dda03 100644
+--- a/supabase/functions/_shared/maxxis/toolRegistry.ts
++++ b/supabase/functions/_shared/maxxis/toolRegistry.ts
+@@ -1,4 +1,5 @@
+ import { createClient } from 'npm:@supabase/supabase-js@2';
++import {reconcileAuthorizedParcelEvidence} from '../property-fact-reconciliation/ownerEvidence.ts';
+ import { searchServicesWithMetrics, validateSearchServicesInput } from './searchServices.ts';
+ import { getMyInvestmentProfile, getMyInvestmentProfileWithClient } from './getMyInvestmentProfile.ts';
+ import { getPropertyDetails, getPropertyDetailsForAuthenticatedUser } from './getPropertyDetails.ts';
+@@ -120,6 +121,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
+     let remoteConfig={};try{remoteConfig=JSON.parse(Deno.env.get('FEATURE_FLAGS_JSON')||'{}');}catch{/* OFF by default */}
+     const flags=resolveFeatureFlags({userId:authenticated.userId,environment:supabaseUrl.includes('cyeipfskwwisbbayyaca')?'production':supabaseUrl.includes('oqdcnjupquhybwdbeeew')?'staging':'development',remoteConfig});
+     return getCanonicalPropertyEvidenceWithDependencies({input:args,propertyId:context.propertyId||'',userId:authenticated.userId,
++      onAuthorizedParcelEvidence:(property,candidates)=>reconcileAuthorizedParcelEvidence(property,candidates,createClient(supabaseUrl,supabaseServiceRoleKey) as unknown as Parameters<typeof reconcileAuthorizedParcelEvidence>[2]),
+       receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,financialEvidence:context.financialEvidence===true,rentAvmSubject:context.rentAvmSubject===true,
+       loadRentAvmState:async propertyId=>{
+         const internal=createClient(supabaseUrl,supabaseServiceRoleKey);
+diff --git a/supabase/functions/_shared/property-data/backendFactory.ts b/supabase/functions/_shared/property-data/backendFactory.ts
+index 5b984e9..10e9b59 100644
+--- a/supabase/functions/_shared/property-data/backendFactory.ts
++++ b/supabase/functions/_shared/property-data/backendFactory.ts
+@@ -20,6 +20,7 @@ import { SupabaseSupplementalEvidenceCache } from './supplementalEvidenceCache.t
+ import { SupplementalEvidenceService } from './supplementalEvidenceService.ts';
+ import { createSupplementalEvidenceProvider } from './supplementalEvidenceProvider.ts';
+ import {MarketRentService} from './marketRentService.ts';
++import {reconcileAcquiredOwnerEvidence} from '../property-fact-reconciliation/ownerEvidence.ts';
+ import type {RentAvmSubject} from './rentAvmSubject.ts';
+ import {resolveCachedRentAvmSubject} from './marketRentSubjectContext.ts';
+ 
+@@ -79,6 +80,7 @@ export function createBackendPropertyEvidenceService(options: {
+     enabled: config.mode !== 'disabled',
+     singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
+     logger: options.logger,
++    onAcquired: result=>reconcileAcquiredOwnerEvidence(result,options.supabaseAdmin as unknown as Parameters<typeof reconcileAcquiredOwnerEvidence>[1]),
+   });
+ }
+ 
+diff --git a/supabase/functions/_shared/property-data/propertyEvidenceService.ts b/supabase/functions/_shared/property-data/propertyEvidenceService.ts
+index 66e69ee..5ea9be9 100644
+--- a/supabase/functions/_shared/property-data/propertyEvidenceService.ts
++++ b/supabase/functions/_shared/property-data/propertyEvidenceService.ts
+@@ -105,6 +105,7 @@ export class PropertyEvidenceService {
+   private readonly logger: PropertyDataLogger;
+   private readonly singleFlight: PropertySingleFlight;
+   private readonly enabled: boolean;
++  private readonly onAcquired?: (result:PropertyEvidenceResult)=>Promise<void>;
+ 
+   constructor(options: {
+     repository: PropertyEvidenceRepository;
+@@ -113,6 +114,7 @@ export class PropertyEvidenceService {
+     logger?: PropertyDataLogger;
+     singleFlight?: PropertySingleFlight;
+     enabled?: boolean;
++    onAcquired?: (result:PropertyEvidenceResult)=>Promise<void>;
+   }) {
+     this.repository = options.repository;
+     this.cache = options.cache;
+@@ -120,6 +122,7 @@ export class PropertyEvidenceService {
+     this.logger = options.logger || logPropertyDataEvent;
+     this.singleFlight = options.singleFlight || new InMemoryPropertySingleFlight();
+     this.enabled = options.enabled !== false;
++    this.onAcquired = options.onAcquired;
+   }
+ 
+   async getCachedPropertyEvidence(input: { propertyId: string; userId?: string | null }): Promise<PropertyEvidenceResult> {
+@@ -215,6 +218,7 @@ export class PropertyEvidenceService {
+         retrievedAt: externalData.sourceMetadata.retrievedAt,
+         sourceDiagnostics: propertyEvidenceSourceDiagnostics(externalData),
+       };
++      if(!cacheHit&&this.onAcquired)try{await this.onAcquired(result);}catch{/* Evidence is retained; owner relay may be retried through the existing review CHECK. */}
+       this.logger({ operation: 'property_evidence', success: true, durationMs: Date.now() - startedAt, cacheHit });
+       return result;
+     } catch (error) {
+diff --git a/supabase/functions/_shared/property-fact-reconciliation/acquisition.ts b/supabase/functions/_shared/property-fact-reconciliation/acquisition.ts
+index e3f7458..86f92e9 100644
+--- a/supabase/functions/_shared/property-fact-reconciliation/acquisition.ts
++++ b/supabase/functions/_shared/property-fact-reconciliation/acquisition.ts
+@@ -1,4 +1,4 @@
+-import {normalizeStreet} from '../property-data/address.ts';
++import {normalizeStreet,normalizeState,normalizeZipCode} from '../property-data/address.ts';
+ 
+ /** Saved identity only. An incomplete form never authorizes external acquisition. */
+ export function hasStablePropertyIdentity(property:Record<string,unknown>){
+@@ -11,5 +11,12 @@ export function hasStablePropertyIdentity(property:Record<string,unknown>){
+ export function parcelMatchesPropertyAddress(property:Record<string,unknown>,situsAddress:unknown){
+  if(typeof situsAddress!=='string'||!situsAddress.trim())return true;
+  const street=normalizeStreet(String(property.address||'').split(',')[0]);
+- return Boolean(street)&&street===normalizeStreet(situsAddress.split(',')[0]);
++ const parts=situsAddress.split(',').map(part=>part.trim());
++ if(!street||street!==normalizeStreet(parts[0]))return false;
++ // A street/PIN match is not proof of city/state/ZIP. When the situs supplies
++ // the full postal identity, do not discard those contradictory components.
++ const postal=parts.at(-1)?.match(/^([A-Za-z ]+?)\s+(\d{5}(?:-\d{4})?)$/);
++ if(parts.length>=3&&postal)return String(property.city||'').trim().toUpperCase()===parts[1].toUpperCase()
++  &&normalizeState(property.state)===normalizeState(postal[1])&&normalizeZipCode(property.zip)===normalizeZipCode(postal[2]);
++ return true;
+ }
+diff --git a/supabase/functions/_shared/property-fact-reconciliation/model.ts b/supabase/functions/_shared/property-fact-reconciliation/model.ts
+index a36af96..cbac22e 100644
+--- a/supabase/functions/_shared/property-fact-reconciliation/model.ts
++++ b/supabase/functions/_shared/property-fact-reconciliation/model.ts
+@@ -14,7 +14,7 @@ export type ReviewAction='KEEP_MY_VALUE'|'ACCEPT_EXTERNAL_VALUE'|'REVIEW_LATER';
+ type Decision={action:ReviewAction;evidenceHash:string;candidateId:string|null;value:number|string|null;source:CandidateInput['sourceType'];sourceId:string;unit:string|null;status:string;freshness:string;year:number|null;by:string;at:string;originalValue:unknown};
+ export type ReviewRow={field:ReviewField;state:ReconciliationState;originalValue:unknown;currentCandidate:EvidenceCandidate|null;currentValue:number|string|null;currentUserMaintained?:boolean;evidenceHash:string;projection:ProjectedEvidenceField;candidates:EvidenceCandidate[];bulkCandidateId:string|null;decision:Decision|null;pending:boolean;effective:EffectiveFact};
+ export type EffectiveFact={value:number|string|null;unit:string|null;state:'AVAILABLE'|'CONFLICTED'|'UNAVAILABLE'|'NOT_APPLICABLE';sourceType:string|null;sourceId?:string;status?:string;freshness?:string;year?:number|null;adopted?:boolean;userConfirmed?:boolean};
+-export type ReviewSnapshot={version:1;propertyId:string;publisherUpdatedAt:string|null;publicCheckedAt?:string|null;publisherDeclarations?:{zoning?:{value:string;by:string;at:string;identityHash:string}};identityHash:string;publisherHash:string;evidenceHash:string;rows:Record<ReviewField,ReviewRow>;summary:{complements:number;conflicts:number;pending:number};checkedAt:string;resolvedPropertyType:string};
++export type ReviewSnapshot={version:1;propertyId:string;publisherUpdatedAt:string|null;publicCheckedAt?:string|null;acquisition?:Record<string,string>;publisherDeclarations?:{zoning?:{value:string;by:string;at:string;identityHash:string}};identityHash:string;publisherHash:string;evidenceHash:string;rows:Record<ReviewField,ReviewRow>;summary:{complements:number;conflicts:number;pending:number};checkedAt:string;resolvedPropertyType:string};
+ const aliases:Record<ReviewField,string>= {lotArea:'lot',apn:'apn',owner:'publicOwnerName',assessedValue:'assessedValue',propertyTax:'propertyTax',zoning:'zoning',propertyType:'type',buildingArea:'sqft',yearBuilt:'yearBuilt',beds:'beds',baths:'baths',subdivision:'subdivision',legalDescription:'legalDescription'};
+ const clean=(value:unknown)=>typeof value==='string'?value.normalize('NFKC').trim():value??null;
+ export function stableJson(value:unknown):string {if(Array.isArray(value))return `[${value.map(stableJson).join(',')}]`;if(value&&typeof value==='object')return `{${Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,v])=>`${JSON.stringify(key)}:${stableJson(v)}`).join(',')}}`;return JSON.stringify(value??null);}
+@@ -66,6 +66,7 @@ export async function reconcilePropertyFacts(property:Record<string,unknown>,ext
+  }
+  const summary={complements:0,conflicts:0,pending:0};
+  const snapshot:ReviewSnapshot={version:1,propertyId:String(property.id),publisherUpdatedAt:typeof property.updated_at==='string'?property.updated_at:null,...(declaration?{publisherDeclarations:{zoning:declaration}}:{}),identityHash,publisherHash,evidenceHash:await evidenceHash(REVIEW_FIELDS.map(field=>rows[field].evidenceHash)),rows,summary,checkedAt:now,resolvedPropertyType:resolvedType};
++ if(previous?.identityHash===identityHash&&previous.acquisition)snapshot.acquisition={...previous.acquisition};
+  snapshot.summary=actionableReview(snapshot).summary;return snapshot;
+ }
+ export function applyFactDecisions(snapshot:ReviewSnapshot,actions:readonly {field:ReviewField;action:ReviewAction;candidateId?:string}[],userId:string,now=new Date().toISOString()):ReviewSnapshot{
+diff --git a/supabase/functions/_shared/property-fact-reconciliation/ownerEvidence.ts b/supabase/functions/_shared/property-fact-reconciliation/ownerEvidence.ts
+new file mode 100644
+index 0000000..40d590d
+--- /dev/null
++++ b/supabase/functions/_shared/property-fact-reconciliation/ownerEvidence.ts
+@@ -0,0 +1,39 @@
++import type {PropertyEvidenceResult,InternalPropertyRecord} from '../property-data/propertyEvidenceTypes.ts';
++import {matchesCachedSubject} from '../property-data/cacheIdentity.ts';
++import {candidatesFromAuthorizedBundle} from '../parcel-evidence-consensus/adapters.ts';
++import {runPropertyFactReview} from './runtime.ts';
++import {evidenceHash,propertyIdentity} from './model.ts';
++import type {CandidateInput} from '../parcel-evidence-consensus/types.ts';
++import {propertyAddressFingerprint} from '../property-data/address.ts';
++type Db={from:(name:string)=>any;rpc:(name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:any}>};
++/** Server-only relay from a validated acquisition. No client candidates, owner ID,
++ * decisions, paid requests or property edits enter this boundary. Returns no private state. */
++export async function reconcileAcquiredOwnerEvidence(result:PropertyEvidenceResult,db:Db){
++ if(result.cacheHit)return;
++ const {data:property,error}=await db.from('properties').select('id,owner_id,updated_at,address,city,state,zip,type,lot,sqft,beds,baths,rehab,lat,lng,geocode_status').eq('id',result.propertyId).maybeSingle();
++ if(error||!property?.owner_id||property.id!==result.propertyId||!await matchesCachedSubject(property as InternalPropertyRecord,result.externalData.address))return;
++ return persistOwnerCandidates(property,candidatesFromAuthorizedBundle({publisher:property,providerEvidence:result}),db);
++}
++/** Server-only: caller has already verified signed GIS receipt and situs match. */
++export async function reconcileAuthorizedParcelEvidence(expected:Record<string,unknown>,candidates:CandidateInput[],db:Db){
++ const {data:property,error}=await db.from('properties').select('id,owner_id,updated_at,address,city,state,zip,type,lot,sqft,beds,baths,rehab,lat,lng,geocode_status').eq('id',expected.id).maybeSingle();
++ if(error||!property?.owner_id||property.id!==expected.id)return;
++ const fingerprint=(p:Record<string,unknown>)=>propertyAddressFingerprint({street:String(p.address||''),city:String(p.city||''),state:String(p.state||''),zipCode:String(p.zip||'')});
++ if(await fingerprint(property)!==await fingerprint(expected))return;
++ return persistOwnerCandidates(property,candidates.filter(c=>c.sourceFamily?.startsWith('COUNTY_GIS:')),db);
++}
++async function persistOwnerCandidates(property:Record<string,any>,candidates:CandidateInput[],db:Db){
++ candidates=candidates.filter(c=>c.sourceFamily!=='PUBLISHER');
++ if(!candidates.length)return;
++ const replaced=new Set(candidates.map(c=>c.sourceFamily));
++ const owner=String(property.owner_id);
++ const {data:previous,error:reviewError}=await db.from('property_fact_reviews').select('state,revision').eq('property_id',property.id).eq('owner_id',owner).maybeSingle();
++ if(reviewError)throw Error('REVIEW_READ_FAILED');
++ await runPropertyFactReview({propertyId:property.id,action:'CHECK',cacheOnly:true},{userId:owner,
++  loadOwnedProperty:async()=>property,loadReview:async()=>previous,
++  acquire:async()=>{const same=previous?.state?.identityHash===await evidenceHash(propertyIdentity(property));
++   return [...(same?Object.values(previous.state.rows).flatMap((row:any)=>row.projection.candidates.filter((c:any)=>c.sourceFamily!=='PUBLISHER'&&!replaced.has(c.sourceFamily))):[]),...candidates];},
++  store:async(id,actor,revision,state,publicFacts,notify)=>{if(previous?.state?.identityHash===state.identityHash&&previous.state.publisherHash===state.publisherHash&&previous.state.evidenceHash===state.evidenceHash)return revision;
++   const saved=await db.rpc('ds_store_property_fact_review',{p_property_id:id,p_owner_id:actor,p_expected_revision:revision,p_state:state,p_public_facts:publicFacts,p_notify:notify});if(saved.error)throw Error('REVIEW_SAVE_FAILED');return Number(saved.data);},
++ });
++}
+diff --git a/supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js b/supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js
+index a7ce321..4925370 100644
+--- a/supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js
++++ b/supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js
+@@ -48,6 +48,17 @@ export function actionableReview(snapshot){
+  const conflicts=items.filter(item=>item.kind==='CONFLICT').length;
+  return {items,summary:{conflicts,complements:items.length-conflicts,pending:items.length}};
+ }
++// A persisted publisher-only snapshot is not independent verification.
++export function reviewVerificationState(snapshot){
++ if(actionableReview(snapshot).summary.conflicts)return 'REVIEW_REQUIRED';
++ const status=snapshot?.acquisition?.gis;
++ if(status==='PARCEL_NOT_FOUND')return 'NO_MATCH';
++ if(['SOURCE_TEMPORARILY_UNAVAILABLE','NO_ACTIVE_PUBLIC_SOURCE','PROVIDER_UNAVAILABLE'].includes(status))return 'PROVIDER_UNAVAILABLE';
++ const rows=Object.values(snapshot?.rows||{}),external=rows.flatMap(row=>(row.candidates||[]).filter(qualified));
++ if(!external.length)return snapshot?.publicCheckedAt?'INSUFFICIENT_EVIDENCE':'NOT_CHECKED';
++ const applicable=rows.filter(row=>row.state!=='NOT_APPLICABLE');
++ return applicable.length&&applicable.every(row=>row.projection?.consensusState==='CONFIRMED'&&row.effective?.state==='AVAILABLE')?'VERIFIED':'INSUFFICIENT_EVIDENCE';
++}
+ export function publicEffectiveFacts(snapshot){
+  return Object.fromEntries(REVIEW_FIELDS.flatMap(field=>{const fact=snapshot?.rows?.[field]?.effective;if(!fact)return [];
+   return [[field,{value:fact.value,unit:fact.unit,state:fact.state,sourceType:fact.sourceType,status:fact.userConfirmed?'USER_CONFIRMED':fact.status??'UNKNOWN',freshness:fact.freshness??'UNKNOWN',year:fact.year??null}]];
+diff --git a/supabase/functions/_shared/property-fact-reconciliation/runtime.ts b/supabase/functions/_shared/property-fact-reconciliation/runtime.ts
+index da607f0..540e84e 100644
+--- a/supabase/functions/_shared/property-fact-reconciliation/runtime.ts
++++ b/supabase/functions/_shared/property-fact-reconciliation/runtime.ts
+@@ -4,6 +4,7 @@ import {reviewCandidateIdentity} from './reviewProjection.js';
+ type Stored={state:ReviewSnapshot;revision:number};
+ type Dependencies={userId:string;loadOwnedProperty:(id:string,userId:string)=>Promise<Record<string,unknown>|null>;loadReview:(id:string,userId:string)=>Promise<Stored|null>;
+  acquire:(property:Record<string,unknown>,previous:ReviewSnapshot|null,receipt:unknown,force:boolean)=>Promise<CandidateInput[]>;
++ acquisitionReceipt?:()=>Record<string,string>;
+  store:(propertyId:string,userId:string,revision:number,state:ReviewSnapshot,publicFacts:ReturnType<typeof publicEffectiveFacts>,notify:boolean)=>Promise<number>};
+ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+ export async function runPropertyFactReview(input:unknown,deps:Dependencies){
+@@ -15,7 +16,7 @@ export async function runPropertyFactReview(input:unknown,deps:Dependencies){
+  const previous=await deps.loadReview(id,deps.userId);
+  if(action==='READ')return {propertyId:id,snapshot:previous?.state??null,revision:previous?.revision??0};
+  let next:ReviewSnapshot;
+- if(action==='CHECK'){next=await reconcilePropertyFacts(property,await deps.acquire(property,previous?.state??null,body.parcelEvidenceReceipt,body.force===true),previous?.state??null);next.publicCheckedAt=body.cacheOnly===true?previous?.state.publicCheckedAt??null:next.checkedAt;}
++ if(action==='CHECK'){next=await reconcilePropertyFacts(property,await deps.acquire(property,previous?.state??null,body.parcelEvidenceReceipt,body.force===true),previous?.state??null);next.publicCheckedAt=body.cacheOnly===true?previous?.state.publicCheckedAt??null:next.checkedAt;if(deps.acquisitionReceipt)next.acquisition=deps.acquisitionReceipt();}
+  else if(action==='DECLARE_ZONING'){
+   if(body.revision!==(previous?.revision??0)||previous&&body.evidenceHash!==previous.state.evidenceHash)throw new Error('FACT_REVIEW_STALE');
+   const value=typeof body.declaredZoning==='string'?body.declaredZoning.normalize('NFKC').trim().toUpperCase():'';
+diff --git a/supabase/functions/maxxis-chat/index.ts b/supabase/functions/maxxis-chat/index.ts
+index c2afd7e..201ee20 100644
+--- a/supabase/functions/maxxis-chat/index.ts
++++ b/supabase/functions/maxxis-chat/index.ts
+@@ -941,7 +941,7 @@ Deno.serve(async (req) => {
+         }
+       : marketReferenceIntent || propertyFactIntent || dealScenarioIntent
+         ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId,
+-            ...(marketReferenceIntent === 'SOLD_ARV_EVIDENCE' ? { reportType: 'DEAL_INTELLIGENCE' } : {}) } } : null;
++            ...(['SOLD_ARV_EVIDENCE','EVIDENCE_GAPS'].includes(marketReferenceIntent||'') ? { reportType: 'DEAL_INTELLIGENCE' } : {}) } } : null;
+     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
+     if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
+       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
+@@ -1098,7 +1098,7 @@ Deno.serve(async (req) => {
+           functionArgs,
+           req.headers.get('Authorization') || '',
+           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
+-            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent) || ['SOLD_ARV_EVIDENCE','PROFILE_FIT_EVIDENCE'].includes(marketReferenceIntent || ''),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
++            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent) || ['SOLD_ARV_EVIDENCE','PROFILE_FIT_EVIDENCE','EVIDENCE_GAPS'].includes(marketReferenceIntent || ''),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
+         );
+       } catch (error) {
+         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {
+diff --git a/supabase/functions/property-fact-review/index.ts b/supabase/functions/property-fact-review/index.ts
+index 4b4b0cd..cf79810 100644
+--- a/supabase/functions/property-fact-review/index.ts
++++ b/supabase/functions/property-fact-review/index.ts
+@@ -33,24 +33,29 @@ Deno.serve(async req=>{
+   const parsed=await readJsonWithLimit(req,24000);if(!parsed.ok)return reply({error:'INVALID_REVIEW_REQUEST'},400);const body=parsed.body;
+   let remoteConfig={};try{remoteConfig=JSON.parse(Deno.env.get('FEATURE_FLAGS_JSON')||'{}');}catch{/* existing default OFF */}
+   const flags=resolveFeatureFlags({userId,environment:supabaseUrl.includes('cyeipfskwwisbbayyaca')?'production':'development',remoteConfig});
+-  const result=await runPropertyFactReview(body,{userId,
++  let acquisition:Record<string,string>={gis:'NOT_CHECKED',provider:'NOT_CHECKED',address:'INSUFFICIENT_EVIDENCE'};
++  const result=await runPropertyFactReview(body,{userId,acquisitionReceipt:()=>acquisition,
+    loadOwnedProperty:async(id,actor)=>{const {data,error}=await client.from('properties').select(fields).eq('id',id).eq('owner_id',actor).maybeSingle();if(error)throw new Error('PROPERTY_READ_FAILED');return data;},
+    loadReview:async(id,actor)=>{const {data,error}=await client.from('property_fact_reviews').select('state,revision').eq('property_id',id).eq('owner_id',actor).maybeSingle();if(error)throw new Error('REVIEW_READ_FAILED');return data;},
+    acquire:async(property,previous,receipt,force)=>{
+     const sameIdentity=previous?.identityHash===await evidenceHash(propertyIdentity(property));
++    if(sameIdentity&&previous?.acquisition)acquisition={...previous.acquisition};
+     let rows:CandidateInput[]=sameIdentity?Object.values(previous!.rows).flatMap(row=>row.projection.candidates.filter(c=>c.sourceFamily!=='PUBLISHER')):[];
+     if(!hasStablePropertyIdentity(property))return [];
+     const point=typeof property.lat==='number'&&typeof property.lng==='number'?{lat:property.lat,lng:property.lng}:null;
+     let parcels=await readParcelEvidenceReceipt(receipt,{userId,point,secret:supabaseServiceRoleKey,enabled:flags.public_parcel_intelligence});
++    if(parcels.length)acquisition.gis='COVERAGE_AVAILABLE';
+     if(body.cacheOnly!==true&&!parcels.length&&flags.public_parcel_intelligence&&point&&validPoint(point)&&property.geocode_status==='resolved'
+      &&(force||!sameIdentity||!previous?.publicCheckedAt||Date.now()-Date.parse(previous.publicCheckedAt)>6*3600000)){
+      try{const response=await fetch(`${supabaseUrl}/functions/v1/public-parcel`,{method:'POST',headers:{Authorization:authHeader,apikey:supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify({operation:'query-point',point}),signal:AbortSignal.timeout(8000)});
+       const result:ParcelResult=response.ok?await response.json():{status:'UNAVAILABLE',parcels:[]} as unknown as ParcelResult;
++      acquisition.gis=response.ok?result.status:'PROVIDER_UNAVAILABLE';
+       const matches=result.status==='COVERAGE_AVAILABLE'&&!result.ambiguity?result.parcels.filter(p=>geometryContains(p.geometry,point)):[];
+       if(matches.length===1){const parcel=matches[0],source=PARCEL_SOURCES.find(s=>s.sourceId===parcel.source);if(source&&productionSourceAllowed(source)&&result.countyFips)parcels=[{parcel,source,countyFips:result.countyFips,subjectMatch:'VERIFIED_SUBJECT',freshness:result.freshness==='STALE_USABLE'?'STALE_USABLE':'FRESH'}];}
+-     }catch{/* async enrichment failure never blocks registration */}
++     }catch{acquisition.gis='PROVIDER_UNAVAILABLE';/* never block registration */}
+     }
+     const addressMismatch=parcels.some(entry=>!parcelMatchesPropertyAddress(property,entry.parcel.situsAddress));
++    if(addressMismatch)acquisition.address='REVIEW_REQUIRED';
+     if(addressMismatch)rows=rows.filter(candidate=>!candidate.sourceFamily?.startsWith('COUNTY_GIS:'));
+     parcels=parcels.filter(entry=>parcelMatchesPropertyAddress(property,entry.parcel.situsAddress));
+     if(parcels.length){const fresh=candidatesFromAuthorizedBundle({publicParcels:parcels});const families=new Set(fresh.map(c=>c.sourceFamily));rows=[...rows.filter(c=>!families.has(c.sourceFamily)),...fresh];}
+@@ -60,6 +65,7 @@ Deno.serve(async req=>{
+     try{const access=await loadMaxxisRuntimeAccessContext(userId,authClient as unknown as Parameters<typeof loadMaxxisRuntimeAccessContext>[1],String(property.id));
+      if(access.ok){const plan=access.context.plan==='ENTERPRISE'?'ENTERPRISE':access.context.plan==='PRO'?'PRO':'FREE';
+       const cached=await getPropertyEvidenceForAuthenticatedUser({propertyId:property.id},authHeader,userId,String(property.id),false,{plan,bucket:'chat'});
++      acquisition.provider=cached.cacheState==='hit'?'CACHE_HIT':cached.entitlementState==='authorized'?'CACHE_MISS':'ENTITLEMENT_BLOCKED';
+       const current=cachedProviderCandidates(cached,String(property.id));if(current.length)rows=[...rows.filter(c=>c.sourceFamily!=='RENTCAST'),...current];
+       if(cached.entitlementState==='authorized'){
+         const market=await createBackendMarketRentService({supabaseAdmin:admin as unknown as PropertyEvidenceBackendClient,getEnv:name=>Deno.env.get(name),
+@@ -67,7 +73,7 @@ Deno.serve(async req=>{
+           resolveSubject:()=>resolveCachedRentAvmSubject(admin,String(property.id))}).get({propertyId:String(property.id),userId,acquire:false});
+         rows.push(...marketRentSubjectCandidates(market.evidence));
+       }}
+-    }catch{/* cache unavailable, never acquire a paid record */}
++    }catch{acquisition.provider='PROVIDER_UNAVAILABLE';/* never acquire a paid record */}
+     return rows;
+    },
+    store:async(id,actor,revision,state,publicFacts,notify)=>{const {data,error}=await admin.rpc('ds_store_property_fact_review',{p_property_id:id,p_owner_id:actor,p_expected_revision:revision,p_state:state,p_public_facts:publicFacts,p_notify:notify});if(error)throw new Error(/FACT_REVIEW_STALE|PROPERTY_FACTS_CHANGED/.test(error.message)?'FACT_REVIEW_STALE':'REVIEW_SAVE_FAILED');return Number(data);},

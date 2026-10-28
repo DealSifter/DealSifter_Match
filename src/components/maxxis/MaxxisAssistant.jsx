@@ -1634,7 +1634,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? projectMaxxisDealIntelligenceResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
-      if (projectedReport?.data?.maxxisReport) await prepareReportNarrativePresentation(projectedReport.data.maxxisReport, language);
+      if (projectedReport?.data?.maxxisReport) await prepareReportNarrativePresentation(projectedReport.data.maxxisReport, language, { media: false, timeoutMs: 1500 });
       if (reportGenerationFailed) {
         lastReportFailureRef.current = createMaxxisReportFailureState(
           result,

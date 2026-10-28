@@ -2169,6 +2169,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                           canonicalContact={activeOwner?.canonicalContact || null}
                           isUnlocked={isUnlocked}
                           variant="desktop"
+                          showIdentity={false}
                           onUnlockRequest={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})}
                         />
                       </div>
@@ -2181,6 +2182,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                       canonicalContact={activeOwner?.canonicalContact || null}
                       isUnlocked={isUnlocked}
                       variant="mobile"
+                      showIdentity={false}
                       onUnlockRequest={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})}
                     />
                   </div>

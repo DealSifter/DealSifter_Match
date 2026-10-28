@@ -1,0 +1,10 @@
+﻿{
+    "observedAt":  "2026-10-19T20:50:03.3265873Z",
+    "sha":  "f96b409f95e99c532a56f6b1760d326c11a166a0",
+    "previousDeployment":  "dpl_GwdT5vyhpd5cGfnSAgm7XMRhyXDW",
+    "deployment":  "dpl_7aGyqibdEhQAqLvunnnvQoy1j1Gk",
+    "url":  "dealsiftermatch-bvm2lip4l-deal-sifter-match-s-projects.vercel.app",
+    "readyState":  "READY",
+    "productionAlias":  "https://dealsiftermatch.vercel.app",
+    "sourceProof":  "production-source-proof.json"
+}

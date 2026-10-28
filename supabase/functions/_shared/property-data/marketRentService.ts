@@ -5,7 +5,7 @@ import {InMemoryPropertySingleFlight,type PropertySingleFlight} from './singleFl
 import {rentAvmRequestIdentity,type RentAvmSubject} from './rentAvmSubject.ts';
 
 export type MarketRentResult={state:RentAvmSubject['state']|'AVAILABLE'|'NOT_QUERIED'|'NO_RESULT'|'PROVIDER_ERROR'|'ENTITLEMENT_BLOCKED'|'USAGE_BLOCKED'|'PROVIDER_DISABLED'|'SUBJECT_CHANGED';
-  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number;reviewField?:string;reason?:string};
+  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number;reviewField?:string;reviewFields?:string[];reason?:string};
 let providerQueue:Promise<unknown>=Promise.resolve();
 async function serialProvider<T>(work:()=>Promise<T>):Promise<T>{
   const task=providerQueue.then(async()=>{const start=Date.now();try{return await work();}finally{const wait=250-(Date.now()-start);if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));}});
@@ -24,7 +24,7 @@ export class MarketRentService {
     if(!input.userId||!await this.options.hasEntitlement())return {...base,state:'ENTITLEMENT_BLOCKED'};
     const subject=await this.options.resolveSubject();
     if(subject.propertyId!==input.propertyId)return {...base,state:'SUBJECT_UNAVAILABLE'};
-    if(subject.state!=='READY')return {...base,state:subject.state,reviewField:subject.reviewField};
+    if(subject.state!=='READY')return {...base,state:subject.state,reviewField:subject.reviewField,reviewFields:subject.reviewFields,reason:subject.reason};
     const identity=await rentAvmRequestIdentity(subject);
     const read=()=>this.options.cache.get(input.propertyId,'rentEstimate',identity.addressFingerprint,identity.queryFingerprint,{allowStale:true});
     const present=(entry:NonNullable<Awaited<ReturnType<typeof read>>>,calls=0):MarketRentResult=>({

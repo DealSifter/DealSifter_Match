@@ -1,0 +1,31 @@
+{
+  "propertyId": "aecb105e-b113-4775-8afe-a443704b2a06",
+  "createdAt": "2026-05-01T20:21:13.831022+00:00",
+  "updatedAt": "2026-10-19T21:26:38.014325+00:00",
+  "ruleProductionObservedAt": "2026-10-15T15:00:28.116639Z",
+  "createdBeforeRule": true,
+  "ownerIdExamined": true,
+  "geocodedAt": "2026-06-09T01:48:46.804+00:00",
+  "geocoder": "arcgis",
+  "geocodeInput": "501 Avenue A Wahneta W|Winter Garden|FL|33881",
+  "independentPostalVerification": "NOT_PROVEN",
+  "expectedAddressFingerprint": "21e8734b6219ffe9ba761b74357c840f549df98e0efea6ef71d9fb60523992da",
+  "currentReviewIdentityHash": "71a6090b46993860eae705ae5fe706695ab3408811259df87b4799fd6a35f762",
+  "storedReviewIdentityHash": "71a6090b46993860eae705ae5fe706695ab3408811259df87b4799fd6a35f762",
+  "providerCacheEntries": 0,
+  "geocodeCacheEntries": 0,
+  "reviewRevision": 1,
+  "checkedAt": "2026-10-15T21:07:57.269Z",
+  "publicCheckedAt": null,
+  "summary": {
+    "pending": 0,
+    "conflicts": 0,
+    "complements": 0
+  },
+  "decisions": 0,
+  "externalCandidates": 0,
+  "notifications": 0,
+  "historicalAcquisitionAtSave": "UNKNOWN_NO_ATTEMPT_RECEIPT",
+  "propertyWrites": 0,
+  "providerCalls": 0
+}

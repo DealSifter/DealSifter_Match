@@ -22,7 +22,7 @@ export class ReferenceReportComposition {
   constructor(readonly flow: StrictPdfFlow, readonly vm: ReportViewModel, readonly maps: Record<string, string | null>, readonly location: string | null) {
     this.enterprise = vm.reportType === 'DEAL_INTELLIGENCE';
     this.accent = reportCategoryAccent(vm.reportType);
-    this.flow.referenceHeader = title => this.shell(title, this.nextHeading?.subtitle || this.t('Detalhamento das evidências', 'Evidence detail', 'Detalle de evidencia'), this.nextHeading?.icon || 'document');
+    this.flow.referenceHeader = title => this.shell(title === '…' ? this.t('Evidências · continuação', 'Evidence · continued', 'Evidencia · continuación') : title, this.nextHeading?.subtitle || this.t('Detalhamento das evidências', 'Evidence detail', 'Detalle de evidencia'), this.nextHeading?.icon || 'document');
   }
   t(pt: string, en: string, es: string) { return this.vm.locale === 'pt' ? pt : this.vm.locale === 'es' ? es : en; }
   get d() { return this.flow.doc; }
@@ -54,12 +54,13 @@ export class ReferenceReportComposition {
       d.setFillColor(...WHITE); d.circle(x + 12 * k, y + 8 * k, 2.5 * k, 'F');
     } else if (name === 'user') {
       d.circle(x + 12 * k, y + 6 * k, 5 * k, 'F'); d.ellipse(x + 12 * k, y + 19 * k, 9 * k, 6 * k, 'F');
-    } else if (name === 'check' || name === 'warning' || name === 'number') {
+    } else if (name === 'check' || name === 'warning' || name === 'number' || name === 'info') {
       if (name === 'warning') d.triangle(x + 12 * k, y, x, y + 23 * k, x + 24 * k, y + 23 * k, 'F');
       else d.circle(x + 12 * k, y + 12 * k, 11 * k, 'F');
       d.setDrawColor(...WHITE); d.setLineWidth(2 * k);
       if (name === 'check') { line(6, 12, 10, 16); line(10, 16, 18, 7); }
       else if (name === 'warning') { line(12, 7, 12, 14); d.setFillColor(...WHITE); d.circle(x + 12 * k, y + 18 * k, k, 'F'); }
+      else if (name === 'info') { line(12, 10, 12, 18); d.setFillColor(...WHITE); d.circle(x + 12 * k, y + 6 * k, k, 'F'); }
     } else if (name === 'chart') {
       d.rect(x + 2 * k, y + 14 * k, 5 * k, 9 * k, 'F'); d.rect(x + 10 * k, y + 7 * k, 5 * k, 16 * k, 'F'); d.rect(x + 18 * k, y, 5 * k, 23 * k, 'F');
     } else if (name === 'target' || name === 'pie') {
@@ -99,7 +100,7 @@ export class ReferenceReportComposition {
     this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 220, y: 47, w: 264, h: 16 }, 'headerSubtitle', 7.5, false, WHITE);
     this.d.setFillColor(...this.accent);
     this.d.roundedRect(494, 23, 70, 25, 4, 4, 'F');
-    this.text(this.enterprise ? 'ENTERPRISE' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'L1', { x: 500, y: 29, w: 60, h: 16 }, 'headerPlan', this.enterprise ? 8 : 9, true, this.enterprise ? INK : WHITE);
+    this.text(this.enterprise ? 'ENTERPRISE' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'Basic', { x: 500, y: 29, w: 60, h: 16 }, 'headerPlan', this.enterprise ? 8 : 9, true, this.enterprise ? INK : WHITE);
     this.d.setFillColor(...WHITE); this.d.roundedRect(14, 70, 567.28, 54, 10, 10, 'F');
     this.icon(icon, X + 3, 85, 23, this.accent);
     this.text(title, { x: X + 35, y: 84, w: WIDTH - 35, h: 24 }, 'headerPageTitle', 16, true, INK);
@@ -117,12 +118,12 @@ export class ReferenceReportComposition {
       bounds: { x: b.x, y: b.y, width: b.w, height: b.h, right: b.x + b.w, bottom: b.y + b.h } });
     return { x: b.x + padding, y: b.y + headingHeight, w: b.w - padding * 2, h: b.h - headingHeight - 8 };
   }
-  list(items: string[], b: Box, id: string, mode: 'check' | 'warning' | 'number' = 'check', size = 10) {
+  list(items: string[], b: Box, id: string, mode: 'check' | 'warning' | 'number' | 'info' = 'check', size = 10) {
     let y = b.y;
     items.forEach((item, index) => {
       const height = this.flow.lines(item, b.w - 20, size).length * (size + 4);
       if (y + height > b.y + b.h) { this.deferred.push({ id, title: this.section(id)?.title || id, text: item }); return; }
-      this.icon(mode, b.x, y + 1, 12, mode === 'warning' ? GOLD : this.accent);
+      this.icon(mode, b.x, y + 1, 12, mode === 'warning' ? GOLD : mode === 'info' ? BODY : this.accent);
       if (mode === 'number') this.text(String(index + 1), { x: b.x + 3, y: y + 1, w: 10, h: 12 }, id, 7, true, WHITE);
       this.text(item, { x: b.x + 20, y, w: b.w - 20, h: height }, id, size);
       y += height + 9;
@@ -144,7 +145,7 @@ export class ReferenceReportComposition {
       const label = compact ? this.compactLabel({ ...row, evidenceRefs: row.evidenceRefs || [] }) : row.label;
       const lw = b.w * (compact && label === 'APN' ? .2 : .44), flagged = row.state === 'CONFLICTED', rw = b.w - lw - 8 - (flagged ? 13 : 0);
       const height = Math.max(this.flow.lines(label, lw, size).length, this.flow.lines(row.value, rw, size, true).length) * (size + 4) + (compact ? 3 : 5);
-      if (y + height > b.y + b.h) { this.deferred.push({ id, title: this.section(id)?.title || this.t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), text: `${row.label}: ${row.value}${row.source ? ` · ${row.source}` : ''}`, covered: [row.value, row.source || ''] }); return; }
+      if (y + height > b.y + b.h) { this.deferred.push({ id, title: this.section(id)?.title || this.t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), text: `${row.label}: ${row.value}${row.source ? ` · ${row.source}` : ''}`, covered: [`${row.label}: ${row.value}`] }); return; }
       this.text(label, { x: b.x, y, w: lw, h: height }, id, size);
       if (flagged) this.icon('warning', b.x + lw + 7, y + 1, 8, GOLD);
       this.text(row.value, { x: b.x + lw + 8 + (flagged ? 13 : 0), y, w: rw, h: height }, id, size, true, INK);
@@ -206,12 +207,32 @@ export class ReferenceReportComposition {
     });
   }
   locationCard(b: Box) {
-    const body = this.panel(b, this.t('Mapa de localização', 'Location map', 'Mapa de ubicación'), 'pin', 'neutral', 'propertyLocationMap');
-    const mapHeight = body.h - 16;
-    if (this.vm.property.locationPoint && mapHeight >= 24) {
-      if (!this.location || !this.flow.mapImage(this.location, body.x, body.y, body.w, mapHeight)) this.flow.drawMap([this.vm.property.locationPoint], body.x, body.y, body.w, mapHeight, 'propertyLocationMap');
-      this.text(this.location ? '© OpenStreetMap contributors' : this.t('Diagrama de coordenadas; não é levantamento.', 'Coordinate diagram; not a survey.', 'Diagrama de coordenadas; no es un levantamiento.'), { ...body, y: body.y + mapHeight + 4, h: 14 }, 'propertyLocationMap', 6.5);
-    } else this.text(this.missing, body, 'propertyLocationMap');
+    const title = this.t('Mapa de localização', 'Location map', 'Mapa de ubicación'), id = 'propertyLocationMap';
+    if (!this.vm.property.locationPoint || b.h < 55) {
+      this.text(this.missing, this.panel(b, title, 'pin', 'neutral', id), id);
+      return;
+    }
+    // Only the location card is full-bleed. Keep comparable-map framing unchanged.
+    this.d.saveGraphicsState();
+    this.d.roundedRect(b.x, b.y, b.w, b.h, 7, 7, null); this.d.clip(); this.d.discardPath();
+    const raster = !!this.location && this.flow.image(this.location, b.x, b.y, b.w, b.h, 'cover');
+    if (!raster) this.flow.drawMap([this.vm.property.locationPoint], b.x, b.y, b.w, b.h, id);
+    this.d.setFont('NotoSans', 'bold'); this.d.setFontSize(10);
+    const headingWidth = Math.min(b.w - 14, this.d.getTextWidth(title) + 36);
+    const headingHeight = this.flow.lines(title, headingWidth - 32, 10, true).length * 14 + 12;
+    this.d.setFillColor(...WHITE);
+    this.d.roundedRect(b.x + 7, b.y + 7, headingWidth, headingHeight, 4, 4, 'F');
+    this.icon('pin', b.x + 12, b.y + 12, 16, this.accent);
+    this.text(title, { x: b.x + 34, y: b.y + 12, w: headingWidth - 32, h: headingHeight - 10 }, id, 10, true, INK);
+    const caption = raster ? '© OpenStreetMap contributors' : this.t('Diagrama de coordenadas; não é levantamento.', 'Coordinate diagram; not a survey.', 'Diagrama de coordenadas; no es un levantamiento.');
+    const captionHeight = this.flow.lines(caption, b.w - 20, 6.5).length * 10.5 + 6;
+    this.d.setFillColor(...WHITE); this.d.rect(b.x, b.y + b.h - captionHeight, b.w, captionHeight, 'F');
+    this.text(caption, { x: b.x + 10, y: b.y + b.h - captionHeight + 3, w: b.w - 20, h: captionHeight - 3 }, id, 6.5);
+    this.d.restoreGraphicsState();
+    this.d.setDrawColor(...LINE); this.d.setLineWidth(.65); this.d.roundedRect(b.x, b.y, b.w, b.h, 7, 7, 'S');
+    this.flow.audit.sections.push({ sectionId: id, title, kind: 'reference-panel', page: this.d.getCurrentPageInfo().pageNumber,
+      availableHeight: b.h, renderedLines: 0, selectedFontSize: 10, clippedLines: 0, overflowPixels: 0,
+      bounds: { x: b.x, y: b.y, width: b.w, height: b.h, right: b.x + b.w, bottom: b.y + b.h } });
   }
   landCells(rows: readonly ReportRow[], b: Box, draw = false) {
     const wide = rows.filter(row => row.evidenceRefs.includes('fact:legalDescription'));
@@ -283,12 +304,12 @@ export class ReferenceReportComposition {
         this.page(this.t('Fotos, mapa e notas', 'Photos, map and notes', 'Fotos, mapa y notas'), this.t('Detalhes visuais do imóvel', 'Property visual detail', 'Detalle visual del inmueble'));
         next = CONTENT_TOP;
       }
-      const photoBody = this.panel({ x: X, y: next, w: WIDTH, h: photoHeight }, this.t('Fotos do imóvel', 'Property photos', 'Fotos del inmueble'), 'document', 'neutral', 'propertyPhotos');
+      const photoBody = this.panel({ x: X, y: next, w: WIDTH, h: photoHeight }, this.t(`Fotos do imóvel · ${photos.length} disponível(is)`, `Property photos · ${photos.length} available`, `Fotos del inmueble · ${photos.length} disponible(s)`), 'document', 'neutral', 'propertyPhotos');
       const unit = (photoBody.w - Math.max(0, photos.length - 1) * 5) / (photos.length + 1);
       let photoX = photoBody.x;
       photos.forEach((photo, i) => {
         const w = unit * (i === 0 ? 2 : 1);
-        this.flow.image(photo, photoX, photoBody.y, w, photoBody.h);
+        this.flow.image(photo, photoX, photoBody.y, w, photoBody.h, 'contain');
         this.flow.audit.sections.push({ sectionId: `propertyPhoto${i + 1}`, title: 'Property photo', kind: 'reference-photo', page: this.d.getCurrentPageInfo().pageNumber,
           availableHeight: photoBody.h, renderedLines: 0, selectedFontSize: 0, clippedLines: 0, overflowPixels: 0,
           bounds: { x: photoX, y: photoBody.y, width: w, height: photoBody.h, right: photoX + w, bottom: photoBody.y + photoBody.h } });
@@ -312,13 +333,15 @@ export class ReferenceReportComposition {
       this.module(this.section('price-positioning') || this.section('land-market-readiness'), { x: X, y: 413, w: WIDTH, h: 191 }, this.t('Imóveis comparáveis', 'Comparable properties', 'Inmuebles comparables'), 'chart');
     }
     const pending = this.section('rent-pending');
-    const caption = main?.map?.caption || this.vm.executive?.blocker?.text || this.missing;
+    const delivery = this.section('sold-delivery');
+    const caption = [main?.map?.caption || this.vm.executive?.blocker?.text || this.missing, delivery?.text].filter(Boolean).join('\n');
     const captionHeight = this.flow.lines(caption, WIDTH - 20, 7.5).length * 11.5;
     const pendingText = pending?.text ? `${pending.title}: ${pending.text}` : '';
     const pendingHeight = pendingText ? this.flow.lines(pendingText, WIDTH - 20, 7.5).length * 11.5 + 4 : 0;
     const notesTop = tableEnd + 8;
     const notes = this.panel({ x: X, y: notesTop, w: WIDTH, h: Math.min(791 - notesTop, Math.max(65, 38 + captionHeight + pendingHeight)) }, this.t('Observações da análise', 'Analysis notes', 'Observaciones del análisis'), 'document', 'neutral', 'marketObservations');
     this.text(caption, { ...notes, h: Math.min(notes.h, captionHeight) }, 'marketObservations', 7.5);
+    if (delivery) this.seen.add(delivery.id);
     if (pending?.text) {
       this.text(pendingText, { ...notes, y: notes.y + captionHeight + 4, h: Math.max(0, notes.h - captionHeight - 4) }, pending.id, 7.5);
       this.seen.add(pending.id);
@@ -450,65 +473,50 @@ export class ReferenceReportComposition {
     const blocks = [
       { id: 'positive-signals', title: this.t('Sinais positivos', 'Positive signals', 'Señales positivas'), icon: 'check', tone: 'positive' as const, mode: 'check' as const },
       { id: 'decision-blockers', title: this.t('O que ainda falta', 'What’s missing', 'Qué falta'), icon: 'warning', tone: 'warning' as const, mode: 'warning' as const },
-      { id: 'next-actions', title: this.t('Recomendações do Maxxis', 'Maxxis recommendations', 'Recomendaciones de Maxxis'), icon: 'target', tone: 'neutral' as const, mode: 'number' as const },
-      { id: 'verificationSteps', title: this.t('Próximos passos', 'Next steps', 'Próximos pasos'), icon: 'document', tone: 'positive' as const, mode: 'number' as const },
+      { id: 'next-actions', title: this.t('Próximos passos', 'Next steps', 'Próximos pasos'), icon: 'target', tone: 'neutral' as const, mode: 'number' as const },
+      { id: 'verificationSteps', title: this.t('Resumo de evidências', 'Evidence summary', 'Resumen de evidencia'), icon: 'document', tone: 'neutral' as const, mode: 'info' as const },
     ];
+    const secondHeight = Math.min(310, Math.max(150, 43 + this.texts('next-actions').reduce((height, text) => height + this.flow.lines(text, HALF - 40, 8.5).length * 12.5 + 9, 0)));
     blocks.forEach((block, i) => {
       let texts = this.texts(block.id);
       const gap = block.id === 'positive-signals' ? this.section('opportunity-readiness') : undefined;
-      if (!texts.length && gap) { this.module(gap, { x: X + i % 2 * (HALF + GAP), y: CONTENT_TOP + Math.floor(i / 2) * 218, w: HALF, h: 210 }, block.title, block.icon); return; }
-      const body = this.panel({ x: X + i % 2 * (HALF + GAP), y: CONTENT_TOP + Math.floor(i / 2) * 218, w: HALF, h: 210 }, block.title, block.icon, block.tone, block.id);
+      if (!texts.length && gap) { this.module(gap, { x: X, y: CONTENT_TOP, w: HALF, h: 210 }, block.title, 'info'); return; }
+      const insufficient = block.id === 'positive-signals' && !texts.length;
+      const body = this.panel({ x: X + i % 2 * (HALF + GAP), y: CONTENT_TOP + Math.floor(i / 2) * 218, w: HALF, h: i < 2 ? 210 : secondHeight }, insufficient ? this.t('Cobertura dos sinais', 'Signal coverage', 'Cobertura de señales') : block.title, insufficient ? 'info' : block.icon, insufficient ? 'neutral' : block.tone, block.id);
       if (block.id === 'verificationSteps') texts = this.vm.executive?.coverage.map(row => `${row.label}: ${row.value}`) || [];
       if (!texts.length) texts = [block.id === 'positive-signals' ? this.t('Evidências insuficientes para qualificar sinais positivos.', 'Insufficient evidence to qualify positive signals.', 'Evidencia insuficiente para calificar señales positivas.') : this.missing];
-      this.list(texts, body, block.id, block.mode, 8.5);
+      this.list(texts, body, block.id, insufficient ? 'info' : block.mode, 8.5);
       this.seen.add(block.id);
     });
-    const conclusion = this.vm.executive?.blocker?.text || this.vm.executive?.thesis.text || this.missing;
-    const details = this.pendingDetails(), needed = 46 + this.flow.lines(conclusion, WIDTH - 20, 9).length * 13
-      + details.reduce((height, item) => height + this.flow.lines(item.text, WIDTH - 20, 8).length * 12 + 7, 0);
-    const quote = this.panel({ x: X, y: 566, w: WIDTH, h: Math.min(225, Math.max(80, needed)) }, this.t('Conclusão apoiada nas evidências', 'Evidence-based conclusion', 'Conclusión basada en evidencia'), 'document', 'neutral', 'verificationConclusion');
-    let next = this.text(conclusion, quote, 'verificationConclusion', 9, false, INK) + 8;
-    for (const detail of this.pendingDetails()) {
-      const h = this.flow.lines(detail.text, quote.w, 8).length * 12 + 7;
-      if (next + h > quote.y + quote.h) continue;
-      this.text(detail.text, { ...quote, y: next, h }, detail.id, 8); next += h;
-    }
+    const conclusion = this.vm.executive?.thesis.text || this.missing;
+    const needed = 46 + this.flow.lines(conclusion, WIDTH - 20, 9).length * 13, quoteTop = CONTENT_TOP + 218 + secondHeight + 8;
+    const quote = this.panel({ x: X, y: quoteTop, w: WIDTH, h: Math.min(791 - quoteTop, Math.max(80, needed)) }, this.t('Conclusão apoiada nas evidências', 'Evidence-based conclusion', 'Conclusión basada en evidencia'), 'document', 'neutral', 'verificationConclusion');
+    this.text(conclusion, quote, 'verificationConclusion', 9, false, INK);
   }
   conclusion() {
     this.page('Maxxis AI Analysis', this.t('Conclusão adaptada ao perfil', 'Profile-aware conclusion', 'Conclusión adaptada al perfil'), 'target');
     const cards = [
-      { title: 'Opportunity Summary', text: this.vm.executive?.thesis.text || this.missing, icon: 'chart' },
-      { title: 'Segment-Specific Conclusion', text: this.vm.executive?.opportunity?.text || this.t('A conclusão depende das evidências do imóvel e dos critérios do investidor. Complete as verificações abaixo.', 'The conclusion depends on property evidence and investor criteria. Complete the checks below.', 'La conclusión depende de la evidencia y los criterios del inversor. Complete las verificaciones.'), icon: 'target' },
-      { title: 'Main Topics', text: '', icon: 'document' },
-      { title: 'Open Questions', text: '', icon: 'warning' },
+      { title: this.t('Síntese da oferta', 'Opportunity summary', 'Síntesis de la oferta'), text: this.vm.executive?.thesis.text || this.missing, icon: 'chart' },
+      { title: this.t('Implicação para a estratégia', 'Strategy implications', 'Implicación para la estrategia'), text: this.section('value-readiness')?.rows?.[0]?.value || this.vm.executive?.status || this.missing, icon: 'target' },
+      { title: this.t('Evidências principais', 'Main evidence', 'Evidencia principal'), text: '', icon: 'document' },
+      { title: this.t('Incertezas em aberto', 'Open questions', 'Incertidumbres abiertas'), text: '', icon: 'warning' },
     ];
     cards.forEach((card, i) => {
       const body = this.panel({ x: X + i % 2 * (HALF + GAP), y: ANALYSIS_TOP + Math.floor(i / 2) * 188, w: HALF, h: i < 2 ? 180 : 210 }, card.title, card.icon, 'neutral', `conclusion${i}`);
       if (card.text) {
-        let y = this.text(card.text, body, `conclusion${i}`, 8.5) + 7;
-        for (const detail of this.pendingDetails()) {
-          const height = this.flow.lines(detail.text, body.w, 8).length * 12 + 8;
-          if (y + height > body.y + body.h) continue;
-          this.text(detail.text, { ...body, y, h: height }, detail.id, 8); y += height;
-        }
+        this.text(card.text, body, `conclusion${i}`, 8.5);
       }
       else if (i === 2) {
-        let y = body.y;
-        for (const detail of this.pendingDetails()) {
-          const height = this.flow.lines(detail.text, body.w, 8).length * 12 + 8;
-          if (y + height > body.y + body.h) continue;
-          this.text(detail.text, { ...body, y, h: height }, detail.id, 8); y += height;
-        }
-        if (y === body.y) this.list([this.vm.property.type, this.vm.property.strategy, this.vm.executive?.status || this.missing], body, 'conclusionTopics', 'number', 10);
+        this.list(this.vm.executive?.coverage.map(row => `${row.label}: ${row.value}`) || [this.missing], body, 'conclusionTopics', 'info', 9);
       }
       else this.list(this.texts('decision-blockers'), body, 'conclusionQuestions', 'warning', 8.5);
     });
-    const actions = this.panel({ x: X, y: 536, w: WIDTH, h: 115 }, 'Recommended Actions', 'target', 'neutral', 'finalActions');
-    const texts = this.texts('next-actions'), w = (actions.w - GAP * Math.max(0, texts.length - 1)) / Math.max(1, texts.length);
+    const actions = this.panel({ x: X, y: 536, w: WIDTH, h: 115 }, this.t('Próxima decisão', 'Next decision', 'Próxima decisión'), 'target', 'neutral', 'finalActions');
+    const texts = [this.t('A oferta pode ser analisada com os dados identificados, mas não há base para afirmar margem ou retorno enquanto persistirem os bloqueios acima. As verificações prioritárias estão na página anterior.', 'The offer can be reviewed with the identified evidence, but margin or return cannot be established while these blockers remain. Prioritized checks appear on the preceding page.', 'La oferta puede analizarse con la evidencia identificada, pero no permite afirmar margen o rentabilidad mientras persistan los bloqueos. Las verificaciones prioritarias están en la página anterior.')], w = (actions.w - GAP * Math.max(0, texts.length - 1)) / Math.max(1, texts.length);
     texts.forEach((text, i) => this.text(text, { x: actions.x + i * (w + GAP), y: actions.y, w, h: actions.h }, 'finalActions', 8));
     this.d.setFillColor(255, 251, 239); this.d.setDrawColor(248, 225, 166); this.d.roundedRect(X, 663, WIDTH, 66, 6, 6, 'FD');
     this.icon('warning', X + 10, 678, 17, GOLD);
-    this.text('Disclaimer', { x: X + 37, y: 672, w: WIDTH - 47, h: 14 }, 'reportDisclaimer', 8, true, INK);
+    this.text(this.t('Aviso importante', 'Disclaimer', 'Aviso importante'), { x: X + 37, y: 672, w: WIDTH - 47, h: 14 }, 'reportDisclaimer', 8, true, INK);
     this.text(this.vm.disclaimer, { x: X + 37, y: 688, w: WIDTH - 47, h: 33 }, 'reportDisclaimer', 7.5);
   }
   sectionAppendix(s: ReportSection) {
@@ -527,7 +535,7 @@ export class ReferenceReportComposition {
     if (this.enterprise) { this.market(); await yieldRendering(); this.valuation(); await yieldRendering(); }
     if (this.vm.reportType !== 'PROPERTY_RELEASE') { this.profile(); await yieldRendering(); this.verification(); await yieldRendering(); }
     for (const s of this.vm.sections) this.sectionAppendix(s);
-    if (this.enterprise) this.conclusion();
+    if (this.enterprise) { this.conclusion(); await yieldRendering(); }
     // Preserve longer sources/notes and additional scenarios in meaningful native sections.
     for (const s of this.vm.sections) this.sectionAppendix(s);
     const unique = this.pendingDetails();
@@ -538,7 +546,10 @@ export class ReferenceReportComposition {
       for (const item of unique) {
         const group = grouped.get(item.id) || { title: item.title, text: [] }; group.text.push(item.text); grouped.set(item.id, group);
       }
-      for (const [id, item] of grouped) this.flow.section({ id, title: item.title, kind: 'narrative', text: item.text.join('\n'), bodySize: 9 } satisfies SafePdfSection);
+      for (const [id, item] of grouped) {
+        this.flow.section({ id, title: item.title, kind: 'narrative', text: item.text.join('\n'), bodySize: 9 } satisfies SafePdfSection);
+        await yieldRendering();
+      }
     }
     const result = this.flow.finish(), total = this.d.getNumberOfPages();
     for (let page = 1; page <= total; page++) {

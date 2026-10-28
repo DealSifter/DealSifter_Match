@@ -1,5 +1,5 @@
 import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
-import { projectProviderListingReferences } from './reportMarketReferences.ts';
+import { projectProviderListingReferences, projectSoldDelivery } from './reportMarketReferences.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   createBackendValuationEvidenceService,
@@ -137,6 +137,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     usableCandidateCount: 0,
     compPromotionDiagnostics: [] as Array<Record<string, unknown>>,
     arvStatus: 'UNAVAILABLE',
+    targetConditionConfirmed: false,
+    arvBlockers: [] as string[],
     recomputeMode: cacheOnly ? 'GAP_UPDATE_CACHE_ONLY' : 'STANDARD',
     stopReason: '',
   };
@@ -285,6 +287,8 @@ export async function getDealInsightContextForAuthenticatedUser(
         },
       });
       runtimeTrace.arvStatus = evaluation?.status || 'UNAVAILABLE';
+      runtimeTrace.targetConditionConfirmed = Boolean(evaluation?.targetCondition);
+      runtimeTrace.arvBlockers = evaluation?.confidenceReasons || [];
       runtimeTrace.arvEligibleCount = evaluation?.eligibleCompCount || 0;
       runtimeTrace.supportingCandidateCount = evaluation?.supportingCompCount
         ?? runtimeTrace.supportingCandidateCount;
@@ -389,7 +393,9 @@ export async function getDealInsightContextForAuthenticatedUser(
         supabaseAdmin: admin, getEnv: (name) => Deno.env.get(name),
         providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket },
       });
-      const providerFamilies = familyPlan.filter(([family, planFamily]) => families.includes(family)
+      // MarketRentService owns report acquisition and its subject fingerprint.
+      // Do not purchase a second address-only estimate in the generic bundle.
+      const providerFamilies = familyPlan.filter(([family, planFamily]) => family !== 'rentEstimate' && families.includes(family)
         && activeProviderEvidencePlan.families[planFamily].providerCallAllowed).map(([family]) => family);
       // Cache-only levels never purchase missing market/listing/rental evidence.
       supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
@@ -562,6 +568,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerMarketContext,
   } : null;
   const intelligenceSnapshotBase = {
+    soldDelivery: projectSoldDelivery(runtimeTrace),
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
     propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
