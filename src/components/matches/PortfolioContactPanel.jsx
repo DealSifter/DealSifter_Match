@@ -37,6 +37,7 @@ export function PortfolioContactPanel({
   isUnlocked,
   variant = 'desktop',
   showIdentity = true,
+  identityBadge = null,
   onUnlockRequest,
   onChatClick,
 }) {
@@ -120,7 +121,7 @@ export function PortfolioContactPanel({
         minWidth: 0,
       }}
     >
-      {showIdentity ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: compact ? 'none' : '0 1 auto' }}>
+      {showIdentity ? <div className="portfolio-contact-identity" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: compact ? 'none' : '0 1 auto' }}>
         {contact.avatarUrl ? (
           <SmartImage
             src={contact.avatarUrl}
@@ -132,7 +133,7 @@ export function PortfolioContactPanel({
             <Icon name="person" size={compact ? 13 : 15} color={C.accent} />
           </div>
         )}
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: identityBadge ? '0 1 auto' : undefined }}>
           <div style={{ color: C.t1, fontSize: compact ? 11 : 12, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {contact.name || t.unlockedLabel || 'Unlocked'}
           </div>
@@ -140,6 +141,7 @@ export function PortfolioContactPanel({
             {[contact.category, contact.location].filter(Boolean).join(' · ')}
           </div>
         </div>
+        {identityBadge}
       </div> : null}
 
       <div style={{ minWidth: 0 }}>

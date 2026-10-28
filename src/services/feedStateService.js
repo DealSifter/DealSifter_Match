@@ -145,6 +145,7 @@ const buildOwnerPreview = ({ ownerId, scope, userRow, professionalRow }) => {
     loc: isFsbo
       ? pickFirstString(payloadScope?.loc, payloadProfile?.loc)
       : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB),
+    zipLocation: payloadScope?.zipLocation || (isProfessional ? payloadProfile?.zipLocationB : isFsbo ? payloadProfile?.zipLocationFsbo : payloadProfile?.zipLocation) || null,
     photo,
     cat: isFsbo
       ? 'seller'

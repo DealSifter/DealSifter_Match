@@ -10,6 +10,7 @@ import {
 } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { getIntelligencePlanCapabilities, normalizeIntelligencePlanId } from '../lib/planAccess';
+import './Pricing.css';
 
 export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent, currentPlan = null, guideReturnRequired = false, onReturnToGuide }) {
   const allT = useT('pricing');
@@ -323,7 +324,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
           const intelligenceCapabilities = getIntelligencePlanCapabilities(p.id);
           const isCurrentPlan = currentPlanId === p.id;
           return (
-          <div key={p.name} data-testid={`pricing-plan-${p.id}`} style={{ background:p.popular?C.alpha(C.accent, 0.05):C.card, border:`1px solid ${p.popular?C.accent:C.border}`, borderRadius:20, padding:24, position:"relative", textAlign:"left" }}>
+          <div key={p.name} data-testid={`pricing-plan-${p.id}`} className={`pricing-card${p.popular ? ' pricing-card-featured' : ''}`} style={{ '--pricing-highlight': p.popular ? C.accent : p.color, borderRadius:20, padding:24, position:"relative", textAlign:"left" }}>
             {p.popular&&<div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:C.accent, color:"#fff", fontSize:10, fontWeight:700, padding:"3px 12px", borderRadius:100, whiteSpace:"nowrap" }}>{t.mostPopular}</div>}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:4 }}>
               <div style={{ fontWeight:800, color:p.color, fontSize:15 }}>{planName(p.id, p.name)}</div>
@@ -420,7 +421,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
         <p style={{ color:C.t2, marginBottom:22, fontSize:13 }}>{t.addonsSubtitle}</p>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:12, textAlign:"left" }}>
           {addOns.map((item) => (
-            <div key={item.id} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:18 }}>
+            <div key={item.id} className="pricing-card" style={{ '--pricing-highlight': item.color, borderRadius:16, padding:18 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                 <span style={{ width:34, height:34, borderRadius:999, display:"inline-flex", alignItems:"center", justifyContent:"center", background:C.alpha(item.color, 0.1), border:`1px solid ${C.alpha(item.color, 0.25)}` }}>
                   <Icon name={item.icon} size={17} color={item.color} strokeWidth={1.7} />
@@ -460,14 +461,14 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
           {NUGGET_PACKS.map(p=>{
             const isPackLoading = checkoutLoading === `pack-${p.id}`;
             return (
-            <div key={p.id} onClick={() => handleNuggetPackCta(p)} style={{ background:p.popular?C.alpha(C.gold, 0.06):C.card, border:`1px solid ${p.popular?C.gold:C.border}`, borderRadius:16, padding:18, cursor:isPackLoading?"wait":"pointer", position:"relative", textAlign:"center", opacity:isPackLoading?0.72:1 }}>
+            <button type="button" key={p.id} disabled={isPackLoading} onClick={() => handleNuggetPackCta(p)} className={`pricing-card pricing-pack${p.popular ? ' pricing-card-featured' : ''}`} style={{ '--pricing-highlight': C.gold, borderRadius:16, padding:18, cursor:isPackLoading?"wait":"pointer", position:"relative", textAlign:"center", opacity:isPackLoading?0.72:1 }}>
               {p.popular&&<div style={{ position:"absolute", top:-10, left:"50%", transform:"translateX(-50%)", background:C.gold, color:C.bg, fontSize:9, fontWeight:800, padding:"3px 10px", borderRadius:100, whiteSpace:"nowrap" }}>{allT.modals.bestValue}</div>}
               <div style={{ display:"flex", justifyContent:"center", marginBottom:6 }}><Icon name="nugget" size={26} color={C.gold} strokeWidth={1.3} /></div>
               <div style={{ fontWeight:800, color:C.gold, fontSize:20 }}>{p.qty}{p.bonus>0&&<span style={{ fontSize:11, color:C.goldL }}> +{p.bonus}</span>}</div>
               <div style={{ color:C.t3, fontSize:10, marginBottom:6 }}>{t.nuggetsWord}</div>
               <div style={{ fontWeight:800, color:C.t1, fontSize:18 }}>${Number(p.price || 0).toLocaleString('en-US')}</div>
               <div style={{ color:C.t3, fontSize:10 }}>${Math.round((p.price || 0)/(p.qty+p.bonus)).toLocaleString('en-US')}{t.perEach}</div>
-            </div>
+            </button>
           );})}
         </div>
       </div>

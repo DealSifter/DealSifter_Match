@@ -1,0 +1,60 @@
+.pricing-card {
+  --pricing-highlight: var(--accent-hex);
+  --pricing-card-rest: color-mix(in srgb, var(--bg) 65%, var(--card));
+  --pricing-card-active: var(--card);
+  background: var(--pricing-card-rest);
+  border: 1px solid var(--border);
+  transition: background-color 180ms ease, border-color 180ms ease,
+    box-shadow 180ms ease, transform 180ms ease;
+}
+
+.pricing-card-featured {
+  --pricing-card-rest: color-mix(in srgb, var(--pricing-highlight) 8%, var(--bg));
+  border-color: var(--pricing-highlight);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pricing-highlight) 20%, transparent);
+}
+
+[data-theme="dark"] .pricing-card {
+  --pricing-card-rest: var(--card);
+  --pricing-card-active: color-mix(in srgb, var(--pricing-highlight) 7%, var(--card));
+}
+
+[data-theme="dark"] .pricing-card-featured {
+  --pricing-card-rest: color-mix(in srgb, var(--pricing-highlight) 8%, var(--card));
+}
+
+.pricing-card:focus-within {
+  background: var(--pricing-card-active);
+  border-color: var(--pricing-highlight);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--pricing-highlight) 16%, transparent);
+}
+
+.pricing-pack {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+.pricing-pack:focus-visible {
+  outline: 2px solid var(--pricing-highlight);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricing-card:hover {
+    background: var(--pricing-card-active);
+    border-color: var(--pricing-highlight);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--pricing-highlight) 16%, transparent);
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-card {
+    transition: none;
+  }
+
+  .pricing-card:hover {
+    transform: none;
+  }
+}

@@ -118,6 +118,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       type: pickString(ownerPreview.type, ownerPreview.categoryLabelFallback, ownerPreview.cat),
       badge: pickString(ownerPreview.badge),
       loc: pickString(ownerPreview.loc, ownerPreview.location),
+      zipLocation: ownerPreview.zipLocation || null,
       cat: scope === 'fsbo' ? 'seller' : pickString(ownerPreview.cat, ownerPreview.categoryId),
       desc: scope === 'fsbo' ? '' : pickString(ownerPreview.desc, ownerPreview.pitch),
       verified: ownerPreview.verified === true,
@@ -160,6 +161,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
     loc: isFsbo
       ? pickString(payloadScope.loc, payloadProfile.loc)
       : pickString(payloadScope.loc, payloadProfile.loc, payloadProfile.locB),
+    zipLocation: payloadScope.zipLocation || (isProfessional ? payloadProfile.zipLocationB : isFsbo ? payloadProfile.zipLocationFsbo : payloadProfile.zipLocation) || null,
     cat: isFsbo ? 'seller' : pickString(professionalRow.primary_category_b, professionalRow.primary_category, professionalRow.category),
     desc: isFsbo ? '' : pickString(payloadScope.pitch, payloadProfile.pitchB, payloadProfile.pitch, professionalRow.pitch),
     verified: payloadScope.verified === true || payloadProfile.verified === true,
@@ -248,6 +250,7 @@ export function normalizeCard(rawCard, currentUserId = '') {
     type: pickString(identity.type, rawCard.type, rawCard.category),
     badge: pickString(identity.badge, rawCard.badge),
     loc: pickString(identity.loc, rawCard.loc, rawCard.location, rawCard.state),
+    ...(kind === 'person' ? { zipLocation: identity.zipLocation || rawCard.zipLocation || null } : {}),
     cat: pickString(identity.cat, rawCard.cat, rawCard.category),
     desc: scope === 'fsbo' ? '' : pickString(identity.desc, rawCard.desc, rawCard.description),
     portfolioCount: kind === 'person' ? portfolioCount : Number(rawCard.portfolioCount || 0),

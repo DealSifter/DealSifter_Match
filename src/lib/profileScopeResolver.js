@@ -1,3 +1,5 @@
+import { getProfileZipLocation } from '../services/profileZipLocation';
+
 const asArray = (value) => (
   Array.isArray(value)
     ? value.map((item) => String(item || '').trim()).filter(Boolean)
@@ -27,6 +29,7 @@ const toPersonalProfileShape = (resolved = {}, fallback = {}) => ({
   bio: pickString(fallback.bio),
   visibility: pickString(fallback.visibility, 'hidden'),
   loc: pickString(resolved?.loc, fallback.loc),
+  zipLocation: getProfileZipLocation(resolved?.zipLocation || fallback.zipLocation),
   contactMethods: pickArray(resolved?.contactMethods, fallback.contactMethods),
   primaryPhone: pickString(resolved?.primaryPhone, fallback.primaryPhone, fallback.phone),
   secondaryPhone: pickString(resolved?.secondaryPhone, fallback.secondaryPhone),
@@ -50,6 +53,7 @@ const toFsboProfileShape = (resolved = {}, fallback = {}) => ({
   pitchFsbo: pickString(resolved?.pitch, fallback.pitchFsbo, fallback.bioFsbo),
   visibility: pickString(fallback.visibility, 'hidden'),
   locFsbo: pickString(resolved?.loc, fallback.locFsbo, fallback.fsboLoc),
+  zipLocationFsbo: getProfileZipLocation(resolved?.zipLocation || fallback.zipLocationFsbo),
   fsboLoc: pickString(resolved?.loc, fallback.fsboLoc, fallback.locFsbo),
   contactMethodsFsbo: pickArray(resolved?.contactMethods, fallback.contactMethodsFsbo, fallback.fsboContactMethods),
   fsboContactMethods: pickArray(resolved?.contactMethods, fallback.fsboContactMethods, fallback.contactMethodsFsbo),
@@ -66,6 +70,7 @@ const toProfessionalProfileShape = (resolved = {}, fallback = {}) => ({
   ...fallback,
   fullName: pickString(resolved?.name, fallback.fullName),
   locB: pickString(resolved?.loc, fallback.locB),
+  zipLocationB: getProfileZipLocation(resolved?.zipLocation || fallback.zipLocationB),
   photoB: pickString(resolved?.photo, fallback.photoB, fallback.photoBUrl),
   photoBUrl: pickString(resolved?.photo, fallback.photoBUrl, fallback.photoB),
   contactMethodsB: pickArray(resolved?.contactMethods, fallback.contactMethodsB),
@@ -155,12 +160,14 @@ export function resolveScopedProfile(scope, {
 
   if (isProfessionalScope) {
     return {
+      zipLocation: getProfileZipLocation(professional.zipLocationB),
       scope: normalizedScope,
       name: pickIdentityName(
         professional.fullNameB,
         professional.fullName
       ),
       loc: pickString(
+        getProfileZipLocation(professional.zipLocationB)?.state,
         professional.locB
       ),
       photo: pickString(
@@ -198,12 +205,13 @@ export function resolveScopedProfile(scope, {
 
   return {
     scope: normalizedScope,
+    zipLocation: getProfileZipLocation(isFsboScope ? personal.zipLocationFsbo : professional.zipLocationA),
     name: isFsboScope
       ? pickIdentityName(personal.fullNameFsbo, personal.fsboFullName)
       : pickIdentityName(professional.fullNameA),
     loc: isFsboScope
-      ? pickString(personal.locFsbo, personal.fsboLoc)
-      : pickString(professional.locA),
+      ? pickString(getProfileZipLocation(personal.zipLocationFsbo)?.state, personal.locFsbo, personal.fsboLoc)
+      : pickString(getProfileZipLocation(professional.zipLocationA)?.state, professional.locA),
     photo: isFsboScope
       ? pickString(personal.photoFsbo, personal.fsboPhoto)
       : pickString(professional.photoA),

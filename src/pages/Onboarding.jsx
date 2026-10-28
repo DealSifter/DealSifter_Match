@@ -9,6 +9,8 @@ import { Icon } from '../components/ui/Icon';
 import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfileModal';
 import { ProfessionalPropertyForm } from '../components/onboarding/ProfessionalPropertyForm';
 import { PrimaryProfileSelect } from '../components/onboarding/PrimaryProfileSelect';
+import { ProfileZipCodeField } from '../components/onboarding/ProfileZipCodeField';
+import { getProfileZipLocation } from '../services/profileZipLocation';
 import { Chip, MarketsSelector, SectionCard } from '../components/onboarding/OnboardingUi';
 import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
@@ -192,6 +194,16 @@ export function Onboarding({
 
   const [nameB, setNameB] = useState(professionalProfile?.fullNameB || '');
   const [locB, setLocB] = useState(normalizeUsStateCode(professionalProfile?.locB));
+  const [zipLocation, setZipLocation] = useState(() => accountType === 'fsbo_owner' ? personalProfile?.zipLocationFsbo || null : professionalProfile?.zipLocationA || null);
+  const [zipLocationB, setZipLocationB] = useState(() => professionalProfile?.zipLocationB || null);
+  const updateZipLocation = useCallback((value) => {
+    setZipLocation(value);
+    setLoc(getProfileZipLocation(value)?.state || '');
+  }, []);
+  const updateZipLocationB = useCallback((value) => {
+    setZipLocationB(value);
+    setLocB(getProfileZipLocation(value)?.state || '');
+  }, []);
   const [selectedCategoriesB, setSelectedCategoriesB] = useState(professionalProfile?.categoriesB || []);
   const [primaryCategoryB, setPrimaryCategoryB] = useState(professionalProfile?.primaryCategoryB || (professionalProfile?.categoriesB || [])[0] || '');
   const [selectedMarketsB, setSelectedMarketsB] = useState(professionalProfile?.marketsB || []);
@@ -443,6 +455,9 @@ export function Onboarding({
         return operationTabRef.current;
       case 'profile-a-fields':
         return profileAFieldsRef.current;
+      case 'profile-a-zip':
+      case 'profile-b-zip':
+        return document.getElementById(inlineValidationHint.target);
       default:
         return null;
     }
@@ -690,6 +705,8 @@ export function Onboarding({
   }, [selectedSkills, registeredServiceSkills]);
 
   const saveProfilesFingerprint = useMemo(() => JSON.stringify({
+    zipLocation,
+    zipLocationB,
     accountType,
     name,
     loc,
@@ -751,6 +768,8 @@ export function Onboarding({
     investmentTriggerCategories,
   }), [
     accountType,
+    zipLocation,
+    zipLocationB,
     name,
     loc,
     contactMethods,
@@ -1448,6 +1467,7 @@ export function Onboarding({
     const profileKey = accountType === 'fsbo_owner' ? 'C' : 'A';
     setName('');
     setLoc('');
+    setZipLocation(null);
     setProfileThumb('');
     setProfileThumbClearRequested(true);
     setPersonalPrimaryPhone('');
@@ -1471,6 +1491,7 @@ export function Onboarding({
   const clearProfileBFields = () => {
     setNameB('');
     setLocB('');
+    setZipLocationB(null);
     setProfileThumbB('');
     setProfileThumbBClearRequested(true);
     setPersonalPrimaryPhoneB('');
@@ -1557,6 +1578,8 @@ export function Onboarding({
       if (accountType === 'fsbo_owner') {
         setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '');
         setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc));
+        setZipLocation(personalProfile?.zipLocationFsbo || null);
+        setZipLocationB(professionalProfile?.zipLocationB || null);
         setContactMethods(personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || []);
         setPersonalPrimaryPhone(personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || '');
         setPersonalSecondaryPhone(personalProfile?.secondaryPhoneFsbo || '');
@@ -1592,6 +1615,7 @@ export function Onboarding({
 
       setName(professionalProfile?.fullNameA || '');
       setLoc(normalizeUsStateCode(professionalProfile?.locA));
+      setZipLocation(professionalProfile?.zipLocationA || null);
       setContactMethods(professionalProfile?.contactMethodsA || []);
       setPersonalPrimaryPhone(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '');
       setPersonalSecondaryPhone(professionalProfile?.secondaryPhoneA || '');
@@ -1615,6 +1639,7 @@ export function Onboarding({
       setPitch(professionalProfile?.pitch || '');
       setNameB(professionalProfile?.fullNameB || '');
       setLocB(normalizeUsStateCode(professionalProfile?.locB));
+      setZipLocationB(professionalProfile?.zipLocationB || null);
       setContactMethodsB(professionalProfile?.contactMethodsB || []);
       setPersonalPrimaryPhoneB(professionalProfile?.primaryPhoneB || '');
       setPersonalSecondaryPhoneB(professionalProfile?.secondaryPhoneB || '');
@@ -1635,6 +1660,8 @@ export function Onboarding({
   }, [accountType, personalProfile, professionalProfile, professionalProfileVersion, pendingProfileClearScope, draftUserId]);
 
   const onboardingDraftSnapshot = useMemo(() => ({
+    zipLocation,
+    zipLocationB,
     profileTab,
     name,
     loc,
@@ -1693,7 +1720,7 @@ export function Onboarding({
     servicePrimaryProfileScope,
     investmentProfileDraft,
   }), [
-    profileTab, name, loc, selectedCategories, primaryCategory, selectedMarkets,
+    profileTab, name, loc, zipLocation, zipLocationB, selectedCategories, primaryCategory, selectedMarkets,
     selectedSkills, selectedServices, goal, pitch, contactMethods,
     personalPrimaryPhone, personalSecondaryPhone, personalTertiaryPhone, personalEmail,
     cardPriorityA, nameB, locB, selectedCategoriesB, primaryCategoryB, selectedMarketsB,
@@ -1719,6 +1746,7 @@ export function Onboarding({
         if (typeof draft.profileTab === 'string') setProfileTab(draft.profileTab);
         if (typeof draft.name === 'string') setName(draft.name);
         if (typeof draft.loc === 'string') setLoc(draft.loc);
+        if ('zipLocation' in draft) updateZipLocation(draft.zipLocation);
         if (Array.isArray(draft.selectedCategories)) setSelectedCategories(draft.selectedCategories);
         if (typeof draft.primaryCategory === 'string') setPrimaryCategory(draft.primaryCategory);
         if (Array.isArray(draft.selectedMarkets)) setSelectedMarkets(draft.selectedMarkets);
@@ -1734,6 +1762,7 @@ export function Onboarding({
         if (typeof draft.cardPriorityA === 'string') setCardPriorityA(draft.cardPriorityA);
         if (typeof draft.nameB === 'string') setNameB(draft.nameB);
         if (typeof draft.locB === 'string') setLocB(draft.locB);
+        if ('zipLocationB' in draft) updateZipLocationB(draft.zipLocationB);
         if (Array.isArray(draft.selectedCategoriesB)) setSelectedCategoriesB(draft.selectedCategoriesB);
         if (typeof draft.primaryCategoryB === 'string') setPrimaryCategoryB(draft.primaryCategoryB);
         if (Array.isArray(draft.selectedMarketsB)) setSelectedMarketsB(draft.selectedMarketsB);
@@ -1780,7 +1809,7 @@ export function Onboarding({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [accountType, draftUserId]);
+  }, [accountType, draftUserId, updateZipLocation, updateZipLocationB]);
 
   useEffect(() => {
     const draftKey = `${draftUserId}:${accountType || 'professional'}`;
@@ -2336,6 +2365,7 @@ export function Onboarding({
       type: bestCategory,
       badge: previewBadge,
       loc: isProfessionalScope ? (locB ? `${stateNameByCode[locB]}, ${locB}` : '') : (loc ? `${stateNameByCode[loc]}, ${loc}` : ''),
+      zipLocation: getProfileZipLocation(isProfessionalScope ? zipLocationB : zipLocation),
       rating: autoRating,
       reviews: autoReviews,
       portfolioCount: scopedProperties.length,
@@ -2563,6 +2593,14 @@ export function Onboarding({
   const requiresOperationsTab = accountType === 'professional' && !profileAReady && !profileBReady && profileBComplete && !profileBOpsComplete;
 
   const validateMinimumProfileCompletion = () => {
+    if ([zipLocation, zipLocationB].some((value) => value?.zip && !getProfileZipLocation(value))) {
+      const message = t.profileZipValidation;
+      setBasicRequiredMsg(message);
+      const invalidA = zipLocation?.zip && !getProfileZipLocation(zipLocation);
+      showInlineValidationHint(invalidA ? 'profile-a-zip' : 'profile-b-zip', message);
+      if (accountType === 'professional') setProfileTab(invalidA ? 'personal' : 'professional');
+      return { valid: false, message };
+    }
     const result = evaluateMinimumProfileCompletion({
       accountType,
       name,
@@ -2739,6 +2777,7 @@ export function Onboarding({
           fullNameFsbo: name || '',
           fsboFullName: name || '',
           locFsbo: normalizeUsStateCode(loc),
+          zipLocationFsbo: getProfileZipLocation(zipLocation),
           fsboLoc: normalizeUsStateCode(loc),
           photoFsbo: profileThumb || '',
           fsboPhoto: profileThumb || '',
@@ -2766,6 +2805,7 @@ export function Onboarding({
           fullNameB: nameB || '',
           fullName: nameB || '',
           locB: normalizeUsStateCode(locB),
+          zipLocationB: getProfileZipLocation(zipLocationB),
           photoB: profileThumbB || '',
           photoBUrl: profileThumbB || '',
           photo: profileThumbB || '',
@@ -2808,6 +2848,7 @@ export function Onboarding({
           // Profile A (Personal tab within Professional category)
           fullNameA: name || '',
           locA: normalizeUsStateCode(loc),
+          zipLocationA: getProfileZipLocation(zipLocation),
           photoA: profileThumb || '',
           photoAClearRequested: profileThumbClearRequested === true,
           phoneA: personalPrimaryPhone,
@@ -2832,6 +2873,7 @@ export function Onboarding({
           fullNameB: nameB || '',
           fullName: nameB || '',
           locB: normalizeUsStateCode(locB),
+          zipLocationB: getProfileZipLocation(zipLocationB),
           photoB: profileThumbB || '',
           photoBUrl: profileThumbB || '',
           photo: profileThumbB || '',
@@ -3004,6 +3046,7 @@ export function Onboarding({
         fullNameFsbo: finalName,
         fsboFullName: finalName,
         locFsbo: effectiveLoc || normalizeUsStateCode(prev.locFsbo || prev.fsboLoc || '') || '',
+        zipLocationFsbo: getProfileZipLocation(zipLocation),
         fsboLoc: effectiveLoc || normalizeUsStateCode(prev.locFsbo || prev.fsboLoc || '') || '',
         photoFsbo: profileThumb || '',
         fsboPhoto: profileThumb || '',
@@ -3039,6 +3082,7 @@ export function Onboarding({
         // A
         fullNameA: name || '',
         locA: normalizeUsStateCode(loc),
+        zipLocationA: getProfileZipLocation(zipLocation),
         photoA: profileThumb || '',
         photoAClearRequested: profileThumbClearRequested === true,
         phoneA: personalPrimaryPhone,
@@ -3062,6 +3106,7 @@ export function Onboarding({
         fullNameB: nameB || '',
         fullName: nameB || '',
         locB: normalizeUsStateCode(locB),
+        zipLocationB: getProfileZipLocation(zipLocationB),
         photoB: profileThumbB || '',
         photoBUrl: profileThumbB || '',
         photo: profileThumbB || '',
@@ -3776,13 +3821,7 @@ export function Onboarding({
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelFullName} <span style={{ color: C.danger }}>*</span></span>
                   <input data-mobile-step="profileAName" value={name} onChange={(e) => setName(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
-                <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelLocationState}</span>
-                  <select value={loc} onChange={(e) => setLoc(e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
-                    <option value="">{t.placeholderSelectState}</option>
-                    {US_STATES.map((state) => <option key={state.code} value={state.code}>{state.name} ({state.code})</option>)}
-                  </select>
-                </label>
+                <ProfileZipCodeField id="profile-a-zip" value={zipLocation} onChange={updateZipLocation} copy={t} />
               </div>
 
               <div data-mobile-step="profileAEmailOrPhone" className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
@@ -4005,13 +4044,7 @@ export function Onboarding({
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelFullName} <span style={{ color: C.danger }}>*</span></span>
                   <input data-mobile-step="profileBName" value={nameB} onChange={(e) => setNameB(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
-                <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelLocationState}</span>
-                  <select value={locB} onChange={(e) => setLocB(e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
-                    <option value="">{t.placeholderSelectState}</option>
-                    {US_STATES.map((state) => <option key={state.code} value={state.code}>{state.name} ({state.code})</option>)}
-                  </select>
-                </label>
+                <ProfileZipCodeField id="profile-b-zip" value={zipLocationB} onChange={updateZipLocationB} copy={t} />
               </div>
 
               <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>

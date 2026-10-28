@@ -4,6 +4,7 @@ import { useT } from '../i18n/translations';
 import { CATEGORIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
+import { FittedPreviewCard } from '../components/ui/FittedPreviewCard';
 import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { PropertyCard } from '../components/cards/PropertyCard';
 import { SwipeCard } from '../components/cards/SwipeCard';
@@ -1621,8 +1622,6 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
   const tabletBottomNavOffset = isTabletPortrait ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
   const bottomNavOffset = Math.max(mobileBottomNavOffset, tabletBottomNavOffset);
-  const previewFeedCardWidth = isMobile ? 340 : 654;
-  const previewFeedCardHeight = isMobile ? 576 : 400;
   const previewModalMaxWidth = isMobile ? 420 : 730;
 
   return (
@@ -2760,24 +2759,22 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       )}
 
       {previewCardOpen && activeOwner ? (
-        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={previewModalMaxWidth}>
-          <div style={{ marginBottom:8, paddingRight:18 }}>
-            <div style={{ fontSize:12, fontWeight:800, color:C.t1 }}>{activeOwner.name}</div>
-            <div style={{ marginTop:4, display:'inline-flex', alignItems:'center', gap:6, padding:'4.2px 9.8px', borderRadius:999, background:C.alpha(C.success, 0.12), border:`1px solid ${C.alpha(C.success, 0.28)}`, color:C.success, fontSize:10, fontWeight:800 }}>
-              <Icon name="unlock" size={11} color={C.success} />
-              {cardsT.unlocked}
-            </div>
-            <div style={{ marginTop:10 }}>
+        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={previewModalMaxWidth} scrollable={false} contentClassName="ds-preview-dialog ds-profile-preview-dialog" ariaLabel={t.openCardPreview || 'Open card preview'}>
+          <div className="preview-dialog-header">
               <PortfolioContactPanel
                 canonicalContact={activeOwner?.canonicalContact || null}
                 isUnlocked={isUnlocked}
                 variant="modal"
+                identityBadge={isUnlocked ? (
+                  <span data-testid="profile-preview-unlocked" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px', borderRadius:999, background:C.alpha(C.success, 0.12), border:`1px solid ${C.alpha(C.success, 0.28)}`, color:C.success, fontSize:10, fontWeight:800, whiteSpace:'nowrap', flexShrink:0 }}>
+                    <Icon name="unlock" size={11} color={C.success} />
+                    {cardsT.unlocked}
+                  </span>
+                ) : null}
                 onUnlockRequest={() => openUnlock(activeOwner, {})}
               />
-            </div>
           </div>
-          <div style={{ width:'100%', display:'flex', justifyContent:'center' }}>
-            <div style={{ pointerEvents:'none', width:`min(100%, ${previewFeedCardWidth}px)`, height:isMobile ? 'auto' : previewFeedCardHeight, minHeight:isMobile ? previewFeedCardHeight : undefined }}>
+          <FittedPreviewCard>
               <SwipeCard
                 card={activeOwner}
                 action="match"
@@ -2785,9 +2782,9 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                 isSkipped={false}
                 onSwipe={() => {}}
                 previewOnly
+                showActions={false}
               />
-            </div>
-          </div>
+          </FittedPreviewCard>
         </Modal>
       ) : null}
 

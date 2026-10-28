@@ -9,6 +9,7 @@ import { Modal } from '../components/ui/Modal';
 import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { catIcon } from '../lib/catIcon';
 import { SwipeCard } from '../components/cards/SwipeCard';
+import { MyCardsPreviewModal } from '../components/cards/MyCardsPreviewModal';
 import { PropertyCard } from '../components/cards/PropertyCard';
 import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
@@ -178,7 +179,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
   const isTabletPortraitWideViewport = useMediaQuery('(min-width: 900px) and (max-width: 1080px) and (orientation: portrait)');
-  const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
 
   const MAX_SIDE_LIST_VISIBLE = 9; // Max visible items before scroll
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
@@ -1185,11 +1185,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [injectedProps, setInjectedProps] = useState({});
   const [focusCard, setFocusCard] = useState(() => pendingFocusOnInit && pendingFocusOnInit.id ? pendingFocusOnInit : null);
   const [myCardModal, setMyCardModal] = useState({ open: false, scope: 'personal' });
-  const [myCardShowcaseIdx, setMyCardShowcaseIdx] = useState(0);
-  const myCardShowcaseScrollRef = useRef(null);
-  const myCardShowcaseScrollEndTimerRef = useRef(null);
-  const myCardShowcaseTouchStartIdxRef = useRef(null);
-  const myCardShowcaseTouchActiveRef = useRef(false);
   const connDeckOrderSignatureRef = useRef('');
   const propDeckOrderSignatureRef = useRef('');
   const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
@@ -2178,7 +2173,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (prev.open && prev.scope === scope) return { open: false, scope };
       return { open: true, scope };
     });
-    setMyCardShowcaseIdx(0);
     // Em mobile, fecha a sidebar para não sobrepor o modal MyCard
     if (isMobileViewport) setMobileFeedSidebarOpen(false);
   };
@@ -2190,58 +2184,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return;
     }
     openOnboardingForScope('personal');
-  };
-
-  const settleMyCardShowcaseIndex = useCallback((container) => {
-    if (!container) return;
-    const width = container.clientWidth || 0;
-    const totalItems = myCardPreviewData.showcaseItems.length;
-    if (!width || totalItems <= 0) return;
-
-    let nextIdx = Math.round(container.scrollLeft / width);
-    nextIdx = Math.max(0, Math.min(totalItems - 1, nextIdx));
-
-    if (myCardShowcaseTouchActiveRef.current && Number.isFinite(myCardShowcaseTouchStartIdxRef.current)) {
-      const startIdx = Number(myCardShowcaseTouchStartIdxRef.current);
-      const minIdx = Math.max(0, startIdx - 1);
-      const maxIdx = Math.min(totalItems - 1, startIdx + 1);
-      nextIdx = Math.max(minIdx, Math.min(maxIdx, nextIdx));
-
-      const targetLeft = width * nextIdx;
-      if (Math.abs(container.scrollLeft - targetLeft) > 1) {
-        container.scrollTo({ left: targetLeft, behavior: 'smooth' });
-      }
-    }
-
-    setMyCardShowcaseIdx((prev) => (prev === nextIdx ? prev : nextIdx));
-    myCardShowcaseTouchActiveRef.current = false;
-    myCardShowcaseTouchStartIdxRef.current = null;
-  }, [myCardPreviewData.showcaseItems.length]);
-
-  const queueMyCardShowcaseSettle = useCallback((container, delay = 90) => {
-    if (myCardShowcaseScrollEndTimerRef.current) {
-      window.clearTimeout(myCardShowcaseScrollEndTimerRef.current);
-    }
-    myCardShowcaseScrollEndTimerRef.current = window.setTimeout(() => {
-      settleMyCardShowcaseIndex(container);
-      myCardShowcaseScrollEndTimerRef.current = null;
-    }, delay);
-  }, [settleMyCardShowcaseIndex]);
-
-  const handleMyCardShowcaseScroll = (event) => {
-    if (myCardShowcaseTouchActiveRef.current) return;
-    const container = event.currentTarget;
-    queueMyCardShowcaseSettle(container, 90);
-  };
-
-  const handleMyCardShowcaseTouchStart = () => {
-    myCardShowcaseTouchActiveRef.current = true;
-    myCardShowcaseTouchStartIdxRef.current = myCardShowcaseIdx;
-  };
-
-  const handleMyCardShowcaseTouchEnd = (event) => {
-    const container = event.currentTarget;
-    queueMyCardShowcaseSettle(container, 80);
   };
 
   const openOnboardingForScope = (scope) => {
@@ -2951,41 +2893,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const mobileCanUndo = view === 'connections'
     ? Boolean(lastConnOp || (skippedQueue && skippedQueue.length > 0))
     : Boolean(lastPropOp);
-  const myCardShowcaseCount = myCardPreviewData.showcaseItems.length;
-  const myCardPreviewCardWidth = FEED_CARD_WIDTH;
-  const myCardPreviewCardHeight = FEED_CARD_HEIGHT;
-  const myCardPreviewDeckHeight = myCardPreviewCardHeight + 24;
-
-  useEffect(() => {
-    return () => {
-      if (myCardShowcaseScrollEndTimerRef.current) {
-        window.clearTimeout(myCardShowcaseScrollEndTimerRef.current);
-        myCardShowcaseScrollEndTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    let timer = null;
-    if (myCardShowcaseCount <= 0) {
-      if (myCardShowcaseIdx !== 0) timer = window.setTimeout(() => setMyCardShowcaseIdx(0), 0);
-    } else if (myCardShowcaseIdx > myCardShowcaseCount - 1) {
-      timer = window.setTimeout(() => setMyCardShowcaseIdx(myCardShowcaseCount - 1), 0);
-    }
-    return () => {
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [myCardShowcaseCount, myCardShowcaseIdx]);
-
-  useEffect(() => {
-    if (!myCardModal.open) return;
-    const container = myCardShowcaseScrollRef.current;
-    if (!container) return;
-    const width = container.clientWidth || 0;
-    if (!width) return;
-    container.scrollTo({ left: width * myCardShowcaseIdx, behavior: isTouchModalViewport ? 'auto' : 'smooth' });
-  }, [myCardShowcaseIdx, myCardModal.open, myCardShowcaseCount, isTouchModalViewport]);
-
   return (
     <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'calc(var(--app-vh, 1vh) * 100)', overflow:'hidden', boxSizing:'border-box' }}>
       <style>{`
@@ -3558,7 +3465,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       {/* Quick registration detection: consider completed when personalProfile.fullName exists in localStorage */}
       {/* Note: accessing localStorage synchronously here is acceptable in this SPA context */}
       {null}
-      <div data-testid="dashboard-root" style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
+      <div data-testid="dashboard-root" style={{ maxWidth:"100%", margin:"0 auto", padding: isMobileViewport ? "12px 12px 0 12px" : (isTabletPortraitViewport ? "4px 14px 0 14px" : "6px 12px 0 12px"), display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
 
         {/* Left sidebar */}
         <div className="desktop-only dashboard-sidebar">
@@ -3801,178 +3708,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
         </div>
 
-        {/* My Card preview modal — top-level so it works regardless of which profile triggered it */}
         {myCardModal.open && (
-          <Modal
-            onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))}
-            maxWidth={isTouchModalViewport ? 820 : 1480}
-            contentStyle={isTouchModalViewport
-              ? { maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 28px)', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }
-              : { maxHeight: 'min(96dvh, 980px)', overflowY: 'auto', overflowX: 'visible' }}
-          >
-            <div style={{ display: 'grid', gap: 10, paddingRight: isTouchModalViewport ? 2 : 0 }}>
-              <div style={{ display: 'flex', flexWrap: isTouchModalViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 30 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, color: C.t1, fontWeight: 800 }}>My Card · {myCardPreviewData.scopeLabel}</h3>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: C.t3 }}>
-                    Active/published cards currently visible in feed and showcase.
-                  </p>
-                </div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t2 }}>
-                  <span>{myCardPreviewData.services.length} services</span>
-                  <span>•</span>
-                  <span>{myCardPreviewData.properties.length} properties</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: isTouchModalViewport ? 14 : 18, alignItems: 'start', minWidth: 0 }}>
-                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr', minWidth: 0 }}>
-                  <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
-              <div style={{
-                    padding: 12,
-                    minHeight: myCardPreviewDeckHeight,
-                    height: isTouchModalViewport ? 'auto' : myCardPreviewDeckHeight,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    boxSizing: 'border-box',
-                  }}>
-                    <div style={{
-                      width: `min(${myCardPreviewCardWidth}px, 100%)`,
-                      height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight,
-                      minHeight: isTouchModalViewport ? myCardPreviewCardHeight : undefined,
-                      margin: '0 auto',
-                      boxSizing: 'border-box',
-                    }}>
-                      <SwipeCard
-                        card={myCardPreviewData.profileCard}
-                        previewOnly
-                        isUnlocked
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
-                  <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
-                    <span>Enabled Showcase Cards</span>
-                    {myCardShowcaseCount > 1 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button
-                          style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          disabled={myCardShowcaseIdx === 0}
-                          onClick={() => setMyCardShowcaseIdx(i => Math.max(0, i - 1))}
-                          aria-label={t.previous || 'Previous'}
-                        >
-                          <Icon name="back" size={22} color={myCardShowcaseIdx === 0 ? C.t3 : C.t1} />
-                        </button>
-                        <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>{myCardShowcaseIdx + 1} / {myCardShowcaseCount}</span>
-                        <button
-                          style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === myCardShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          disabled={myCardShowcaseIdx === myCardShowcaseCount - 1}
-                          onClick={() => setMyCardShowcaseIdx(i => Math.min(myCardShowcaseCount - 1, i + 1))}
-                          aria-label={t.next || 'Next'}
-                        >
-                          <Icon name="arrowRight" size={22} color={myCardShowcaseIdx === myCardShowcaseCount - 1 ? C.t3 : C.t1} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  {myCardShowcaseCount > 0 ? (
-                    <div
-                      ref={myCardShowcaseScrollRef}
-                      className="ds-mycard-showcase-scroll"
-                      onScroll={handleMyCardShowcaseScroll}
-                      onTouchStart={handleMyCardShowcaseTouchStart}
-                      onTouchEnd={handleMyCardShowcaseTouchEnd}
-                      onTouchCancel={handleMyCardShowcaseTouchEnd}
-                      style={{
-                        display: 'flex',
-                        overflowX: 'auto',
-                        overflowY: 'visible',
-                        scrollSnapType: 'x mandatory',
-                        WebkitOverflowScrolling: 'touch',
-                        touchAction: 'pan-x',
-                        minHeight: myCardPreviewDeckHeight,
-                      }}
-                    >
-                      {myCardPreviewData.showcaseItems.map((item, idx) => {
-                        if (item._itemType === 'property') {
-                          return (
-                            <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-                            <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight, minHeight: myCardPreviewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
-                                  <PropertyCard
-                                    property={item}
-                                    owner={myCardPreviewData.profileCard}
-                                    previewOnly
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        const svcImages = (item.media?.images || []).filter(Boolean);
-                        return (
-                          <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-                            <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                              <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, minHeight: myCardPreviewCardHeight, overflow: 'visible', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch', background: C.card }}>
-                                <div style={{ marginBottom: 8 }}>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
-                                  {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}><LocalizedNarrative text={item.description} protectedNames={[item.title, item.address, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
-                                  {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
-                                </div>
-                                {svcImages.length > 0 ? (
-                                  <div className="ds-mycard-showcase-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: 4 }}>
-                                    {svcImages.map((src, imageIdx) => (
-                                      <div key={`svc-img-${idx}-${imageIdx}`} style={{ flex: svcImages.length === 1 ? '0 0 100%' : (isTouchModalViewport ? '0 0 84%' : '0 0 48%'), scrollSnapAlign: 'start', position: 'relative', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
-                                        <SmartImage src={src} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>No images</div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ margin: 12, height: isTouchModalViewport ? 260 : 380, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-                      No published property or service in this profile yet.
-                    </div>
-                  )}
-                  {myCardShowcaseCount > 1 ? (
-                    <div style={{ padding: '0 12px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
-                      {myCardPreviewData.showcaseItems.map((entry, idx) => {
-                        const isActive = idx === myCardShowcaseIdx;
-                        return (
-                          <button
-                            key={`${entry.id || entry.title || 'showcase'}-${idx}`}
-                            type="button"
-                            onClick={() => setMyCardShowcaseIdx(idx)}
-                            aria-label={`Ir para card ${idx + 1}`}
-                            style={{
-                              width: isActive ? 16 : 8,
-                              height: 8,
-                              borderRadius: 999,
-                              border: 'none',
-                              background: isActive ? C.accent : C.alpha(C.t1, 0.2),
-                              cursor: 'pointer',
-                              transition: 'all .15s ease',
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </section>
-              </div>
-            </div>
-          </Modal>
+          <MyCardsPreviewModal
+            key={myCardModal.scope}
+            data={myCardPreviewData}
+            copy={t}
+            onClose={() => setMyCardModal((previous) => ({ ...previous, open: false }))}
+          />
         )}
 
         {/* Card stack */}
@@ -4190,8 +3932,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && !isTabletPortraitViewport && (
-            <div style={{ display:"flex", marginBottom: isTabletPortraitViewport ? 4 : 8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: isTabletPortraitViewport ? FEED_CARD_WIDTH : 700 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+            <div data-testid="feed-heading-row" style={{ display:"grid", gridTemplateColumns:'minmax(0, 1fr) auto minmax(0, 1fr)', marginBottom: 4, alignItems: 'center', width: '100%', maxWidth: 700 }}>
+              <h2 data-testid="feed-heading" style={{ gridColumn:2, margin:0, fontSize:22, lineHeight:'30px', fontWeight:800, color:C.t1 }}>Feed</h2>
+              <div style={{ gridColumn:3, justifySelf:'end', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
                   <summary style={{ listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, background: 'transparent', color: hasActiveStates ? C.accent : C.t1, cursor: 'pointer', fontSize: 12, lineHeight: '16px', minHeight: 30, fontWeight: hasActiveStates ? 600 : 400, whiteSpace: 'nowrap' }}>
@@ -4227,17 +3970,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           )}
 
           <div ref={mobileFeedTitleRef} style={{
-            marginBottom: isTabletPortraitViewport ? 24 : 8,
+            marginBottom: isMobileViewport ? 8 : 6,
             width: '100%',
             maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`,
             display: isTabletPortraitViewport ? 'grid' : 'flex',
-            gridTemplateColumns: isTabletPortraitViewport ? '1fr auto 1fr' : undefined,
-            alignItems: isTabletPortraitViewport ? 'start' : 'center',
+            gridTemplateColumns: isTabletPortraitViewport ? 'minmax(0, 1fr) auto minmax(0, 1fr)' : undefined,
+            alignItems: 'center',
             justifyContent: isTabletPortraitViewport ? undefined : 'center',
-            gap: isTabletPortraitViewport ? 12 : 8,
+            gap: isTabletPortraitViewport ? 6 : 8,
             position: 'relative',
-            minHeight: isTabletPortraitViewport ? 82 : 38
+            minHeight: 38
           }}>
+            {isTabletPortraitViewport && (
+              <h2 data-testid="feed-heading" style={{ gridColumn:2, gridRow:1, margin:0, fontSize:22, lineHeight:'32px', fontWeight:800, color:C.t1 }}>Feed</h2>
+            )}
             <div data-guide="feed-view-switch" style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -4246,9 +3992,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               borderRadius: 999,
               border: `1px solid ${C.border}`,
               background: C.alpha(C.t1, 0.03),
-              gridColumn: isTabletPortraitViewport ? 2 : undefined,
+              gridColumn: isTabletPortraitViewport ? '1 / -1' : undefined,
+              gridRow: isTabletPortraitViewport ? 2 : undefined,
               justifySelf: isTabletPortraitViewport ? 'center' : undefined,
-              transform: isTabletPortraitViewport ? 'translateY(32px)' : undefined,
             }}>
               <button
                 type="button"
@@ -4325,7 +4071,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </button>
             </div>
             {isTabletPortraitViewport && (
-              <div style={{ gridColumn: 3, justifySelf: 'end', alignSelf:'start', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+              <div style={{ gridColumn: 3, gridRow:1, justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ fontSize: 12, color: C.t3, whiteSpace: 'nowrap' }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
                   <summary style={{ listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, background: C.card, color: hasActiveStates ? C.accent : C.t1, cursor: 'pointer', fontSize: 12, lineHeight: '16px', minHeight: 32, minWidth: 112, justifyContent: 'center', fontWeight: hasActiveStates ? 700 : 600, whiteSpace: 'nowrap', boxShadow: `0 8px 18px ${C.alpha(C.shadow, 0.04)}` }}>
@@ -5025,11 +4771,3 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     </div>
   );
 }
-
-
-
-
-
-
-
-import { LocalizedNarrative } from '../components/ui/LocalizedNarrative';

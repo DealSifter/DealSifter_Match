@@ -2,6 +2,7 @@ import { normalizeCard } from '../lib/normalizeFeedCard';
 import { hasValidPropertyGeocode } from '../../supabase/functions/_shared/geocode/propertyValidation.ts';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeProfileScope } from '../lib/profileScopeResolver';
+import { getProfileZipLocation } from './profileZipLocation';
 
 const toNumber = (value) => {
   const number = Number(value);
@@ -245,6 +246,12 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     addFeature(feature);
   };
 
+  const currentOwnerPreview = (preview, ownerId, scope) => {
+    if (String(ownerId) !== String(currentUserId || '')) return preview;
+    const current = resolveScopedProfile(scope, { accountType, userProfile, personalProfile, professionalProfile });
+    return current ? { ...(preview || {}), ...current } : preview;
+  };
+
   if (enableMockMapData) {
     (mockCards || [])
       .filter((card) => card?.verified && Number.isFinite(card.lat) && Number.isFinite(card.lng))
@@ -292,6 +299,9 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
       lat: coords.lat,
       lng: coords.lng,
       geocodePending: false,
+      zipLocation: coords,
+      zipCode: coords.zip,
+      city: coords.city,
       loc: stateCode || ownerPreview?.loc || '',
       portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
       ownerPreview: { ...(ownerPreview || {}), primaryProfile: normalizedScope },
@@ -319,12 +329,12 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     if (!isLocalPublishedRecord(property)) return;
     const ownerId = String(property?.ownerId || '').trim();
     const normalizedScope = getRecordProfileScope(property);
-    const ownerPreview = property?.ownerPreview && typeof property.ownerPreview === 'object' ? property.ownerPreview : null;
+    const ownerPreview = currentOwnerPreview(property?.ownerPreview, ownerId, normalizedScope);
     if (!ownerId || !normalizedScope || !ownerPreview?.name) return;
     const ownerKey = `${ownerId}:${normalizedScope}`;
     if (ownersFromProperties.has(ownerKey)) return;
-    const stateCode = getStateCodeFromMarket(ownerPreview?.loc);
-    const coords = stateCode ? sources.stateCenters?.[stateCode] : null;
+    const coords = getProfileZipLocation(ownerPreview?.zipLocation);
+    const stateCode = coords?.state || getStateCodeFromMarket(ownerPreview?.loc);
     if (!coords) return;
     ownersFromProperties.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, stateCode });
   });
@@ -336,14 +346,14 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     if (!truthyFlag(service?.publishToConnections, true)) return;
     const ownerId = String(service?.ownerId || '').trim();
     const normalizedScope = getRecordProfileScope(service);
-    const ownerPreview = service?.ownerPreview && typeof service.ownerPreview === 'object' ? service.ownerPreview : null;
+    const ownerPreview = currentOwnerPreview(service?.ownerPreview, ownerId, normalizedScope);
     if (!ownerId || !normalizedScope || !ownerPreview?.name) return;
     const ownerKey = `${ownerId}:${normalizedScope}`;
     if (mapById.has(`person-${ownerId}-${normalizedScope}`) || ownersFromServices.has(ownerKey)) return;
-    const stateCode = [ownerPreview?.loc, service?.state, ...(Array.isArray(service?.markets) ? service.markets : [])]
+    const stateCode = [ownerPreview?.zipLocation?.state, ownerPreview?.loc, service?.state, ...(Array.isArray(service?.markets) ? service.markets : [])]
       .map(getStateCodeFromMarket)
       .find(Boolean);
-    const coords = sources.stateCenters?.[stateCode];
+    const coords = getProfileZipLocation(ownerPreview?.zipLocation);
     if (!coords) return;
     ownersFromServices.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, stateCode, service });
   });
@@ -373,7 +383,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
       });
       const name = String(ownerPreview?.name || '').trim();
       const stateCode = getStateCodeFromMarket(ownerPreview?.loc);
-      const coords = sources.stateCenters?.[stateCode];
+      const coords = getProfileZipLocation(ownerPreview?.zipLocation);
       if (!name || !coords) return;
       addOwnerPerson({ ownerId, normalizedScope, ownerPreview, coords, stateCode });
     });
