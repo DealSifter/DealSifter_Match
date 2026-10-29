@@ -238,6 +238,7 @@ export function Onboarding({
   const [portfolioVideo, setPortfolioVideo] = useState('');
   const [editingImagesId, setEditingImagesId] = useState(null);
   const [editingPropertyId, setEditingPropertyId] = useState(null);
+  const [propertyEditBaseline, setPropertyEditBaseline] = useState('');
   const [propertyEditDraft, setPropertyEditDraft] = useState({ address: '', city: '', zip: '', price: '', capRate: '', rehab: '', beds: '', baths: '', sqft: '', lot: '', type: '', objective: '', description: '', primaryProfile: 'personal', markets: [], hideStreetAddressOnCard: false });
   const [portfolioMsg, setPortfolioMsg] = useState('');
   const [streetPrivacyPrompt, setStreetPrivacyPrompt] = useState(null);
@@ -252,6 +253,7 @@ export function Onboarding({
   const [serviceImages, setServiceImages] = useState(_savedTemp.serviceImages || []);
   const [servicePrimaryProfileScope, setServicePrimaryProfileScope] = useState('');
   const [editingServiceId, setEditingServiceId] = useState(null);
+  const [serviceEditBaseline, setServiceEditBaseline] = useState('');
   const [serviceEditDraft, setServiceEditDraft] = useState({ title: '', category: '', description: '', price: '', primaryProfile: '', markets: [] });
   const [showArchivedImages, _setShowArchivedImages] = useState({});
   const [propertyImageIndex, setPropertyImageIndex] = useState({});
@@ -1965,14 +1967,16 @@ export function Onboarding({
 
   const startEditService = (svc) => {
     setEditingServiceId(svc.id);
-    setServiceEditDraft({
+    const draft = {
       title: svc.title || '',
       category: svc.category || '',
       description: svc.description || '',
       price: svc.price ? Number(svc.price).toLocaleString('en-US') : '',
       primaryProfile: svc.primaryProfile || '',
       markets: normalizeMarkets(svc.markets),
-    });
+    };
+    setServiceEditDraft(draft);
+    setServiceEditBaseline(JSON.stringify(draft));
   };
 
   const startEditProperty = useCallback((p) => {
@@ -1999,6 +2003,7 @@ export function Onboarding({
     };
     const effective=overlayEffectiveDraft(draft,propertyFacts?.records[p.id]?.snapshot);
     effectiveDraftBaseline.current=effective.baseline;setPropertyEditDraft(effective.draft);
+    setPropertyEditBaseline(JSON.stringify(effective.draft));
   },[propertyFacts?.records]);
 
   useEffect(()=>{
@@ -2081,6 +2086,8 @@ export function Onboarding({
 
   const editingPropertyRecord = editingPropertyId ? propertyPortfolio.find((p) => p.id === editingPropertyId) || null : null;
   const editingServiceRecord = editingServiceId ? servicePortfolio.find((svc) => svc.id === editingServiceId) || null : null;
+  const isPropertyEditDirty = Boolean(editingPropertyId && propertyEditBaseline && JSON.stringify(propertyEditDraft) !== propertyEditBaseline);
+  const isServiceEditDirty = Boolean(editingServiceId && serviceEditBaseline && JSON.stringify(serviceEditDraft) !== serviceEditBaseline);
 
   const handleEditServiceImages = (e, id) => {
     const files = Array.from(e.target.files || []);
@@ -3600,8 +3607,17 @@ export function Onboarding({
         @media (prefers-reduced-motion: reduce) {
           .onb-save-profiles.is-dirty,
           .onb-preview-feed.is-dirty {
-            animation-duration: 1.2s;
+            /* Keep the save reminder visible despite the global motion reset,
+               using a slower glow without movement or rapid flashes. */
+            animation: onbSaveReminderReduced 2.4s ease-in-out infinite;
+            animation-duration: 2.4s !important;
+            animation-iteration-count: infinite !important;
+            will-change: box-shadow;
           }
+        }
+        @keyframes onbSaveReminderReduced {
+          0%, 100% { box-shadow: 0 0 0 2px rgba(53, 202, 201, 0.25); }
+          50% { box-shadow: 0 0 0 3px rgba(53, 202, 201, 0.85), 0 0 14px rgba(53, 202, 201, 0.5); }
         }
         .onb-preview-showcase-scroll {
           scrollbar-width: none;
@@ -4591,7 +4607,7 @@ export function Onboarding({
                                         </div>
                                       </div>
                                 <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                                  <button disabled={isGeocodeSaving} onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
+                                  <button className={`onb-save-profiles ${isPropertyEditDirty ? 'is-dirty' : ''}`} disabled={isGeocodeSaving} onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
                                   <button onClick={() => setEditingPropertyId(null)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionCancel}</button>
                                 </div>
                               </div>
@@ -4860,7 +4876,7 @@ export function Onboarding({
                               </div>
                               <textarea value={serviceEditDraft.description} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, description: e.target.value }))} placeholder={t.placeholderDescription} style={{ ...portfolioFieldTextareaStyle({ minHeight: 58, borderRadius: 8 }), gridColumn: '1 / -1' }} />
                               <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6 }}>
-                                <button onClick={() => saveEditService(svc.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
+                                <button className={`onb-save-profiles ${isServiceEditDirty ? 'is-dirty' : ''}`} onClick={() => saveEditService(svc.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
                                 <button onClick={() => setEditingServiceId(null)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionCancel}</button>
                               </div>
                             </div>
@@ -5263,7 +5279,7 @@ export function Onboarding({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingPropertyId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
-            <button disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</button>
+            <button className={`onb-save-profiles ${isPropertyEditDirty ? 'is-dirty' : ''}`} disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</button>
           </div>
           </div>
         </Modal>
@@ -5354,7 +5370,7 @@ export function Onboarding({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingServiceId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
-            <button onClick={() => saveEditService(editingServiceRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</button>
+            <button className={`onb-save-profiles ${isServiceEditDirty ? 'is-dirty' : ''}`} onClick={() => saveEditService(editingServiceRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</button>
           </div>
         </Modal>
       ) : null}
