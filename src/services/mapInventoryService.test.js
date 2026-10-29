@@ -84,6 +84,17 @@ const baseCards = [
 ];
 
 describe('mapInventoryService', () => {
+  it.each(['professional', 'fsbo'])('keeps the current %s identity on property popups independently of profile ZIP pins', scope => {
+    const owner = { name: `Current ${scope}`, photo: `/${scope}.jpg`, primaryProfile: scope };
+    const inventory = buildMapInventory({
+      showcaseProperties: [{ ...baseCards[2], primaryProfile: scope, ownerPreview: { name: 'Stale', photo: '/old.jpg', primaryProfile: scope } }],
+      getRecordProfileScope: item => item.primaryProfile,
+      resolvePropertyDisplayCoords: item => ({ lat: item.lat, lng: item.lng }),
+      resolveScopedProfile: selectedScope => selectedScope === scope ? owner : null,
+    }, CURRENT_USER_ID);
+    expect(inventory.allPins).toHaveLength(1);
+    expect(inventory.allPins[0].sourceCard.ownerPreview).toMatchObject(owner);
+  });
   it('never renders a PIN from an unvalidated property even when it has coordinates', () => {
     const inventory = buildMapInventory([{ ...baseCards[2], geocodeStatus: 'failed' }], CURRENT_USER_ID, { showDeals: true });
     expect(inventory.allPins).toHaveLength(0);

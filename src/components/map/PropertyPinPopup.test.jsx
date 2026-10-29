@@ -8,6 +8,30 @@ afterEach(cleanup);
 const property = { id: 'property-1', price: 231000, city: 'Winter Garden', state: 'FL', zip: '34787', beds: 3, baths: 2, sqft: 1500, image: '/house.jpg' };
 const subjectState = { parcel: { geometry: { type:'Polygon',coordinates:[[[-71,42],[-70.999,42],[-70.999,42.001],[-71,42]]] } } };
 describe('Property pin card', () => {
+  it('shows and opens the linked profile even without a validated profile ZIP', () => {
+    const owner = { name: 'Linked Seller', photo: '/seller.jpg', primaryProfile: 'fsbo' };
+    const onOpenOwner = vi.fn(); const onOpen = vi.fn(); const onMatch = vi.fn();
+    render(<PropertyPinPopup property={{ ...property, ownerPreview: owner }} label="A" language="pt"
+      onOpenOwner={onOpenOwner} onOpen={onOpen} onMatch={onMatch} />);
+    expect(screen.getByRole('img', { name: 'Linked Seller' }).getAttribute('src')).toBe('/seller.jpg');
+    expect(screen.getByText('Linked Seller')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver perfil: Linked Seller' }));
+    expect(onOpenOwner).toHaveBeenCalledWith(owner);
+    expect(onOpen).not.toHaveBeenCalled(); expect(onMatch).not.toHaveBeenCalled();
+  });
+  it('keeps the profile name and an initial when the avatar fails, including the parcel page', () => {
+    const { rerender } = render(<PropertyPinPopup property={{ ...property, ownerPreview: { name: 'Seller', photo: '/bad.jpg' } }} label="A" />);
+    fireEvent.error(screen.getByRole('img', { name: 'Seller' }));
+    expect(screen.getByText('S')).toBeTruthy(); expect(screen.getByText('Seller')).toBeTruthy();
+    rerender(<PropertyPinPopup property={{ ...property, ownerPreview: { name: 'Seller' } }} label="A" parcelEligible
+      parcelState={{ ...subjectState, lens: {}, page: 'parcel' }} />);
+    expect(screen.getByText('Seller')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Open in feed/ })).toBeNull();
+  });
+  it('does not invent a profile when no identity is linked', () => {
+    render(<PropertyPinPopup property={property} label="A" />);
+    expect(screen.queryByRole('button', { name: /View profile/ })).toBeNull();
+  });
   it('offers tabs only after activation and has no third close button', () => {
     const parcel = { geometry: { type: 'Polygon', coordinates: [] }, sourceAuthority: 'Public source', retrievedAt: '2026-10-13', sourceUrl: 'https://example.com' };
     const onParcelActivate = vi.fn(); const onParcelPage = vi.fn();

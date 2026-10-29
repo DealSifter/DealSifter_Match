@@ -397,6 +397,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     if (!coords) return;
     let payload = normalizeCard({
       ...property,
+      ownerPreview: currentOwnerPreview(property.ownerPreview || property.owner_preview, owner, getRecordProfileScope(property)),
       cardKind: 'property',
       lat: coords.lat,
       lng: coords.lng,
@@ -405,6 +406,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     if (!payload) {
       payload = {
         ...property,
+        ownerPreview: currentOwnerPreview(property.ownerPreview || property.owner_preview, owner, getRecordProfileScope(property)),
         id: property.id ?? property.portfolioId,
         portfolioId: property.portfolioId || property.id,
         cardKind: 'property',

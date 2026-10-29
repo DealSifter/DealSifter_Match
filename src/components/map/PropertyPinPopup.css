@@ -2,6 +2,13 @@
 .ds-property-pin-pages { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 .ds-property-pin-photo { position: relative; display: block; width: 100%; height: var(--map-selection-photo-height,196px); padding: 0; border: 0; background: var(--pin-border); cursor: pointer; }
 .ds-property-pin-drag-label { flex-shrink:0; margin:0; padding:5px 8px; font-size:11px; text-align:center; color:var(--pin-muted); border-top:1px solid var(--pin-border); }
+.ds-property-pin-owner { flex-shrink:0; display:flex; align-items:center; gap:9px; width:100%; min-width:0; padding:8px 16px; border:0; border-top:1px solid var(--pin-border); background:var(--pin-paper); color:var(--pin-ink); font:inherit; text-align:left; cursor:pointer; }
+.ds-property-pin-owner:disabled { cursor:default; }
+.ds-property-pin-owner:focus-visible { outline:3px solid #2cc9cd; outline-offset:-3px; }
+.ds-property-pin-owner:hover:not(:disabled) { background:var(--pin-border); }
+.ds-property-pin-owner-avatar { flex-shrink:0; width:30px; height:30px; border-radius:50%; object-fit:cover; }
+.ds-property-pin-owner-initial { display:grid; place-items:center; background:var(--pin-border); font-size:13px; font-weight:700; }
+.ds-property-pin-owner-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
 .ds-property-pin-parcel-body .ds-public-parcel-data { max-height:none; overflow:visible; }
 .ds-property-pin-photo img { height: 100% !important; }
 .ds-property-pin-photo-fallback { display: grid; height: 100%; place-items: center; color: var(--pin-muted); }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SmartImage } from '../ui/SmartImage';
 import { Icon } from '../ui/Icon';
-import { BedDouble, Bath, Expand } from 'lucide-react';
+import { BedDouble, Bath, Expand, ChevronRight } from 'lucide-react';
 import { C } from '../../theme/colors';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import { ParcelPublicData } from './ParcelPublicData';
@@ -12,7 +12,7 @@ import './PropertyPinPopup.css';
 
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
-export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch,
+export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch, onOpenOwner,
   parcelState = null, parcelEligible = false, onParcelActivate, onParcelPage, dragLabel, parcelAccessStatus = null, onRetryParcelAccess }) {
   const [pending, setPending] = useState(false);
   const [lensPending, setLensPending] = useState(false);
@@ -31,6 +31,8 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const canUseLens = parcelEligible === true && hasParcel && !shouldHideStreetAddressOnCard(property);
   const lensActive = canUseLens && hasParcel && Boolean(parcelState.lens);
   const publicPage = lensActive && parcelState.page === 'parcel';
+  const owner = property.ownerPreview || property.owner_preview;
+  const ownerName = String(owner?.name || '').trim();
   return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
     {lensActive && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
       <button type="button" aria-pressed={!publicPage} onClick={() => onParcelPage?.('property')}>{parcelCopy.propertyPage}</button>
@@ -83,6 +85,14 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
     </div>
     </>}
     </div>
+    {ownerName && <button type="button" className="ds-property-pin-owner" disabled={!onOpenOwner}
+      aria-label={`${t('Ver perfil', 'View profile', 'Ver perfil')}: ${ownerName}`}
+      onClick={event => { event.stopPropagation(); onOpenOwner?.(owner); }}>
+      <SmartImage src={owner.photo || owner.avatar || ''} alt={ownerName} className="ds-property-pin-owner-avatar"
+        fallback={<span className="ds-property-pin-owner-avatar ds-property-pin-owner-initial" aria-hidden="true">{ownerName.charAt(0).toUpperCase()}</span>} />
+      <span className="ds-property-pin-owner-name">{ownerName}</span>
+      {onOpenOwner && <ChevronRight size={16} />}
+    </button>}
     {own && dragLabel && <footer className="ds-property-pin-drag-label">✥ {dragLabel}</footer>}
   </article>;
 }

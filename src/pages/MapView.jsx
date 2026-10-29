@@ -3023,6 +3023,10 @@ export function MapView({
                     ) : (
                       <div>
                         <PropertyPinPopup property={payload} label={getSafePropertyLabel(payload)} language={getLang()}
+                          onOpenOwner={owner => navigateToFeed({ ...owner,
+                            id: payload.ownerId, ownerId: payload.ownerId,
+                            primaryProfile: getRecordProfileScope(payload),
+                          }, 'person')}
                           parcelAccessStatus={parcelAccessStatus} onRetryParcelAccess={onRetryParcelAccess}
                           parcelEligible={Boolean(parcelContextForPin(feature.properties.itemId,payload,parcelPropertyPinIndex,parcelFeatureEnabled))}
                           own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
