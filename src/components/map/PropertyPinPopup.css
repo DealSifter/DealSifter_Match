@@ -41,6 +41,8 @@
   .ds-property-pin-price-row { gap:5px; }
   .ds-property-pin-price-row strong { font-size:18px; }
   .ds-property-pin-metrics { gap:5px 8px; font-size:11px; margin-top:6px; }
+  .ds-property-pin-badges { top:38px; left:8px; }
+  .ds-property-leaflet-popup.leaflet-popup .leaflet-popup-close-button { left:7px; right:auto !important; }
 }
 .ds-property-leaflet-popup .leaflet-popup-content { margin: 0; width: auto !important; max-width: none; }
 .ds-property-leaflet-popup .leaflet-popup-content-wrapper { padding: 0; max-width: none; background: var(--card); overflow: hidden; }
