@@ -22,26 +22,22 @@
 .ds-property-pin-price-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .ds-property-pin-price-row strong { font-size: 21px; line-height: 1.3; }
 .ds-property-pin-price-row small { display: block; color: var(--pin-muted); font-size: 11px; }
-.ds-property-pin-match { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--ui-border); border-radius: 8px; padding: 6px; background: var(--ui-surface); color: var(--ui-btn-text-strong); cursor: pointer; font-size: 11px; }
-.ds-property-pin-match.is-selected { border-color:var(--accent-hex,#2cc9cd); }
-.ds-property-pin-match.is-unlocked { color: #071c23; border-color: var(--success-hex,#75ba75); background: var(--success-hex,#75ba75); }
+.ds-property-pin-match { display: inline-flex; align-items: center; gap: 4px; height:34px; min-height:34px; box-sizing:border-box; border: 1px solid var(--success-hex,#75ba75); border-radius: 8px; padding: 0 6px; background: var(--ui-surface); color: var(--success-hex,#75ba75); cursor: pointer; font-size: 11px; }
+.ds-property-pin-match.is-selected, .ds-property-pin-match.is-unlocked { color:#fff; border-color:var(--success-hex,#75ba75); background:var(--success-hex,#75ba75); }
 .ds-property-pin-match:disabled { cursor: default; opacity: .5; }
-.ds-property-pin-match.is-unlocked:disabled { opacity:1; }
-.ds-property-pin-check { display:inline-flex; align-items:center; justify-content:center; flex:0 0 24px; width:24px; height:24px; box-sizing:border-box; border:1px solid var(--success-hex,#75ba75); border-radius:50%; color:var(--success-hex,#75ba75); background:rgba(117,186,117,.08); }
-.ds-property-pin-match.is-unlocked .ds-property-pin-check { background:var(--pin-paper); }
+.ds-property-pin-match.is-selected:disabled, .ds-property-pin-match.is-unlocked:disabled { opacity:1; }
+.ds-property-pin-check { display:inline-flex; align-items:center; justify-content:center; flex:0 0 24px; width:24px; height:24px; box-sizing:border-box; border:1px solid currentColor; border-radius:50%; color:var(--success-hex,#75ba75); background:#f4faf4; }
+.ds-property-pin-match.is-selected .ds-property-pin-check, .ds-property-pin-match.is-unlocked .ds-property-pin-check { color:#fff; background:var(--success-hex,#75ba75); }
 .ds-property-pin-address { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
 .ds-property-pin-location { margin-top: 4px; color: var(--pin-muted); font-size: 12px; overflow-wrap: anywhere; }
 .ds-property-pin-metrics { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; font-size: 12px; }
 .ds-property-pin-metrics > span { display: inline-flex; gap: 4px; align-items: center; }
 .ds-property-pin-lens-feedback { font-size:12px; line-height:1.4; color:var(--pin-muted); margin:6px 0; overflow-wrap:anywhere; }
 .ds-property-pin-lens:disabled { opacity:.65; cursor:progress; }
-.ds-property-pin-loader { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:33px; height:32px; margin-left:auto; }
-.ds-property-pin-loader-mark { flex-shrink:0; animation:ds-property-pin-loading 1.15s linear infinite; }
+.ds-property-pin-price-row .ds-property-pin-lens { width:34px; height:34px; min-height:34px; box-sizing:border-box; padding:0; }
+.ds-property-pin-loader { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:34px; height:34px; margin-left:auto; }
+.ds-property-pin-loader-mark { flex-shrink:0; opacity:1; transform-origin:center; animation:ds-property-pin-loading 1.15s linear infinite; animation-duration:1.15s !important; animation-iteration-count:infinite !important; }
 @keyframes ds-property-pin-loading { to { transform:rotate(360deg); } }
-@media (prefers-reduced-motion:reduce) {
-  .ds-property-pin-loader-mark { animation:ds-property-pin-loading-reduced 2.4s ease-in-out infinite; animation-duration:2.4s !important; animation-iteration-count:infinite !important; }
-}
-@keyframes ds-property-pin-loading-reduced { 0%,100% { opacity:1; } 50% { opacity:.45; } }
 @media (max-height:480px) and (min-width:600px) {
   .ds-property-pin-popup:not(.is-parcel-page) .ds-property-pin-pages { flex-direction:row; }
   .ds-property-pin-photo { flex:0 0 32%; width:32%; }

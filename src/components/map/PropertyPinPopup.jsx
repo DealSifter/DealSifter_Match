@@ -67,7 +67,7 @@ export function PropertyPinPopup({ property, label, selected = false, unlocked =
             } catch { setLensStatus(parcelCopy.SOURCE_TEMPORARILY_UNAVAILABLE); }
             finally { setLensPending(false); }
           }}><Icon name="search" size={19} /></button>}
-        <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}${unlocked ? ' is-unlocked' : ''}`} aria-pressed={selected || unlocked}
+        <button type="button" className={`ds-property-pin-match${selected || pending ? ' is-selected' : ''}${unlocked ? ' is-unlocked' : ''}`} aria-pressed={selected || unlocked}
           disabled={own || unlocked || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : unlocked ? t('Imóvel desbloqueado', 'Unlocked property', 'Inmueble desbloqueado') : 'Match'}
           onClick={async event => { event.stopPropagation(); setPending(true); try { await onMatch(property); } finally { setPending(false); } }}>
           <span className="ds-property-pin-check" aria-hidden="true"><Check size={14} strokeWidth={1.8} /></span>

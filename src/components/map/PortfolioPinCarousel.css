@@ -1,4 +1,4 @@
-.ds-map-person-popup { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 8px; width: min(440px, calc(100vw - 60px)); padding-right: 0; box-sizing: border-box; }
+.ds-map-person-popup { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 8px; width: min(440px, calc(100vw - 60px)); padding-right: 0; box-sizing: border-box; background:var(--card); color:var(--t1); }
 .ds-map-person-popup .ds-map-popup-card { width: auto; gap: 4px; align-content: start; padding-right: 22px; box-sizing: border-box; }
 .ds-map-person-popup .ds-map-popup-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ds-map-person-popup .ds-map-popup-avatar { width: 44.8px; height: 44.8px; }
@@ -7,6 +7,7 @@
   display: block;
   font-size: 12px;
   font-weight: 800;
+  color: var(--t1);
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -56,8 +57,9 @@
 .ds-map-person-popup--no-media { width: min(260px, calc(100vw - 60px)); grid-template-columns: minmax(0, 1fr); }
 .ds-map-person-popup--no-media .ds-map-popup-card { align-content: start; }
 .ds-person-leaflet-popup .leaflet-popup-content-wrapper { max-width: min(464px, calc(100vw - 36px)); }
+.ds-person-leaflet-popup .leaflet-popup-content-wrapper, .ds-person-leaflet-popup .leaflet-popup-tip { background:var(--card); color:var(--t1); }
 .ds-person-leaflet-popup .leaflet-popup-content { width: auto !important; max-width: none; margin: 6px 8px 6px 6px; }
-.ds-person-leaflet-popup .leaflet-popup-close-button { top: 4px; right: 4px; width: 22px; height: 22px; z-index: 2; }
+.ds-person-leaflet-popup .leaflet-popup-close-button { top: 4px; right: 4px; width: 22px; height: 22px; z-index: 2; color:var(--t2); }
 .ds-pin-portfolio { position: relative; min-width: 0; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; align-self: start; touch-action: pan-y; }
 .ds-pin-portfolio-photo { position: absolute; inset: 0; display: block; border: 0; padding: 0; width: 100%; height: 100%; background: var(--border); cursor: pointer; }
 .ds-pin-portfolio-photo img { height: 100% !important; display: block; }
