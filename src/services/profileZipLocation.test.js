@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { getProfileZipLocation, lookupProfileZip } from './profileZipLocation';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { buildGlobalFeedState } from './feedStateService';
@@ -8,6 +9,12 @@ const zipLocation = { zip: '02108', state: 'MA', city: 'Boston', lat: 42.3576, l
 const response = (zip = '02108') => ({ ok: true, status: 200, json: async () => ({ 'post code': zip, 'country abbreviation': 'US', places: [{ 'place name': 'Boston', 'state abbreviation': 'MA', latitude: '42.3576', longitude: '-71.0639' }] }) });
 
 describe('profile ZIP Code location', () => {
+  it('allows the ZIP provider through the actual document connection policy', () => {
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    const policy = html.match(/connect-src\s+([^;]+)/)?.[1].split(/\s+/) || [];
+    expect(policy).toContain('https://api.zippopotam.us');
+    expect(policy).not.toContain('*');
+  });
   it('preserves leading zeroes, resolves ZIP coordinates and deduplicates lookups', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(response());
     const [first, second] = await Promise.all([lookupProfileZip('02108', fetchImpl), lookupProfileZip('02108', fetchImpl)]);

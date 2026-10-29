@@ -25,15 +25,24 @@ afterEach(cleanup);
 
 describe('profile ZIP Code onboarding', () => {
   it('replaces the state selector, derives MA from a leading-zero ZIP and saves its centroid', async () => {
-    vi.mocked(lookupProfileZip).mockResolvedValue(zip);
+    let resolveLookup;
+    vi.mocked(lookupProfileZip).mockImplementation(() => new Promise((resolve) => { resolveLookup = resolve; }));
     const { container, setPersonalProfile } = mount();
     const input = screen.getByLabelText('ZIP CODE');
     expect(input.tagName).toBe('INPUT');
     expect(screen.queryByText('Localizacao (Estado)')).toBeNull();
     // Wait for initial profile and draft hydration before editing.
     await new Promise((resolve) => setTimeout(resolve, 20));
+    fireEvent.focus(input);
+    expect(screen.getByTestId('profile-zip-popover').textContent).toContain('Informe um ZIP Code');
+    expect(container.querySelector('#profile-a-zip-status')).toBeNull();
     fireEvent.change(input, { target: { value: '02108' } });
-    await waitFor(() => expect(screen.getByText(/Boston, MA/)).toBeTruthy(), { timeout: 3000 });
+    fireEvent.blur(input);
+    await waitFor(() => expect(resolveLookup).toBeTypeOf('function'), { timeout: 3000 });
+    expect(screen.getByTestId('profile-zip-popover').textContent).toContain('Consultando ZIP Code');
+    resolveLookup(zip);
+    await waitFor(() => expect(screen.queryByTestId('profile-zip-popover')).toBeNull(), { timeout: 3000 });
+    expect(input.title).toContain('Boston, MA');
     expect(input.value).toBe('02108');
     fireEvent.click(container.querySelector('.onb-save-profiles'));
     await waitFor(() => expect(setPersonalProfile).toHaveBeenCalled());
