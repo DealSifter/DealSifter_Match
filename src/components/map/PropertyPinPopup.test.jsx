@@ -3,11 +3,34 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PropertyPinPopup } from './PropertyPinPopup';
+import { resolvePropertyUnlockState } from '../../lib/unlockAccessState';
 
 afterEach(cleanup);
 const property = { id: 'property-1', price: 231000, city: 'Winter Garden', state: 'FL', zip: '34787', beds: 3, baths: 2, sqft: 1500, image: '/house.jpg' };
 const subjectState = { parcel: { geometry: { type:'Polygon',coordinates:[[[-71,42],[-70.999,42],[-70.999,42.001],[-71,42]]] } } };
 describe('Property pin card', () => {
+  it.each(['property', 'contact', 'reciprocal'])('shows a line check and OK for canonical %s access acquired elsewhere', scope => {
+    const match = vi.fn();
+    const linkedProperty = { ...property, ownerId: 'seller', primaryProfile: 'fsbo' };
+    const grants = new Map([['seller:fsbo', { ownerId: 'seller', primaryProfile: 'fsbo', unlockScope: scope, unlockedPropertyIds: [property.id] }]]);
+    render(<PropertyPinPopup property={linkedProperty} label="A" unlocked={resolvePropertyUnlockState(linkedProperty, grants)} onMatch={match} />);
+    const button = screen.getByRole('button', { name: 'OK' });
+    expect(button.classList.contains('is-unlocked')).toBe(true);
+    expect(button.disabled).toBe(true);
+    expect(button.querySelector('svg').getAttribute('fill')).toBe('none');
+    expect(button.querySelector('[style*="mask"]')).toBeNull();
+    fireEvent.click(button); expect(match).not.toHaveBeenCalled();
+  });
+  it('updates immediately when Matches grants access and keeps other properties locked', () => {
+    const linkedProperty = { ...property, ownerId: 'seller', primaryProfile: 'fsbo' };
+    const grants = new Map([['seller:fsbo', { ownerId:'seller', primaryProfile:'fsbo', unlockScope:'property', unlockedPropertyIds:['different-property'] }]]);
+    const { rerender } = render(<PropertyPinPopup property={linkedProperty} label="A" selected unlocked={resolvePropertyUnlockState(linkedProperty, grants)} onMatch={vi.fn()} />);
+    expect(screen.getByRole('button', { name:'Match' }).disabled).toBe(false);
+    expect(screen.queryByRole('button', { name:'OK' })).toBeNull();
+    grants.get('seller:fsbo').unlockedPropertyIds.push(property.id);
+    rerender(<PropertyPinPopup property={linkedProperty} label="A" unlocked={resolvePropertyUnlockState(linkedProperty, grants)} onMatch={vi.fn()} />);
+    expect(screen.getByRole('button', { name:'OK' })).toBeTruthy();
+  });
   it('shows and opens the linked profile even without a validated profile ZIP', () => {
     const owner = { name: 'Linked Seller', photo: '/seller.jpg', primaryProfile: 'fsbo' };
     const onOpenOwner = vi.fn(); const onOpen = vi.fn(); const onMatch = vi.fn();

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { SmartImage } from '../ui/SmartImage';
 import { Icon } from '../ui/Icon';
-import { BedDouble, Bath, Expand, ChevronRight } from 'lucide-react';
+import { BedDouble, Bath, Expand, ChevronRight, Check } from 'lucide-react';
 import { C } from '../../theme/colors';
-import feedMatchIcon from '../../assets/feed-match-icon.png';
 import { ParcelPublicData } from './ParcelPublicData';
 import { parcelLabels } from '../../features/parcel/parcelPresentation';
 import { shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
@@ -12,7 +11,7 @@ import './PropertyPinPopup.css';
 
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
-export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch, onOpenOwner,
+export function PropertyPinPopup({ property, label, selected = false, unlocked = false, own = false, language = 'en', onOpen, onMatch, onOpenOwner,
   parcelState = null, parcelEligible = false, onParcelActivate, onParcelPage, dragLabel, parcelAccessStatus = null, onRetryParcelAccess }) {
   const [pending, setPending] = useState(false);
   const [lensPending, setLensPending] = useState(false);
@@ -33,7 +32,7 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const publicPage = lensActive && parcelState.page === 'parcel';
   const owner = property.ownerPreview || property.owner_preview;
   const ownerName = String(owner?.name || '').trim();
-  return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
+  return <article className={`ds-property-pin-popup${publicPage ? ' is-parcel-page' : ''}`} style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
     {lensActive && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
       <button type="button" aria-pressed={!publicPage} onClick={() => onParcelPage?.('property')}>{parcelCopy.propertyPage}</button>
       <button type="button" aria-pressed={publicPage} onClick={event => { event.stopPropagation(); onParcelPage?.('parcel'); }}>{parcelCopy.parcelPage}</button>
@@ -62,11 +61,11 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
             } catch { setLensStatus(parcelCopy.SOURCE_TEMPORARILY_UNAVAILABLE); }
             finally { setLensPending(false); }
           }}><Icon name="search" size={19} /></button>}
-        <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}`} aria-pressed={selected}
-          disabled={own || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : 'Match'}
+        <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}${unlocked ? ' is-unlocked' : ''}`} aria-pressed={selected || unlocked}
+          disabled={own || unlocked || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : unlocked ? t('Imóvel desbloqueado', 'Unlocked property', 'Inmueble desbloqueado') : 'Match'}
           onClick={async event => { event.stopPropagation(); setPending(true); try { await onMatch(property); } finally { setPending(false); } }}>
-          <span className="ds-property-pin-check" style={{ maskImage: `url(${feedMatchIcon})`, WebkitMaskImage: `url(${feedMatchIcon})` }} />
-          <span>Match</span>
+          <Check className="ds-property-pin-check" size={20} strokeWidth={1.8} aria-hidden="true" />
+          <span>{unlocked ? 'OK' : 'Match'}</span>
         </button>
       </div>
       {canUseLens && lensPending && <div className="ds-property-pin-lens-feedback" role="status">{parcelCopy.loading}</div>}
@@ -88,8 +87,11 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
     {ownerName && <button type="button" className="ds-property-pin-owner" disabled={!onOpenOwner}
       aria-label={`${t('Ver perfil', 'View profile', 'Ver perfil')}: ${ownerName}`}
       onClick={event => { event.stopPropagation(); onOpenOwner?.(owner); }}>
-      <SmartImage src={owner.photo || owner.avatar || ''} alt={ownerName} className="ds-property-pin-owner-avatar"
-        fallback={<span className="ds-property-pin-owner-avatar ds-property-pin-owner-initial" aria-hidden="true">{ownerName.charAt(0).toUpperCase()}</span>} />
+      <span className="ds-property-pin-owner-avatar">
+        <SmartImage src={owner.photo || owner.avatar || ''} alt={ownerName}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          fallback={<span className="ds-property-pin-owner-initial" aria-hidden="true">{ownerName.charAt(0).toUpperCase()}</span>} />
+      </span>
       <span className="ds-property-pin-owner-name">{ownerName}</span>
       {onOpenOwner && <ChevronRight size={16} />}
     </button>}

@@ -47,7 +47,8 @@ describe('shared Matches and Map unlock state', () => {
   it('propagates canonical access through source normalization before filtering pins', () => {
     const inventory = buildMapInventory({
       showcaseProperties: ['paid-property', 'locked-property'].map(id => ({ ...property, id, address: id, type: 'SFR', lat: 32, lng: -99, isUnlocked: true,
-        ownerPreview: { id: 'seller', name: 'Seller', type: 'FSBO', loc: 'TX' } })),
+        ownerPreview: { id: 'seller', name: 'Seller', type: 'FSBO', loc: 'TX',
+          zipLocation: { zip:'75201', city:'Dallas', state:'TX', lat:32.787, lng:-96.798, source:'zippopotamus' } } })),
       getRecordProfileScope: card => card.primaryProfile,
       getStateCodeFromMarket: () => 'TX', stateCenters: { TX: { lat: 32, lng: -99 } },
       getPortfolioPartsForOwner: () => ({ properties: [property], services: [] }),

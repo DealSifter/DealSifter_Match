@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { PIN_SELECTION_ZOOM, MapSelectionCamera, parcelSelectionZoom, selectionCenter, selectionLayout } from './mapSelectionCamera';
 
 describe('single device-aware map selection camera', () => {
+  it.each([[320,502,88,true],[844,332,0,true],[1024,702,0,false]])('reserves readable property content at pin zoom on %s x %s', (width,height,bottomNav,phone) => {
+    const layout = selectionLayout({ width,height,bottomNav,phone,latitude:21.3,zoom:PIN_SELECTION_ZOOM });
+    expect(layout.popupHeight).toBeGreaterThanOrEqual(220);
+    expect(layout.popupTop).toBeGreaterThanOrEqual(12);
+    expect(layout.popupTop+layout.popupHeight).toBeLessThanOrEqual(height-bottomNav-12);
+  });
   it('uses Z15 for every PIN and Z17 only for phones, Z16 for other devices', () => {
     expect(PIN_SELECTION_ZOOM).toBe(15); expect(parcelSelectionZoom(true)).toBe(17); expect(parcelSelectionZoom(false)).toBe(16);
   });

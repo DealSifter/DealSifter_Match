@@ -4,13 +4,14 @@ export const PIN_SELECTION_ZOOM = 15;
 export const parcelSelectionZoom = phone => phone ? 17 : 16;
 
 // One stable screen-space slot for both popup pages, independent of parcel data.
-export function selectionLayout({ width, height, panelLeft = 0, bottomNav = 0, phone = false, latitude = 0 }) {
+export function selectionLayout({ width, height, panelLeft = 0, bottomNav = 0, phone = false, latitude = 0, zoom = parcelSelectionZoom(phone) }) {
   const left = Math.min(panelLeft + (panelLeft ? 24 : 12), Math.max(12, width - 160));
   const right = width - 12;
   const popupWidth = Math.max(120, Math.min(360, right - left - 12));
-  const top = 72;
-  const safeBottom = height - Math.max(104, bottomNav + 100);
-  const lensPixels = PARCEL_LENS_RADIUS_METERS / (156543.03392 * Math.cos(latitude * Math.PI / 180) / 2 ** parcelSelectionZoom(phone));
+  const compact = zoom === PIN_SELECTION_ZOOM && height - bottomNav < 480;
+  const top = compact ? 16 : 72;
+  const safeBottom = height - (compact ? Math.max(24, bottomNav + 12) : Math.max(104, bottomNav + 100));
+  const lensPixels = PARCEL_LENS_RADIUS_METERS / (156543.03392 * Math.cos(latitude * Math.PI / 180) / 2 ** zoom);
   const popupHeight = Math.max(120, Math.min(phone ? 340 : 390, safeBottom - top,
     height - bottomNav - 12 - lensPixels - 42 - top));
   const centeredTop = top + Math.max(0, (safeBottom - top - popupHeight) / 2);
@@ -45,7 +46,7 @@ export class MapSelectionCamera {
     if (!marker) return;
     const point = marker.getLatLng(); // Includes coincident-pin display offsets.
     const size = this.map.getSize();
-    const layout = selectionLayout({ width: size.x, height: size.y, latitude: point.lat, ...options });
+    const layout = selectionLayout({ width: size.x, height: size.y, latitude: point.lat, ...options, zoom: request.zoom });
     const container = this.map.getContainer();
     container.style.setProperty('--map-selection-popup-width', `${layout.popupWidth}px`);
     container.style.setProperty('--map-selection-popup-height', `${layout.popupHeight}px`);

@@ -3030,6 +3030,7 @@ export function MapView({
                           parcelAccessStatus={parcelAccessStatus} onRetryParcelAccess={onRetryParcelAccess}
                           parcelEligible={Boolean(parcelContextForPin(feature.properties.itemId,payload,parcelPropertyPinIndex,parcelFeatureEnabled))}
                           own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
+                          unlocked={isPropertyUnlocked(payload)}
                           parcelState={parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.context?.itemId === String(feature.properties.itemId) ? parcelLensState : null}
                           onParcelPage={page => parcelLensController.setPage(page)} onParcelActivate={() => activateParcelLens(feature.properties.itemId,payload)}
                           dragLabel={tMap.dragToReposition || 'Drag to reposition'}
