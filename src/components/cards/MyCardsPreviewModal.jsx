@@ -39,30 +39,14 @@ function ServicePreview({ item, copy }) {
   );
 }
 
-export function MyCardsPreviewModal({ data, onClose, copy = {} }) {
+function ShowcasePreviewPanel({ data, copy }) {
   const [index, setIndex] = useState(0);
-  const [panel, setPanel] = useState('profile');
   const items = data.showcaseItems || [];
   const current = Math.min(index, Math.max(0, items.length - 1));
   const item = items[current];
-  return (
-    <Modal onClose={onClose} maxWidth={1480} scrollable={false} contentClassName="ds-preview-dialog ds-my-cards-dialog" ariaLabel={`My Card · ${data.scopeLabel}`}>
-      <div className="preview-dialog-header mycards-preview-header">
-        <div><h3>My Card · {data.scopeLabel}</h3><p>{copy.myCardsPreviewDescription || 'Active/published cards currently visible in feed and showcase.'}</p></div>
-        <span className="mycards-preview-count">{data.services.length} services · {data.properties.length} properties</span>
-      </div>
-      <div className="mycards-preview-tabs" role="tablist" aria-label="My Cards">
-        <button type="button" role="tab" aria-selected={panel === 'profile'} onClick={() => setPanel('profile')}>{copy.myCardsProfileTab || 'Profile'}</button>
-        <button type="button" role="tab" aria-selected={panel === 'showcase'} onClick={() => setPanel('showcase')}>{copy.myCardsShowcaseTab || 'Showcase'}</button>
-      </div>
-      <div className="mycards-preview-panels">
-        <section className="mycards-preview-panel" data-active={panel === 'profile'} aria-label="Feed Card">
-          <div className="mycards-preview-panel-heading"><span>Feed Card (Connections)</span></div>
-          <div className="mycards-preview-body"><FittedPreviewCard><SwipeCard card={data.profileCard} previewOnly isUnlocked showActions={false} /></FittedPreviewCard></div>
-        </section>
-        <section className="mycards-preview-panel" data-active={panel === 'showcase'} aria-label="Showcase Cards">
+  return <>
           <div className="mycards-preview-panel-heading">
-            <span>Enabled Showcase Cards</span>
+            <span>{copy.myCardsShowcaseHeading || 'Enabled Showcase Cards'}</span>
             {items.length > 1 ? <div className="mycards-preview-controls">
               <button type="button" disabled={current === 0} onClick={() => setIndex(current - 1)} aria-label={copy.previous || 'Previous'}><Icon name="back" size={20} /></button>
               <span aria-live="polite">{current + 1} / {items.length}</span>
@@ -71,11 +55,37 @@ export function MyCardsPreviewModal({ data, onClose, copy = {} }) {
           </div>
           <div className="mycards-preview-body">
             {!item ? <div className="preview-service-empty">{copy.myCardsEmpty || 'No published property or service in this profile yet.'}</div>
-              : item._itemType === 'property' ? <FittedPreviewCard><PropertyCard property={item} owner={data.profileCard} previewOnly showActions={false} /></FittedPreviewCard>
-                : <FittedPreviewCard><ServicePreview key={`${item.id || current}`} item={item} copy={copy} /></FittedPreviewCard>}
+              : item._itemType === 'property' ? <FittedPreviewCard><PropertyCard key={item.id || current} property={item} owner={data.profileCard} previewOnly showActions={false} /></FittedPreviewCard>
+                : <FittedPreviewCard><ServicePreview key={item.id || current} item={item} copy={copy} /></FittedPreviewCard>}
           </div>
+  </>;
+}
+
+export function CardPreviewPanels({ data, copy = {} }) {
+  const [panel, setPanel] = useState('profile');
+  return <>
+      <div className="mycards-preview-tabs" role="tablist" aria-label="My Cards">
+        <button type="button" role="tab" aria-selected={panel === 'profile'} onClick={() => setPanel('profile')}>{copy.myCardsProfileTab || 'Profile'}</button>
+        <button type="button" role="tab" aria-selected={panel === 'showcase'} onClick={() => setPanel('showcase')}>{copy.myCardsShowcaseTab || 'Showcase'}</button>
+      </div>
+      <div className="mycards-preview-panels">
+        <section className="mycards-preview-panel" data-active={panel === 'profile'} aria-label="Feed Card">
+          <div className="mycards-preview-panel-heading"><span>{copy.myCardsFeedHeading || 'Feed Card (Connections)'}</span></div>
+          <div className="mycards-preview-body"><FittedPreviewCard><SwipeCard card={data.profileCard} previewOnly isUnlocked showActions={false} /></FittedPreviewCard></div>
+        </section>
+        <section className="mycards-preview-panel" data-active={panel === 'showcase'} aria-label="Showcase Cards">
+          <ShowcasePreviewPanel key={data.scopeKey || data.scopeLabel} data={data} copy={copy} />
         </section>
       </div>
-    </Modal>
-  );
+  </>;
+}
+
+export function MyCardsPreviewModal({ data, onClose, copy = {} }) {
+  return <Modal onClose={onClose} maxWidth={1480} scrollable={false} contentClassName="ds-preview-dialog ds-my-cards-dialog" ariaLabel={`My Card · ${data.scopeLabel}`}>
+      <div className="preview-dialog-header mycards-preview-header">
+        <div><h3>My Card · {data.scopeLabel}</h3><p>{copy.myCardsPreviewDescription || 'Active/published cards currently visible in feed and showcase.'}</p></div>
+        <span className="mycards-preview-count">{data.services.length} services · {data.properties.length} properties</span>
+      </div>
+      <CardPreviewPanels data={data} copy={copy} />
+    </Modal>;
 }

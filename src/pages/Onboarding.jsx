@@ -2,8 +2,7 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { C } from '../theme/colors';
 import { Modal } from '../components/ui/Modal';
-import { SwipeCard } from '../components/cards/SwipeCard';
-import { PropertyCard } from '../components/cards/PropertyCard';
+import { FeedPreviewModal } from '../components/cards/FeedPreviewModal';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
 import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfileModal';
@@ -34,7 +33,6 @@ import {
   CARD_PRIORITY_OPTIONS,
   CONTACT_METHOD_PRESETS,
   FEED_TASKBAR_CATEGORY_OPTIONS,
-  PREVIEW_PLACEHOLDER_IMAGE,
   PROFILE_PRIORITY_KEYS,
   SKILL_PRESETS,
   US_STATES,
@@ -268,13 +266,7 @@ export function Onboarding({
   const isTabletPortraitViewport = useMediaQuery('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)');
   const isTabletViewport = useMediaQuery('(min-width: 480px) and (max-width: 1199px)');
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
-  const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
-  const [previewGroupIndex, setPreviewGroupIndex] = useState(0);
-  const [previewLinkedItemIndex, setPreviewLinkedItemIndex] = useState(0);
-  const [previewMode, setPreviewMode] = useState('properties');
   const onboardingGridRef = useRef(null);
-  const previewShowcaseScrollRef = useRef(null);
   const portfolioBranchHydrationRef = useRef('');
   const profileHydrationRef = useRef('');
   const draftHydrationRef = useRef('');
@@ -556,16 +548,6 @@ export function Onboarding({
   const myPortfolio = useMemo(() => (
     propertyPortfolio.filter((p) => isOwnPropertyRecord(p))
   ), [propertyPortfolio]);
-  const previewPropertiesCount = useMemo(
-    () => (myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)).length,
-    [isPropertyVisibleInPreview, myPortfolio]
-  );
-
-  useEffect(() => {
-    if (previewPropertyIndex < previewPropertiesCount) return;
-    const timer = window.setTimeout(() => setPreviewPropertyIndex(0), 0);
-    return () => window.clearTimeout(timer);
-  }, [previewPropertyIndex, previewPropertiesCount]);
   const dedupePreviewRecords = useCallback((records, fallbackPrefix) => {
     const seen = new Set();
     return (records || []).filter((record, index) => {
@@ -579,12 +561,6 @@ export function Onboarding({
     () => dedupePreviewRecords((myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)), 'property'),
     [dedupePreviewRecords, isPropertyVisibleInPreview, myPortfolio]
   );
-
-  useEffect(() => {
-    if ((propertiesForPreview || []).length > 0) return;
-    const timer = window.setTimeout(() => setPreviewMode('services'), 0);
-    return () => window.clearTimeout(timer);
-  }, [propertiesForPreview]);
 
   const myServicePortfolio = useMemo(
     () => (servicePortfolio || []).filter((service) => isOwnServiceRecord(service)),
@@ -600,19 +576,6 @@ export function Onboarding({
   }), [servicesForPreview, showArchivedImages]);
   void _servicePortfolioImages;
 
-  useEffect(() => {
-    if (previewServiceIndex < servicesForPreview.length) return;
-    const timer = window.setTimeout(() => setPreviewServiceIndex(0), 0);
-    return () => window.clearTimeout(timer);
-  }, [previewServiceIndex, servicesForPreview.length]);
-
-  useEffect(() => {
-    if (previewMode === 'services' && servicesForPreview.length === 0 && propertiesForPreview.length > 0) {
-      const timer = window.setTimeout(() => setPreviewMode('properties'), 0);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [previewMode, servicesForPreview.length, propertiesForPreview.length]);
   const previewShowcaseItems = useMemo(() => {
     const scopes = ['personal', 'professional', 'fsbo'];
     return scopes.map((scope) => {
@@ -628,74 +591,6 @@ export function Onboarding({
       };
     }).filter(Boolean);
   }, [normalizePortfolioProfileScope, propertiesForPreview, servicesForPreview]);
-
-  const previewShowcaseCount = previewShowcaseItems.length;
-  const previewUnifiedIndex = useMemo(() => {
-    if (!previewShowcaseCount) return 0;
-    return Math.max(0, Math.min(previewShowcaseCount - 1, previewGroupIndex || 0));
-  }, [previewGroupIndex, previewShowcaseCount]);
-
-  const setPreviewByUnifiedIndex = useCallback((nextUnifiedIndex) => {
-    const total = previewShowcaseCount;
-    if (!total) return;
-    const normalized = Math.max(0, Math.min(total - 1, Number(nextUnifiedIndex) || 0));
-    const group = previewShowcaseItems[normalized];
-    setPreviewGroupIndex(normalized);
-    setPreviewLinkedItemIndex(0);
-    if ((group?.properties || []).length > 0) {
-      setPreviewMode('properties');
-      setPreviewPropertyIndex(0);
-    } else {
-      setPreviewMode('services');
-      setPreviewServiceIndex(0);
-    }
-  }, [previewShowcaseCount, previewShowcaseItems]);
-
-  useEffect(() => {
-    if (previewGroupIndex < previewShowcaseCount) return;
-    const timer = window.setTimeout(() => setPreviewGroupIndex(0), 0);
-    return () => window.clearTimeout(timer);
-  }, [previewGroupIndex, previewShowcaseCount]);
-
-  const handlePreviewPrev = () => {
-    if (!previewShowcaseCount) return;
-    setPreviewByUnifiedIndex(previewUnifiedIndex - 1);
-  };
-
-  const handlePreviewNext = () => {
-    if (!previewShowcaseCount) return;
-    setPreviewByUnifiedIndex(previewUnifiedIndex + 1);
-  };
-
-  useEffect(() => {
-    setPreviewLinkedItemIndex(0);
-  }, [previewUnifiedIndex]);
-
-  useEffect(() => {
-    const group = previewShowcaseItems[previewUnifiedIndex] || null;
-    const linkedCount = (group?.properties || []).length + (group?.services || []).length;
-    if (!linkedCount && previewLinkedItemIndex !== 0) {
-      setPreviewLinkedItemIndex(0);
-      return;
-    }
-    if (linkedCount > 0 && previewLinkedItemIndex >= linkedCount) {
-      setPreviewLinkedItemIndex(linkedCount - 1);
-    }
-  }, [previewLinkedItemIndex, previewShowcaseItems, previewUnifiedIndex]);
-
-  useEffect(() => {
-    if (!previewOpen) return;
-    const timer = window.setTimeout(() => {
-      const container = previewShowcaseScrollRef.current;
-      if (!container) return;
-      try {
-        container.scrollTo({ left: container.clientWidth * previewLinkedItemIndex, behavior: 'smooth' });
-      } catch {
-        container.scrollLeft = container.clientWidth * previewLinkedItemIndex;
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [previewLinkedItemIndex, previewOpen, previewUnifiedIndex]);
 
   const registeredServiceSkills = useMemo(() => {
     const raw = myServicePortfolio.flatMap((svc) => [svc?.category, svc?.title]);
@@ -1166,227 +1061,6 @@ export function Onboarding({
     };
   void _renderServiceImages;
   void _renderPreviewPropertyImages;
-
-  const renderPreviewContent = () => {
-    const hasPreviewProperty = propertiesForPreview.length > 0;
-    const hasPreviewService = servicesForPreview.length > 0;
-    const hasPreviewItems = hasPreviewProperty || hasPreviewService;
-    const activePreviewGroup = previewShowcaseItems[previewUnifiedIndex] || previewShowcaseItems[0] || null;
-    const activePreviewLinkedItems = [
-      ...(activePreviewGroup?.properties || []).map((property) => ({ kind: 'property', data: property })),
-      ...(activePreviewGroup?.services || []).map((service) => ({ kind: 'service', data: service })),
-    ];
-    const activePreviewLinkedCount = activePreviewLinkedItems.length;
-    const activePreviewProfileScope = (() => {
-      if (activePreviewGroup?.profileScope) return activePreviewGroup.profileScope;
-      if (previewMode === 'properties') {
-        const activeProperty = previewShowcaseCard || propertiesForPreview[previewPropertyIndex] || propertiesForPreview[0];
-        return normalizePrimaryProfileScope(activeProperty?.primaryProfile);
-      }
-      const activeService = servicesForPreview[previewServiceIndex] || servicesForPreview[0];
-      return normalizePrimaryProfileScope(activeService?.primaryProfile);
-    })();
-    const activePreviewFeedCard = activePreviewProfileScope === 'professional'
-      ? previewProfessionalFeedCard
-      : (activePreviewProfileScope === 'fsbo' ? previewFsboFeedCard : previewPersonalFeedCard);
-    const personalPreviewTitle = accountType === 'fsbo_owner'
-      ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
-      : t.previewPersonalCardTitle;
-    const previewCardWidth = isMobileViewport ? 360 : 654;
-    const previewCardHeight = isMobileViewport ? 610 : 420;
-    const previewDeckHeight = previewCardHeight + 36;
-
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'minmax(0, 1fr)' : `minmax(0, 1fr) minmax(0, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'start', minWidth: 0 }}>
-        {/* â”€â”€ Left: Feed / Connection Card â”€â”€ */}
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
-          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
-            <span>{personalPreviewTitle}</span>
-            {previewShowcaseCount > 1 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  aria-label="Previous profile"
-                  disabled={previewUnifiedIndex <= 0}
-                  onClick={handlePreviewPrev}
-                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="back" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
-                </button>
-                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
-                  {previewUnifiedIndex + 1} / {previewShowcaseCount}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Next profile"
-                  disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
-                  onClick={handlePreviewNext}
-                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="arrowRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
-                </button>
-              </div>
-            ) : null}
-          </div>
-          <div style={{
-            padding: 12,
-            minHeight: previewDeckHeight,
-            height: isMobileViewport ? 'auto' : previewDeckHeight,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            boxSizing: 'border-box',
-          }}>
-            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined, margin: '0 auto', boxSizing: 'border-box' }}>
-              <SwipeCard
-                card={activePreviewFeedCard}
-                action={null}
-                isUnlocked
-                isSkipped={false}
-                previewOnly
-                showActions={false}
-                onSwipe={() => {}}
-                onUndo={() => {}}
-              />
-            </div>
-          </div>
-          {previewShowcaseCount > 1 ? (
-            <div style={{ padding: '0 12px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
-              {previewShowcaseItems.map((entry, dotIdx) => {
-                const isActive = dotIdx === previewUnifiedIndex;
-                return (
-                  <button
-                    key={`preview-profile-dot-${entry.profileScope || dotIdx}`}
-                    type="button"
-                    onClick={() => setPreviewByUnifiedIndex(dotIdx)}
-                    aria-label={`Profile card ${dotIdx + 1}`}
-                    style={{ width: isActive ? 16 : 8, height: 8, borderRadius: 999, border: 'none', background: isActive ? C.accent : C.alpha(C.t1, 0.2), cursor: 'pointer', transition: 'all .15s ease' }}
-                  />
-                );
-              })}
-            </div>
-          ) : null}
-        </section>
-
-        {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
-
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
-          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
-            <span>{t.previewShowcaseCardTitle}</span>
-            {activePreviewLinkedCount > 1 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  aria-label="Previous linked card"
-                  disabled={previewLinkedItemIndex <= 0}
-                  onClick={() => setPreviewLinkedItemIndex((idx) => Math.max(0, idx - 1))}
-                  style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="back" size={22} color={previewLinkedItemIndex <= 0 ? C.t3 : C.t1} />
-                </button>
-                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
-                  {Math.min(previewLinkedItemIndex + 1, activePreviewLinkedCount)} / {activePreviewLinkedCount}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Next linked card"
-                  disabled={previewLinkedItemIndex >= activePreviewLinkedCount - 1}
-                  onClick={() => setPreviewLinkedItemIndex((idx) => Math.min(activePreviewLinkedCount - 1, idx + 1))}
-                  style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="arrowRight" size={22} color={previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? C.t3 : C.t1} />
-                </button>
-              </div>
-            ) : null}
-          </div>
-          {hasPreviewItems ? (
-            <div
-              ref={previewShowcaseScrollRef}
-              className="onb-preview-showcase-scroll"
-              style={{
-                display: 'flex',
-                overflowX: 'auto',
-                overflowY: 'visible',
-                scrollSnapType: 'x mandatory',
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-x',
-                minHeight: previewDeckHeight,
-                padding: 12,
-                boxSizing: 'border-box',
-              }}
-            >
-              {(() => {
-                const item = activePreviewGroup;
-                const groupProfileCard = activePreviewFeedCard;
-                const groupItems = activePreviewLinkedItems;
-                if (!item || groupItems.length === 0) {
-                  return (
-                    <div style={{ height: isMobileViewport ? 260 : previewDeckHeight - 24, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-                      {t.recordsNoProperty}
-                    </div>
-                  );
-                }
-                return (
-                  <>
-                    {groupItems.map((entry, entryIdx) => {
-                      if (entry.kind === 'property') {
-                        return (
-                          <div data-preview-linked-index={entryIdx} key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always', padding: isMobileViewport ? '0 2px' : 0, boxSizing: 'border-box' }}>
-                            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
-                            <PropertyCard
-                              property={entry.data}
-                              action={null}
-                              statusAction={null}
-                              previewOnly
-                              onInterest={(act) => {
-                                try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
-                              }}
-                              owner={groupProfileCard}
-                            />
-                            </div>
-                          </div>
-                        );
-                      }
-                      const svc = entry.data;
-                      const svcImages = (svc?.media?.images || []).filter(Boolean);
-                      return (
-                        <div data-preview-linked-index={entryIdx} key={`preview-group-service-${svc?.id || entryIdx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always', padding: isMobileViewport ? '0 2px' : 0, boxSizing: 'border-box' }}>
-                        <div style={{ width: `min(${previewCardWidth}px, 100%)`, minHeight: previewCardHeight, margin: '0 auto', padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', background: C.card }}>
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
-                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}><LocalizedNarrative text={svc.description} protectedNames={[svc.name, svc.title].filter(Boolean)} /></div>}
-                            {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
-                          </div>
-                          {svcImages.length > 0 ? (
-                            <div className="onb-preview-image-strip" style={{ display: 'flex', gap: 8, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: 4 }}>
-                              {svcImages.map((src, imageIdx) => (
-                                <div key={`svc-prev-img-${previewUnifiedIndex}-${entryIdx}-${imageIdx}`} style={{ flex: svcImages.length === 1 ? '0 0 100%' : (isMobileViewport ? '0 0 84%' : '0 0 48%'), scrollSnapAlign: 'start', position: 'relative', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
-                                  <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ height: 160, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-                              {t.uploadedImagesEmpty}
-                            </div>
-                          )}
-                        </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                );
-              })()}
-            </div>
-          ) : (
-            <div style={{ margin: 12, height: isMobileViewport ? 260 : previewDeckHeight, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-              {t.recordsNoProperty}
-            </div>
-          )}
-        </section>
-      </div>
-    );
-  };
 
   const toggleCategory = (catId) => {
     setSelectedCategories((prev) => {
@@ -2395,29 +2069,6 @@ export function Onboarding({
   const previewPersonalFeedCard = buildPreviewFeedCard('personal');
   const previewProfessionalFeedCard = buildPreviewFeedCard('professional');
   const previewFsboFeedCard = buildPreviewFeedCard('fsbo');
-
-  const previewShowcaseCard = (() => {
-    const total = propertiesForPreview.length;
-    const safeIndex = total > 0
-      ? ((previewPropertyIndex % total) + total) % total
-      : 0;
-    const firstPortfolio = total > 0 ? propertiesForPreview[safeIndex] : null;
-    if (firstPortfolio) {
-      return {
-        ...firstPortfolio,
-        images: firstPortfolio.images?.length ? firstPortfolio.images : [PREVIEW_PLACEHOLDER_IMAGE],
-        dealTag: firstPortfolio.dealTag === 'FSBO'
-          ? (accountType === 'fsbo_owner' ? 'FSBO' : 'Portfolio')
-          : (firstPortfolio.dealTag || (accountType === 'fsbo_owner' ? 'FSBO' : 'Portfolio')),
-        objective: firstPortfolio.objective || 'Sell',
-        sqft: firstPortfolio.sqft || '-',
-        improvement: '-',
-        lot: firstPortfolio.lot || '-',
-      };
-    }
-
-    return null;
-  })();
 
   const portfolioFieldLabelStyle = {
     position: 'absolute',
@@ -5405,37 +5056,15 @@ export function Onboarding({
         </Modal>
       ) : null}
 
-        {previewOpen ? (
-        <Modal
-          onClose={() => setPreviewOpen(false)}
-          maxWidth={isMobileViewport ? 820 : 1480}
-          overlayStyle={isMobileViewport ? {} : { zIndex: 20000 }}
-          contentStyle={isMobileViewport
-            ? { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 24px)' }
-            : { overflowY: 'auto', overflowX: 'visible', maxHeight: 'min(96dvh, 980px)' }}
-        >
-          <div style={{ display: 'grid', gap: 10, paddingRight: isMobileViewport ? 2 : 0 }}>
-            <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 30 }}>
-              <div style={{ minWidth: 0 }}>
-                <h3 style={{ margin: 0, color: C.t1, fontSize: isMobileViewport ? 20 : 18, fontWeight: 800 }}>{t.previewTitle}</h3>
-                <p style={{ margin: '4px 0 0', color: C.t3, fontSize: 12 }}>
-                  {t.previewSubtitle}
-                </p>
-              </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
-                <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                  {t.previewBackToEdit}
-                </button>
-                <button disabled={isGeocodeSaving} data-guide="onboarding-publish" onClick={publishRegistration} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                  {t.previewConfirmPublish}
-                </button>
-              </div>
-            </div>
-
-            {renderPreviewContent()}
-          </div>
-        </Modal>
-      ) : null}
+      {previewOpen ? <FeedPreviewModal
+        groups={previewShowcaseItems}
+        profileCards={{ personal:previewPersonalFeedCard, professional:previewProfessionalFeedCard, fsbo:previewFsboFeedCard }}
+        defaultScope={accountType === 'fsbo_owner' ? 'fsbo' : 'personal'}
+        copy={t}
+        publishing={isGeocodeSaving}
+        onClose={() => setPreviewOpen(false)}
+        onPublish={publishRegistration}
+      /> : null}
     </div>
   );
 }
