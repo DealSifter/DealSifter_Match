@@ -24,7 +24,7 @@ describe('Property pin card', () => {
     }
     render(<Preview />);
     expect(screen.getByTestId('parcel-data-loading').getAttribute('aria-label')).toBe('Querying public GIS…');
-    expect(screen.getByTestId('parcel-data-loading').querySelector('img').className).toBe('ds-property-pin-loader-mark');
+    expect(screen.getByTestId('parcel-data-loading').querySelector('svg').getAttribute('data-parcel-loading-icon')).toBe('refresh');
     expect(screen.queryByRole('button', { name:'View parcel boundaries and public data' })).toBeNull();
     await act(async () => { finish({ status:'COVERAGE_AVAILABLE',parcels:[subjectState.parcel] }); });
     expect(screen.queryByTestId('parcel-data-loading')).toBeNull();

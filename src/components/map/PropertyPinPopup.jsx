@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { SmartImage } from '../ui/SmartImage';
 import { Icon } from '../ui/Icon';
-import { BedDouble, Bath, Expand, ChevronRight, Check } from 'lucide-react';
+import { BedDouble, Bath, Expand, ChevronRight, Check, RefreshCw } from 'lucide-react';
 import { C } from '../../theme/colors';
-import loaderMark from '../../assets/logo.png';
 import { ParcelPublicData } from './ParcelPublicData';
 import { parcelLabels } from '../../features/parcel/parcelPresentation';
 import { shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
@@ -56,7 +55,7 @@ export function PropertyPinPopup({ property, label, selected = false, unlocked =
       <div className="ds-property-pin-price-row">
         <div><strong>{price === null ? '—' : money(price)}</strong>{reportedArv !== null && reportedArv > 0 && <small>ARV · {money(reportedArv)}</small>}</div>
         {loadingParcel && <span className="ds-property-pin-loader" role="status" aria-live="polite" aria-label={loadingLabel} title={loadingLabel} data-testid="parcel-data-loading">
-          <img src={loaderMark} alt="" aria-hidden="true" className="ds-property-pin-loader-mark" style={{ width:20, height:20, objectFit:'contain' }} />
+          <RefreshCw size={18} strokeWidth={1.8} aria-hidden="true" className="ds-property-pin-loader-mark" data-parcel-loading-icon="refresh" />
         </span>}
         {canUseLens && <button type="button" className="ds-property-pin-lens" aria-label={parcelCopy.magnifier} title={parcelCopy.magnifier}
           disabled={lensPending} aria-busy={lensPending}
