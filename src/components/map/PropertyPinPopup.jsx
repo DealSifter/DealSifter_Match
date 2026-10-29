@@ -3,6 +3,7 @@ import { SmartImage } from '../ui/SmartImage';
 import { Icon } from '../ui/Icon';
 import { BedDouble, Bath, Expand, ChevronRight, Check } from 'lucide-react';
 import { C } from '../../theme/colors';
+import loaderMark from '../../assets/logo.png';
 import { ParcelPublicData } from './ParcelPublicData';
 import { parcelLabels } from '../../features/parcel/parcelPresentation';
 import { shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
@@ -28,6 +29,9 @@ export function PropertyPinPopup({ property, label, selected = false, unlocked =
   const parcelCopy = parcelLabels(language);
   const hasParcel = Boolean(parcelState?.parcel?.geometry);
   const canUseLens = parcelEligible === true && hasParcel && !shouldHideStreetAddressOnCard(property);
+  const loadingParcel = !canUseLens && !shouldHideStreetAddressOnCard(property)
+    && (parcelAccessStatus === 'loading' || (parcelEligible === true && parcelState?.loading === true));
+  const loadingLabel = parcelAccessStatus === 'loading' ? parcelCopy.accessLoading : parcelCopy.loading;
   const lensActive = canUseLens && hasParcel && Boolean(parcelState.lens);
   const publicPage = lensActive && parcelState.page === 'parcel';
   const owner = property.ownerPreview || property.owner_preview;
@@ -51,6 +55,9 @@ export function PropertyPinPopup({ property, label, selected = false, unlocked =
     <div className="ds-property-pin-details">
       <div className="ds-property-pin-price-row">
         <div><strong>{price === null ? '—' : money(price)}</strong>{reportedArv !== null && reportedArv > 0 && <small>ARV · {money(reportedArv)}</small>}</div>
+        {loadingParcel && <span className="ds-property-pin-loader" role="status" aria-live="polite" aria-label={loadingLabel} title={loadingLabel} data-testid="parcel-data-loading">
+          <img src={loaderMark} alt="" aria-hidden="true" className="ds-property-pin-loader-mark" style={{ width:20, height:20, objectFit:'contain' }} />
+        </span>}
         {canUseLens && <button type="button" className="ds-property-pin-lens" aria-label={parcelCopy.magnifier} title={parcelCopy.magnifier}
           disabled={lensPending} aria-busy={lensPending}
           onClick={async event => {
@@ -64,15 +71,15 @@ export function PropertyPinPopup({ property, label, selected = false, unlocked =
         <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}${unlocked ? ' is-unlocked' : ''}`} aria-pressed={selected || unlocked}
           disabled={own || unlocked || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : unlocked ? t('Imóvel desbloqueado', 'Unlocked property', 'Inmueble desbloqueado') : 'Match'}
           onClick={async event => { event.stopPropagation(); setPending(true); try { await onMatch(property); } finally { setPending(false); } }}>
-          <Check className="ds-property-pin-check" size={20} strokeWidth={1.8} aria-hidden="true" />
+          <span className="ds-property-pin-check" aria-hidden="true"><Check size={14} strokeWidth={1.8} /></span>
           <span>{unlocked ? 'OK' : 'Match'}</span>
         </button>
       </div>
       {canUseLens && lensPending && <div className="ds-property-pin-lens-feedback" role="status">{parcelCopy.loading}</div>}
       {canUseLens && lensStatus && <div className="ds-property-pin-lens-feedback" role="status">{lensStatus}</div>}
-      {!canUseLens && !shouldHideStreetAddressOnCard(property) && ['loading','unavailable'].includes(parcelAccessStatus) && <div className="ds-property-pin-lens-feedback" role="status">
-        {parcelAccessStatus==='unavailable'?parcelCopy.accessUnavailable:parcelCopy.accessLoading}
-        {parcelAccessStatus==='unavailable'&&onRetryParcelAccess&&<button type="button" onClick={event=>{event.stopPropagation();void onRetryParcelAccess();}}>{parcelCopy.accessRetry}</button>}
+      {!canUseLens && !shouldHideStreetAddressOnCard(property) && parcelAccessStatus==='unavailable' && <div className="ds-property-pin-lens-feedback" role="status">
+        {parcelCopy.accessUnavailable}
+        {onRetryParcelAccess&&<button type="button" onClick={event=>{event.stopPropagation();void onRetryParcelAccess();}}>{parcelCopy.accessRetry}</button>}
       </div>}
       <div className="ds-property-pin-address">{label}</div>
       <div className="ds-property-pin-location">{[property.city, property.state, property.zip || property.zipCode].filter(Boolean).join(', ')}</div>

@@ -7,11 +7,11 @@ import { parcelLensParcels, resolvePrincipalParcel } from './parcelLensGeometry'
 export class ParcelLensController {
   constructor(request, publish) {
     this.request = request; this.publish = publish; this.cache = new Map(); this.generation = 0;
-    this.state = { context: null, parcel: null, result: null, lens: null, page: 'property' };
+    this.state = { context: null, parcel: null, result: null, loading: false, lens: null, page: 'property' };
   }
   emit(value) { this.state = { ...this.state, ...value }; this.publish(this.state); }
   cancel() { this.generation++; this.abort?.abort(); this.loadingKey = null; this.pendingLookup = null; }
-  clear() { this.cancel(); this.emit({ context: null, parcel: null, result: null, lens: null, page: 'property' }); }
+  clear() { this.cancel(); this.emit({ context: null, parcel: null, result: null, loading: false, lens: null, page: 'property' }); }
   select(itemId) { if (this.state.context && this.state.context.itemId !== String(itemId)) this.clear(); }
   async lookup(context, eligible) {
     if (eligible !== true || !validPoint(context?.point) || !context?.itemId) { this.clear(); return; }
@@ -19,8 +19,8 @@ export class ParcelLensController {
     if (this.state.context?.key === key && (this.state.lens || this.loadingKey === key || this.cache.get(key)?.expiresAt > Date.now())) return this.pendingLookup;
     this.cancel(); const generation = this.generation;
     const target = { ...context, itemId: String(context.itemId), key };
-    this.emit({ context: target, parcel: null, result: null, lens: null, page: 'property' });
     const cached = this.cache.get(key);
+    this.emit({ context: target, parcel: null, result: null, loading: !(cached?.expiresAt > Date.now()), lens: null, page: 'property' });
     if (cached?.expiresAt > Date.now()) {
       this.emit({ parcel: cached.parcel, result: cached.result }); return;
     }
@@ -34,9 +34,9 @@ export class ParcelLensController {
       // A negative/ambiguous result must not suppress the next explicit retry.
       if (parcel) this.cache.set(key, { parcel, result, expiresAt: Math.min(Date.parse(result.expiresAt) || Date.now() + 300000, Date.now() + 300000) });
       while (this.cache.size > 8) this.cache.delete(this.cache.keys().next().value);
-      this.emit({ parcel, result });
+      this.emit({ parcel, result, loading: false });
     } catch {
-      if (generation === this.generation && !abort.signal.aborted) { this.loadingKey = null; this.emit({ parcel: null, result: { status: 'SOURCE_TEMPORARILY_UNAVAILABLE', parcels: [] } }); }
+      if (generation === this.generation && !abort.signal.aborted) { this.loadingKey = null; this.emit({ parcel: null, loading: false, result: { status: 'SOURCE_TEMPORARILY_UNAVAILABLE', parcels: [] } }); }
     } finally { if (generation === this.generation) this.pendingLookup = null; } })();
     return this.pendingLookup;
   }

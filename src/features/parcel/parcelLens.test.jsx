@@ -47,6 +47,24 @@ describe('contextual parcel lens geometry', () => {
 });
 
 describe('contextual parcel session', () => {
+  it('publishes point loading immediately and clears it on errors, cancellation, empty results and cache hits', async () => {
+    let finish;
+    const request=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));
+    const updates=[];const controller=new ParcelLensController(request,state=>updates.push({...state}));
+    const pending=controller.lookup(context,true);
+    expect(controller.state.loading).toBe(true);
+    finish(result);await pending;expect(controller.state.loading).toBe(false);
+    controller.clear();updates.length=0;await controller.lookup(context,true);
+    expect(updates.every(state=>state.loading===false)).toBe(true);expect(request).toHaveBeenCalledOnce();
+    controller.clear();controller.cache.clear();
+    const cancelled=controller.lookup(context,true);controller.select('other');
+    expect(controller.state.loading).toBe(false);finish(result);await cancelled;
+    expect(controller.state.parcel).toBeNull();expect(controller.state.loading).toBe(false);
+    request.mockRejectedValueOnce(new Error('offline'));await controller.lookup(context,true);
+    expect(controller.state.loading).toBe(false);expect(controller.state.result.status).toBe('SOURCE_TEMPORARILY_UNAVAILABLE');
+    request.mockResolvedValueOnce({...result,parcels:[]});await controller.lookup(context,true);
+    expect(controller.state.loading).toBe(false);expect(controller.state.parcel).toBeNull();
+  });
   it('issues zero requests while ineligible or with invalid point/unknown item', async () => {
     const request = vi.fn(); const controller = new ParcelLensController(request, vi.fn());
     await controller.lookup(context, false); await controller.lookup(context, 'true'); await controller.lookup({ ...context, point: null }, true);

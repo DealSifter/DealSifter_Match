@@ -27,13 +27,21 @@
 .ds-property-pin-match.is-unlocked { color: #071c23; border-color: var(--success-hex,#75ba75); background: var(--success-hex,#75ba75); }
 .ds-property-pin-match:disabled { cursor: default; opacity: .5; }
 .ds-property-pin-match.is-unlocked:disabled { opacity:1; }
-.ds-property-pin-check { flex-shrink:0; fill:none; }
+.ds-property-pin-check { display:inline-flex; align-items:center; justify-content:center; flex:0 0 24px; width:24px; height:24px; box-sizing:border-box; border:1px solid var(--success-hex,#75ba75); border-radius:50%; color:var(--success-hex,#75ba75); background:rgba(117,186,117,.08); }
+.ds-property-pin-match.is-unlocked .ds-property-pin-check { background:var(--pin-paper); }
 .ds-property-pin-address { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
 .ds-property-pin-location { margin-top: 4px; color: var(--pin-muted); font-size: 12px; overflow-wrap: anywhere; }
 .ds-property-pin-metrics { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; font-size: 12px; }
 .ds-property-pin-metrics > span { display: inline-flex; gap: 4px; align-items: center; }
 .ds-property-pin-lens-feedback { font-size:12px; line-height:1.4; color:var(--pin-muted); margin:6px 0; overflow-wrap:anywhere; }
 .ds-property-pin-lens:disabled { opacity:.65; cursor:progress; }
+.ds-property-pin-loader { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:33px; height:32px; margin-left:auto; }
+.ds-property-pin-loader-mark { flex-shrink:0; animation:ds-property-pin-loading 1.15s linear infinite; }
+@keyframes ds-property-pin-loading { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) {
+  .ds-property-pin-loader-mark { animation:ds-property-pin-loading-reduced 2.4s ease-in-out infinite; animation-duration:2.4s !important; animation-iteration-count:infinite !important; }
+}
+@keyframes ds-property-pin-loading-reduced { 0%,100% { opacity:1; } 50% { opacity:.45; } }
 @media (max-height:480px) and (min-width:600px) {
   .ds-property-pin-popup:not(.is-parcel-page) .ds-property-pin-pages { flex-direction:row; }
   .ds-property-pin-photo { flex:0 0 32%; width:32%; }

@@ -1,14 +1,56 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PropertyPinPopup } from './PropertyPinPopup';
 import { resolvePropertyUnlockState } from '../../lib/unlockAccessState';
+import { ParcelLensController } from '../../features/parcel/parcelLensController';
 
 afterEach(cleanup);
 const property = { id: 'property-1', price: 231000, city: 'Winter Garden', state: 'FL', zip: '34787', beds: 3, baths: 2, sqft: 1500, image: '/house.jpg' };
 const subjectState = { parcel: { geometry: { type:'Polygon',coordinates:[[[-71,42],[-70.999,42],[-70.999,42.001],[-71,42]]] } } };
 describe('Property pin card', () => {
+  it('shows the animated mark throughout the actual point query and replaces it with the magnifier on success', async () => {
+    let finish;
+    const request = vi.fn(() => new Promise(resolve => { finish = resolve; }));
+    function Preview() {
+      const [state, setState] = React.useState(null);
+      React.useEffect(() => {
+        const controller = new ParcelLensController(request, setState);
+        void controller.lookup({ itemId:property.id, point:{ lat:42.0005,lng:-70.9995 } },true);
+        return () => controller.dispose();
+      }, []);
+      return <PropertyPinPopup property={property} label="A" parcelEligible parcelAccessStatus="available" parcelState={state} />;
+    }
+    render(<Preview />);
+    expect(screen.getByTestId('parcel-data-loading').getAttribute('aria-label')).toBe('Querying public GIS…');
+    expect(screen.getByTestId('parcel-data-loading').querySelector('img').className).toBe('ds-property-pin-loader-mark');
+    expect(screen.queryByRole('button', { name:'View parcel boundaries and public data' })).toBeNull();
+    await act(async () => { finish({ status:'COVERAGE_AVAILABLE',parcels:[subjectState.parcel] }); });
+    expect(screen.queryByTestId('parcel-data-loading')).toBeNull();
+    expect(screen.getByRole('button', { name:'View parcel boundaries and public data' })).toBeTruthy();
+  });
+  it('shows the same loading slot during permissions, without adding a feedback row', () => {
+    const { container, rerender } = render(<PropertyPinPopup property={property} label="A" parcelAccessStatus="loading" language="pt" />);
+    const loader = screen.getByTestId('parcel-data-loading');
+    expect(loader.getAttribute('aria-label')).toBe('Validando acesso à lente parcelária…');
+    expect(container.querySelector('.ds-property-pin-price-row').contains(loader)).toBe(true);
+    expect(container.querySelector('.ds-property-pin-lens-feedback')).toBeNull();
+    rerender(<PropertyPinPopup property={property} label="A" parcelEligible parcelAccessStatus="available" parcelState={{loading:true}} />);
+    expect(screen.getByTestId('parcel-data-loading')).toBeTruthy();
+    rerender(<PropertyPinPopup property={property} label="A" parcelEligible parcelAccessStatus="available" parcelState={{loading:false,result:{status:'SOURCE_TEMPORARILY_UNAVAILABLE'}}} />);
+    expect(screen.queryByTestId('parcel-data-loading')).toBeNull();
+  });
+  it.each(['hideStreetAddressOnCard','hide_street_address_on_card'])('never shows the loading mark for a private address: %s', key => {
+    render(<PropertyPinPopup property={{...property,[key]:true}} label="A" parcelEligible parcelAccessStatus="loading" parcelState={{loading:true}} />);
+    expect(screen.queryByTestId('parcel-data-loading')).toBeNull();
+  });
+  it('never shows a loader when access is disabled or no query is running', () => {
+    const {rerender} = render(<PropertyPinPopup property={property} label="A" parcelAccessStatus="denied" parcelState={{loading:true}} />);
+    expect(screen.queryByTestId('parcel-data-loading')).toBeNull();
+    rerender(<PropertyPinPopup property={property} label="A" parcelEligible parcelAccessStatus="available" />);
+    expect(screen.queryByTestId('parcel-data-loading')).toBeNull();
+  });
   it.each(['property', 'contact', 'reciprocal'])('shows a line check and OK for canonical %s access acquired elsewhere', scope => {
     const match = vi.fn();
     const linkedProperty = { ...property, ownerId: 'seller', primaryProfile: 'fsbo' };
