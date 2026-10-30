@@ -1,4 +1,5 @@
 import { formatPropertyLookupAddress, rentCastAddressMatches, validatePropertyLookupInput } from './address.ts';
+import { assertAddressCoherence } from './addressCoherence.ts';
 import { MOCK_PROPERTY_FIXTURES, type MockPropertyFixture } from './fixtures.ts';
 import { logPropertyDataEvent, type PropertyDataLogger } from './logger.ts';
 import { createRentCastClient, DEFAULT_RENTCAST_TIMEOUT_MS, type RentCastClient, type RentCastFetch } from './rentcast/rentcastClient.ts';
@@ -68,6 +69,7 @@ export class RentCastPropertyDataProvider implements PropertyDataProvider {
   async getPropertyRecord(input: PropertyLookupInput) {
     const startedAt = Date.now();
     const normalizedInput = validatePropertyLookupInput(input);
+    assertAddressCoherence(normalizedInput);
     let reservation: UsageReservation | null = null;
     let finalizationAttempted = false;
     let billableResponseReceived = false;
@@ -120,8 +122,12 @@ export function normalizePropertyDataMode(value: unknown): PropertyDataMode {
 }
 
 export function readPropertyDataConfig(getEnv: (name: string) => string | undefined) {
+  let mode = normalizePropertyDataMode(getEnv('PROPERTY_DATA_MODE'));
+  const production = getEnv('NODE_ENV') === 'production' || getEnv('ENVIRONMENT') === 'production'
+    || Boolean(getEnv('DENO_DEPLOYMENT_ID')) || /cyeipfskwwisbbayyaca/.test(getEnv('SUPABASE_URL') || '');
+  if (mode === 'mock' && (getEnv('NODE_ENV') !== 'test' || production)) mode = 'disabled';
   return {
-    mode: normalizePropertyDataMode(getEnv('PROPERTY_DATA_MODE')),
+    mode,
     apiKey: String(getEnv('RENTCAST_API_KEY') || '').trim(),
     timeoutMs: Math.max(100, Math.min(30_000, Number(getEnv('RENTCAST_TIMEOUT_MS')) || DEFAULT_RENTCAST_TIMEOUT_MS)),
     monthlyHardLimit: normalizeRentCastHardLimit(getEnv('RENTCAST_MONTHLY_HARD_LIMIT')),

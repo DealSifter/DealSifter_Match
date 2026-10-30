@@ -136,7 +136,7 @@ export class PropertyEvidenceService {
       if (!cached) {
         throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_MISS');
       }
-      if (!await matchesCachedSubject(property, cached.record.address)) throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_INVALID');
+      if (cached.addressFingerprint !== fingerprint || !await matchesCachedSubject(property, cached.record.address)) throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_INVALID');
       const cachedFingerprint = await propertyAddressFingerprint({
         street: cached.record.address.addressLine1.value || '', city: cached.record.address.city.value || '',
         state: cached.record.address.state.value || '', zipCode: cached.record.address.zipCode.value || '',

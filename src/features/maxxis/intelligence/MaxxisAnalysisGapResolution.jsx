@@ -1,4 +1,5 @@
 import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
+import { FINANCIAL_INPUT_FIELDS } from '../../../../supabase/functions/_shared/maxxis/financialInputContract.ts';
 import React, { useMemo, useState } from 'react';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 
@@ -25,7 +26,7 @@ const currency = (value, language) => toKnownFiniteNumber(value) === null ? LABE
 const currencyRate = (value, language) => toKnownFiniteNumber(value) === null ? LABELS[language]?.missingRehab || LABELS.en.missingRehab : new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
   style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(toKnownFiniteNumber(value));
-const NUMERIC_ASSUMPTIONS = new Set(['sellingCosts', 'sellingCostPercent', 'holdingCosts', 'holdingPeriodMonths', 'interestRate', 'loanAmount', 'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa', 'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths', 'balloonMonths', 'existingLoanBalance', 'monthlyPiPayment', 'arrears', 'cashToSeller', 'reinstatement']);
+const NUMERIC_ASSUMPTIONS = new Set([...Object.keys(FINANCIAL_INPUT_FIELDS), 'sellingCosts', 'sellingCostPercent', 'holdingCosts', 'holdingPeriodMonths', 'interestRate', 'loanAmount', 'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa', 'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths', 'balloonMonths', 'existingLoanBalance', 'monthlyPiPayment', 'arrears', 'cashToSeller', 'reinstatement']);
 const humanize = (value) => String(value || '').replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase());
 
 function ChoiceButton({ active, disabled, children, onClick }) {
@@ -36,7 +37,7 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   const data = message?.data || {};
   const missing = Array.isArray(data.missingUserInputs) ? data.missingUserInputs : [];
   const assumptions = data.assumptions || {};
-  const storedTargetCondition = MAXXIS_TARGET_CONDITIONS.includes(assumptions.targetCondition) ? assumptions.targetCondition : 'AS_IS';
+  const storedTargetCondition = MAXXIS_TARGET_CONDITIONS.includes(assumptions.targetCondition) ? assumptions.targetCondition : '';
   const hasCurrentRehab = data.currentRehab !== null && data.currentRehab !== undefined && data.currentRehab !== '';
   const currentRehab = hasCurrentRehab && toKnownFiniteNumber(data.currentRehab) !== null && Number(data.currentRehab) >= 0 ? Number(data.currentRehab) : null;
   const [targetCondition, setTargetCondition] = useState(storedTargetCondition);
@@ -101,13 +102,14 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
         <p>{copy.intro}</p>
         {data.decisionReason ? <p><strong>{copy.why}:</strong> {data.decisionReason}</p> : null}
         {data.decisionUnlocks ? <p><strong>{copy.unlocks}:</strong> {data.decisionUnlocks}</p> : null}
-        {needsDecisionInput ? <label className="maxxis-gap-field">{data.decisionInputLabel || humanize(decisionInputField)}
+        {needsDecisionInput ? <label className="maxxis-gap-field">{data.decisionInputLabel || humanize(decisionInputField)}{Object.hasOwn(FINANCIAL_INPUT_FIELDS, decisionInputField) ? ` (${FINANCIAL_INPUT_FIELDS[decisionInputField].unit === 'PERCENT' ? '%' : 'USD'} / ${FINANCIAL_INPUT_FIELDS[decisionInputField].cadence === 'MONTHLY' ? (language === 'pt' ? 'mês' : 'month') : (language === 'pt' ? 'ano' : 'year')})` : ''}
           {decisionInputField === 'assignability' ? <select aria-label={data.decisionInputLabel || copy.value} value={decisionInputValue} disabled={busy} onChange={(event) => setDecisionInputValue(event.target.value)}>
             <option value="">—</option><option value="true">{copy.yes}</option><option value="false">{copy.no}</option>
           </select> : <input aria-label={data.decisionInputLabel || copy.value} type={NUMERIC_ASSUMPTIONS.has(decisionInputField) ? 'number' : 'text'} inputMode={NUMERIC_ASSUMPTIONS.has(decisionInputField) ? 'decimal' : undefined} min={NUMERIC_ASSUMPTIONS.has(decisionInputField) ? '0' : undefined} maxLength={NUMERIC_ASSUMPTIONS.has(decisionInputField) ? undefined : 1000} value={decisionInputValue} disabled={busy} onChange={(event) => setDecisionInputValue(event.target.value)} />}
         </label> : null}
         {needsTarget ? <label className="maxxis-gap-field">{copy.condition}
           <select aria-label={copy.condition} value={targetCondition} disabled={busy} onChange={(event) => setTargetCondition(event.target.value)}>
+            <option value="" disabled>{language === 'pt' ? 'Selecione e confirme a condição' : language === 'es' ? 'Selecciona y confirma la condición' : 'Select and confirm the condition'}</option>
             {MAXXIS_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}
           </select>
         </label> : null}

@@ -22,17 +22,20 @@ import { createSupplementalEvidenceProvider } from './supplementalEvidenceProvid
 import {MarketRentService} from './marketRentService.ts';
 import type {RentAvmSubject} from './rentAvmSubject.ts';
 import {resolveCachedRentAvmSubject} from './marketRentSubjectContext.ts';
+import {createProviderExecution, trackedProviderFetch, type ProviderExecution} from './providerExecution.ts';
 
 export function createBackendMarketRentService(options:{supabaseAdmin:PropertyEvidenceBackendClient;getEnv:(name:string)=>string|undefined;
-  providerBudgetContext:ProviderBudgetContext;resolveSubject:()=>Promise<RentAvmSubject>;hasEntitlement:()=>Promise<boolean>;fetchImpl?:RentCastFetch}){
+  providerBudgetContext:ProviderBudgetContext;resolveSubject:()=>Promise<RentAvmSubject>;hasEntitlement:()=>Promise<boolean>;fetchImpl?:RentCastFetch;execution?:ProviderExecution}){
   const config=readPropertyDataConfig(options.getEnv),flight=new SupabasePropertySingleFlight(options.supabaseAdmin);
+  const execution=options.execution??createProviderExecution();
   return new MarketRentService({cache:new SupabaseSupplementalEvidenceCache(options.supabaseAdmin),singleFlight:flight,
+    execution,
     resolveSubject:options.resolveSubject,hasEntitlement:options.hasEntitlement,enabled:config.mode==='live',
     providerGate:work=>flight.run('rentcast:market-rent-rate-gate',async()=>{
       const start=Date.now();try{return await work();}finally{const wait=250-(Date.now()-start);if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));}
     }),
     provider:createSupplementalEvidenceProvider({mode:config.mode,apiKey:config.apiKey,timeoutMs:config.timeoutMs,
-      usageGuard:usageGuard({supabaseAdmin:options.supabaseAdmin,getEnv:options.getEnv,context:options.providerBudgetContext}),fetchImpl:options.fetchImpl})});
+      usageGuard:usageGuard({supabaseAdmin:options.supabaseAdmin,getEnv:options.getEnv,context:options.providerBudgetContext}),fetchImpl:trackedProviderFetch(execution,options.fetchImpl as typeof fetch|undefined)})});
 }
 
 export type PropertyEvidenceBackendClient = PropertyIntelligenceRpcClient

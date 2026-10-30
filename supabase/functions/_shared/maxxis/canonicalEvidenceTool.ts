@@ -9,6 +9,8 @@ import { buildFinancialEvidenceFromAuthorizedContext } from './financialEvidence
 import {resolveRentAvmSubjectAttributes,type RentAvmSubject} from '../property-data/rentAvmSubject.ts';
 import type {MarketRentResult} from '../property-data/marketRentService.ts';
 import {reconcilePropertyFacts,propertyIdentity,evidenceHash,type ReviewSnapshot} from '../property-fact-reconciliation/model.ts';
+import {createProviderExecution,type ProviderExecution} from '../property-data/providerExecution.ts';
+import {evidenceAbsenceReason} from './evidenceAbsence.ts';
 
 const FIELD_MAP:Record<string,ConsensusField>={lotSizeSqft:'lotArea',assessorId:'apn',ownership:'owner',assessedValue:'assessedValue',annualPropertyTax:'propertyTax',zoning:'zoning',propertyType:'propertyType',livingAreaSqft:'buildingArea',yearBuilt:'yearBuilt'};
 export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|null,id:string):CandidateInput[]{
@@ -24,7 +26,7 @@ export function cachedProviderCandidates(provider:MaxxisPropertyEvidenceResult|n
 }
 type Options={input:unknown;propertyId:string;userId:string;receipt?:unknown;secret:string;parcelEnabled:boolean;financialEvidence?:boolean;rentAvmSubject?:boolean;
   loadRentAvmState?:(id:string)=>Promise<{property:Record<string,unknown>;snapshot:ReviewSnapshot|null}|null>;
-  loadMarketRent?:(id:string,subject:RentAvmSubject)=>Promise<MarketRentResult>;
+  loadMarketRent?:(id:string,subject:RentAvmSubject,execution:ProviderExecution)=>Promise<MarketRentResult>;
   loadCachedMarketRent?:(id:string)=>Promise<{evidence:Record<string,any>;freshness?:{state:string}}|null>;
   loadPublicProperty:(id:string)=>Promise<Record<string,unknown>|null>;
   loadUserFacts?:(id:string,userId:string)=>Promise<Record<string,unknown>|null>;
@@ -53,7 +55,9 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
     }
   }
   let provider:MaxxisPropertyEvidenceResult|null=null;
-  try{provider=await options.loadCachedProvider(input.propertyId);}catch{/* unavailable is evidence absence, not a new acquisition */}
+  let providerAccessCheckFailed=false;
+  try{provider=await options.loadCachedProvider(input.propertyId);}catch{providerAccessCheckFailed=true;}
+  if(provider?.entitlementState==='not_authorized'&&/CHECK_FAILED/.test(provider.reason||''))providerAccessCheckFailed=true;
   if(provider?.propertyId===input.propertyId&&provider.state==='available'&&provider.entitlementState==='authorized'&&provider.evidence){
     const evidence=provider.evidence;
     for(const [name,field]of Object.entries((options.financialEvidence||options.rentAvmSubject?{...FIELD_MAP,bedrooms:'beds',bathrooms:'baths'}:FIELD_MAP) as Record<string,ConsensusField>)){
@@ -92,8 +96,12 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
       reviewSnapshot:fresh??(reconciled?.owner?reconciled.reviewSnapshot:null),unavailable:!!options.loadRentAvmState&&!state});
     if(rentAvmSubject.state==='SUBJECT_UNAVAILABLE')rentAvmSubject={...rentAvmSubject,reason:subjectReason??'RENT_SUBJECT_STATE_UNAVAILABLE'};
   }
-  const marketRent:MarketRentResult|undefined=options.financialEvidence?(provider?.entitlementState!=='authorized'?{propertyId:input.propertyId,state:'ENTITLEMENT_BLOCKED' as const,providerCalls:0}
-    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject).catch((error)=>({propertyId:input.propertyId,state:'PROVIDER_ERROR' as const,providerCalls:0,
+  const rentExecution=createProviderExecution();
+  const marketRent:MarketRentResult|undefined=options.financialEvidence?(provider?.entitlementState!=='authorized'?{propertyId:input.propertyId,
+    state:providerAccessCheckFailed?'PROVIDER_ERROR' as const:'ENTITLEMENT_BLOCKED' as const,providerCalls:0,
+    absenceReason:providerAccessCheckFailed?'PROVIDER_ERROR':'NOT_ENTITLED',...(providerAccessCheckFailed?{reason:'PROPERTY_EVIDENCE_ACCESS_CHECK_FAILED'}:{})}
+    :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject,rentExecution).catch((error)=>({propertyId:input.propertyId,state:'PROVIDER_ERROR' as const,
+      providerCalls:rentExecution.recorded?rentExecution.providerCalls:null,executionPhase:rentExecution.recorded?rentExecution.phase:'UNKNOWN' as const,absenceReason:evidenceAbsenceReason('RENT_EXECUTION_FAILED'),
       // A cache/guard/execution failure is not an invalid physical attribute.
       // Retain a bounded diagnostic category, never an arbitrary error payload.
       reason:/CACHE/.test(error instanceof Error?error.message:'')?'RENT_CACHE_READ_FAILED':/ENTITLEMENT/.test(error instanceof Error?error.message:'')?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'})):undefined):undefined;

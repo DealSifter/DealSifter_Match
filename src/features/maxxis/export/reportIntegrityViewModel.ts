@@ -11,6 +11,8 @@ import { projectProviderListingReferences, rankReportComparables, projectSoldDel
 import { marketRentStateAnswer } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer';
 import type { MarketRentResult } from '../../../../supabase/functions/_shared/property-data/marketRentService';
 import { INVESTMENT_PRICE_RANGE_OPTIONS } from '../../../lib/investmentProfile';
+import { ARV_ELIGIBILITY_POLICY, arvEvidenceTier } from '../../../../supabase/functions/_shared/property-data/arvEligibilityPolicy';
+import { evidenceAbsenceReason, evidenceAbsenceCopy, type EvidenceAbsenceReason } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
 
 type Input = Record<string, unknown>;
 const obj = (v: unknown): Input => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Input : {};
@@ -112,6 +114,12 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   const level = reportType === 'PROPERTY_RELEASE' ? 1 : reportType === 'MAXXIS_ANALYSIS' ? 2 : 3;
   const diagnostics: string[] = [], values: Record<string, ReportValue> = {}, packet: ReportViewModel['evidencePacket'] = [];
   const unavailable = t('Não disponível', 'Unavailable', 'No disponible');
+  const upstreamReasons = obj(presentation.evidenceReasons);
+  const indicatorReasons: Record<string, EvidenceAbsenceReason | null> = {};
+  for (const family of ['propertyRecord', 'valuation', 'recordedSales']) {
+    indicatorReasons[family] = Object.hasOwn(upstreamReasons, family) && upstreamReasons[family] === null
+      ? null : evidenceAbsenceReason(upstreamReasons[family], 'PROVIDER_ERROR');
+  }
   const factFor = (key: string): Input => {
     const path = FIELD_PATHS[key];
     const canonicalFact = path ? obj(obj(canonical[path[0]])[path[1]]) : {};
@@ -161,9 +169,13 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
       text = candidate || t('A confirmar', 'To confirm', 'Por confirmar');
     }
     if (state === 'UNAVAILABLE' || state === 'NOT_APPLICABLE') text = unavailable;
-    const value = { state, text, numericValue: ['VALUE', 'EXPLICIT_ZERO'].includes(state) && kind !== 'text' ? n : null, source, evidenceRefs: [ref] } satisfies ReportValue;
+    const absent = ['UNAVAILABLE', 'NOT_APPLICABLE', 'CONFLICTED'].includes(state);
+    const reason = state === 'NOT_APPLICABLE' ? 'NOT_REQUESTED' : state === 'CONFLICTED' || ['price', 'rehab', 'noi'].includes(key)
+      ? 'USER_INPUT_REQUIRED' : evidenceAbsenceReason(fact.absenceReason || fact.reason, indicatorReasons.propertyRecord || 'NO_COVERAGE');
+    const value = { state, text, numericValue: ['VALUE', 'EXPLICIT_ZERO'].includes(state) && kind !== 'text' ? n : null,
+      source: absent ? evidenceAbsenceCopy(reason, locale) : source, ...(absent ? { absenceReason: reason } : {}), evidenceRefs: [ref] } satisfies ReportValue;
     values[key] = value;
-    register(ref, `${reportFieldLabel(key, locale) || key}: ${text} · ${source}`, value.numericValue === null ? [] : [value.numericValue],
+    register(ref, `${reportFieldLabel(key, locale) || key}: ${text} · ${value.source}`, value.numericValue === null ? [] : [value.numericValue],
       [scalar(fact.evidenceId || fact.candidateId || fact.sourceId), `property:${scalar(property.id)}:${FIELD_PATHS[key]?.join('.') || key}`, scalar(fact.source)].filter(Boolean));
     return value;
   };
@@ -258,7 +270,8 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
     }
   }
   const usableArv = !land && ['ARV_AVAILABLE', 'ARV_LIMITED'].includes(scalar(valuation.status)) && positive(obj(valuation.range).low) !== null
-    && positive(obj(valuation.range).high) !== null && Number(obj(valuation.range).high) >= Number(obj(valuation.range).low) && selectedSold.length >= 3;
+    && positive(obj(valuation.range).high) !== null && Number(obj(valuation.range).high) >= Number(obj(valuation.range).low) && selectedSold.length >= ARV_ELIGIBILITY_POLICY.minimumPreliminarySales;
+  const preliminaryArv = usableArv && arvEvidenceTier(selectedSold.length) === 'PRELIMINARY';
   const providerEstimate = property.propertyTypeConflict !== true && scalar(obj(valuation.providerEstimate).status) !== 'QUARANTINED_FOR_TYPE_CONFLICT' ? positive(obj(valuation.providerEstimate).value) : null;
   const marketKnown = usableArv || rentAmount !== null && rental || selectedSold.length > 0 || providerEstimate !== null;
   if (!marketKnown) addBlocker('market-support', t('As evidências de mercado atuais não sustentam uma conclusão de valor. O preço pedido não é uma avaliação.', 'Current market evidence does not support a valuation conclusion. Asking price is not a valuation.', 'La evidencia de mercado actual no sustenta una conclusión de valor. El precio solicitado no es una valoración.'), land
@@ -313,10 +326,10 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
       if (finitePoint(item.latitude, item.longitude)) mapPoints.push({ id, marker: String(index + 1), latitude: Number(item.latitude), longitude: Number(item.longitude) });
       return [String(index + 1), reportNarrativeString(item.address) || unavailable, money(Number(item.salePrice), locale), formatReportDate(item.saleDate, locale), number(item.distanceMiles) === null ? '—' : `${numeric(Number(item.distanceMiles), locale)} mi`];
     });
-    push({ id: 'arv-market', title: t('ARV: vendas e condição comparável', 'ARV: sales and comparable condition', 'ARV: ventas y condición comparable'), kind: 'comparables', priority: 92,
+    push({ id: 'arv-market', title: preliminaryArv ? t('Faixa preliminar de ARV · baixa confiança', 'Preliminary ARV range · low confidence', 'Rango preliminar de ARV · confianza baja') : t('ARV: vendas e condição comparável', 'ARV: sales and comparable condition', 'ARV: ventas y condición comparable'), kind: 'comparables', priority: 92,
       hero: { label: t('Faixa de valor após reforma', 'After-repair value range', 'Rango de valor tras reforma'), value: `${money(low, locale)} — ${money(high, locale)}`, qualification: t('Resultado do motor determinístico; não é avaliação oficial. Condição e ajustes permanecem essenciais.', 'Existing deterministic engine result; not an appraisal. Condition and adjustments remain essential.', 'Resultado del motor determinista; no es tasación. La condición y los ajustes siguen siendo esenciales.') },
-      rows: [{ label: t('Confiança do ARV', 'ARV confidence', 'Confianza del ARV'), value: /HIGH/.test(scalar(valuation.confidence)) ? t('Alta', 'High', 'Alta') : /MODERATE/.test(scalar(valuation.confidence)) ? t('Moderada', 'Moderate', 'Moderada') : t('Limitada', 'Limited', 'Limitada'), evidenceRefs: [ref] }],
-      ...(center !== null && center >= low && center <= high ? { range: { low: money(low, locale), high: money(high, locale), estimate: money(center, locale), position: high > low ? (center - low) / (high - low) : .5 } } : {}),
+      rows: [{ label: t('Confiança do ARV', 'ARV confidence', 'Confianza del ARV'), value: preliminaryArv ? t('Baixa · apenas duas vendas elegíveis', 'Low · only two eligible sales', 'Baja · solo dos ventas elegibles') : /HIGH/.test(scalar(valuation.confidence)) ? t('Alta', 'High', 'Alta') : /MODERATE/.test(scalar(valuation.confidence)) ? t('Moderada', 'Moderate', 'Moderada') : t('Limitada', 'Limited', 'Limitada'), evidenceRefs: [ref] }],
+      ...(!preliminaryArv && center !== null && center >= low && center <= high ? { range: { low: money(low, locale), high: money(high, locale), estimate: money(center, locale), position: high > low ? (center - low) / (high - low) : .5 } } : {}),
       map: { points: mapPoints, caption: t('S: imóvel analisado. Marcadores e linhas usam as mesmas vendas registradas. Posições relativas derivadas das coordenadas; não é mapa cadastral.', 'S: subject property. Markers and rows use the same recorded sales. Coordinate-derived relative view; not a cadastral map.', 'S: inmueble analizado. Marcadores y filas usan las mismas ventas registradas. Vista relativa por coordenadas; no es mapa catastral.') },
       table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Venda', 'Sale', 'Venta'), t('Data', 'Date', 'Fecha'), t('Distância', 'Distance', 'Distancia')], rows: tableRows, evidenceRefs: selectedSold.map((_, i) => [`sold:${i + 1}`]) }, evidenceRefs: [ref, ...selectedSold.map((_, i) => `sold:${i + 1}`)] });
     opportunities.push(claim(t(`${selectedSold.length} vendas elegíveis sustentam a faixa de ARV de ${money(low, locale)} a ${money(high, locale)} para comparar o cenário de reforma; isso não comprova margem ou retorno.`, `${selectedSold.length} eligible sales support an ARV range of ${money(low, locale)} to ${money(high, locale)} for the rehabilitation scenario; this does not establish margin or return.`, `${selectedSold.length} ventas elegibles sustentan el rango de ARV de ${money(low, locale)} a ${money(high, locale)} para comparar la reforma; no prueba margen ni rentabilidad.`), [ref]));
@@ -683,6 +696,53 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
     }
   }
   if (notes.length && level > 1) push({ id: 'publisher-notes', title: t('Notas e descrição do publicador', 'Publisher notes and description', 'Notas y descripción del publicador'), kind: 'notes', items: notes.map((text, index) => claim(text, [`notes:${index}`])), priority: 10, evidenceRefs: notes.map((_, index) => `notes:${index}`) });
+  for (const [key, value] of Object.entries(values)) {
+    if (['UNAVAILABLE', 'NOT_APPLICABLE', 'CONFLICTED'].includes(value.state) && !value.absenceReason) {
+      value.absenceReason = value.state === 'NOT_APPLICABLE' ? 'NOT_REQUESTED'
+        : ['noi', 'capRate', 'roi', 'cashFlow', 'arv'].includes(key) ? 'USER_INPUT_REQUIRED' : 'PROVIDER_ERROR';
+      if (!value.source) value.source = evidenceAbsenceCopy(value.absenceReason, locale);
+    }
+    indicatorReasons[key] = value.absenceReason || null;
+  }
+  const rentState = obj(presentation.marketRentState);
+  indicatorReasons.marketRent = level === 1 || land ? 'NOT_REQUESTED' : rentAmount !== null ? null
+    : evidenceAbsenceReason(rentState.absenceReason || rentState.reason || rentState.state, 'PROVIDER_ERROR');
+  indicatorReasons.arv = level < 3 || land ? 'NOT_REQUESTED' : usableArv ? null
+    : indicatorReasons.recordedSales || (selectedSold.length < ARV_ELIGIBILITY_POLICY.minimumPreliminarySales ? 'NO_COVERAGE' : 'USER_INPUT_REQUIRED');
+  const savedRows = resultSections.find(section => section.id === 'saved-scenario-results')?.rows || [];
+  indicatorReasons.roi = level === 1 ? 'NOT_REQUESTED'
+    : savedRows.some(row => /\bROI\b/i.test(row.label) && row.value !== unavailable && row.value !== '—') ? null : 'USER_INPUT_REQUIRED';
+  indicatorReasons.landInformation = ['assessorId', 'zoning', 'county', 'legalDescription', 'lotSizeSqft'].some(known)
+    ? null : indicatorReasons.propertyRecord || 'NO_COVERAGE';
+  const hasComparableMap = resultSections.some(section => section.map && section.map.points.filter(point => point.id !== 'subject').length > 0);
+  indicatorReasons.comparablesMap = level < 3 ? 'NOT_REQUESTED' : hasComparableMap ? null
+    : selectedSold.length ? 'USER_INPUT_REQUIRED' : indicatorReasons.recordedSales || 'NO_COVERAGE';
+  for (const section of resultSections) {
+    if (section.status !== 'blocked' && section.id !== 'rent-pending') continue;
+    const reason = /rent/.test(section.id) ? indicatorReasons.marketRent
+      : /value-readiness|price-positioning|land-market/.test(section.id) ? indicatorReasons.arv || indicatorReasons.recordedSales
+      : 'USER_INPUT_REQUIRED';
+    section.absenceReason = reason || 'USER_INPUT_REQUIRED';
+    // Existing financial/input explanations remain specific. External acquisition
+    // blockers must be shown instead of suggesting that all gaps are user inputs.
+    if (/value-readiness|price-positioning|land-market/.test(section.id) && section.absenceReason !== 'USER_INPUT_REQUIRED') {
+      const copy = evidenceAbsenceCopy(section.absenceReason, locale), ref = register(`absence:${section.id}`, copy);
+      if (section.rows?.[0]) { section.rows[0].source = copy; section.rows[0].evidenceRefs.push(ref); }
+      section.evidenceRefs.push(ref);
+    }
+  }
+  const familyLabels: Record<string, string> = {
+    propertyRecord: t('Dados cadastrais do imóvel', 'Property records', 'Datos catastrales del inmueble'),
+    valuation: t('Estimativa de valor', 'Value estimate', 'Estimación de valor'),
+    recordedSales: t('Vendas registradas', 'Recorded sales', 'Ventas registradas'),
+  };
+  const absenceItems = Object.entries(upstreamReasons).filter(([key, reason]) => familyLabels[key] && reason !== null)
+    .filter(([key]) => level > 1 || key === 'propertyRecord').map(([key]) => {
+      const text = `${familyLabels[key]}: ${evidenceAbsenceCopy(indicatorReasons[key] || 'PROVIDER_ERROR', locale)}`;
+      return claim(text, [register(`availability:${key}`, text)]);
+    });
+  if (absenceItems.length) push({ id: 'evidence-availability', title: t('Disponibilidade das informações', 'Information availability', 'Disponibilidad de la información'),
+    kind: 'list', priority: 65, items: absenceItems, evidenceRefs: absenceItems.flatMap(item => item.evidenceRefs) });
   resultSections.sort((a, b) => b.priority - a.priority);
   const model: ReportViewModel = { type: 'strict_report_view_model', version: 'REPORT_PROJECTION_V3', reportType, locale,
     header: { product: level === 1 ? t('RELATÓRIO DO IMÓVEL', 'PROPERTY RELEASE', 'INFORME DE LA PROPIEDAD') : level === 2 ? t('RELATÓRIO DE ANÁLISE MAXXIS', 'MAXXIS ANALYSIS REPORT', 'INFORME DE ANÁLISIS MAXXIS') : t('INTELIGÊNCIA DO NEGÓCIO MAXXIS', 'MAXXIS DEAL INTELLIGENCE REPORT', 'INTELIGENCIA DEL NEGOCIO MAXXIS'), subtitle: t('Dados reais. Decisões mais inteligentes.', 'Real Data. Smarter Decisions.', 'Datos reales. Decisiones más inteligentes.'), plan: `L${level}`, tagline: 'DealSifter Match' },
@@ -690,7 +750,7 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
       locationPoint: finitePoint(property.latitude, property.longitude) ? { id: 'subject', marker: 'S', latitude: Number(property.latitude), longitude: Number(property.longitude) } : null },
     executive: level === 1 ? null : { thesis: claim(thesisText, ['executive:thesis', 'property:identity', ...values.price.evidenceRefs]), status, coverage,
       opportunity: opportunities[0] || null, risk: blockers[0] ? claim(blockers[0].impact, blockers[0].refs) : null, blocker: blockers[0] ? claim(blockers[0].action, [`action:${blockers[0].id}`]) : null },
-    sections: resultSections, values, diagnostics, evidencePacket: packet,
+    sections: resultSections, values, indicatorReasons, diagnostics, evidencePacket: packet,
     disclaimer: t('Este relatório apoia decisões com as evidências disponíveis. Não é avaliação imobiliária, aconselhamento financeiro ou recomendação de compra ou venda. Registros GIS não substituem levantamento topográfico; zoneamento declarado não comprova aprovação legal.', 'This report supports decisions using available evidence. It is not an appraisal, financial advice, or a recommendation to buy or sell. GIS records do not replace a survey; declared zoning does not establish legal approval.', 'Este informe apoya decisiones con la evidencia disponible. No es tasación, asesoramiento financiero ni recomendación de compra o venta. Los registros GIS no sustituyen un levantamiento; la zonificación declarada no prueba aprobación legal.') };
   if (input.type !== 'maxxis_report_schema' || !['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(scalar(input.reportType))) diagnostics.push('INVALID_REPORT_INPUT');
   const candidate = presentation.executiveNarrative;

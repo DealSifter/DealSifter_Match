@@ -17,6 +17,7 @@ import { publicFinancialTaxProof } from './financialEvidenceContext.ts';
 import { buildFinancialInputReadiness } from './financialReadiness.ts';
 import { createBackendMarketRentService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 import type {RentAvmSubject} from '../property-data/rentAvmSubject.ts';
+import { refreshReportFinancialEvidence } from './refreshReportFinancialEvidence.ts';
 import { shouldAcquireReportMarketRent, reportMarketRentSubject } from './reportMarketRentPolicy.ts';
 
 export const MAXXIS_TOOLS = [{
@@ -131,10 +132,11 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         if(review.error)throw new Error('RENT_SUBJECT_REVIEW_READ_FAILED');
         return {property:property.data,snapshot:review.data?.state??null};
       },
-      loadMarketRent:async(propertyId,initialSubject)=>{
+      loadMarketRent:async(propertyId,initialSubject,execution)=>{
         const admin=createClient(supabaseUrl,supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
         let first=true;
         const service=createBackendMarketRentService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
+          execution,
           providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:context.providerBudgetBucket || 'chat'},
           hasEntitlement:async()=>{
             if(context.plan==='PRO'||context.plan==='ENTERPRISE')return true;
@@ -237,15 +239,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
           marketRentAcquisition: shouldAcquireReportMarketRent((args as Record<string, unknown>)?.reportType, context.cacheOnly),
         }).catch(() => null) as Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null;
       if (evidence?.type === 'canonical_property_evidence' && evidence.state === 'available' && evidence.financialEvidence) {
-        return { ...report, intelligenceSnapshot: { ...report.intelligenceSnapshot,
-          financialEvidence: evidence.financialEvidence,
-          marketRent: evidence.marketRent || null,
-          ...(evidence.marketRent?.state === 'AVAILABLE' && evidence.marketRent.evidence ? {
-            rentalEvidence: { ...report.intelligenceSnapshot.rentalEvidence, rentEstimate: evidence.marketRent.evidence },
-            providerMarketContext: { ...report.intelligenceSnapshot.providerMarketContext, rentEstimate: evidence.marketRent.evidence },
-          } : {}),
-          financialReadiness: buildFinancialInputReadiness(evidence.financialEvidence, { strategy: evidence.financialStrategy, propertyType: evidence.financialPropertyType }),
-        } };
+        return refreshReportFinancialEvidence(report, evidence, (args as Record<string, unknown>).reportType, context.language);
       }
     }
     return report;

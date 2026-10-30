@@ -46,7 +46,7 @@ export class ValuationEvidenceService {
       street: property.address || '', city: property.city || '', state: property.state || '', zipCode: property.zip || '',
     });
     const cached = await this.cache.getValuation(propertyId, { allowStale: true });
-    if (!cached || !await matchesCachedSubject(property, cached.valuation.subjectProperty)) return null;
+    if (!cached || cached.addressFingerprint !== fingerprint || !await matchesCachedSubject(property, cached.valuation.subjectProperty)) return null;
     try {
       if (await valuationSubjectAddressFingerprint(cached.valuation) !== fingerprint) return null;
     } catch {

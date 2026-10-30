@@ -1,6 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 export const REPORT_PREVIEW_RENDERER_SOURCES = Object.freeze([
+  'supabase/functions/_shared/maxxis/evidenceAbsence.ts',
+  'supabase/functions/_shared/maxxis/financialEvidenceAnswer.ts',
+  'supabase/functions/_shared/maxxis/reportMarketReferences.ts',
   'src/features/maxxis/export/maxxisReportPdf.js',
   'src/features/maxxis/export/strictReportPdf.ts',
   'src/features/maxxis/export/referenceReportPdf.ts',

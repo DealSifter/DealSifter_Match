@@ -1,4 +1,5 @@
 import { formatPropertyLookupAddress, validatePropertyLookupInput,rentCastAddressMatches } from './address.ts';
+import { assertAddressCoherence } from './addressCoherence.ts';
 import { createRentCastClient, type RentCastClient, type RentCastFetch } from './rentcast/rentcastClient.ts';
 import { mapListings, mapMarketData, mapRentEstimate } from './supplementalEvidenceMapper.ts';
 import type { SupplementalEvidenceProvider } from './supplementalEvidenceTypes.ts';
@@ -31,6 +32,7 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
 
   async getSaleListings(input: Parameters<SupplementalEvidenceProvider['getSaleListings']>[0]) {
     const lookup = validatePropertyLookupInput(input);
+    assertAddressCoherence(lookup);
     return this.guarded('sale_listings', lookup.propertyId, lookup.userId, async () => {
       const response = await this.options.client.searchSaleListings({ address: formatPropertyLookupAddress(lookup), radius: 5,
         status: 'Active', propertyType: input.propertyType || undefined, limit: 50 });
@@ -39,6 +41,7 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   }
   async getRentEstimate(input: Parameters<SupplementalEvidenceProvider['getRentEstimate']>[0]) {
     const lookup = validatePropertyLookupInput(input);
+    assertAddressCoherence(lookup);
     return this.guarded('rent_estimate', lookup.propertyId, lookup.userId, async () => {
       const response = await this.options.client.estimateRent({ address: formatPropertyLookupAddress(lookup), ...RENTCAST_MARKET_RENT_POLICY,
         ...(input.propertyType?{propertyType:input.propertyType}:{}),...(input.bedrooms!=null?{bedrooms:input.bedrooms}:{}),
@@ -52,6 +55,7 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   }
   async getRentalListings(input: Parameters<SupplementalEvidenceProvider['getRentalListings']>[0]) {
     const lookup = validatePropertyLookupInput(input);
+    assertAddressCoherence(lookup);
     return this.guarded('rental_listings', lookup.propertyId, lookup.userId, async () => {
       const response = await this.options.client.searchRentalListings({ address: formatPropertyLookupAddress(lookup), radius: 5,
         status: 'Active', propertyType: input.propertyType || undefined, limit: 50 });
@@ -60,6 +64,7 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   }
   async getMarketData(input: Parameters<SupplementalEvidenceProvider['getMarketData']>[0]) {
     const lookup = validatePropertyLookupInput(input);
+    assertAddressCoherence(lookup);
     return this.guarded('market_data', lookup.propertyId, lookup.userId, async () => {
       const response = await this.options.client.getMarketData(lookup.zipCode);
       return mapMarketData(response.data, lookup.zipCode, input.queryFingerprint, this.now());

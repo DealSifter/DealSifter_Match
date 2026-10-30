@@ -43,6 +43,8 @@ import type { SupplementalEvidenceFamily } from '../property-data/supplementalEv
 import { resolveLotDimensions } from './landMetrics.ts';
 import { findRetainedRecentSalesReference } from './retainedReportReference.ts';
 import { calculateLandDevelopmentScenario, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
+import { evidenceAbsenceReason } from './evidenceAbsence.ts';
+import { createProviderExecution, trackedProviderFetch } from '../property-data/providerExecution.ts';
 
 const finiteNumber = (value: unknown) => toKnownFiniteNumber(value) !== null ? Number(value) : null;
 const medianNumber = (values: number[]) => {
@@ -97,6 +99,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   });
   const shouldLoadValuationEvidence = reportLevel === 'MAXXIS_ANALYSIS' || reportLevel === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
+  const propertyExecution = createProviderExecution(), valuationExecution = createProviderExecution(), soldExecution = createProviderExecution();
   const runtimeTrace = {
     reportType: reportRequested ? requestedReportType : 'CHAT',
     propertyEvidence: 'UNKNOWN',
@@ -111,6 +114,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerPlan: plan,
     providerAttempted: false,
     propertyProviderAttempted: false,
+    propertyProviderCalls: 0,
+    propertyHttpPhase: 'BEFORE_HTTP',
+    valuationProviderCalls: 0,
+    valuationHttpPhase: 'BEFORE_HTTP',
+    soldProviderCalls: 0,
+    soldHttpPhase: 'BEFORE_HTTP',
     soldProviderAttempted: false,
     valuationProviderAttempted: false,
     providerResult: providerAllowedByPlan ? 'NOT_ATTEMPTED' : 'PLAN_ZERO_PROVIDER',
@@ -154,16 +163,20 @@ export async function getDealInsightContextForAuthenticatedUser(
   const loadArvEvaluation = async (propertyId: string) => {
     if (!supabaseServiceRoleKey) {
       runtimeTrace.stopReason = 'PROPERTY_INTELLIGENCE_BACKEND_UNAVAILABLE';
+      runtimeTrace.valuationEvidenceReason = runtimeTrace.stopReason;
+      runtimeTrace.soldEvidenceReason = runtimeTrace.stopReason;
       return null;
     }
     const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
     const getEnv = (name: string) => Deno.env.get(name);
     const providerBudgetContext = { userId, propertyId, plan, bucket: budgetBucket } as const;
-    const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv, providerBudgetContext });
+    const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv, providerBudgetContext,
+      fetchImpl: trackedProviderFetch(valuationExecution) });
     const soldService = createBackendSoldEvidenceService({
       supabaseAdmin: admin,
       getEnv,
       providerBudgetContext,
+      fetchImpl: trackedProviderFetch(soldExecution),
     });
     try {
       runtimeTrace.addressValidation = 'ACCEPTED';
@@ -193,8 +206,13 @@ export async function getDealInsightContextForAuthenticatedUser(
         runtimeTrace.stopReason = code;
         runtimeTrace.providerResult = code;
         runtimeTrace.addressValidation = 'REJECTED';
-        throw error;
       }
+    }
+    finally {
+      runtimeTrace.valuationProviderCalls = valuationExecution.providerCalls;
+      runtimeTrace.valuationHttpPhase = valuationExecution.phase;
+      runtimeTrace.valuationProviderAttempted = valuationExecution.providerCalls > 0;
+      runtimeTrace.providerAttempted ||= runtimeTrace.valuationProviderAttempted;
     }
     let soldEvidenceLoaded = false;
     try {
@@ -245,11 +263,16 @@ export async function getDealInsightContextForAuthenticatedUser(
         runtimeTrace.stopReason = code;
         runtimeTrace.providerResult = code;
         runtimeTrace.addressValidation = 'REJECTED';
-        throw error;
       }
     }
-    runtimeTrace.providerResult = runtimeTrace.providerAttempted ? 'ACCEPTED'
-      : runtimeTrace.valuationEvidence === 'HIT' || runtimeTrace.soldEvidence === 'HIT' ? 'CACHE_HIT'
+    finally {
+      runtimeTrace.soldProviderCalls = soldExecution.providerCalls;
+      runtimeTrace.soldHttpPhase = soldExecution.phase;
+      runtimeTrace.soldProviderAttempted = soldExecution.providerCalls > 0;
+      runtimeTrace.providerAttempted ||= runtimeTrace.soldProviderAttempted;
+    }
+    runtimeTrace.providerResult = providerEvidenceState.valuation || providerEvidenceState.sold
+      ? runtimeTrace.valuationProviderAttempted || runtimeTrace.soldProviderAttempted ? 'ACCEPTED' : 'CACHE_HIT'
       : runtimeTrace.valuationEvidenceReason !== 'NOT_REQUESTED' ? runtimeTrace.valuationEvidenceReason
       : runtimeTrace.soldEvidenceReason;
     if (activeAnalysisApplicability?.residentialArv === 'NOT_APPLICABLE') {
@@ -361,12 +384,16 @@ export async function getDealInsightContextForAuthenticatedUser(
       const evidence = await getPropertyEvidenceForAuthenticatedUser(
         { propertyId }, authHeader, userId, propertyId, allowPropertyProvider,
         propertyEvidenceAccess.cacheAuthorized ? { plan, bucket: budgetBucket } : undefined,
+        propertyExecution,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
       runtimeTrace.propertyEvidenceReason = evidence.reason || (evidence.state === 'available'
         ? evidence.cacheState === 'hit' ? 'CACHE_HIT' : 'PROVIDER_REFRESHED'
         : 'PROPERTY_EVIDENCE_UNAVAILABLE');
       runtimeTrace.propertyProviderAttempted = Boolean(evidence.providerAttempted);
+      runtimeTrace.propertyProviderCalls = propertyExecution.providerCalls;
+      runtimeTrace.propertyHttpPhase = propertyExecution.phase;
+      runtimeTrace.providerAttempted ||= runtimeTrace.propertyProviderAttempted;
       if (evidence.state === 'available' && evidence.evidence?.cacheHit === false) {
         runtimeTrace.providerAttempted = true;
         runtimeTrace.providerResult = 'ACCEPTED';
@@ -568,6 +595,25 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerMarketContext,
   } : null;
   const intelligenceSnapshotBase = {
+    evidenceReasons: {
+      propertyRecord: result.evidence.state === 'available' ? null
+        : evidenceAbsenceReason(runtimeTrace.propertyEvidenceReason,
+          result.evidence.entitlementState === 'not_authorized' ? 'NOT_ENTITLED' : 'PROVIDER_ERROR'),
+      valuation: providerEvidenceState.valuation
+        ? providerEvidenceState.valuation.valuation.providerEstimate.value.value !== null ? null : 'NO_COVERAGE'
+        : evidenceAbsenceReason(runtimeTrace.valuationEvidenceReason,
+        !activeProviderEvidencePlan.families.VALUATION.cacheReadAllowed ? 'NOT_ENTITLED'
+          : !activeProviderEvidencePlan.families.VALUATION.providerCallAllowed ? 'PLAN_GATE' : 'PROVIDER_ERROR'),
+      recordedSales: providerEvidenceState.sold ? providerEvidenceState.sold.soldPool.records.length ? null : 'NO_COVERAGE'
+        : evidenceAbsenceReason(runtimeTrace.soldEvidenceReason,
+        !activeProviderEvidencePlan.families.RECORDED_SOLD.cacheReadAllowed ? 'NOT_ENTITLED'
+          : !activeProviderEvidencePlan.families.RECORDED_SOLD.providerCallAllowed ? 'PLAN_GATE' : 'PROVIDER_ERROR'),
+    },
+    providerExecution: {
+      propertyRecord: { providerCalls: propertyExecution.providerCalls, phase: propertyExecution.phase },
+      valuation: { providerCalls: valuationExecution.providerCalls, phase: valuationExecution.phase },
+      recordedSales: { providerCalls: soldExecution.providerCalls, phase: soldExecution.phase },
+    },
     soldDelivery: projectSoldDelivery(runtimeTrace),
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,

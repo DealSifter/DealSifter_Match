@@ -2,7 +2,9 @@
 export type ReportLocale = 'pt' | 'en' | 'es';
 export type ReportLevel = 'PROPERTY_RELEASE' | 'MAXXIS_ANALYSIS' | 'DEAL_INTELLIGENCE';
 export type ReportValueState = 'VALUE' | 'EXPLICIT_ZERO' | 'PROVISIONAL' | 'CONFLICTED' | 'UNAVAILABLE' | 'NOT_APPLICABLE';
+import type { EvidenceAbsenceReason } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
 export interface ReportValue {
+  absenceReason?: EvidenceAbsenceReason;
   state: ReportValueState;
   text: string;
   numericValue: number | null;
@@ -14,6 +16,7 @@ export interface ReportClaim { text: string; evidenceRefs: string[] }
 export interface ReportMapPoint { id: string; marker: string; latitude: number; longitude: number; markerTone?: string }
 export interface ReportTable { columns: string[]; rows: string[][]; evidenceRefs: string[][] }
 export interface ReportSection {
+  absenceReason?: EvidenceAbsenceReason;
   id: string;
   title: string;
   kind: 'narrative' | 'list' | 'facts' | 'comparables' | 'notes' | 'market';
@@ -32,6 +35,7 @@ export interface ReportSection {
   continuationPolicy: 'SAME_SECTION';
 }
 export interface ReportViewModel {
+  indicatorReasons?: Record<string, EvidenceAbsenceReason | null>;
   type: 'strict_report_view_model';
   version: 'REPORT_PROJECTION_V3';
   reportType: ReportLevel;

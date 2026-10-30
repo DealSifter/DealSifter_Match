@@ -31,6 +31,18 @@ function setup(reportType, locale = 'pt') {
 }
 
 describe('incremental report density, without analytical changes', () => {
+  it('draws the actual availability reason and action inside the PDF', () => {
+    const { flow, vm } = setup('DEAL_INTELLIGENCE', 'pt');
+    const text = 'Vendas registradas: O limite de consultas foi atingido. Aguarde a renovação do limite.';
+    vm.sections.push({ id: 'evidence-availability', title: 'Disponibilidade das informações', kind: 'list',
+      priority: 65, items: [{ text, evidenceRefs: ['availability:recordedSales'] }], evidenceRefs: ['availability:recordedSales'], continuationPolicy: 'SAME_SECTION' });
+    const composition = new ReferenceReportComposition(flow, vm, {}, null);
+    composition.verification();
+    const drawn = flow.audit.lines.filter(line => line.sectionId === 'verificationSteps').map(line => line.text).join(' ');
+    expect(drawn).toContain('O limite de consultas foi atingido');
+    expect(drawn).toContain('Aguarde a renovação do limite');
+    expect(drawn).not.toMatch(/QUOTA_BLOCKED|SOLD|AVM|gate/);
+  });
   it('labels the basic report badge Basic without changing its internal report type', () => {
     const { flow, vm, composition } = setup('PROPERTY_RELEASE');
     composition.overview();

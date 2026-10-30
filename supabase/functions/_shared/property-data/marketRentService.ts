@@ -3,9 +3,12 @@ import type {SupplementalEvidenceProvider,RentEstimateEvidence} from './suppleme
 import {cacheFreshness,type EvidenceFreshness} from './cacheFreshness.ts';
 import {InMemoryPropertySingleFlight,type PropertySingleFlight} from './singleFlight.ts';
 import {rentAvmRequestIdentity,type RentAvmSubject} from './rentAvmSubject.ts';
+import type {ProviderExecution} from './providerExecution.ts';
+import {evidenceAbsenceReason,type EvidenceAbsenceReason} from '../maxxis/evidenceAbsence.ts';
 
 export type MarketRentResult={state:RentAvmSubject['state']|'AVAILABLE'|'NOT_QUERIED'|'NO_RESULT'|'PROVIDER_ERROR'|'ENTITLEMENT_BLOCKED'|'USAGE_BLOCKED'|'PROVIDER_DISABLED'|'SUBJECT_CHANGED';
-  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number;reviewField?:string;reviewFields?:string[];reason?:string};
+  propertyId:string; evidence?:RentEstimateEvidence;freshness?:EvidenceFreshness;cacheHit?:boolean;providerCalls:number|null;
+  executionPhase?:ProviderExecution['phase']|'UNKNOWN';absenceReason?:EvidenceAbsenceReason;reviewField?:string;reviewFields?:string[];reason?:string};
 let providerQueue:Promise<unknown>=Promise.resolve();
 async function serialProvider<T>(work:()=>Promise<T>):Promise<T>{
   const task=providerQueue.then(async()=>{const start=Date.now();try{return await work();}finally{const wait=250-(Date.now()-start);if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));}});
@@ -16,10 +19,22 @@ async function serialProvider<T>(work:()=>Promise<T>):Promise<T>{
 export class MarketRentService {
   private flight:PropertySingleFlight;
   constructor(private options:{cache:SupplementalEvidenceCache;provider:SupplementalEvidenceProvider;singleFlight?:PropertySingleFlight;
-    resolveSubject:()=>Promise<RentAvmSubject>;hasEntitlement:()=>Promise<boolean>;enabled:boolean;now?:()=>Date;providerGate?:<T>(work:()=>Promise<T>)=>Promise<T>}){
+    resolveSubject:()=>Promise<RentAvmSubject>;hasEntitlement:()=>Promise<boolean>;enabled:boolean;now?:()=>Date;execution?:ProviderExecution;providerGate?:<T>(work:()=>Promise<T>)=>Promise<T>}){
     this.flight=options.singleFlight??new InMemoryPropertySingleFlight();
   }
   async get(input:{propertyId:string;userId:string;acquire:boolean}):Promise<MarketRentResult>{
+    const execution=this.options.execution,initialCalls=execution?.providerCalls??0;
+    let result:MarketRentResult;
+    try {result=await this.load(input);}catch(error){
+      const raw=error instanceof Error?error.message:'';
+      result={propertyId:input.propertyId,state:'PROVIDER_ERROR',providerCalls:null,
+        reason:/CACHE/.test(raw)?((execution?.providerCalls??0)>initialCalls?'RENT_CACHE_PERSISTENCE_FAILED':'RENT_CACHE_READ_FAILED')
+          :/ENTITLEMENT/.test(raw)?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'};
+    }
+    if(execution?.recorded)result={...result,providerCalls:execution.providerCalls-initialCalls,executionPhase:execution.phase};
+    return result.state==='AVAILABLE'?result:{...result,absenceReason:evidenceAbsenceReason(result.reason||result.state)};
+  }
+  private async load(input:{propertyId:string;userId:string;acquire:boolean}):Promise<MarketRentResult>{
     const base={propertyId:input.propertyId,providerCalls:0};
     if(!input.userId||!await this.options.hasEntitlement())return {...base,state:'ENTITLEMENT_BLOCKED'};
     const subject=await this.options.resolveSubject();
@@ -41,7 +56,8 @@ export class MarketRentService {
       const cached=await read();
       if(cached&&usable(cached)&&(backoff(cached)||cacheFreshness(cached,{now:this.now().getTime()}).state==='FRESH'))return present(cached);
       const current=await this.options.resolveSubject();
-      if(current.state!=='READY'||(await rentAvmRequestIdentity(current)).queryFingerprint!==identity.queryFingerprint)return {...base,state:'SUBJECT_CHANGED'};
+      if(current.state!=='READY')return {...base,state:current.state,reason:current.reason,reviewField:current.reviewField,reviewFields:current.reviewFields};
+      if((await rentAvmRequestIdentity(current)).queryFingerprint!==identity.queryFingerprint)return {...base,state:'SUBJECT_CHANGED'};
       let evidence:RentEstimateEvidence;
       try{
         // Shared cross-isolate provider gate: at most four Market Rent starts/sec,
@@ -49,6 +65,7 @@ export class MarketRentService {
         evidence=await (this.options.providerGate??serialProvider)(()=>this.options.provider.getRentEstimate({...subject.lookup!,...subject.overrides,propertyId:input.propertyId,userId:input.userId,queryFingerprint:identity.queryFingerprint}));
       }catch(error){
         const reason=error instanceof Error?error.message:'';
+        if(reason==='ADDRESS_CONFIRMATION_REQUIRED'||reason==='ADDRESS_MISMATCH')return {...base,state:'SUBJECT_UNAVAILABLE',reason};
         if(/BUDGET|MONTHLY_PROVIDER_LIMIT|COOLDOWN|CREDITS/.test(reason))return existing?.evidence.status==='AVAILABLE'?{...present(existing),reason:'REFRESH_BUDGET_BLOCKED'}:{...base,state:'USAGE_BLOCKED'};
         if(/PROVIDER_DISABLED|NOT_CONFIGURED/.test(reason))return {...base,state:'PROVIDER_DISABLED'};
         // Existing availability circuit uses 60s backoff. Persist only a normalized
@@ -60,7 +77,8 @@ export class MarketRentService {
           retryAfter:new Date(this.now().getTime()+60_000).toISOString()};
       }
       const latest=await this.options.resolveSubject();
-      if(latest.state!=='READY'||(await rentAvmRequestIdentity(latest)).queryFingerprint!==identity.queryFingerprint)return {...base,state:'SUBJECT_CHANGED',providerCalls:1};
+      if(latest.state!=='READY')return {...base,state:latest.state,reason:latest.reason,reviewField:latest.reviewField,reviewFields:latest.reviewFields,providerCalls:1};
+      if((await rentAvmRequestIdentity(latest)).queryFingerprint!==identity.queryFingerprint)return {...base,state:'SUBJECT_CHANGED',providerCalls:1};
       evidence={...evidence,request:identity.request,scope:subject.scope??'PROPERTY',currency:'USD',cadence:'MONTHLY'};
       if(subject.scope!=='UNIT'&&['Multi-Family','Apartment'].includes(evidence.subjectProperty?.propertyType??''))
         evidence={...evidence,status:'NO_RESULT',rent:null,rangeLow:null,rangeHigh:null,unavailableReason:'UNIT_CONTEXT_REQUIRED'};

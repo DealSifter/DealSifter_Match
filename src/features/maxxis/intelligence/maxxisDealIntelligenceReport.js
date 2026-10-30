@@ -260,6 +260,7 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
     financialEvidence: snapshot.financialEvidence || context.financialEvidence || null,
     marketRent: snapshot.marketRent || null,
     soldDelivery: snapshot.soldDelivery || null,
+    evidenceReasons: snapshot.evidenceReasons || null,
     financialReadiness: snapshot.financialReadiness || context.financialReadiness || null,
     sellerFinancingScenario: savedSellerFinancingScenario,
     activeScenario: savedActiveScenario,

@@ -29,6 +29,13 @@ function setup(options: { cache?: InMemoryPropertyIntelligenceCache; providerErr
 }
 
 describe('PropertyEvidenceService', () => {
+  it('rejects mismatched cache metadata even if the stored address body still matches', async () => {
+    const { service, provider, cache } = setup();
+    const entry = await cache.setPropertyRecord(PROPERTY_ID, external());
+    vi.spyOn(cache, 'getPropertyRecord').mockResolvedValue({ ...entry, addressFingerprint: 'different-address' });
+    await expect(service.getCachedPropertyEvidence({ propertyId: PROPERTY_ID })).rejects.toThrow('PROPERTY_EVIDENCE_CACHE_INVALID');
+    expect(provider.getPropertyRecord).not.toHaveBeenCalled();
+  });
   it('on miss calls provider, persists normalized data, and keeps sources separated', async () => {
     const { service, provider, cache } = setup();
     const result = await service.getPropertyEvidence({ propertyId: PROPERTY_ID });

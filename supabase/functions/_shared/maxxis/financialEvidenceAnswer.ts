@@ -1,3 +1,4 @@
+import {evidenceAbsenceReason,evidenceAbsenceCopy} from './evidenceAbsence.ts';
 import {buildFinancialInputReadiness,type FinancialMetric} from './financialReadiness.ts';
 import type {FinancialDomain,FinancialEvidenceStack,FinancialResolvedInput} from './financialEvidence.ts';
 import {formatFinancialEvidenceSource} from './financialEvidenceLabels.ts';
@@ -57,42 +58,19 @@ function describe(input:FinancialResolvedInput,lang:Language){
 }
 export const marketRentActionCopy=(language:string)=>language==='pt'?{label:'Consultar aluguel de mercado',prompt:'Qual o aluguel de mercado?'}:language==='es'?{label:'Consultar alquiler de mercado',prompt:'¿Cuál es el alquiler de mercado?'}:{label:'Check market rent',prompt:'What is the market rent?'};
 export function marketRentStateAnswer(result:MarketRentResult|undefined,language:string){
-  const lang=language==='pt'?'pt':language==='es'?'es':'en';
-  const messages:Record<string,[string,string,string]>={
-    NOT_QUERIED:['Ainda não consultei uma estimativa de aluguel de mercado para este imóvel.','I have not queried a market rent estimate for this property yet.','Aún no consulté una estimación de alquiler de mercado para este inmueble.'],
-    NO_RESULT:['O RentCast não conseguiu gerar uma estimativa de aluguel de mercado com os dados disponíveis.','RentCast could not produce a market rent estimate with the available data.','RentCast no pudo generar una estimación de alquiler de mercado con los datos disponibles.'],
-    PROVIDER_ERROR:['Não foi possível consultar o RentCast agora.','RentCast could not be queried right now.','No fue posible consultar RentCast ahora.'],
-    ENTITLEMENT_BLOCKED:['Seu acesso atual não autoriza esta consulta de inteligência.','Your current access does not authorize this intelligence query.','Su acceso actual no autoriza esta consulta de inteligencia.'],
-    USAGE_BLOCKED:['O limite de consultas do provedor foi atingido. Nenhuma nova consulta foi realizada.','The provider query budget has been reached. No new query was performed.','Se alcanzó el límite de consultas del proveedor. No se realizó una nueva consulta.'],
-    PROVIDER_DISABLED:['A consulta ao RentCast está indisponível no momento.','RentCast queries are currently unavailable.','La consulta a RentCast está deshabilitada por el momento.'],
-    RENT_AVM_REVIEW_REQUIRED:['Há uma divergência nos dados deste imóvel. Revise o campo indicado antes de consultar o aluguel de mercado.','Property inputs disagree. Review the indicated field before querying market rent.','Los datos del inmueble difieren. Revise el campo indicado antes de consultar el alquiler de mercado.'],
-    UNIT_CONTEXT_REQUIRED:['O RentCast estima aluguel por unidade, não pelo prédio inteiro. Informe as características de uma unidade antes da consulta.','RentCast estimates rent per unit, not for the whole building. Unit-level characteristics are required first.','RentCast estima alquiler por unidad, no del edificio completo. Primero se requieren las características de una unidad.'],
-    NOT_APPLICABLE:['O AVM de aluguel residencial não se aplica a terrenos.','Residential rent AVM does not apply to land.','El AVM de alquiler residencial no se aplica a terrenos.'],
-    UNSUPPORTED_TYPE:['Este tipo de imóvel não é compatível com o AVM de aluguel residencial.','This property type is unsupported by the residential rent AVM.','Este tipo de inmueble no es compatible con el AVM de alquiler residencial.'],
-    ADDRESS_REQUIRED:['É necessário um endereço completo e autorizado para esta consulta.','A complete authorized address is required for this query.','Se requiere una dirección completa y autorizada para esta consulta.'],
-    SUBJECT_CHANGED:['Os dados do imóvel mudaram durante a consulta. Confira o cadastro antes de tentar novamente.','Property inputs changed during the query. Review the property before trying again.','Los datos del inmueble cambiaron durante la consulta. Revise el registro antes de reintentar.'],
-    SUBJECT_UNAVAILABLE:['Não foi possível validar os dados atuais do imóvel.','Current property inputs could not be validated.','No fue posible validar los datos actuales del inmueble.']};
-  const i=lang==='pt'?0:lang==='es'?2:1;
+  if(result?.state==='AVAILABLE')return '';
+  const reason=result?.absenceReason??evidenceAbsenceReason(result?.reason||result?.state||'NOT_REQUESTED');
+  const text=evidenceAbsenceCopy(reason,language);
+  const i=language==='pt'?0:language==='es'?2:1;
   const fields:Record<string,string[]>={propertyType:['tipo de imóvel','property type','tipo de inmueble'],beds:['quartos','bedrooms','habitaciones'],baths:['banheiros','bathrooms','baños'],buildingArea:['área construída','living area','superficie construida']};
   const review=[...new Set(result?.reviewFields?.length?result.reviewFields:[result?.reviewField].filter(Boolean) as string[])].map(field=>fields[field]?.[i]).filter(Boolean).join(', ');
-  const stages:Record<string,string[]>={
-    RENT_SUBJECT_PROPERTY_READ_FAILED:['Falha na leitura autorizada do cadastro do imóvel.','Authorized property record read failed.','Falló la lectura autorizada del inmueble.'],
-    RENT_SUBJECT_PROPERTY_NOT_FOUND:['Cadastro do imóvel não encontrado na preparação.','Property record not found during preparation.','Registro del inmueble no encontrado durante la preparación.'],
-    RENT_SUBJECT_REVIEW_READ_FAILED:['Falha na leitura das decisões de revisão do publicador.','Publisher review decisions could not be read.','No se pudieron leer las decisiones del publicador.'],
-    RENT_CACHE_READ_FAILED:['Falha na leitura do cache de aluguel.','Rent cache read failed.','Falló la lectura del caché de alquiler.'],
-    RENT_ENTITLEMENT_CHECK_FAILED:['Falha ao verificar a autorização do aluguel.','Rent authorization check failed.','Falló la verificación de autorización de alquiler.'],
-    RENT_SUBJECT_STATE_READ_FAILED:['Falha na leitura do estado autorizado para o aluguel.','Authorized rent subject state read failed.','Falló la lectura del estado autorizado para el alquiler.'],
-  };
-  const text=stages[result?.reason||'']?.[i]??(messages[result?.state??'NOT_QUERIED']??messages.PROVIDER_ERROR)[i];
-  const action=result?.state==='RENT_AVM_REVIEW_REQUIRED'&&review?[
-    `Campos: ${review}. Editar imóvel → página 2 → revisar esses campos com o publicador.`,
-    `Fields: ${review}. Edit Property → page 2 → review these fields with the publisher.`,
-    `Campos: ${review}. Editar inmueble → página 2 → revisar estos campos con el publicador.`,
+  const action=review?[
+    'Revise no cadastro do imóvel: '+review+'.', 'Review in the property form: '+review+'.', 'Revise en el formulario del inmueble: '+review+'.'
   ][i]:'';
-  const execution=result?.cacheHit?['Cache válido reutilizado.','Valid cache reused.','Caché válido reutilizado.'][i]
-    :result?.providerCalls===0?['Nenhuma consulta ao provedor foi executada neste fluxo.','No provider query executed in this flow.','No se ejecutó consulta al proveedor en este flujo.'][i]
-      :typeof result?.providerCalls==='number'?['Consulta ao provedor executada.','Provider query executed.','Consulta al proveedor ejecutada.'][i]
-        :['Execução anterior não registrada; não comprova ausência de dados no provedor.','Previous execution not recorded; this does not establish missing provider data.','Ejecución anterior no registrada; no prueba ausencia de datos en el proveedor.'][i];
+  const execution=result?.cacheHit?['Dados salvos reutilizados.','Saved data reused.','Datos guardados reutilizados.'][i]
+    :result?.providerCalls===0?['Nenhuma nova consulta foi iniciada.','No new query was started.','No se inició ninguna nueva consulta.'][i]
+    :typeof result?.providerCalls==='number'?['A consulta foi iniciada; isso não garante um resultado válido.','The query was started; this does not guarantee a valid result.','La consulta se inició; no garantiza un resultado válido.'][i]
+    :['O registro anterior não permite confirmar se houve consulta.','The previous record cannot confirm whether a query occurred.','El registro anterior no permite confirmar si hubo una consulta.'][i];
   return [text,action,execution].filter(Boolean).join(' ');
 }
 export function buildFinancialEvidenceAnswer(question:FinancialQuestion,stack:FinancialEvidenceStack,language:string,context:Parameters<typeof buildFinancialInputReadiness>[1]&{marketRent?:MarketRentResult}={}){

@@ -1,4 +1,5 @@
 import { formatPropertyLookupAddress, validatePropertyLookupInput } from './address.ts';
+import { assertAddressCoherence } from './addressCoherence.ts';
 import { logPropertyDataEvent, type PropertyDataLogger } from './logger.ts';
 import { createRentCastClient, type RentCastClient, type RentCastFetch } from './rentcast/rentcastClient.ts';
 import { mapRentCastSoldRecordPool } from './soldMapper.ts';
@@ -33,6 +34,7 @@ export class RentCastSoldRecordDataProvider implements SoldRecordDataProvider {
   async getSoldRecordPool(input: Parameters<SoldRecordDataProvider['getSoldRecordPool']>[0]) {
     const startedAt = Date.now();
     const lookup = validatePropertyLookupInput(input);
+    assertAddressCoherence(lookup);
     const policy = normalizeSoldSearchPolicy(input.policy);
     let reservation: UsageReservation | null = null;
     let finalized = false;

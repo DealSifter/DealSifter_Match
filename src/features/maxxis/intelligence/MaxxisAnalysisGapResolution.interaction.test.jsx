@@ -53,6 +53,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
     await user.click(screen.getByRole('button', { name: 'Enter an amount' }));
     await user.type(screen.getByLabelText('Rehab amount'), '25000');
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][1]).toMatchObject({ rehabBudget: 25000, rehabSource: 'USER_PROVIDED' });
@@ -63,6 +64,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     const onResolve = vi.fn();
     render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
     await user.selectOptions(screen.getByLabelText('Target condition'), 'STANDARD_RENOVATION');
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve).toHaveBeenCalledWith(expect.any(Object), { targetCondition: 'STANDARD_RENOVATION' });
   });
@@ -71,7 +73,9 @@ describe('Maxxis analysis gap resolution UX', () => {
     const user = userEvent.setup();
     const onResolve = vi.fn();
     render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
+    await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Use 2026 state reference' }));
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve.mock.calls[0][1]).toMatchObject({ rehabBudget: 20000, rehabSource: 'USER_CURATED_REHAB_BENCHMARK_2026' });
   });
@@ -82,6 +86,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
     await user.selectOptions(screen.getByLabelText('Target condition'), 'FULL_RENOVATION');
     await user.click(screen.getByRole('button', { name: 'Use 2026 state reference' }));
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve.mock.calls[0][1]).toMatchObject({ targetCondition: 'FULL_RENOVATION', rehabBudget: 20003 });
   });
@@ -91,6 +96,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     const onDecline = vi.fn();
     render(<MaxxisAnalysisGapResolution message={message()} onDecline={onDecline} />);
     await user.click(screen.getByRole('button', { name: 'Continue without rehab' }));
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onDecline).toHaveBeenCalledWith(expect.any(Object), ['rehab_budget']);
   });
@@ -109,6 +115,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     render(<MaxxisAnalysisGapResolution message={message({ missingUserInputs: ['target_condition'] })} onResolve={onResolve} />);
     await user.click(screen.getByRole('button', { name: 'Add renovation details' }));
     await user.type(screen.getByLabelText('Renovation scope (optional)'), 'Kitchen and roof');
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve.mock.calls[0][1]).toMatchObject({ renovationScope: 'Kitchen and roof' });
   });
@@ -125,6 +132,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     })} onResolve={onResolve} />);
     expect(screen.queryByLabelText('Target condition')).toBeNull();
     await user.type(screen.getByLabelText('Existing loan balance'), '425000');
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve).toHaveBeenCalledWith(expect.any(Object), {
       dealAssumptions: { existingLoanBalance: 425000 },
@@ -143,6 +151,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     const onResolve = vi.fn();
     render(<MaxxisAnalysisGapResolution message={message({ currentRehab: 45000 })} onResolve={onResolve} />);
     expect(screen.getByText(/Current rehab: \$45,000/)).toBeVisible();
+    if (screen.queryByLabelText('Target condition') && screen.getByLabelText('Target condition').value === '') await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
     await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
     expect(onResolve.mock.calls[0][1]).not.toHaveProperty('rehabBudget');
   });
@@ -155,5 +164,23 @@ describe('Maxxis analysis gap resolution UX', () => {
     expect(screen.getByText('✓ Condição alvo: Pronto para uso')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Alterar' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('G4 explicit condition choice', () => {
+  it('does not silently submit AS_IS when no condition is saved', async () => {
+    const onResolve = vi.fn(); const user = userEvent.setup();
+    render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
+    expect(screen.getByLabelText('Target condition')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Continue analysis' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
+    expect(onResolve).not.toHaveBeenCalled();
+    await user.selectOptions(screen.getByLabelText('Target condition'), 'AS_IS');
+    await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
+    expect(onResolve).toHaveBeenCalledWith(expect.any(Object), { targetCondition: 'AS_IS' });
+  });
+  it('preserves a previously saved condition during editing', () => {
+    render(<MaxxisAnalysisGapResolution message={message({ assumptions: { targetCondition: 'TURN_KEY' } })} />);
+    expect(screen.getByLabelText('Target condition')).toHaveValue('TURN_KEY');
   });
 });

@@ -88,7 +88,7 @@ describe('Maxxis Deal Insight context', () => {
       })),
       loadArvEvaluation,
     });
-    expect(loadArvEvaluation).not.toHaveBeenCalled();
+    expect(loadArvEvaluation).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
       state: 'available', property: { id: PROPERTY_ID },
       evidence: { state: 'unavailable', cacheState: 'invalid' },

@@ -5,6 +5,8 @@ import { estimateRehabBenchmark2026 } from '../_shared/maxxis/rehabCostBenchmark
 import { normalizeTargetCondition } from '../_shared/maxxis/analysisApplicability.ts';
 import { createRequestId, logOperationalEvent } from '../_shared/observability.ts';
 
+import { FINANCIAL_INPUT_FIELDS, isFinancialInputKey, normalizeFinancialInputs } from '../_shared/maxxis/financialInputContract.ts';
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const allowedOrigins = parseAllowedOrigins(
@@ -13,6 +15,7 @@ const allowedOrigins = parseAllowedOrigins(
 );
 const ALLOWED_FIELDS = new Set(['rehab_budget', 'target_condition', 'renovation_scope']);
 const NUMERIC_DEAL_ASSUMPTIONS = new Set([
+  ...Object.keys(FINANCIAL_INPUT_FIELDS),
   'sellingCosts', 'sellingCostPercent', 'holdingCosts', 'holdingPeriodMonths', 'interestRate', 'loanAmount',
   'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa',
   'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths',
@@ -61,6 +64,10 @@ function dealAssumptions(value: unknown) {
       const parsed = Number(raw);
       if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1_000_000_000) throw new Error('INVALID_DEAL_ASSUMPTIONS');
       if (['proposedUnitCount', 'proposedLotCount'].includes(key) && (!Number.isInteger(parsed) || parsed < 1)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      if (isFinancialInputKey(key)) {
+        const disposition = normalizeFinancialInputs({ [key]: parsed }).dispositions[key];
+        if (disposition.status === 'REJECTED') throw new Error(`${disposition.reason}:${key}`);
+      }
       sanitized[key] = Math.round(parsed * 100) / 100;
     } else if (TEXT_DEAL_ASSUMPTIONS.has(key)) {
       const parsed = String(raw || '').trim();
@@ -84,6 +91,10 @@ function dealAssumptions(value: unknown) {
     } else {
       throw new Error('INVALID_DEAL_ASSUMPTIONS');
     }
+  }
+  const contract = normalizeFinancialInputs(sanitized);
+  for (const [key, disposition] of Object.entries(contract.dispositions)) {
+    if (isFinancialInputKey(key) && disposition.status === 'REJECTED') throw new Error(`${disposition.reason}:${key}`);
   }
   if (!Object.keys(sanitized).length) throw new Error('INVALID_DEAL_ASSUMPTIONS');
   return sanitized;

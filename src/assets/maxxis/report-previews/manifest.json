@@ -1,10 +1,10 @@
 {
-  "rendererFingerprint": "5086e271f7208898a9c41740e977c843efd62d22a1b89e9a1b013c6b9206ad58",
+  "rendererFingerprint": "c64c5afe0cf3d6d1d56e7acea12965c753d8e31dde7b7fe118dd241e0647809e",
   "reports": {
     "PROPERTY_RELEASE": {
       "product": "property-release",
       "pageCount": 1,
-      "pdfSha256": "da1160dc4519b40f65713144927515b5ae6a7dc7836fcb762c7a8628b0fb5055",
+      "pdfSha256": "0b5d2f9d678c949d4c166a6a7b0586ae6b4311b4f78b09c25f05a6286ca91523",
       "pages": [
         {
           "file": "property-release-page-1.png",
@@ -17,7 +17,7 @@
     "MAXXIS_ANALYSIS": {
       "product": "maxxis-analysis",
       "pageCount": 5,
-      "pdfSha256": "66d246180f8a5d9fd2a2ddf8e3ac90040904f5836d26e5beeb5cdcda582ef35d",
+      "pdfSha256": "2a06c8984ef78005f9f3963fee387f322247e2f341de7b06399e3f8d415fab19",
       "pages": [
         {
           "file": "maxxis-analysis-page-1.png",
@@ -54,7 +54,7 @@
     "DEAL_INTELLIGENCE": {
       "product": "deal-intelligence",
       "pageCount": 10,
-      "pdfSha256": "c8db0d2585ad372cf20c7d8f2d5068993c5bab14f0b2d7d73f127bde7d87e2cc",
+      "pdfSha256": "974e6f30e2d42e3c7000cbbd7902568309d6068064626a461aad615e20caa443",
       "pages": [
         {
           "file": "deal-intelligence-page-1.png",
@@ -64,7 +64,7 @@
         },
         {
           "file": "deal-intelligence-page-2.png",
-          "sha256": "b57692c7ea46a7eb7e15b9de523b3a626a75c36eacc035fbe0b83b46ac0dec70",
+          "sha256": "2097343eb0aea9e1c293f248c5700a8fafc37f7b87d1ecbc55700b4345e881f4",
           "width": 1191,
           "height": 1684
         },

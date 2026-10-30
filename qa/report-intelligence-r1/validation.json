@@ -1,0 +1,18 @@
+{
+  "phase": "R-1",
+  "scope": "LOCAL_OFFLINE_CORRECTIONS_AFTER_READ_ONLY_FORENSICS",
+  "databaseTarget": { "status": "VERIFIED", "projectRef": "cyeipfskwwisbbayyaca", "environment": "Production" },
+  "rootCauseForExactPdfExecution": "INDETERMINATE",
+  "historicalPropertyBlockers": ["IDENTITY_MISMATCH", "NO_COVERAGE"],
+  "observedLedger14Days": { "succeeded": 9, "failed": 0, "reserved": 0 },
+  "observedMonthlyBillable": { "rentcast": 31, "globalLimit": 45, "enterpriseReportBudget": 10, "associatedReportBudgetConsumed": 9 },
+  "B1": "DONE", "B2": "DONE", "B3": "DONE", "B4": "DONE", "B5": "DONE", "B6": "DONE",
+  "targetedTests": { "passed": 327, "failed": 0, "files": 14, "command": "vitest run --config vitest.r1.config.ts", "network": "BLOCKED_BY_SETUP" },
+  "typescript": { "reportProjection": "PASS", "modifiedBackendModulesCachedOnly": "PASS", "broadToolRegistry": "PRE_EXISTING_FAILURE", "broadErrorCount": 31, "headBaselineErrorCount": 31 },
+  "build": { "status": "PASS", "command": "npm run build", "network": "BLOCKED_BY_NODE_PRELOAD", "duration": "7m57s" },
+  "previewPdfPageCounts": { "PROPERTY_RELEASE": 1, "MAXXIS_ANALYSIS": 5, "DEAL_INTELLIGENCE": 10 },
+  "generatedPreviewPages": 16,
+  "liveCalls": { "rentcast": 0, "gemini": 0 },
+  "remoteDatabaseWrites": 0, "migrations": 0, "stashTouched": false,
+  "commit": false, "push": false, "deploy": false
+}

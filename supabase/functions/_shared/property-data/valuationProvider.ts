@@ -1,3 +1,4 @@
+import { assertAddressCoherence } from './addressCoherence.ts';
 import { formatPropertyLookupAddress, validatePropertyLookupInput } from './address.ts';
 import { logPropertyDataEvent, type PropertyDataLogger } from './logger.ts';
 import { createRentCastClient, type RentCastClient, type RentCastFetch } from './rentcast/rentcastClient.ts';
@@ -57,6 +58,7 @@ export class RentCastValuationDataProvider implements ValuationDataProvider {
   async getValuationEvidence(input: PropertyLookupInput) {
     const startedAt = Date.now();
     const normalizedInput = validatePropertyLookupInput(input);
+    assertAddressCoherence(normalizedInput);
     let reservation: UsageReservation | null = null;
     let finalizationAttempted = false;
     try {

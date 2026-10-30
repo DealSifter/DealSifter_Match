@@ -1,3 +1,4 @@
+import { evidenceAbsenceCopy } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
 import type { StrictPdfFlow, SafePdfSection } from './strictReportPdf';
 import type { ReportViewModel, ReportSection, ReportRow } from './reportIntegrityTypes';
 
@@ -289,7 +290,7 @@ export class ReferenceReportComposition {
             this.flow.audit.sections.push({ ...parent, sectionId: s.id, title: s.title, kind: 'reference-facts' });
           }
         }
-        else this.text(this.missing, body, `overviewFacts${i}`, 9);
+        else this.text(evidenceAbsenceCopy(this.vm.indicatorReasons?.propertyRecord || 'USER_INPUT_REQUIRED', this.vm.locale), body, `overviewFacts${i}`, 8);
       });
       this.vm.sections.filter(s => /^(property-facts-|property-tax|property-contacts)/.test(s.id)).forEach(s => this.seen.add(s.id));
       let next = top + factsHeight + 7;
@@ -484,7 +485,10 @@ export class ReferenceReportComposition {
       if (!texts.length && gap) { this.module(gap, { x: X, y: CONTENT_TOP, w: HALF, h: 210 }, block.title, 'info'); return; }
       const insufficient = block.id === 'positive-signals' && !texts.length;
       const body = this.panel({ x: X + i % 2 * (HALF + GAP), y: CONTENT_TOP + Math.floor(i / 2) * 218, w: HALF, h: i < 2 ? 210 : secondHeight }, insufficient ? this.t('Cobertura dos sinais', 'Signal coverage', 'Cobertura de señales') : block.title, insufficient ? 'info' : block.icon, insufficient ? 'neutral' : block.tone, block.id);
-      if (block.id === 'verificationSteps') texts = this.vm.executive?.coverage.map(row => `${row.label}: ${row.value}`) || [];
+      if (block.id === 'verificationSteps') {
+        texts = [...this.texts('evidence-availability'), ...(this.vm.executive?.coverage.map(row => `${row.label}: ${row.value}`) || [])];
+        this.seen.add('evidence-availability');
+      }
       if (!texts.length) texts = [block.id === 'positive-signals' ? this.t('Evidências insuficientes para qualificar sinais positivos.', 'Insufficient evidence to qualify positive signals.', 'Evidencia insuficiente para calificar señales positivas.') : this.missing];
       this.list(texts, body, block.id, insufficient ? 'info' : block.mode, 8.5);
       this.seen.add(block.id);

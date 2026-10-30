@@ -65,16 +65,24 @@ export class SoldEvidenceService {
       ...(/^(land|lot|vacant land)$/i.test(property.type || '') ? { saleDateRangeDays: 365 } : {}), ...this.policyOverrides,
       propertyType: providerPropertyType(this.options.developmentPropertyType || property.type) });
     let valuationEntry = await this.options.valuationCache.getValuation(propertyId, { allowStale: true });
+    // A mismatched cached subject is a miss, never an address alias.
+    if (valuationEntry && (valuationEntry.addressFingerprint !== addressFingerprint || !await matchesCachedSubject(property, valuationEntry.valuation.subjectProperty)
+      || await valuationSubjectAddressFingerprint(valuationEntry.valuation) !== addressFingerprint)) valuationEntry = null;
     const valuationEntryPersisted = Boolean(valuationEntry);
-    // Land sold searches need subject identity/location, not a purchased residential AVM.
-    if (!valuationEntry && /^(land|lot|vacant land)$/i.test(property.type || '')) {
+    // Closed-sale lookup needs a validated subject, not a successful value estimate.
+    // Publisher attributes retain USER_PROVIDED provenance and do not invent a value.
+    if (!valuationEntry) {
       const valuation = mapRentCastValueEstimate({ lookup, requestPolicy: { maxRadius: 5, daysOld: 365, compCount: 0, lookupSubjectAttributes: false },
         raw: { subjectProperty: { addressLine1: lookup.street, city: lookup.city, state: lookup.state, zipCode: lookup.zipCode,
-          propertyType: 'Land', latitude: property.lat ?? undefined, longitude: property.lng ?? undefined,
+          propertyType: providerPropertyType(this.options.developmentPropertyType || property.type),
+          bedrooms: property.beds ?? undefined, bathrooms: property.baths ?? undefined,
+          squareFootage: Number(property.sqft)>0&&Number.isFinite(Number(property.sqft))?Number(property.sqft):undefined,
+          latitude: property.lat ?? undefined, longitude: property.lng ?? undefined,
           lotSize: parseCanonicalLotArea(property.lot).lotSizeSqft ?? undefined }, comparables: [] } });
       for (const field of Object.values(valuation.subjectProperty)) {
         field.source = 'dealSifter'; field.status = field.value === null ? 'UNAVAILABLE' : 'USER_PROVIDED';
       }
+      valuation.subjectOrigin = 'PUBLISHER';
       valuationEntry = { propertyId, provider: 'rentcast', dataType: 'property_value_avm', schemaVersion: 1,
         providerPropertyId: null, addressFingerprint, valuation, retrievedAt: valuation.retrievedAt, expiresAt: valuation.retrievedAt };
     }

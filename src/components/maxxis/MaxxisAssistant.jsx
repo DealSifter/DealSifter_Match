@@ -158,6 +158,7 @@ import {
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
+import { persistConfirmedAnalysisInputs } from '../../features/maxxis/intelligence/confirmParsedAnalysisInputs';
 import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
@@ -1222,7 +1223,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       const values = landReply.data.inputsToPersist;
       if (Object.keys(values).length && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
         try {
-          await saveMaxxisAnalysisInputs(resolvedSubmitPropertyId, { dealAssumptions: values });
+          const saved = await persistConfirmedAnalysisInputs({ dealAssumptions: values }, language,
+            () => saveMaxxisAnalysisInputs(resolvedSubmitPropertyId, { dealAssumptions: values }));
+          if (!saved) return;
           landReply.data.persistenceStatus = 'SAVED';
         } catch (error) {
           landReply.data.persistenceStatus = 'FAILED';
@@ -1346,7 +1349,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
     const parsedGapAnswer = conversationRoute.gapAnswer;
     if (parsedGapAnswer?.action === 'resolve') {
-      void handleResolveAnalysisGaps(pendingGap, parsedGapAnswer.values, cleanMessage);
+      void persistConfirmedAnalysisInputs(parsedGapAnswer.values, language,
+        () => handleResolveAnalysisGaps(pendingGap, parsedGapAnswer.values, cleanMessage));
       return;
     }
     if (parsedGapAnswer?.action === 'decline') {
@@ -1872,7 +1876,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         stateVersion: source?.data?.intelligenceSnapshot?.generatedAt || '',
         gapType: field,
         missingUserInputs: [field],
-        assumptions: { targetCondition: source?.data?.targetCondition || 'AS_IS' },
+        assumptions: { targetCondition: source?.data?.targetCondition || null },
         benchmarkOptions: source?.data?.benchmarkOptions || [],
         currentRehab: source?.data?.currentRehab ?? source?.data?.rehabBudget ?? null,
         decisionInputField: !isCondition && !isRehab ? field : '',

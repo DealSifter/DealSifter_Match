@@ -29,6 +29,13 @@ function setup(cache = new InMemoryValuationEvidenceCache({ now: () => NOW })) {
 }
 
 describe('ValuationEvidenceService cache/fingerprint/single-flight', () => {
+  it('treats stale mismatched metadata as a miss during cache-only reads', async () => {
+    const cache = new InMemoryValuationEvidenceCache({ now: () => NOW });
+    await cache.setValuation(PROPERTY_ID, 'a'.repeat(64), valuation());
+    const { service, provider } = setup(cache);
+    expect(await service.getCachedValuationEvidence({ propertyId: PROPERTY_ID })).toBeNull();
+    expect(provider.getValuationEvidence).not.toHaveBeenCalled();
+  });
   it('uses a valid valuation cache hit with zero provider call', async () => {
     const cache = new InMemoryValuationEvidenceCache({ now: () => NOW });
     const fingerprint = await propertyAddressFingerprint(lookup);

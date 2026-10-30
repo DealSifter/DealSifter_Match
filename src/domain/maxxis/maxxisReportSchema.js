@@ -543,12 +543,15 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     structuredAnalysis: isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
       ? Object.freeze(structuredAnalysis) : null,
     presentation: Object.freeze({
+      evidenceReasons: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? dealIntelligence?.evidenceReasons || null : maxxisAnalysis?.evidenceReasons || null,
       brand: 'DealSifter Match',
       design: 'PREMIUM_INVESTOR_REPORT_V2',
       ...(marketRent?{marketRent}:{}),
       marketRentState: normalizedType !== INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE && rentResult
         ? Object.freeze({ state: rentResult.state, reviewField: rentResult.reviewField || null, reviewFields: rentResult.reviewFields || [], reason: rentResult.reason || null,
-          cacheHit: rentResult.cacheHit === true, providerCalls: rentResult.providerCalls ?? null }) : null,
+          cacheHit: rentResult.cacheHit === true, providerCalls: rentResult.providerCalls ?? null,
+          absenceReason: rentResult.absenceReason || null, executionPhase: rentResult.executionPhase || null }) : null,
       soldDelivery: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? dealIntelligence?.soldDelivery || null : null,
       financialEvidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? dealIntelligence?.financialEvidence || null : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS

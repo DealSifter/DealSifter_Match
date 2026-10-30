@@ -1,4 +1,5 @@
 import {buildFinancialEvidenceStack,type FinancialCandidate,type FinancialDecision,type FinancialDomain,type FinancialCadence} from './financialEvidence.ts';
+import { normalizeFinancialInputs } from './financialInputContract.ts';
 // Adapter inputs are already authorized by the existing property/cache/reviewer gates.
 type Values=Record<string,any>;
 const number=(v:unknown):number|null=>typeof v==='number'&&Number.isFinite(v)?v:null;
@@ -59,7 +60,9 @@ export function buildFinancialEvidenceFromAuthorizedContext(context:{propertyId:
   }
   // Existing authenticated private BUY_AND_HOLD scenario contract. Never read arbitrary public property keys as actual rent.
   const privateInputs=context.privateAssumptions??{},active=privateInputs.activeScenario;
-  const inputs={...privateInputs,...(active?.propertyId===propertyId&&active?.strategy==='BUY_AND_HOLD'?active.assumptions??{}:{})};
+  const baseContract=normalizeFinancialInputs(privateInputs);
+  const scenarioContract=normalizeFinancialInputs(active?.propertyId===propertyId&&active?.strategy==='BUY_AND_HOLD'?active.assumptions??{}:{});
+  const inputs={...baseContract.values,...scenarioContract.values};
   const aliases:Array<[FinancialDomain,string,FinancialCadence,'USD'|'PERCENT']>=[
     ['investorRentAssumption','rent','MONTHLY','USD'],['investorRentAssumption','expectedRent','MONTHLY','USD'],
     ['propertyTax','propertyTax','ANNUAL','USD'],['insurance','insurance','ANNUAL','USD'],['hoa','HOA','MONTHLY','USD'],
@@ -76,5 +79,5 @@ export function buildFinancialEvidenceFromAuthorizedContext(context:{propertyId:
     &&(effective.value!==projection?.value||effective.unit!==projection?.unit);
   const result=buildFinancialEvidenceStack({propertyId,candidates,decisions,conflicts:projection?.analyticalUsability==='CONFLICTED'||effective?.state==='CONFLICTED'||publicChoiceDisagreement?['propertyTax']:[]});
   if(context.taxReviewUnavailable)result.inputs.propertyTax={...result.inputs.propertyTax,value:null,annualizedValue:null,source:null,sourceClass:'UNAVAILABLE',analyticalUsability:'UNAVAILABLE',reasonCode:'REVIEW_STATE_UNAVAILABLE',conflictPreserved:false};
-  return result;
+  return { ...result, inputContract: { privateInputs: baseContract.dispositions, scenarioInputs: scenarioContract.dispositions } };
 }

@@ -107,6 +107,7 @@ export type PropertyDataErrorCode =
   | 'PROPERTY_EVIDENCE_CACHE_MISS'
   | 'PROPERTY_EVIDENCE_CACHE_INVALID'
   | 'ADDRESS_MISMATCH'
+  | 'ADDRESS_CONFIRMATION_REQUIRED'
   | 'INVALID_PROVIDER_RESPONSE';
 
 export class PropertyDataError extends Error {

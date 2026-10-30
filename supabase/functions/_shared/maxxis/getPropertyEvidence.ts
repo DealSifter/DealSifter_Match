@@ -8,6 +8,7 @@ import { resolvePropertyDetailsInput } from './propertyDetails.ts';
 import { supabaseAnonKey, supabaseServiceRoleKey, supabaseUrl } from './config.ts';
 import { getPropertyEvidenceWithDependencies } from './propertyEvidence.ts';
 import type { ProviderBudgetBucket, ProviderBudgetPlan } from '../property-data/providerBudget.ts';
+import { trackedProviderFetch, type ProviderExecution } from '../property-data/providerExecution.ts';
 
 export async function getPropertyEvidenceForAuthenticatedUser(
   input: unknown,
@@ -16,10 +17,12 @@ export async function getPropertyEvidenceForAuthenticatedUser(
   contextPropertyId?: string,
   allowProviderFallback = false,
   providerBudget?: { plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket },
+  execution?: ProviderExecution,
 ) {
   const validated = resolvePropertyDetailsInput(input, contextPropertyId);
   const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-  return getPropertyEvidenceWithDependencies({
+  if (execution) execution.recorded = true;
+  const result = await getPropertyEvidenceWithDependencies({
     propertyId: validated.propertyId,
     contextPropertyId,
     userId,
@@ -39,6 +42,7 @@ export async function getPropertyEvidenceForAuthenticatedUser(
         return createBackendPropertyEvidenceService({
           supabaseAdmin: admin,
           getEnv: (name) => Deno.env.get(name),
+          fetchImpl: execution ? trackedProviderFetch(execution) : undefined,
           providerBudgetContext: providerBudget ? {
             userId: authenticatedUserId,
             propertyId,
@@ -57,4 +61,6 @@ export async function getPropertyEvidenceForAuthenticatedUser(
       return service.getCachedPropertyEvidence({ propertyId, userId: authenticatedUserId });
     },
   });
+  return execution ? { ...result, providerAttempted: execution.providerCalls > 0,
+    providerCalls: execution.providerCalls, executionPhase: execution.phase } : result;
 }

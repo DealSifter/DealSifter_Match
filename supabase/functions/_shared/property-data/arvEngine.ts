@@ -1,3 +1,4 @@
+import { ARV_ELIGIBILITY_POLICY, arvEvidenceTier } from './arvEligibilityPolicy.ts';
 import type { ConditionCompatibility, ObservedCondition, TargetCondition } from './weightedCompTypes.ts';
 
 export type ArvEnginePolicy = {
@@ -35,7 +36,7 @@ export type ArvEnginePolicyOverrides = Partial<Omit<ArvEnginePolicy,
 export const DEALSIFTER_ARV_ENGINE_POLICY_V1: ArvEnginePolicy = Object.freeze({
   version: 'DEALSIFTER_ARV_POLICY_V1' as const,
   methodologyVersion: 'DEALSIFTER_ARV_ENGINE_V1' as const,
-  minimumEligibleComps: 2,
+  minimumEligibleComps: ARV_ELIGIBILITY_POLICY.minimumPreliminarySales,
   maximumCoreComps: 5,
   structuralScoreFloor: 80,
   completenessFloor: 65,
@@ -299,10 +300,10 @@ export function evaluateArv(input: ArvEngineInput) {
     warnings, dispersion: dispersionValue, providerAvmCrossCheck: providerCrossCheck(cachedAvmValue, null, null),
     evidenceSummary: { ...base.evidenceSummary, arv: 'UNAVAILABLE' as const } });
   if (!finitePositive(input.subjectLivingAreaSqft)) return unavailable('MISSING_SUBJECT_LIVING_AREA');
-  if (core.length < built.policy.minimumEligibleComps) return unavailable('INSUFFICIENT_CONDITION_COMPATIBLE_COMPS');
+  if (arvEvidenceTier(core.length) === 'UNAVAILABLE' || core.length < built.policy.minimumEligibleComps) return unavailable('INSUFFICIENT_CONDITION_COMPATIBLE_COMPS');
   const pricesPerSqft = core.map((item) => finitePositive(item.recordedSalePrice) && finitePositive(item.livingAreaSqft)
     ? item.recordedSalePrice / item.livingAreaSqft : null).filter((value): value is number => finitePositive(value));
-  if (pricesPerSqft.length < built.policy.minimumEligibleComps) return unavailable('INSUFFICIENT_PRICE_PER_SQFT_EVIDENCE');
+  if (arvEvidenceTier(pricesPerSqft.length) === 'UNAVAILABLE' || pricesPerSqft.length < built.policy.minimumEligibleComps) return unavailable('INSUFFICIENT_PRICE_PER_SQFT_EVIDENCE');
   const stats = dispersion(pricesPerSqft);
   const isExtreme = Number(stats.rangeRatio) >= built.policy.dispersion.extremeRangeRatio
     || Number(stats.coefficientOfVariation) >= built.policy.dispersion.extremeCoefficientOfVariation;
@@ -337,7 +338,8 @@ export function evaluateArv(input: ArvEngineInput) {
   if (materialUnknownBurden) confidencePoints -= 8;
   let confidence: ArvConfidence = confidencePoints >= 75 ? 'HIGH' : confidencePoints >= 50 ? 'MODERATE' : 'LOW';
   if (isHigh || materialUnknownBurden) confidence = confidence === 'HIGH' ? 'MODERATE' : confidence;
-  const limited = core.length === 2 || isHigh || averageCompleteness < 75 || confidence === 'LOW';
+  if (arvEvidenceTier(core.length) === 'PRELIMINARY') confidence = 'LOW';
+  const limited = arvEvidenceTier(core.length) === 'PRELIMINARY' || isHigh || averageCompleteness < 75 || confidence === 'LOW';
   const status: ArvEngineStatus = limited ? 'ARV_LIMITED' : 'ARV_AVAILABLE';
   const confidenceReasons = [
     `ELIGIBLE_COMP_COUNT_${core.length}`,
@@ -346,7 +348,7 @@ export function evaluateArv(input: ArvEngineInput) {
     isHigh ? 'HIGH_DISPERSION_CONFIDENCE_CAP' : isModerate ? 'MODERATE_DISPERSION_PENALTY' : 'DISPERSION_WITHIN_TOLERANCE',
     materialUnknownBurden ? 'TRANSACTION_QUALITY_UNKNOWN_CAP' : 'TRANSACTION_QUALITY_VERIFIED',
   ];
-  return { ...base, status, centralReference: medianBasedReference, medianBasedReference,
+  return { ...base, status, presentationTier: arvEvidenceTier(core.length), centralReference: medianBasedReference, medianBasedReference,
     weightedReference, arvRangeLow, arvRangeHigh, rangeMethod, medianPricePerSqft: round(medianPricePerSqft),
     meanPricePerSqft: stats.pricePerSqftMean, weightedPricePerSqft: round(weightedPricePerSqft),
     confidence, confidenceReasons, limitations: commonLimitations,

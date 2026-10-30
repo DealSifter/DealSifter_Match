@@ -58,10 +58,17 @@ describe('SoldEvidenceService cache and single-flight', () => {
     }));
   });
 
-  it('requires a valid cached AVM and never acquires AVM itself', async () => {
+  it('searches closed sales with publisher identity without acquiring a value estimate', async () => {
+    const provider = { getSoldRecordPool: vi.fn(async input => mapRentCastSoldRecordPool({ records: [],
+      policy: input.policy, queryFingerprint: input.queryFingerprint, retrievedAt: NOW.toISOString() })) };
     const service = new SoldEvidenceService({ repository: { getById: vi.fn(async () => property) },
       valuationCache: new InMemoryValuationEvidenceCache({ now: () => NOW }),
-      soldCache: new InMemorySoldRecordPoolCache({ now: () => NOW }), provider: { getSoldRecordPool: vi.fn() } });
-    await expect(service.getSoldEvidence({ propertyId: ID })).rejects.toThrow('VALUATION_EVIDENCE_CACHE_REQUIRED');
+      soldCache: new InMemorySoldRecordPoolCache({ now: () => NOW }), provider });
+    const result = await service.getSoldEvidence({ propertyId: ID });
+    expect(provider.getSoldRecordPool).toHaveBeenCalledOnce();
+    expect(provider.getSoldRecordPool).toHaveBeenCalledWith(expect.objectContaining({ street: property.address, searchCenter: null }));
+    expect(result.valuation.subjectProperty.addressLine1).toMatchObject({ value: property.address, status: 'USER_PROVIDED', source: 'dealSifter' });
+    expect(result.valuation.providerEstimate.value.value).toBeNull();
+    expect(result.valuation.subjectOrigin).toBe('PUBLISHER');
   });
 });

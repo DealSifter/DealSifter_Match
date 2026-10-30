@@ -66,6 +66,8 @@ export type NormalizedComparableCandidate = {
 };
 
 export type NormalizedValuationEvidence = {
+  /** Publisher-only subject adapters never represent a provider estimate/response. */
+  subjectOrigin?: 'PUBLISHER' | 'PROVIDER';
   provider: 'rentcast';
   evidenceType: 'property_value_avm';
   schemaVersion: 1;

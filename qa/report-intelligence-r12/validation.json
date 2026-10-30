@@ -1,0 +1,24 @@
+{
+  "phase": "R-1.2",
+  "scope": "LOCAL_DETERMINISTIC_GAP_FIXES",
+  "G1": {
+    "status": "DONE",
+    "contract": "financialInputContract.ts shared by form, persistence validation and financial adapter",
+    "units": { "management": "PERCENT_OF_EFFECTIVE_INCOME", "maintenance": "USD_ANNUAL", "hoa": "USD_MONTHLY" },
+    "rejections": ["INVALID_FINANCIAL_VALUE", "CONFLICTING_FINANCIAL_ALIASES", "MAINTENANCE_BASIS_REQUIRED", "NOT_AN_OPERATING_FINANCIAL_INPUT"],
+    "notes": "Every adapter input has an explicit disposition; other strategy inputs remain owned by their existing scenario engines. No financial defaults added."
+  },
+  "G2": { "status": "DONE", "approach": "Pure reprojection of decision gaps, condition gate, financial readiness and structured analysis after late financial evidence acquisition", "actualRentStillDistinctFromMarketEstimate": true },
+  "G3": { "status": "DONE", "sharedPolicy": "ARV_ELIGIBILITY_POLICY", "minimumPrimarySales": 3, "preliminarySales": 2, "preliminaryConfidence": "LOW", "belowTwo": "UNAVAILABLE", "existingQualityChecksPreserved": true },
+  "G4": { "status": "DONE", "initialCondition": null, "previouslySavedConditionPreserved": true },
+  "G5": { "status": "DONE", "confirmation": "Explicit native confirmation echoes interpreted values before persistence; includes target/rehab answers and existing land-input text persistence", "cancelWrites": false },
+  "targetedTests": { "passed": 290, "failed": 0, "files": 12, "command": "node --import ./scripts/r1-offline-runtime.mjs ./node_modules/vitest/vitest.mjs run --config vitest.r12.config.ts", "network": "BLOCKED_BY_PRELOAD_AND_SETUP" },
+  "typescript": { "reportProjection": "PASS", "modifiedIsolatedBackendModulesCachedOnly": "PASS", "broadToolRegistry": "PRE_EXISTING_FAILURE", "broadErrorCount": 31, "r1BaselineErrorCount": 31 },
+  "build": { "status": "PASS", "duration": "8m23s", "command": "npm run build", "network": "BLOCKED_BY_NODE_PRELOAD", "sentryUpload": false, "warnings": ["EXISTING_LARGE_CHUNKS", "EXISTING_STATIC_DYNAMIC_IMPORT_OVERLAP"] },
+  "liveCalls": { "rentcast": 0, "gemini": 0 },
+  "migrations": 0,
+  "stashTouched": false,
+  "commit": false,
+  "push": false,
+  "deploy": false
+}
