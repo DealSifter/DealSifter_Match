@@ -73,7 +73,6 @@ function getUserScopedStorageKey(baseKey, userId) {
 import {
   CHAT_INTEREST_PREFIX,
   CHAT_INTEREST_SERVICE_PREFIX,
-  CHAT_REPLY_TEMPLATES,
   DEFAULT_PEER_LANGS,
   ExclusiveBlockedBadge,
   PortfolioDetail,
@@ -103,7 +102,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   void setCategoryOrder;
   const [active, setActive] = useState(initialChat || null);
   const [msg, setMsg] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+
   const scrollRef = useRef(null);
   const chatHistoryLoadRef = useRef({ peerId: '', beforeHeight: 0, beforeTop: 0 });
   const chatInitialLoadRequestedRef = useRef(new Set());
@@ -270,7 +269,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const getRecordProfileScope = useCallback((record, fallbackScope = '') => {
     return inferRecordProfileScope(record, fallbackScope);
   }, []);
-  // Use module-scope CHAT_REPLY_TEMPLATES, CHAT_INTEREST_PREFIX and DEFAULT_PEER_LANGS
+  // Use module-scope CHAT_INTEREST_PREFIX and DEFAULT_PEER_LANGS
   // (defined at top of file) to keep references stable for hook dependencies.
   const [peopleFilter, setPeopleFilter] = useState("all");
   const [interestsFilter, setInterestsFilter] = useState("all");
@@ -1356,7 +1355,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       return;
     }
     el.scrollTop = el.scrollHeight;
-  }, [activePeerId, currentMsgs.length, isTyping]);
+  }, [activePeerId, currentMsgs.length]);
 
   useEffect(() => {
     if (activePeerId && typeof onMarkChatRead === 'function') {
@@ -1489,6 +1488,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
+    if (typeof onSendChatMessage !== 'function') {
+      addToast?.({type:'error',title:t.chatUnavailableTitle || getMatchesTranslation(myOutputLang,'chatUnavailableTitle'),message:t.chatSendDisconnected,duration:6500});
+      return;
+    }
     if (!canUseChat) {
       blockFeature('chat');
       return;
@@ -1515,11 +1518,8 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     const oid = activeOwner.id;
     const sourceLang = getSafeLang(myInputLang);
     const toPeerLang = getSafeLang(activePeerLangs.output);
-    const toMyReadLang = getSafeLang(myOutputLang);
-    const peerInputLang = getSafeLang(activePeerLangs.input);
 
     let outgoingText = content;
-    let outgoingMeta = null;
 
     if (type === 'text') {
       const translated = await translateChatText({
@@ -1528,84 +1528,24 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
         toLang: toPeerLang,
       });
       outgoingText = translated.text;
-      outgoingMeta = translated;
     }
 
-    if (typeof onSendChatMessage === 'function') {
-      onSendChatMessage({
-        recipientId: oid,
-        contactOwnerId: oid,
-        text: outgoingText,
-        type,
-        refData,
-        originalText: content,
-        originalLang: sourceLang,
-        translatedLang: type === 'text' ? toPeerLang : sourceLang,
-        contactPrimaryProfile: activeOwner.primaryProfile || '',
-        senderPreview: currentUserChatPreview,
-      });
-    } else {
-      setConvos(prev => ({
-        ...prev,
-        [oid]: [
-          ...(prev[oid] || []),
-          {
-            from: "me",
-            text: outgoingText,
-            type,
-            refData,
-            originalText: content,
-            originalLang: sourceLang,
-            translatedText: outgoingText,
-            translatedLang: type === 'text' ? toPeerLang : sourceLang,
-            translationProvider: outgoingMeta?.provider || 'none',
-          },
-        ],
-      }));
-    }
-
+    onSendChatMessage({
+      recipientId: oid,
+      contactOwnerId: oid,
+      text: outgoingText,
+      type,
+      refData,
+      originalText: content,
+      originalLang: sourceLang,
+      translatedLang: type === 'text' ? toPeerLang : sourceLang,
+      contactPrimaryProfile: activeOwner.primaryProfile || '',
+      senderPreview: currentUserChatPreview,
+    });
     if (typeof customMsg !== 'string') setMsg("");
-
-    if (typeof onSendChatMessage === 'function') return;
-
-    setTimeout(() => {
-      setIsTyping(true);
-      setTimeout(async () => {
-        setIsTyping(false);
-        const replies = CHAT_REPLY_TEMPLATES[peerInputLang] || CHAT_REPLY_TEMPLATES.en;
-        const randomReply = replies[Math.floor(Math.random() * replies.length)];
-        const peerRawText = type === 'reference'
-          ? `${CHAT_INTEREST_PREFIX[peerInputLang] || CHAT_INTEREST_PREFIX.en}: ${refData.address || refData.name || refData.title || ''}.`
-          : randomReply;
-
-        const translatedIncoming = await translateChatText({
-          text: peerRawText,
-          fromLang: peerInputLang,
-          toLang: toMyReadLang,
-        });
-
-        setConvos(p => ({
-          ...p,
-          [oid]: [
-            ...(p[oid] || []),
-            {
-              from: "them",
-              text: translatedIncoming.text,
-              type: 'text',
-              originalText: peerRawText,
-              originalLang: peerInputLang,
-              translatedText: translatedIncoming.text,
-              translatedLang: toMyReadLang,
-              translationProvider: translatedIncoming.provider,
-            },
-          ],
-        }));
-      }, 1500);
-    }, 800);
   }, [
     msg,
     activeOwner,
-    setConvos,
     myInputLang,
     myOutputLang,
     activePeerLangs,
@@ -2368,7 +2308,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         </div>
                       </div>
                     )})}
-                    {isTyping && <div style={{ fontSize:12, color:C.t3 }}>{t.typing}</div>}
+
                     {isDragging && <div style={{ padding:20, border:`2px dashed ${C.accent}`, borderRadius:12, textAlign:"center", color:C.accent }}>{t.dropPropertyHere}</div>}
                   </div>
                   {!canUseChat ? (

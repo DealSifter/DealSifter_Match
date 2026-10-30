@@ -3,13 +3,13 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import './PreviewDialogs.css';
 
 // Fit the complete card to the dialog's available space, including short screens.
-export function FittedPreviewCard({ children }) {
+export function FittedPreviewCard({ children, mobileHeight = 576 }) {
   const mobile = useMediaQuery('(max-width: 767px)');
   const frameRef = useRef(null);
   const canvasRef = useRef(null);
   const [size, setSize] = useState(null);
   const width = mobile ? 340 : 654;
-  const height = mobile ? 576 : 400;
+  const height = mobile ? mobileHeight : 400;
   useEffect(() => {
     const measure = () => {
       const frame = frameRef.current;

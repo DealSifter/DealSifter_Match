@@ -22,10 +22,14 @@ const pickArray = (...values) => {
   return [];
 };
 
+const scopedResolvedPhoto = (resolved, ...fallbacks) => Object.prototype.hasOwnProperty.call(resolved || {}, 'photo')
+  ? String(resolved.photo || '').trim()
+  : pickString(...fallbacks);
+
 const toPersonalProfileShape = (resolved = {}, fallback = {}) => ({
   ...fallback,
   fullName: pickString(resolved?.name, fallback.fullName),
-  photo: pickString(resolved?.photo, fallback.photo),
+  photo: scopedResolvedPhoto(resolved, fallback.photoA),
   bio: pickString(fallback.bio),
   visibility: pickString(fallback.visibility, 'hidden'),
   loc: pickString(resolved?.loc, fallback.loc),
@@ -45,10 +49,12 @@ const toPersonalProfileShape = (resolved = {}, fallback = {}) => ({
 
 const toFsboProfileShape = (resolved = {}, fallback = {}) => ({
   ...fallback,
+  fullName: pickString(resolved?.name, fallback.fullNameFsbo, fallback.fsboFullName),
+  photo: scopedResolvedPhoto(resolved, fallback.photoFsbo, fallback.fsboPhoto),
   fullNameFsbo: pickString(resolved?.name, fallback.fullNameFsbo, fallback.fsboFullName),
   fsboFullName: pickString(resolved?.name, fallback.fsboFullName, fallback.fullNameFsbo),
-  photoFsbo: pickString(resolved?.photo, fallback.photoFsbo, fallback.fsboPhoto),
-  fsboPhoto: pickString(resolved?.photo, fallback.fsboPhoto, fallback.photoFsbo),
+  photoFsbo: scopedResolvedPhoto(resolved, fallback.photoFsbo, fallback.fsboPhoto),
+  fsboPhoto: scopedResolvedPhoto(resolved, fallback.fsboPhoto, fallback.photoFsbo),
   bioFsbo: pickString(resolved?.pitch, fallback.bioFsbo, fallback.pitchFsbo),
   pitchFsbo: pickString(resolved?.pitch, fallback.pitchFsbo, fallback.bioFsbo),
   visibility: pickString(fallback.visibility, 'hidden'),
@@ -71,8 +77,9 @@ const toProfessionalProfileShape = (resolved = {}, fallback = {}) => ({
   fullName: pickString(resolved?.name, fallback.fullName),
   locB: pickString(resolved?.loc, fallback.locB),
   zipLocationB: getProfileZipLocation(resolved?.zipLocation || fallback.zipLocationB),
-  photoB: pickString(resolved?.photo, fallback.photoB, fallback.photoBUrl),
-  photoBUrl: pickString(resolved?.photo, fallback.photoBUrl, fallback.photoB),
+  photo: scopedResolvedPhoto(resolved, fallback.photoB, fallback.photoBUrl),
+  photoB: scopedResolvedPhoto(resolved, fallback.photoB, fallback.photoBUrl),
+  photoBUrl: scopedResolvedPhoto(resolved, fallback.photoBUrl, fallback.photoB),
   contactMethodsB: pickArray(resolved?.contactMethods, fallback.contactMethodsB),
   primaryPhoneB: pickString(resolved?.primaryPhone, fallback.primaryPhoneB, fallback.phoneB),
   secondaryPhoneB: pickString(resolved?.secondaryPhone, fallback.secondaryPhoneB),
@@ -311,3 +318,14 @@ export function extractScopedProfileLegacy(profilePayload) {
   };
 }
 
+
+// A scoped photo, including an explicitly cleared one, must never fall back to another profile.
+export function resolvePayloadProfilePhoto(scope, payloadScope = {}, payloadProfile = {}) {
+  const normalizedScope = normalizeProfileScope(scope);
+  const scopedFields = normalizedScope === 'fsbo' ? ['photoFsbo','fsboPhoto'] : normalizedScope === 'professional' ? ['photoB','photoBUrl'] : ['photoA'];
+  if (scopedFields.some(field => Object.prototype.hasOwnProperty.call(payloadScope, field))) return pickString(...scopedFields.map(field => payloadScope[field]));
+  if (Object.prototype.hasOwnProperty.call(payloadScope, 'photo')) return String(payloadScope.photo || '').trim();
+  if (normalizedScope === 'fsbo') return pickString(payloadProfile.photoFsbo, payloadProfile.fsboPhoto);
+  if (normalizedScope === 'professional') return pickString(payloadProfile.photoB, payloadProfile.photoBUrl, payloadProfile.photo);
+  return normalizedScope === 'personal' ? pickString(payloadProfile.photoA, payloadProfile.photo) : '';
+}

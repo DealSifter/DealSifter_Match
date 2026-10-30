@@ -9,6 +9,7 @@ import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfi
 import { ProfessionalPropertyForm } from '../components/onboarding/ProfessionalPropertyForm';
 import { PrimaryProfileSelect } from '../components/onboarding/PrimaryProfileSelect';
 import { ProfileZipCodeField } from '../components/onboarding/ProfileZipCodeField';
+import { resolveOnboardingPreviewProfile } from '../lib/onboardingPreviewProfile';
 import { getProfileZipLocation } from '../services/profileZipLocation';
 import { Chip, MarketsSelector, SectionCard } from '../components/onboarding/OnboardingUi';
 import { useT } from '../i18n/translations';
@@ -25,6 +26,7 @@ import { readAndCompressFiles } from '../lib/onboardingMedia';
 import { clearPendingDeal, getPendingDealRemainingDays, isPendingDealActive, isPendingDealExpired, markPendingDeal } from '../lib/pendingDeal';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
+  buildOnboardingUploadsKey,
   clearOnboardingDraft,
   readOnboardingDraft,
   writeOnboardingDraft,
@@ -132,8 +134,10 @@ export function Onboarding({
   const [portfolioDescription, setPortfolioDescription] = useState('');
   const [portfolioHideStreetAddressOnCard, setPortfolioHideStreetAddressOnCard] = useState(false);
   // Keep temporary uploads separated by onboarding branch to avoid cross-reflection.
+  const draftUserId = authSession?.userId || authSession?.id || 'guest';
+  const uploadHydrationReadyRef = useRef('');
   const shouldUseTempStorage = true;
-  const activeTempStorageKey = accountType === 'fsbo_owner' ? 'tempUploads_fsbo' : 'tempUploads_professional';
+  const activeTempStorageKey = buildOnboardingUploadsKey(draftUserId, accountType);
   const _savedTemp = (() => {
     if (!shouldUseTempStorage || !activeTempStorageKey) return {};
     try {
@@ -271,7 +275,7 @@ export function Onboarding({
   const profileHydrationRef = useRef('');
   const draftHydrationRef = useRef('');
   const draftReadyRef = useRef('');
-  const draftUserId = authSession?.userId || authSession?.id || 'guest';
+
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
   const [previewDragOverIndex, setPreviewDragOverIndex] = useState(null);
@@ -1191,6 +1195,7 @@ export function Onboarding({
     const branchKey = `${draftUserId}:${accountType || 'professional'}`;
     if (portfolioBranchHydrationRef.current === branchKey) return undefined;
     portfolioBranchHydrationRef.current = branchKey;
+    uploadHydrationReadyRef.current = '';
     const timer = window.setTimeout(() => {
       if (!shouldUseTempStorage || !activeTempStorageKey) {
         try { localStorage.removeItem('tempUploads_fsbo'); } catch (e) { void e; }
@@ -1240,6 +1245,7 @@ export function Onboarding({
         setPortfolioObjective('Sell');
         setPrimaryProfileScope(getPrimaryProfileScope());
       }
+      uploadHydrationReadyRef.current = activeTempStorageKey;
     }, 0);
     return () => window.clearTimeout(timer);
   }, [accountType, activeTempStorageKey, shouldUseTempStorage, getPrimaryProfileScope, draftUserId]);
@@ -1498,7 +1504,7 @@ export function Onboarding({
 
   // persist temporary uploads so the user doesn't need to re-upload on dev reload
   useEffect(() => {
-    if (!shouldUseTempStorage || !activeTempStorageKey) return;
+    if (!shouldUseTempStorage || !activeTempStorageKey || uploadHydrationReadyRef.current !== activeTempStorageKey) return;
     try {
       const cur = JSON.parse(localStorage.getItem(activeTempStorageKey) || '{}');
       cur.portfolioImages = portfolioImages || [];
@@ -1507,7 +1513,7 @@ export function Onboarding({
   }, [portfolioImages, activeTempStorageKey, shouldUseTempStorage]);
 
   useEffect(() => {
-    if (!shouldUseTempStorage || !activeTempStorageKey) return;
+    if (!shouldUseTempStorage || !activeTempStorageKey || uploadHydrationReadyRef.current !== activeTempStorageKey) return;
     try {
       const cur = JSON.parse(localStorage.getItem(activeTempStorageKey) || '{}');
       cur.serviceImages = serviceImages || [];
@@ -1516,7 +1522,7 @@ export function Onboarding({
   }, [serviceImages, activeTempStorageKey, shouldUseTempStorage]);
 
   useEffect(() => {
-    if (!shouldUseTempStorage || !activeTempStorageKey) return;
+    if (!shouldUseTempStorage || !activeTempStorageKey || uploadHydrationReadyRef.current !== activeTempStorageKey) return;
     try {
       const cur = JSON.parse(localStorage.getItem(activeTempStorageKey) || '{}');
       cur.profileThumb = profileThumb || '';
@@ -2003,8 +2009,14 @@ export function Onboarding({
   const buildPreviewFeedCard = (scope = 'personal') => {
     const isProfessionalScope = scope === 'professional';
     const isFsboScope = scope === 'fsbo';
+    const identity = resolveOnboardingPreviewProfile(scope, {
+      accountType, personalProfile, professionalProfile,
+      primaryDraft:{name,photo:profileThumb,loc,zipLocation,categoryId:primaryCategory,pitch,primaryPhone:personalPrimaryPhone,email:personalEmail},
+      professionalDraft:{name:nameB,photo:profileThumbB,loc:locB,zipLocation:zipLocationB,categoryId:primaryCategoryB,pitch:pitchB,primaryPhone:personalPrimaryPhoneB,email:personalEmailB},
+    });
+    const usesDraft = scope === (accountType === 'fsbo_owner' ? 'fsbo' : 'personal') || (isProfessionalScope && accountType === 'professional');
     const previewBadge = isFsboScope ? 'FSBO' : (isProfessionalScope ? 'Business' : 'Personal');
-    const categoryId = isProfessionalScope ? primaryCategoryB : (isFsboScope ? 'fsbo' : primaryCategory);
+    const categoryId = isFsboScope ? 'fsbo' : identity.categoryId;
     const bestCategory = isFsboScope ? 'FSBO' : (allProfiles.find((p) => p.id === categoryId)?.label || '');
     const scopedProperties = (myPortfolio || []).filter((p) => toPreviewScope(p.primaryProfile) === scope);
     const scopedServices = (myServicePortfolio || []).filter((s) => {
@@ -2033,7 +2045,7 @@ export function Onboarding({
           .filter(Boolean)
       )
     );
-    const scopedManualSkills = isProfessionalScope ? selectedSkillsB : selectedSkills;
+    const scopedManualSkills = usesDraft ? (isProfessionalScope ? selectedSkillsB : selectedSkills) : (isProfessionalScope ? professionalProfile?.skillsB : professionalProfile?.skills) || [];
 
     const previewTags = isFsboScope
       ? []
@@ -2041,22 +2053,22 @@ export function Onboarding({
 
     return {
       id: isProfessionalScope ? 'preview-professional' : (isFsboScope ? 'preview-fsbo' : 'preview-personal'),
-      photo: (isProfessionalScope ? profileThumbB : profileThumb) || '',
-      name: isProfessionalScope ? (nameB || '') : (name || ''),
+      photo: identity.photo || '',
+      name: identity.name || '',
       type: bestCategory,
       badge: previewBadge,
-      loc: isProfessionalScope ? (locB ? `${stateNameByCode[locB]}, ${locB}` : '') : (loc ? `${stateNameByCode[loc]}, ${loc}` : ''),
-      zipLocation: getProfileZipLocation(isProfessionalScope ? zipLocationB : zipLocation),
+      loc: identity.loc ? `${stateNameByCode[identity.loc] || identity.loc}, ${identity.loc}` : '',
+      zipLocation: getProfileZipLocation(identity.zipLocation),
       rating: autoRating,
       reviews: autoReviews,
       portfolioCount: scopedProperties.length,
       deals: autoDeals,
-      phone: isProfessionalScope ? (personalPrimaryPhoneB || '') : (personalPrimaryPhone || ''),
-      email: isProfessionalScope ? (personalEmailB || '') : (personalEmail || ''),
+      phone: identity.primaryPhone || '',
+      email: identity.email || '',
       desc: (() => {
         const parts = [];
         try {
-          const scopePitch = isProfessionalScope ? pitchB : pitch;
+          const scopePitch = identity.pitch;
           if (scopePitch && String(scopePitch).trim().length) parts.push(String(scopePitch).trim());
           if (scopedServiceDescriptions.length) parts.push(...scopedServiceDescriptions);
         } catch (e) { void e; }

@@ -19,12 +19,12 @@ describe('feed publication preview',()=>{
     mount();fireEvent.click(screen.getByRole('tab',{name:'Portfolio'}));
     fireEvent.click(screen.getByRole('button',{name:'Next',exact:true}));
     expect(screen.getByText('Second service')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button',{name:'Next profile'}));
+    fireEvent.click(within(screen.getByRole('region',{name:'Feed Card'})).getByRole('button',{name:'Next profile'}));
     expect(screen.getByTestId('profile-card').textContent).toBe('Seller');
     expect(screen.getByText('Seller property · Seller')).toBeTruthy();
     expect(screen.queryByText('Second service')).toBeNull();
     expect(screen.getByRole('tab',{name:'Portfolio'}).getAttribute('aria-selected')).toBe('true');
-    fireEvent.click(screen.getByRole('button',{name:'Previous profile'}));
+    fireEvent.click(within(screen.getByRole('region',{name:'Feed Card'})).getByRole('button',{name:'Previous profile'}));
     expect(screen.getByText('Rehab')).toBeTruthy();
     expect(screen.queryByText('Seller property · Seller')).toBeNull();
   });
@@ -33,8 +33,8 @@ describe('feed publication preview',()=>{
     expect(within(media).getAllByRole('img')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button',{name:'Next image'}));
     expect(within(media).getByRole('img').getAttribute('src')).toBe('/two.jpg');
-    fireEvent.click(screen.getByRole('button',{name:'Next profile'}));
-    fireEvent.click(screen.getByRole('button',{name:'Previous profile'}));
+    fireEvent.click(within(screen.getByRole('region',{name:'Feed Card'})).getByRole('button',{name:'Next profile'}));
+    fireEvent.click(within(screen.getByRole('region',{name:'Feed Card'})).getByRole('button',{name:'Previous profile'}));
     expect(document.querySelector('.preview-service-media img').getAttribute('src')).toBe('/one.jpg');
   });
   it('preserves edit and publish callbacks and disables publishing while saving',()=>{

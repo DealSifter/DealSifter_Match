@@ -522,6 +522,7 @@ export const translations = {
     },
     // Matches
     matches: {
+      chatSendDisconnected: 'Chat sending is unavailable. Your message has not been sent.',
       chatLocked: "Chat is Locked",
       chatLockedDesc: "Spend nuggets based on portfolio size to unlock chat, phone, WhatsApp and email.",
       unlockBtn: "Unlock Contact",
@@ -971,6 +972,8 @@ export const translations = {
       adminAccess: "Admin access"
     },
     settings: {
+      profileSaveFailed: 'Could not confirm saving.',
+      profileSaveRetry: 'Try again',
       title: "System Settings",
       subtitle: "Manage account, payments and support.",
       backToApp: "Back to app",
@@ -1935,6 +1938,7 @@ export const translations = {
       next: "Proximo",
     },
     matches: {
+      chatSendDisconnected: 'O envio de mensagens está indisponível. Sua mensagem não foi enviada.',
       chatLocked: "Chat Bloqueado",
       chatLockedDesc: "Gaste nuggets conforme o portfolio para desbloquear chat, telefone, WhatsApp e e-mail.",
       unlockBtn: "Desbloquear Contato",
@@ -2381,6 +2385,8 @@ export const translations = {
       adminAccess: "Acesso admin"
     },
     settings: {
+      profileSaveFailed: 'Não foi possível confirmar o salvamento.',
+      profileSaveRetry: 'Tentar novamente',
       title: "Configuracoes do Sistema",
       subtitle: "Gerencie conta, pagamentos e suporte.",
       backToApp: "Voltar ao app",
@@ -3345,6 +3351,7 @@ export const translations = {
       next: "Siguiente",
     },
     matches: {
+      chatSendDisconnected: 'El envío de mensajes no está disponible. Tu mensaje no se ha enviado.',
       chatLocked: "Chat Bloqueado",
       chatLockedDesc: "Gasta nuggets según el portafolio para desbloquear chat, teléfono, WhatsApp y correo.",
       unlockBtn: "Desbloquear Contacto",
@@ -3791,6 +3798,8 @@ export const translations = {
       adminAccess: "Acceso admin"
     },
     settings: {
+      profileSaveFailed: 'No se pudo confirmar el guardado.',
+      profileSaveRetry: 'Reintentar',
       title: "Configuracion del Sistema",
       subtitle: "Gestiona cuenta, pagos y soporte.",
       backToApp: "Volver a la app",

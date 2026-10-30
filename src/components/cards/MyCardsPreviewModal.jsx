@@ -61,7 +61,7 @@ function ShowcasePreviewPanel({ data, copy }) {
   </>;
 }
 
-export function CardPreviewPanels({ data, copy = {} }) {
+export function CardPreviewPanels({ data, copy = {}, profileControls = null }) {
   const [panel, setPanel] = useState('profile');
   return <>
       <div className="mycards-preview-tabs" role="tablist" aria-label="My Cards">
@@ -69,9 +69,9 @@ export function CardPreviewPanels({ data, copy = {} }) {
         <button type="button" role="tab" aria-selected={panel === 'showcase'} onClick={() => setPanel('showcase')}>{copy.myCardsShowcaseTab || 'Showcase'}</button>
       </div>
       <div className="mycards-preview-panels">
-        <section className="mycards-preview-panel" data-active={panel === 'profile'} aria-label="Feed Card">
-          <div className="mycards-preview-panel-heading"><span>{copy.myCardsFeedHeading || 'Feed Card (Connections)'}</span></div>
-          <div className="mycards-preview-body"><FittedPreviewCard><SwipeCard card={data.profileCard} previewOnly isUnlocked showActions={false} /></FittedPreviewCard></div>
+        <section className="mycards-preview-panel" data-active={panel === 'profile'} aria-label="Feed Card" data-testid="preview-profile-panel" data-profile-scope={data.scopeKey}>
+          <div className="mycards-preview-panel-heading"><span>{copy.myCardsFeedHeading || 'Feed Card (Connections)'}</span>{profileControls ? <div className="feed-preview-desktop-controls">{profileControls}</div> : null}</div>
+          <div className="mycards-preview-body"><FittedPreviewCard mobileHeight={520}><SwipeCard key={data.scopeKey || data.profileCard.id} card={data.profileCard} previewOnly isUnlocked showActions={false} /></FittedPreviewCard></div>
         </section>
         <section className="mycards-preview-panel" data-active={panel === 'showcase'} aria-label="Showcase Cards">
           <ShowcasePreviewPanel key={data.scopeKey || data.scopeLabel} data={data} copy={copy} />

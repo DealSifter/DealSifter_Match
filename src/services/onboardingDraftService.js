@@ -57,3 +57,5 @@ export const clearOnboardingDraft = (userId, accountType) => {
     // Storage can be unavailable in private browsing modes.
   }
 };
+
+export const buildOnboardingUploadsKey = (userId, accountType) => `ds_onboarding_uploads_v1:${String(userId || 'guest').trim() || 'guest'}:${accountType === 'fsbo_owner' ? 'fsbo' : 'professional'}`;

@@ -1,3 +1,4 @@
+import { inferRecordProfileScope } from '../../lib/profileScopeResolver';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { C } from '../../theme/colors';
@@ -144,7 +145,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const [dragX, setDragX] = React.useState(0);
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
-  const [currentImageIdx, setCurrentImageIdx] = React.useState(0);
+  const imageIdentity = [card?.ownerId || card?.owner_id || '', card?.primaryProfile || card?.scope || '', card?.id || ''].join(':');
+  const [imageSelection, setImageSelection] = React.useState({identity:imageIdentity,index:0});
+  const currentImageIdx = imageSelection.identity === imageIdentity ? imageSelection.index : 0;
+  const setCurrentImageIdx = value => setImageSelection(previous => ({identity:imageIdentity,index:typeof value === 'function' ? value(previous.identity === imageIdentity ? previous.index : 0) : value}));
   const [descriptionOpen, setDescriptionOpen] = React.useState(false);
   const cardImages = React.useMemo(() => {
     const collectRecordImages = (record) => {
@@ -157,7 +161,12 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       card?.photo,
       ...(Array.isArray(card?.images) ? card.images : []),
       ...(Array.isArray(card?.linkedServices)
-        ? card.linkedServices.flatMap(collectRecordImages)
+        ? card.linkedServices.filter(record => {
+          const recordOwner = String(record?.ownerId || record?.owner_id || '');
+          const cardOwner = String(card?.ownerId || card?.owner_id || '');
+          const scope = inferRecordProfileScope(card);
+          return (!scope || inferRecordProfileScope(record, scope) === scope) && (!recordOwner || !cardOwner || recordOwner === cardOwner);
+        }).flatMap(collectRecordImages)
         : []),
     ];
     const seen = new Set();
@@ -169,9 +178,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         return true;
       });
   }, [card]);
-  React.useEffect(() => {
-    if (currentImageIdx > Math.max(0, cardImages.length - 1)) setCurrentImageIdx(0);
-  }, [cardImages.length, currentImageIdx]);
+
   const phoneValue = String(card?.phone || card?.primaryPhone || '').trim();
   const emailValue = String(card?.email || '').trim();
   const revealPhone = Boolean(isUnlocked && phoneValue);
@@ -383,7 +390,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       {/* ── LEFT: photo column ── */}
       <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '44%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
         <SmartImage
-          src={cardImages[currentImageIdx] || card.photo}
+          src={cardImages[currentImageIdx] || cardImages[0] || card.photo}
           alt={card.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />

@@ -3,6 +3,7 @@ import {
   inferRecordProfileScope,
   isLikelyNonIdentityName,
   normalizeProfileScope,
+  resolvePayloadProfilePhoto,
 } from './profileScopeResolver';
 import { SENSITIVE_FIELDS } from './sensitiveFields';
 import { calculateLandUnitMetrics } from '../../supabase/functions/_shared/maxxis/landMetrics.ts';
@@ -71,30 +72,7 @@ const getPayloadScope = (profilePayload, scope) => {
   return {};
 };
 
-const getScopedProfilePhoto = ({ payloadScope, payloadProfile, personalRow, professionalRow, scope }) => {
-  const normalizedScope = normalizeProfileScope(scope);
-  void personalRow;
-  void professionalRow;
-  if (normalizedScope === 'professional') {
-    return pickString(
-      payloadScope.photo,
-      payloadProfile.photo,
-      payloadProfile.photoB,
-      payloadProfile.photoBUrl
-    );
-  }
-  if (normalizedScope === 'fsbo') {
-    return pickString(
-      payloadScope.photo,
-      payloadProfile.photo
-    );
-  }
-  return pickString(
-    payloadScope.photo,
-    payloadProfile.photo,
-    payloadProfile.photoA
-  );
-};
+const getScopedProfilePhoto = ({ payloadScope, payloadProfile, scope }) => resolvePayloadProfilePhoto(scope, payloadScope, payloadProfile);
 
 const resolveOwnerIdentity = (rawCard, scope) => {
   const ownerId = pickString(rawCard?.ownerId, rawCard?.owner_id, rawCard?.unlockOwnerId, rawCard?.sellerId, rawCard?.id);
@@ -111,7 +89,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
   const payloadProfessional = extracted.professionalProfileFromPayload || {};
   const payloadProfile = scope === 'professional' ? payloadProfessional : payloadPersonal;
 
-  if (ownerPreview && typeof ownerPreview === 'object' && normalizeProfileScope(ownerPreview.primaryProfile || ownerPreview.scope) === scope) {
+  if (ownerPreview && typeof ownerPreview === 'object' && normalizeProfileScope(ownerPreview.primaryProfile || ownerPreview.primary_profile || ownerPreview.scope) === scope && (!pickString(ownerPreview.ownerId, ownerPreview.owner_id) || pickString(ownerPreview.ownerId, ownerPreview.owner_id) === ownerId)) {
     return {
       name: pickIdentityName(ownerPreview.name),
       photo: sanitizeOwnerPhoto(pickString(ownerPreview.photo, ownerPreview.avatar), ownerId),
@@ -213,8 +191,10 @@ export function normalizeCard(rawCard, currentUserId = '') {
   const primaryProfile = normalizeProfileScope(rawCard.primaryProfile || rawCard.primary_profile || rawCard.scope || scope);
   if (primaryProfile !== scope) return null;
 
-  const linkedProperties = Array.isArray(rawCard.linkedProperties) ? rawCard.linkedProperties : [];
-  const linkedServices = Array.isArray(rawCard.linkedServices) ? rawCard.linkedServices : [];
+  const belongsToProfile = item => inferRecordProfileScope(item, scope) === scope
+    && (!pickString(item.ownerId, item.owner_id) || pickString(item.ownerId, item.owner_id) === ownerId);
+  const linkedProperties = (Array.isArray(rawCard.linkedProperties) ? rawCard.linkedProperties : []).filter(belongsToProfile);
+  const linkedServices = (Array.isArray(rawCard.linkedServices) ? rawCard.linkedServices : []).filter(belongsToProfile);
   const portfolioCount = Math.max(
     Number(rawCard.portfolioCount || 0),
     linkedProperties.filter((item) => truthyFlag(item?.publishToShowcase, truthyFlag(item?.publish_to_showcase, true))).length
@@ -226,6 +206,9 @@ export function normalizeCard(rawCard, currentUserId = '') {
   if (kind === 'service' && !truthyFlag(rawCard.publishToConnections ?? rawCard.publish_to_connections, true)) return null;
 
   const identity = resolveOwnerIdentity(rawCard, scope);
+  const suppliedOwner = rawCard.ownerPreview || rawCard.owner_preview;
+  const matchingOwner = normalizeProfileScope(suppliedOwner?.primaryProfile || suppliedOwner?.primary_profile || suppliedOwner?.scope) === scope && (!pickString(suppliedOwner?.ownerId, suppliedOwner?.owner_id) || pickString(suppliedOwner?.ownerId, suppliedOwner?.owner_id) === ownerId) ? suppliedOwner : null;
+  const hasScopedSource = Boolean(suppliedOwner || rawCard.profilePayload || rawCard.profile_payload || (rawCard.professionalRow || rawCard.professionalProfile || rawCard.professional_profile)?.profile_payload);
   const name = pickIdentityName(identity.name, rawCard.name);
   if (!name || isLikelyNonIdentityName(name)) return null;
 
@@ -238,6 +221,7 @@ export function normalizeCard(rawCard, currentUserId = '') {
   const favoriteCount = Number(rawCard.favoriteCount || rawCard.favorite_count || 0);
   const unlockCount = Number(rawCard.unlockCount || rawCard.unlock_count || 0);
 
+  const profilePhoto = hasScopedSource ? identity.photo : sanitizeOwnerPhoto(pickString(identity.photo, rawCard.photo, rawCard.avatar), ownerId);
   const common = {
     ...rawCard,
     id: kind === 'person' ? `${ownerId}:${scope}` : rawCard.id,
@@ -246,7 +230,10 @@ export function normalizeCard(rawCard, currentUserId = '') {
     primaryProfile: scope,
     scopeKey: scope === 'professional' ? 'secondary' : scope,
     name,
-    photo: pickString(identity.photo, rawCard.photo, rawCard.avatar),
+    photo: profilePhoto,
+    avatar: profilePhoto,
+    linkedProperties,
+    linkedServices,
     type: pickString(identity.type, rawCard.type, rawCard.category),
     badge: pickString(identity.badge, rawCard.badge),
     loc: pickString(identity.loc, rawCard.loc, rawCard.location, rawCard.state),
@@ -300,11 +287,13 @@ export function normalizeCard(rawCard, currentUserId = '') {
       includeInPreview: truthyFlag(rawCard.includeInPreview ?? rawCard.include_in_preview, true),
       isActive: true,
       source: rawCard.source || 'supabase',
-      ownerPreview: rawCard.ownerPreview || {
+      ownerPreview: {
+        ...(matchingOwner || {}),
         id: ownerId,
         ownerId,
         name,
         photo: common.photo,
+        avatar: common.photo,
         type: common.type,
         badge: common.badge,
         loc: common.loc,

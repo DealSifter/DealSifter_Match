@@ -93,6 +93,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
   const [tab, setTab] = useState(initialTab);
   const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
   const [profileSaveState, setProfileSaveState] = useState('saved');
+  const [profileSaveRetry, setProfileSaveRetry] = useState(0);
   const [billingHistory, setBillingHistory] = useState(() => {
     if (isSupabaseConfigured || import.meta.env.PROD) return [];
     try {
@@ -432,7 +433,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
 
   useEffect(() => {
     if (!settingsHydratedFromRemoteRef.current) return;
-    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      setProfileSaveState('error');
+      return;
+    }
+    let cancelled = false;
+    setProfileSaveState('saving');
 
     if (settingsSaveDebounceRef.current) clearTimeout(settingsSaveDebounceRef.current);
 
@@ -451,8 +457,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
       commPrefs: commPrefs && typeof commPrefs === 'object' ? commPrefs : { email: true, chat: true, marketing: false },
       privacyControls: privacyControls && typeof privacyControls === 'object' ? privacyControls : {},
     };
-    const serializedPayload = JSON.stringify(payload);
-    if (serializedPayload === settingsSaveLastSerializedRef.current) return;
+    const serializedPayload = JSON.stringify({...payload,savedAt:undefined});
+    if (serializedPayload === settingsSaveLastSerializedRef.current) {
+      setProfileSaveState('saved');
+      return;
+    }
 
     settingsSaveDebounceRef.current = setTimeout(async () => {
       try {
@@ -462,30 +471,24 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           settings_payload: payload,
         };
 
-        let updateResult = await supabase
+        const updateResult = await supabase
           .from('users')
           .update(rowUpdate)
-          .eq('id', supabaseUserId);
-
-        if (updateResult?.error && isMissingColumnError(updateResult.error, 'users.settings_payload')) {
-          updateResult = await supabase
-            .from('users')
-            .update({
-              full_name: String(systemAccount?.fullName || '') || null,
-              phone: String(systemAccount?.phone || '') || null,
-            })
-            .eq('id', supabaseUserId);
-        }
-
-        if (!updateResult?.error) {
+          .eq('id', supabaseUserId)
+          .select('id')
+          .maybeSingle();
+        if (updateResult?.error || !updateResult?.data?.id) throw updateResult?.error || new Error('Save not confirmed');
+        if (!cancelled) {
           settingsSaveLastSerializedRef.current = serializedPayload;
+          setProfileSaveState('saved');
         }
       } catch {
-        // Keep local state as fallback.
+        if (!cancelled) setProfileSaveState('error');
       }
     }, 550);
 
     return () => {
+      cancelled = true;
       if (settingsSaveDebounceRef.current) {
         clearTimeout(settingsSaveDebounceRef.current);
         settingsSaveDebounceRef.current = null;
@@ -496,13 +499,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     systemAccount,
     commPrefs,
     privacyControls,
+    profileSaveRetry,
   ]);
 
-  useEffect(() => {
-    if (tab !== 'profile' || profileSaveState !== 'saving') return;
-    const timer = setTimeout(() => setProfileSaveState('saved'), 450);
-    return () => clearTimeout(timer);
-  }, [tab, profileSaveState, systemAccount]);
 
   useEffect(() => {
     if (!SHOW_DEV_BILLING_PLACEHOLDER) return;
@@ -1041,8 +1040,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                       <strong style={{ fontSize: 12, color: C.t1 }}>{t.profileCompletion || 'Profile completion'}: {profileCompletion}%</strong>
-                      <span style={{ fontSize: 11, color: profileSaveState === 'saving' ? C.warning || '#f59e0b' : C.accent, fontWeight: 700 }}>
-                        {profileSaveState === 'saving' ? (t.saving || 'Saving...') : (t.saved || 'Saved')}
+                      <span role="status" data-testid="settings-profile-save-status" style={{ fontSize: 11, color: profileSaveState === 'error' ? C.danger : profileSaveState === 'saving' ? C.warning || '#f59e0b' : C.accent, fontWeight: 700 }}>
+                        {profileSaveState === 'error' ? <>{t.profileSaveFailed}<button type="button" onClick={() => setProfileSaveRetry(value => value + 1)} style={{marginLeft:8,background:'transparent',border:0,color:C.accent,cursor:'pointer',fontWeight:700}}>{t.profileSaveRetry}</button></> : profileSaveState === 'saving' ? (t.saving || 'Saving...') : (t.saved || 'Saved')}
                       </span>
                     </div>
                     <div style={{ width: '100%', height: 6, borderRadius: 999, background: C.alpha(C.t1, 0.1), overflow: 'hidden' }}>

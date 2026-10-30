@@ -6,6 +6,7 @@ import {
   extractScopedProfileLegacy,
   inferRecordProfileScope,
   normalizeProfileScope,
+  resolvePayloadProfilePhoto,
   pickIdentityName,
 } from '../lib/profileScopeResolver';
 
@@ -82,14 +83,7 @@ const sanitizeOwnerProfilePhoto = (value, ownerId) => {
   return photo;
 };
 
-const getScopedProfilePhoto = ({ payloadScope, payloadProfile, scope }) => {
-  const normalizedScope = normalizeProfileScope(scope);
-  if (normalizedScope === 'professional') {
-    return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoB, payloadProfile?.photoBUrl);
-  }
-  if (normalizedScope === 'fsbo') return pickFirstString(payloadScope?.photo, payloadProfile?.photoFsbo, payloadProfile?.fsboPhoto);
-  return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoA);
-};
+const getScopedProfilePhoto = ({ payloadScope, payloadProfile, scope }) => resolvePayloadProfilePhoto(scope, payloadScope, payloadProfile);
 
 const buildOwnerPreview = ({ ownerId, scope, userRow, professionalRow }) => {
   const id = String(ownerId || '').trim();

@@ -127,30 +127,6 @@ export function ServiceImageCarousel({ images = [], title = '', compact = false 
 }
 
 // Move chat templates and defaults to module scope so they are stable references
-export const CHAT_REPLY_TEMPLATES = {
-  pt: [
-    'Perfeito. Vou verificar e te retornar em breve.',
-    'Obrigado pelas informações. Quer fechar em breve?',
-    'Excelente. Vamos conversar com mais detalhes.',
-    'Recebi sua solicitação. Vou enviar o material agora.',
-    'Interessante. Vou revisar os números por aqui.',
-  ],
-  en: [
-    "Got it! I'll check and get back to you!",
-    'Thanks for the info. Are you looking to close soon?',
-    "That sounds great. Let's talk more details.",
-    "I've received your inquiry. Sending package now.",
-    'Interesting. Let me run numbers on my end.',
-  ],
-  es: [
-    'Entendido. Lo reviso y te respondo en breve.',
-    'Gracias por la info. ¿Buscas cerrar pronto?',
-    'Suena bien. Hablemos de más detalles.',
-    'Recibí tu consulta. Te envío el paquete ahora.',
-    'Interesante. Voy a revisar los números de mi lado.',
-  ],
-};
-
 export const CHAT_INTEREST_PREFIX = {
   pt: 'Tenho interesse neste imóvel',
   en: 'I am interested in this property',
