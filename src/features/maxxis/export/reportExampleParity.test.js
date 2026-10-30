@@ -10,6 +10,21 @@ describe('example preview parity with production PDFs',()=>{
  it('fails when the production layout changes without regenerating the examples',async()=>{
   expect(manifest.rendererFingerprint).toBe(await reportPreviewRendererFingerprint(root));
  });
+ it('demonstrates populated media, investor charts, valuation and scenario modules',()=>{
+  const coverage=JSON.parse(readFileSync(new URL('qa/report-template/sample-coverage.json',root),'utf8'));
+  for(const [type,sample] of Object.entries(coverage)){
+   expect(sample.photos).toBe(5);
+   expect(sample.maps).toBeGreaterThan(0);
+   expect(sample.text).toContain('DEMONSTRATION ONLY');
+   expect(sample.text).not.toMatch(/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i);
+   if(type!=='PROPERTY_RELEASE'){
+    expect(sample.profileGauge).toBe(true);expect(sample.criteriaChart).toBe(true);expect(sample.scenario).toBe(true);
+   }
+   if(type==='DEAL_INTELLIGENCE'){
+    expect(sample.valuationRange).toBe(true);expect(sample.rentRange).toBe(true);expect(sample.maps).toBeGreaterThan(2);
+   }
+  }
+ });
  it.each(['PROPERTY_RELEASE','MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'])('ships every physical PDF page for %s with matching QA and application assets',type=>{
   const report=manifest.reports[type];
   expect(sha256(readFileSync(new URL(`qa/report-template/${report.product}.pdf`,root)))).toBe(report.pdfSha256);

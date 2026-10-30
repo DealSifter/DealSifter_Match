@@ -21,12 +21,31 @@ describe('bounded report presentation preparation', () => {
     vi.useFakeTimers(); mocks.translate.mockResolvedValue(null);
     mocks.photos.mockReturnValue(new Promise(() => {})); mocks.maps.mockReturnValue(new Promise(() => {}));
     const pending = prepareReportNarrativePresentation(schema, 'pt');
-    await vi.advanceTimersByTimeAsync(5000); await pending;
+    await vi.advanceTimersByTimeAsync(30000); await pending;
     expect(mocks.photos).toHaveBeenCalledOnce(); expect(mocks.maps).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('does not release a PDF after five seconds while images and maps are still loading', async () => {
+    vi.useFakeTimers(); mocks.translate.mockResolvedValue(null);
+    let photosReady, mapsReady, done = false;
+    mocks.photos.mockReturnValue(new Promise(resolve => { photosReady = resolve; }));
+    mocks.maps.mockReturnValue(new Promise(resolve => { mapsReady = resolve; }));
+    const preparation = prepareReportNarrativePresentation(schema, 'en').then(() => { done = true; });
+    await vi.advanceTimersByTimeAsync(7000); expect(done).toBe(false);
+    photosReady(['photo']); await Promise.resolve(); expect(done).toBe(false);
+    mapsReady({ location: 'map' }); await preparation; expect(done).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
   });
   it('does not wait for the deadline when assets and translation complete normally', async () => {
     vi.useFakeTimers(); mocks.translate.mockResolvedValue(null); mocks.photos.mockResolvedValue([]); mocks.maps.mockResolvedValue({});
     await prepareReportNarrativePresentation(schema, 'pt'); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('still waits for photos when map preparation fails independently', async () => {
+    mocks.translate.mockResolvedValue(null); mocks.maps.mockRejectedValue(new Error('MAP_FAILED'));
+    let finishPhotos, done = false;
+    mocks.photos.mockReturnValue(new Promise(resolve => { finishPhotos = resolve; }));
+    const preparation = prepareReportNarrativePresentation(schema, 'en').then(() => { done = true; });
+    await new Promise(resolve => setTimeout(resolve, 0)); expect(done).toBe(false);
+    finishPhotos(['photo']); await preparation; expect(done).toBe(true);
   });
 });

@@ -1,170 +1,101 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { createCanvas } from '@napi-rs/canvas';
+import { sampleReportMap } from './sample-report-maps.mjs';
 
 // Isolated fictional fixture: never imported by the app, stored, or sent to a provider.
 const property = Object.freeze({
-  id: 'PREVIEW-ONLY', address: '1200 Sample Avenue', city: 'Example City', state: 'FL', zip: '00000',
-  type: 'SFR', objective: 'Buy and Hold', price: 425000, beds: 4, baths: 2, sqft: 1780,
-  lot: 9583, lotSizeSqft: 9583, lotSizeAcres: 9583 / 43560, rehab: 48000, capRate: 5.1, published: true, source: 'Sample fixture',
-  latitude: 27.0000, longitude: -80.0000,
-  description: 'Four-bedroom single-family sample with a long-term hold objective.',
-  improvement: 'Single-family residence', dealTag: 'Portfolio', portfolio: true,
-  labels: ['Buy and Hold', 'Portfolio', 'Sample'], markets: ['Example City, FL'],
-  yearBuilt: 2004, county: 'Example County', assessedValue: 398500, annualPropertyTax: 5120,
-  ownerOccupied: false, ownershipRecordPresent: true, latestSalePrice: 315000, latestSaleDate: '2021-06-18',
-  notes: 'Fictional sample property for report layout demonstration only. Verify all facts in a real report.',
-  owner: { name: 'Sample Owner', type: 'Individual', status: 'Published', allowedContacts: [
-    { type: 'phone', label: 'Phone', value: '(555) 010-0120' },
-    { type: 'email', label: 'Email', value: 'sample@example.invalid' },
-  ] },
+  id:'PREVIEW-ONLY', title:'DEMONSTRATION ONLY · Sample property', address:'1200 Sample Avenue', city:'Example City', state:'FL', zip:'00000',
+  type:'SFR', objective:'Buy and Hold', price:425000, beds:4, baths:2, sqft:1780,
+  lot:9583, lotSizeSqft:9583, lotSizeAcres:9583/43560, rehab:48000, capRate:5.36, noi:22768,
+  acquisitionCosts:5000, holdingCosts:6000, financingCosts:4000, sellingCosts:20000,
+  published:true, source:'FICTIONAL_DEMONSTRATION', latitude:27.95, longitude:-82.45,
+  description:'Four-bedroom sample home for a long-term hold strategy.',
+  improvement:'Single-family residence', dealTag:'Portfolio', portfolio:true,
+  labels:['Demonstration','Buy and Hold','Portfolio'], markets:['Example City, FL'],
+  yearBuilt:2004, county:'Example County', assessedValue:398500, assessmentYear:2026, annualPropertyTax:5120, propertyTaxYear:2026,
+  assessorId:'SAMPLE-000-1200', legalDescription:'Illustrative Lot 12, Block A, Sample Subdivision', subdivision:'Sample Subdivision', zoning:'RS-60',
+  ownerOccupied:false, ownershipRecordPresent:true, latestSalePrice:315000, latestSaleDate:'2021-06-18',
+  notes:'DEMONSTRATION ONLY. Fictional data; not a listing or provider result. Gallery images are illustrative, not one actual property. OSM basemap with sample markers.',
+  fieldProvenance:{capRate:{source:'USER_PROVIDED',status:'CONFIRMED'}},
+  owner:{name:'Sample Publisher · Fictional',type:'Individual',status:'Published',allowedContacts:[
+    {type:'phone',label:'Phone',value:'(555) 010-0120'},{type:'email',label:'Email',value:'sample@example.invalid'}]},
 });
+const profileAlignment = {
+  score:86, profileSource:'AUTHENTICATED_CURRENT_PROFILE',
+  sourceProfile:{targetMarkets:['Example City, FL'],priceRange:'400_800k',propertyTypes:['SFR'],strategies:['Buy and Hold']},
+  criteria:[['market',90,'Illustrative target market alignment.'],['price',80,'Inside the illustrated budget.'],['property_type',95,'Single-family profile preference.'],['strategy',79,'Long-term hold strategy.']]
+    .map(([key,score,explanation])=>({key,score,explanation,status:'matched'})),
+};
+const sold = [
+  ['Sample Sold A',535000,1820,.25,27.951,-82.453,96],
+  ['Sample Sold B',550000,1750,.34,27.953,-82.448,94],
+  ['Sample Sold C',560000,1800,.42,27.947,-82.452,92],
+  ['Sample Sold D',545000,1795,.47,27.946,-82.447,91],
+  ['Sample Sold E',565000,1840,.51,27.954,-82.454,90],
+].map(([address,salePrice,sqft,distanceMiles,latitude,longitude,similarity],i)=>({
+  compIdentifier:'sample-sold-'+i,address,salePrice,sqft,distanceMiles,latitude,longitude,similarity,
+  saleDate:'2026-09-'+String(10+i).padStart(2,'0'),propertyType:'SFR',beds:4,baths:2,yearBuilt:2004,lotSizeSqft:9583,
+  role:'PRIMARY',conditionStatus:'COMPATIBLE',candidateCondition:'RENOVATED',conditionEvidenceSource:'FICTIONAL_SAMPLE',
+  transactionQuality:'ARMS_LENGTH',hardGatesPass:true,dataCompletenessScore:100,providerCorrelation:.95,
+  inclusionReason:'Fictional demonstration of a structurally and condition-compatible recorded sale.'
+}));
+const rentEvidence = {
+  provider:'rentcast',evidenceType:'rent_estimate',status:'AVAILABLE',rent:3200,rangeLow:3000,rangeHigh:3400,
+  retrievedAt:'2026-09-21T22:00:00Z',freshness:'FRESH',queryFingerprint:'FICTIONAL-DEMONSTRATION-ONLY',
+  subjectProperty:{propertyType:'SFR',bedrooms:4,bathrooms:2,livingAreaSqft:1780,latitude:27.95,longitude:-82.45},
+  comparables:sold.map((comp,i)=>({listingId:'sample-rent-'+i,address:'Sample Rental '+String.fromCharCode(65+i),
+    price:3000+i*100,bedrooms:4,bathrooms:2,livingAreaSqft:comp.sqft,latitude:comp.latitude,longitude:comp.longitude,
+    distanceMiles:comp.distanceMiles,daysOld:12+i,providerCorrelation:.96-i*.01,propertyType:'SFR'})),
+};
+const financialInput = (value,cadence='ANNUAL',unit='USD') => ({value,cadence,unit,sourceClass:'USER_PROVIDED_ACTUAL',analyticalUsability:'USABLE',
+  source:{sourceType:'USER_PROVIDED',userConfirmed:true,periodYear:2026,label:'Fictional demonstration input'}});
+const financialEvidence = {inputs:{currentContractRent:financialInput(3200,'MONTHLY'),
+  propertyTax:financialInput(5120),insurance:financialInput(1800),hoa:financialInput(900),maintenance:financialInput(1920),
+  vacancy:financialInput(5,'ANNUAL','PERCENT'),propertyManagement:financialInput(8,'ANNUAL','PERCENT'),
+  utilities:financialInput(600),otherOperatingExpenses:financialInput(300)}};
 const analysis = Object.freeze({
-  executiveSummary: 'The sample property has a four-bedroom SFR layout and a stored buy-and-hold objective. The illustrated profile fit is 74%; condition, operating costs and ownership still need independent verification.',
-  keyObservations: {
-    positives: [
-      'Four bedrooms and 1,780 sqft are recorded in the sample property.',
-      'The illustrated strategy is buy and hold.',
-      'The sample property type aligns with the illustrated profile.',
-      'A stored asking price is available for contextual comparison.',
-    ],
-    attention: [
-      'Property condition has not been inspected.',
-      'Operating expenses and rental history are not documented.',
-      'Ownership and title have not been independently confirmed.',
-    ],
-  },
-  profileAlignment: { score: 74, targetMarket: { explanation: 'Illustrative market alignment' }, propertyType: { explanation: 'SFR preferred' }, strategy: { explanation: 'Buy and Hold' } },
-  riskAwareness: [
-    { category: 'DATA', explanation: 'Condition is not verified.' },
-    { category: 'MARKET', explanation: 'Local rent and demand assumptions require verification.' },
-    { category: 'EXECUTION', explanation: 'The sample rehab budget is not a contractor quote.' },
-  ],
-  limitations: [
-    'The sample property has no inspection report.',
-    'Operating expenses and rental history are not documented.',
-    'Profile fit is not a deal score or investment recommendation.',
-    'The sample does not establish title or legal status.',
-  ],
-  nextSteps: [
-    'Confirm title and ownership.', 'Inspect the property.', 'Verify operating expenses.',
-    'Request comparable rent evidence.', 'Obtain a written renovation estimate.',
-  ],
-  provenance: { property: 'USER_PROVIDED' },
+  executiveSummary:'Fictional demonstration with a complete property record, configured investor profile, documented operating inputs and a market-rent scenario. All illustrated amounts and results are sample data.',
+  keyObservations:{positives:['Four-bedroom single-family layout.','Configured long-term hold strategy.','Complete illustrated income and expense basis.'],attention:['Confirm every assumption against real records before making an investment decision.']},
+  profileAlignment,marketRent:{state:'AVAILABLE',evidence:rentEvidence},financialEvidence,
+  financialReadiness:{metrics:{NOI:{readinessLevel:'READY_ACTUAL'}}},
+  riskAwareness:[{category:'MARKET',explanation:'Future rent and resale prices may change.'},{category:'EXECUTION',explanation:'Inspect the actual property and validate contractor scope before reliance.'}],
+  limitations:['Fictional demonstration, not an appraisal or a real provider response.','A complete data set does not guarantee investment performance.'],
+  nextSteps:['Verify title and inspection.','Review the lease and operating statements.','Confirm contractor bids and exit assumptions.'],
+  provenance:{property:'FICTIONAL_SAMPLE'},
 });
 const deal = Object.freeze({
-  executiveDealOverview: 'This fictional example combines stored property facts with illustrative sold comparables. It is not a live valuation.',
-  whyThisPropertyStandsOut: [
-    'The sample layout illustrates a four-bedroom SFR.',
-    'The sample profile favors long-term holding.',
-    'Two fictional recorded-sale examples meet the illustrated selection criteria.',
-    'The illustrative ARV is limited because condition evidence is incomplete.',
-  ],
-  investmentFit: analysis.profileAlignment,
-  propertyEvidence: { verifiedRecords: [], userProvided: [{ field: 'price' }], unknown: [{ field: 'condition' }], conflicts: [] },
-  comparableEvidence: {
-    used: [
-      { compIdentifier: 'sample-a', address: 'Sample Comp A', salePrice: 495000, saleDate: '2026-03-15', beds: 4, baths: 2, sqft: 1820, distanceMiles: 0.5, latitude: 27.002, longitude: -80.004, role: 'PRIMARY', inclusionReason: 'Illustrative structural match.' },
-      { compIdentifier: 'sample-b', address: 'Sample Comp B', salePrice: 510000, saleDate: '2026-02-10', beds: 4, baths: 2, sqft: 1750, distanceMiles: 0.8, latitude: 27.006, longitude: -79.998, role: 'PRIMARY', inclusionReason: 'Illustrative proximity match.' },
-    ],
-    supporting: [{ address: 'Sample Comp C', salePrice: 475000, saleDate: '2025-12-02', beds: 3, baths: 2, sqft: 1600, distanceMiles: 1.2, latitude: 26.995, longitude: -80.006, role: 'SUPPORTING', inclusionReason: 'Different bedroom count.' }],
-    excluded: [
-      { address: 'Sample Comp D', salePrice: 650000, saleDate: '2025-08-05', beds: 5, baths: 3, sqft: 2300, distanceMiles: 3.1, latitude: 27.008, longitude: -79.993, role: 'EXCLUDED', exclusionReason: 'Different size and location.' },
-      { address: 'Sample Comp E', salePrice: 390000, saleDate: '2025-07-12', beds: 2, baths: 1, sqft: 1100, distanceMiles: 2.8, latitude: 26.998, longitude: -80.009, role: 'EXCLUDED', exclusionReason: 'Different layout and smaller living area.' },
-    ],
-  },
-  valuationIntelligence: { status: 'ARV_LIMITED', range: { low: 470000, high: 530000 }, centralReference: 500000, confidence: 'LOW', compsUsed: 2, methodology: 'Illustrative deterministic sample only.', warnings: ['Sample condition evidence is incomplete.', 'The rehab amount is not a verified contractor bid.', 'Market changes can alter comparable relevance.'] },
-  riskAnalysis: [
-    { category: 'DATA', explanation: 'Sample condition evidence is incomplete.' },
-    { category: 'MARKET', explanation: 'Illustrative comparable prices may not represent current demand.' },
-    { category: 'VALUATION', explanation: 'The ARV range is limited pending condition review.' },
-    { category: 'EXECUTION', explanation: 'Renovation scope and timeline are not confirmed.' },
-  ],
-  analysisConfidence: {
-    score: 87,
-    classification: 'LIMITED',
-    semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY',
-    notPropertyScore: true,
-    contributors: [
-      'Verified property records are available for the illustrated characteristics.',
-      'The investment profile and strategy are explicitly configured.',
-    ],
-    limitations: [
-      'MISSING REHAB',
-      'INSUFFICIENT CONDITION COMPATIBLE COMPS',
-      'Data freshness unavailable',
-      'Valuation confidence unavailable',
-    ],
-  },
-  executiveSummaryIntelligence: {
-    lines: [
-      'Based on available evidence, the analysis has limited confidence and 74% profile compatibility.',
-      'The assessment reflects the verified and user-provided property fields in this fictional sample.',
-      'Comparable and valuation support is limited to the illustrated records used by the deterministic engine.',
-      'The principal uncertainty currently identified is the property condition.',
-      'Focus on renovation assumptions, operating evidence and exit-value uncertainty.',
-      'Next verification priority: confirm target condition and review comparable condition evidence.',
-    ],
-  },
-  limitations: [
-    'No inspection, title report, or expense statement is included in this sample.',
-    'Comparable selection remains illustrative and must be reviewed.',
-    'The ARV range is not an appraisal or return forecast.',
-  ],
-  nextVerificationSteps: [
-    'Inspect property condition.', 'Verify title and taxes.', 'Obtain contractor bids.',
-    'Validate rental assumptions.', 'Review the selected comparable records.',
-  ],
-  provenance: { propertyEvidence: 'SAMPLE_ONLY' },
+  executiveDealOverview:analysis.executiveSummary,whyThisPropertyStandsOut:analysis.keyObservations.positives,
+  investmentFit:profileAlignment,
+  propertyEvidence:{verifiedRecords:[],userProvided:[{field:'price',value:425000},{field:'capRate',value:5.36,source:'USER_PROVIDED',status:'CONFIRMED'}],unknown:[],conflicts:[]},
+  comparableEvidence:{used:sold,supporting:[],excluded:[]},
+  valuationIntelligence:{status:'ARV_AVAILABLE',range:{low:535000,high:575000},centralReference:555000,confidence:'HIGH',compsUsed:5,
+    methodology:'Fictional demonstration of the existing deterministic methodology.',warnings:['Scenario illustration; not an appraisal or confirmed resale value.'],
+    providerEstimate:{value:515000,status:'AVAILABLE'},
+    providerListingReferences:sold.slice(0,3).map((comp,i)=>({...comp,address:'Sample Listing '+String.fromCharCode(65+i),price:550000+i*5000,priceSemantic:'PROVIDER_LISTING_PRICE',lastSeenDate:'2026-09-21',listingStatus:'ACTIVE'}))},
+  marketRent:analysis.marketRent,financialEvidence,financialReadiness:analysis.financialReadiness,
+  soldDelivery:{status:'ELIGIBLE_FOR_ARV',queryExecuted:true,cacheHit:false,reason:'SAMPLE_ONLY',returned:5,normalized:5,hardGatePass:5,structural:5,eligible:5,supporting:0,excluded:0,arvStatus:'ARV_AVAILABLE',blockers:[]},
+  riskAnalysis:analysis.riskAwareness,analysisConfidence:{score:92,classification:'HIGH',semantics:'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY',notPropertyScore:true,contributors:['Complete illustrative inputs.'],limitations:['Fictional sample only.']},
+  executiveSummaryIntelligence:{lines:[analysis.executiveSummary]},limitations:analysis.limitations,nextVerificationSteps:analysis.nextSteps,
+  provenance:{propertyEvidence:'FICTIONAL_SAMPLE'},
 });
-const sampleMetrics = Object.freeze({ metrics: {
-  pricePerSqft: { calculable: true, value: 238.76, source: 'FICTIONAL_SAMPLE' },
-  acquisitionPlusRehab: { calculable: true, value: 473000, source: 'FICTIONAL_SAMPLE' },
-  capRate: { calculable: true, value: 5.1, source: 'FICTIONAL_SAMPLE' },
-} });
-const structuredAnalysis = Object.freeze({
-  type: 'maxxis_structured_analysis', version: 'MAXXIS_STRUCTURED_ANALYSIS_V1',
-  executiveSummary: 'The four-bedroom SFR structure aligns with the illustrated buy-and-hold profile. The 74% profile fit reflects that structural alignment, while condition, operating expenses and ownership evidence still require verification.',
-  opportunityAssessment: 'The recorded layout and stored strategy support continued review. The unresolved condition, operating-cost and ownership evidence should be verified before relying on the analysis for an investment decision.',
-  propertyContextInterpretation: 'The subject is recorded as a four-bedroom, two-bathroom SFR with 1,780 sqft in Example City, Florida.',
-  investorFit: { overallAssessment: 'The property has 74% Investment Profile alignment.', fitRationale: 'Property type and strategy align; evidence completeness limits the conclusion.', strengths: analysis.keyObservations.positives, mismatches: analysis.keyObservations.attention },
-  marketContext: { interpretation: 'The example location is inside the illustrated target market.', evidenceUsed: ['Configured target market: Example City, FL.'], limitations: ['Market alignment is profile context, not independent proof of demand.'] },
-  comparativeAnalysis: { interpretation: 'Two recorded sales meet the illustrated structural selection gates.', selectedCompSummary: deal.comparableEvidence.used, supportingEvidence: ['One additional sale supports context.'], limitations: ['Condition evidence remains illustrative.'] },
-  valuationAnalysis: { currentPositioning: 'The asking price equates to $238.76 per square foot.', arvInterpretation: 'The illustrated deterministic ARV range is $470,000 to $530,000.', confidenceInterpretation: 'Confidence is limited by sample condition evidence.', scenarioInterpretation: 'Scenarios use the stored price and rehabilitation amount.', limitations: deal.valuationIntelligence.warnings },
-  riskAnalysis: { dataRisk: 'Condition evidence is incomplete.', marketRisk: 'Comparable evidence must be refreshed before reliance.', valuationRisk: 'ARV confidence is limited.', executionRisk: 'Renovation scope and timing are not confirmed.', rationale: deal.riskAnalysis.map((item) => item.explanation) },
-  positiveSignals: analysis.keyObservations.positives,
-  concerns: analysis.keyObservations.attention,
-  missingEvidence: analysis.limitations,
-  recommendedVerificationSteps: analysis.nextSteps,
-  recommendedActions: deal.nextVerificationSteps,
-  strategySpecificInsights: ['For Buy and Hold, verify achievable rent, occupancy and operating expenses.', 'Confirm the renovation scope before relying on cost-basis scenarios.'],
-  profileAdaptedConclusion: 'The property is structurally aligned with the illustrated long-term hold profile, but condition and operating evidence remain the priority verification items.',
-  userFacingDisclaimers: ['Evidence-based decision support only; not an appraisal or return guarantee.'],
-});
+const sampleMetrics = Object.freeze({metrics:{pricePerSqft:{calculable:true,value:425000/1780,source:'FICTIONAL_SAMPLE'},acquisitionPlusRehab:{calculable:true,value:473000,source:'FICTIONAL_SAMPLE'},capRate:{calculable:true,value:5.1,source:'FICTIONAL_SAMPLE'}}});
+const structuredAnalysis = Object.freeze({type:'maxxis_structured_analysis',version:'MAXXIS_STRUCTURED_ANALYSIS_V1',executiveSummary:analysis.executiveSummary,
+  positiveSignals:analysis.keyObservations.positives,concerns:analysis.keyObservations.attention,recommendedVerificationSteps:analysis.nextSteps,
+  userFacingDisclaimers:['Fictional demonstration only. Not an appraisal or return guarantee.']});
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const out = fileURLToPath(new URL('../qa/report-template/', import.meta.url));
 await mkdir(out, { recursive: true });
 const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
-const mapCanvas = createCanvas(700, 400);
-const mapContext = mapCanvas.getContext('2d');
-mapContext.fillStyle = '#edf2eb'; mapContext.fillRect(0, 0, 700, 400);
-mapContext.fillStyle = '#cce8ca'; mapContext.fillRect(55, 35, 235, 310);
-mapContext.strokeStyle = '#ffffff'; mapContext.lineWidth = 12;
-for (let y = 30; y < 400; y += 46) { mapContext.beginPath(); mapContext.moveTo(0, y); mapContext.lineTo(700, y + 18); mapContext.stroke(); }
-for (let x = 20; x < 700; x += 72) { mapContext.beginPath(); mapContext.moveTo(x, 0); mapContext.lineTo(x + 35, 400); mapContext.stroke(); }
-mapContext.strokeStyle = '#a9c8dc'; mapContext.lineWidth = 18; mapContext.beginPath(); mapContext.moveTo(0, 345); mapContext.lineTo(700, 300); mapContext.stroke();
-mapContext.fillStyle = '#148a67'; mapContext.font = 'bold 24px sans-serif'; mapContext.fillText('Sample Community Park', 70, 205);
-mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 182, 18, 0, Math.PI * 2); mapContext.fill();
-mapContext.fillStyle = '#ffffff'; mapContext.beginPath(); mapContext.arc(410, 182, 6, 0, Math.PI * 2); mapContext.fill();
-mapContext.fillStyle = '#20344b'; mapContext.font = 'bold 20px sans-serif'; mapContext.fillText('1200 Sample Avenue', 430, 190);
-const sampleMap = mapCanvas.toDataURL('image/png');
+const samplePhotos = [samplePhoto, ...await Promise.all([1, 2, 3, 4].map(async number => `data:image/jpeg;base64,${(await readFile(`${out}sample-photos/gallery-${number}.jpg`)).toString('base64')}`))];
 // Bundle the production renderer without starting the app/dev-server lifecycle.
 const runtime = new URL('../.tmp-codex/report-template-qa/runtime.mjs', import.meta.url);
 await mkdir(new URL('.', runtime), { recursive:true });
 await build({
   stdin:{contents:[
+    "export { calculateScenario } from './supabase/functions/_shared/maxxis/scenarioEngine.ts';",
+    "export { buildStrictReportViewModel } from './src/features/maxxis/export/reportIntegrityViewModel.ts';",
     "export { buildMaxxisReportSchema } from './src/domain/maxxis/maxxisReportSchema.js';",
     "export { renderMaxxisReportPdf } from './src/features/maxxis/export/maxxisReportPdf.js';",
     "export { resolveReportExportEntitlement } from './src/features/maxxis/export/reportExportEntitlement.js';",
@@ -172,16 +103,27 @@ await build({
   outfile:fileURLToPath(runtime),bundle:true,platform:'node',format:'esm',packages:'external',
   define:{'import.meta.env':'{}'},loader:{'.png':'dataurl','.ttf':'dataurl'},
 });
-const {buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
+const {calculateScenario,buildStrictReportViewModel,buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
+const assumptions={purchasePrice:425000,rent:3200,vacancyRate:5,propertyTax:5120,insurance:1800,HOA:75,managementPercent:8,maintenancePercent:5,otherOperatingExpenses:900,monthlyPI:1450,cashInvested:125000};
+const calculatedOutputs=calculateScenario('BUY_AND_HOLD',assumptions);
+const activeScenario={id:'SAMPLE-SCENARIO-ONLY',propertyId:property.id,confirmed:true,strategy:'BUY_AND_HOLD',status:'COMPLETE',assumptions,calculatedOutputs,unresolvedInputs:[],source:Object.fromEntries([...Object.keys(assumptions).map(key=>[key,'USER_PROVIDED']),...Object.keys(calculatedOutputs).map(key=>[key,'CALCULATED'])])};
+const sampleCoverage={};
 for (const [reportType, plan, file] of [
   ['PROPERTY_RELEASE', 'free', 'property-release.pdf'],
   ['MAXXIS_ANALYSIS', 'pro', 'maxxis-analysis.pdf'],
   ['DEAL_INTELLIGENCE', 'enterprise', 'deal-intelligence.pdf'],
 ]) {
-  const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: [samplePhoto, samplePhoto, samplePhoto, samplePhoto, samplePhoto] }, maxxisAnalysis: analysis, dealIntelligence: deal, dealMetrics: sampleMetrics, structuredAnalysis });
+  const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: samplePhotos }, maxxisAnalysis: {...analysis,activeScenario}, dealIntelligence: {...deal,activeScenario}, dealMetrics: sampleMetrics, structuredAnalysis });
+  const viewModel=buildStrictReportViewModel({schema,language:'en'});
+  const sampleMap=await sampleReportMap([{...property,marker:'S'}]);
+  const mapImages=Object.fromEntries(await Promise.all(viewModel.sections.filter(section=>section.map?.points.length).map(async section=>[section.id,await sampleReportMap(section.map.points)])));
   const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
-  const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap });
+  const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap, mapImages });
   if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
+  const text=result.document.layoutAudit.lines.map(line=>line.text).join('\n');
+  if (/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(text)) throw new Error(reportType+': incomplete demonstration content: '+JSON.stringify(result.document.layoutAudit.lines.filter(line=>/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(line.text))));
+  sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:1+Object.keys(mapImages).length,profileGauge:!!viewModel.sections.find(section=>section.id==='profile-fit')?.gauge,criteriaChart:!!viewModel.sections.find(section=>section.id==='profile-criteria')?.comparison?.length,valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
   await writeFile(`${out}${file}`, result.document.binary);
   process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
 }
+await writeFile(`${out}sample-coverage.json`,JSON.stringify(sampleCoverage,null,2)+'\n');

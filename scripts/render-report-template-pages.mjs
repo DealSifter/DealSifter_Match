@@ -13,6 +13,15 @@ const manifest = { rendererFingerprint:await reportPreviewRendererFingerprint(ro
 const imports=[], groups=[];
 await Promise.all([mkdir(output,{recursive:true}),mkdir(previews,{recursive:true})]);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+async function writeGenerated(file, bytes) {
+  for (let attempt = 0; ; attempt += 1) {
+    try { await writeFile(file, bytes); return; }
+    catch (error) {
+      if (attempt >= 5 || !['EBUSY', 'EPERM', 'EACCES', 'UNKNOWN'].includes(error.code)) throw error;
+      await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+    }
+  }
+}
 for (const [type, product] of products) {
   const bytes = new Uint8Array(await readFile(new URL(`${product}.pdf`, output)));
   const loadingTask = getDocument({ data: bytes.slice(), useSystemFonts: true });
@@ -26,7 +35,7 @@ for (const [type, product] of products) {
       const context = canvas.getContext('2d');context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
       await page.render({canvasContext:context,viewport,canvas}).promise;
       const png=await canvas.encode('png'),file=`${product}-page-${number}.png`,id=`${type}Page${number}`;
-      await Promise.all([writeFile(new URL(file,output),png),writeFile(new URL(file,previews),png)]);
+      await Promise.all([writeGenerated(new URL(file,output),png),writeGenerated(new URL(file,previews),png)]);
       imports.push(`import ${id} from './${file}';`);
       pages.push({file,sha256:sha256(png),width:canvas.width,height:canvas.height});
       process.stdout.write(`${file}: ${canvas.width}x${canvas.height}\n`);

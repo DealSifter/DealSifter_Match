@@ -483,6 +483,12 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   const thesisText = t(`${identityAddress}: ${typeLabel.toLowerCase()} para ${strategyLabel.toLowerCase()}, com pedido de ${priceText}. ${marketKnown ? 'Há referências de mercado qualificadas, descritas abaixo, mas elas não estabelecem retorno.' : 'É possível descrever o imóvel, mas as evidências atuais não sustentam conclusões de valor ou retorno.'}`, `${identityAddress}: ${typeLabel.toLowerCase()} for ${strategyLabel.toLowerCase()}, asking ${priceText}. ${marketKnown ? 'Qualified market references are detailed below, but do not establish returns.' : 'The property can be described, but current evidence does not support valuation or return conclusions.'}`, `${identityAddress}: ${typeLabel.toLowerCase()} para ${strategyLabel.toLowerCase()}, con precio de ${priceText}. ${marketKnown ? 'Hay referencias de mercado detalladas abajo, pero no establecen rentabilidad.' : 'Se puede describir el inmueble, pero la evidencia actual no sustenta conclusiones de valor o rentabilidad.'}`);
   register('executive:thesis', thesisText);
   if (level > 1) {
+    const suppliedRisks = obj(sections.riskAssessment).available === true ? list(obj(sections.riskAssessment).data) : [];
+    const riskItems = suppliedRisks.map((risk, index) => {
+      const text = reportNarrativeString(typeof risk === 'string' ? risk : obj(risk).explanation);
+      return text ? claim(text, [register(`risk:supplied:${index}`, text)]) : null;
+    }).filter((item): item is ReportClaim => item !== null);
+    if (riskItems.length) push({ id: 'risk-considerations', title: t('Considerações de risco', 'Risk considerations', 'Consideraciones de riesgo'), kind: 'list', priority: 77, items: riskItems, evidenceRefs: riskItems.flatMap(item => item.evidenceRefs) });
     if (opportunities.length) push({ id: 'positive-signals', title: t('Sinais sustentados por evidências', 'Evidence-supported signals', 'Señales sustentadas por evidencia'), kind: 'list', priority: 80, items: opportunities, evidenceRefs: opportunities.flatMap(item => item.evidenceRefs) });
     if (blockers.length) push({ id: 'decision-blockers', title: t('Incertezas que limitam a decisão', 'Uncertainties limiting the decision', 'Incertidumbres que limitan la decisión'), kind: 'list', priority: 78, items: blockers.slice(0, 5).map(item => claim(item.impact, item.refs)), evidenceRefs: blockers.slice(0, 5).flatMap(item => item.refs) });
     const actions = blockers.slice(0, 3).map(item => {
@@ -503,6 +509,12 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
       const ref = register(`action-detail:${item.id}`, text);
       return claim(text, [ref, ...item.refs.filter(ref => !ref.startsWith('blocker:'))]);
     });
+    if (!actions.length && obj(sections.verificationChecklist).available === true) {
+      for (const [index, value] of list(obj(sections.verificationChecklist).data).entries()) {
+        const text = reportNarrativeString(value);
+        if (text) actions.push(claim(text, [register(`action:supplied:${index}`, text)]));
+      }
+    }
     if (actions.length) push({ id: 'next-actions', title: t('Próximas verificações prioritárias', 'Prioritized next checks', 'Próximas verificaciones prioritarias'), kind: 'list', priority: 40, items: actions, evidenceRefs: actions.flatMap(item => item.evidenceRefs) });
     const profile = section('investmentProfile'), basis = obj(profile.sourceProfile);
     const profileVerified = profile.profileSource === 'AUTHENTICATED_CURRENT_PROFILE' && Object.keys(basis).length > 0;

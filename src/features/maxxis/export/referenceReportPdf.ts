@@ -456,7 +456,8 @@ export class ReferenceReportComposition {
     const criteria = this.section('profile-criteria');
     this.module(criteria || this.section('profile-readiness'), { x: X, y: top + 234, w: HALF, h: 198 }, this.t('Fit por critério', 'Fit by criterion', 'Compatibilidad por criterio'), 'chart');
     const riskBody = this.panel({ x: X + HALF + GAP, y: top + 234, w: HALF, h: 198 }, this.t('Análise de risco', 'Risk analysis', 'Análisis de riesgo'), 'warning', 'neutral', 'riskAnalysis');
-    this.list(this.texts('decision-blockers'), riskBody, 'decision-blockers', 'warning', 8.5); this.seen.add('decision-blockers');
+    const riskId = this.section('decision-blockers') ? 'decision-blockers' : 'risk-considerations';
+    this.list(this.texts(riskId), riskBody, riskId, 'warning', 8.5); this.seen.add(riskId);
     if (this.enterprise) {
       const thesis = this.vm.executive?.thesis.text || this.missing;
       const height = Math.min(791 - top - 440, Math.max(76, 38 + this.flow.lines(thesis, WIDTH - 20, 8.5).length * 12.5));
@@ -472,7 +473,7 @@ export class ReferenceReportComposition {
     this.page(this.enterprise ? 'Key Insights & Verification' : 'Key Insights & Next Steps', this.t('Principais conclusões e orientações de verificação', 'Key findings and verification guidance', 'Conclusiones y orientación de verificación'));
     const blocks = [
       { id: 'positive-signals', title: this.t('Sinais positivos', 'Positive signals', 'Señales positivas'), icon: 'check', tone: 'positive' as const, mode: 'check' as const },
-      { id: 'decision-blockers', title: this.t('O que ainda falta', 'What’s missing', 'Qué falta'), icon: 'warning', tone: 'warning' as const, mode: 'warning' as const },
+      { id: this.section('decision-blockers') ? 'decision-blockers' : 'risk-considerations', title: this.section('decision-blockers') ? this.t('O que ainda falta', 'What’s missing', 'Qué falta') : this.t('Considerações de risco', 'Risk considerations', 'Consideraciones de riesgo'), icon: 'warning', tone: 'warning' as const, mode: 'warning' as const },
       { id: 'next-actions', title: this.t('Próximos passos', 'Next steps', 'Próximos pasos'), icon: 'target', tone: 'neutral' as const, mode: 'number' as const },
       { id: 'verificationSteps', title: this.t('Resumo de evidências', 'Evidence summary', 'Resumen de evidencia'), icon: 'document', tone: 'neutral' as const, mode: 'info' as const },
     ];
@@ -509,7 +510,7 @@ export class ReferenceReportComposition {
       else if (i === 2) {
         this.list(this.vm.executive?.coverage.map(row => `${row.label}: ${row.value}`) || [this.missing], body, 'conclusionTopics', 'info', 9);
       }
-      else this.list(this.texts('decision-blockers'), body, 'conclusionQuestions', 'warning', 8.5);
+      else this.list(this.texts(this.section('decision-blockers') ? 'decision-blockers' : 'risk-considerations'), body, 'conclusionQuestions', 'warning', 8.5);
     });
     const actions = this.panel({ x: X, y: 536, w: WIDTH, h: 115 }, this.t('Próxima decisão', 'Next decision', 'Próxima decisión'), 'target', 'neutral', 'finalActions');
     const texts = [this.t('A oferta pode ser analisada com os dados identificados, mas não há base para afirmar margem ou retorno enquanto persistirem os bloqueios acima. As verificações prioritárias estão na página anterior.', 'The offer can be reviewed with the identified evidence, but margin or return cannot be established while these blockers remain. Prioritized checks appear on the preceding page.', 'La oferta puede analizarse con la evidencia identificada, pero no permite afirmar margen o rentabilidad mientras persistan los bloqueos. Las verificaciones prioritarias están en la página anterior.')], w = (actions.w - GAP * Math.max(0, texts.length - 1)) / Math.max(1, texts.length);

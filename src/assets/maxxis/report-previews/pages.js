@@ -3,6 +3,8 @@ import PROPERTY_RELEASEPage1 from './property-release-page-1.png';
 import MAXXIS_ANALYSISPage1 from './maxxis-analysis-page-1.png';
 import MAXXIS_ANALYSISPage2 from './maxxis-analysis-page-2.png';
 import MAXXIS_ANALYSISPage3 from './maxxis-analysis-page-3.png';
+import MAXXIS_ANALYSISPage4 from './maxxis-analysis-page-4.png';
+import MAXXIS_ANALYSISPage5 from './maxxis-analysis-page-5.png';
 import DEAL_INTELLIGENCEPage1 from './deal-intelligence-page-1.png';
 import DEAL_INTELLIGENCEPage2 from './deal-intelligence-page-2.png';
 import DEAL_INTELLIGENCEPage3 from './deal-intelligence-page-3.png';
@@ -11,9 +13,11 @@ import DEAL_INTELLIGENCEPage5 from './deal-intelligence-page-5.png';
 import DEAL_INTELLIGENCEPage6 from './deal-intelligence-page-6.png';
 import DEAL_INTELLIGENCEPage7 from './deal-intelligence-page-7.png';
 import DEAL_INTELLIGENCEPage8 from './deal-intelligence-page-8.png';
+import DEAL_INTELLIGENCEPage9 from './deal-intelligence-page-9.png';
+import DEAL_INTELLIGENCEPage10 from './deal-intelligence-page-10.png';
 
 export const REPORT_PREVIEW_PAGES = Object.freeze({
   PROPERTY_RELEASE:Object.freeze([PROPERTY_RELEASEPage1]),
-  MAXXIS_ANALYSIS:Object.freeze([MAXXIS_ANALYSISPage1,MAXXIS_ANALYSISPage2,MAXXIS_ANALYSISPage3]),
-  DEAL_INTELLIGENCE:Object.freeze([DEAL_INTELLIGENCEPage1,DEAL_INTELLIGENCEPage2,DEAL_INTELLIGENCEPage3,DEAL_INTELLIGENCEPage4,DEAL_INTELLIGENCEPage5,DEAL_INTELLIGENCEPage6,DEAL_INTELLIGENCEPage7,DEAL_INTELLIGENCEPage8]),
+  MAXXIS_ANALYSIS:Object.freeze([MAXXIS_ANALYSISPage1,MAXXIS_ANALYSISPage2,MAXXIS_ANALYSISPage3,MAXXIS_ANALYSISPage4,MAXXIS_ANALYSISPage5]),
+  DEAL_INTELLIGENCE:Object.freeze([DEAL_INTELLIGENCEPage1,DEAL_INTELLIGENCEPage2,DEAL_INTELLIGENCEPage3,DEAL_INTELLIGENCEPage4,DEAL_INTELLIGENCEPage5,DEAL_INTELLIGENCEPage6,DEAL_INTELLIGENCEPage7,DEAL_INTELLIGENCEPage8,DEAL_INTELLIGENCEPage9,DEAL_INTELLIGENCEPage10]),
 });

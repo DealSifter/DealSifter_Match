@@ -8,7 +8,7 @@ function setup(reportType, locale = 'pt') {
   const input = reportIntegrityFixtures().find(f => f.id === 'PROPERTY_PARITY').input;
   input.property.owner.allowedContacts[0].value = '+15551234567890';
   const original = buildStrictReportViewModel({ schema: buildMaxxisReportSchema({ ...input, reportType,
-    dealIntelligence: { ...input.dealIntelligence, investmentFit: { score: 78 } } }), language: locale });
+    dealIntelligence: { ...input.dealIntelligence, investmentFit: { score: 78, profileSource: 'AUTHENTICATED_CURRENT_PROFILE', sourceProfile: { targetMarkets: ['Example City, FL'] } } } }), language: locale });
   const vm = { ...original, property: { ...original.property, photos: ['photo1', 'photo2', 'photo3', 'photo4', 'photo5'] } };
   const audit = { lines: [], sections: [], maps: [] }, pages = [];
   const doc = new Proxy({ getCurrentPageInfo: () => ({ pageNumber: pages.length }), getImageProperties: () => ({ width: 1000, height: 240, fileType: 'PNG' }), getTextWidth: value => String(value).length * 5.2 }, {

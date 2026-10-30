@@ -49,8 +49,27 @@ describe('report media preparation outside the renderer', () => {
     vi.stubGlobal('Image', Image); vi.stubGlobal('document', { createElement: vi.fn() });
     const input = schema(['https://images.example.com/timeout.jpg']);
     const result = prepareReportAssets(input);
-    await vi.advanceTimersByTimeAsync(2500);
+    await vi.advanceTimersByTimeAsync(24000);
     expect(await result).toEqual([]);
-    expect(requested).toEqual(['https://images.example.com/timeout.jpg', '']);
+    expect(requested).toEqual(['https://images.example.com/timeout.jpg', '', 'https://images.example.com/timeout.jpg', '']);
+  });
+  it('waits for slow photos and recovers a failed preparation on the same schema', async () => {
+    vi.useFakeTimers(); let available = false;
+    class Image {
+      naturalWidth = 1200; naturalHeight = 800;
+      set src(value) { if (!value) return; setTimeout(() => available ? this.onload?.() : this.onerror?.(), 7000); }
+    }
+    vi.stubGlobal('Image', Image);
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => ({ drawImage: vi.fn() }), toDataURL: () => raster }) });
+    const input = schema(['https://images.example.com/recover-after-failure.jpg']);
+    const failed = prepareReportAssets(input); await vi.advanceTimersByTimeAsync(14000);
+    expect(await failed).toEqual([]);
+    const failedKey = preparedReportAssetsCacheKey(input);
+    available = true;
+    const recovered = prepareReportAssets(input); await vi.advanceTimersByTimeAsync(7000);
+    expect(await recovered).toEqual([raster]);
+    expect(getPreparedReportPhotos(input)).toEqual([raster]);
+    expect(preparedReportAssetsCacheKey(input)).not.toBe(failedKey);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

@@ -10,6 +10,14 @@ export const REPORT_PREVIEW_RENDERER_SOURCES = Object.freeze([
   'src/domain/maxxis/maxxisReportSchema.js',
   'src/assets/maxxis/report-official-logo.png',
   'scripts/generate-report-template-qa.mjs',
+  'scripts/sample-report-maps.mjs',
+  'scripts/render-report-template-pages.mjs',
+  'qa/report-template/sample-location-basemap.png',
+  'qa/report-template/sample-location-basemap.json',
+  'qa/report-template/sample-photos/gallery-1.jpg',
+  'qa/report-template/sample-photos/gallery-2.jpg',
+  'qa/report-template/sample-photos/gallery-3.jpg',
+  'qa/report-template/sample-photos/gallery-4.jpg',
 ]);
 export async function reportPreviewRendererFingerprint(root) {
   const hash=createHash('sha256');

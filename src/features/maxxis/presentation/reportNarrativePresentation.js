@@ -1,22 +1,22 @@
 import { localizePresentationText, getCachedPresentationText } from '../../../services/chatTranslation';
 import { prepareReportAssets, preparedReportAssetsCacheKey } from '../export/reportPreparedAssets.ts';
 import { prepareReportMaps, preparedReportMapCacheKey } from '../export/reportMapAssets';
-export async function prepareReportNarrativePresentation(schema, language, { media = true, timeoutMs = 5000 } = {}) {
+export async function prepareReportNarrativePresentation(schema, language, { media = true, timeoutMs = media ? 30000 : 5000 } = {}) {
   const property = schema?.sections?.propertySummary?.data;
   if (!property) return;
   const texts = [...new Set([property.propertyUserNotes, property.notes, property.description, property.owner?.notes, property.owner?.description].filter(value => typeof value === 'string' && value.trim()))];
   const protectedNames = [property.title, property.address, property.owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean);
-  const work = Promise.all([
-    ...(media ? [prepareReportAssets(schema).catch(() => []), prepareReportMaps(schema, language).catch(() => ({}))] : []),
-    ...texts.map(text => localizePresentationText({ text, targetLocale: language, protectedNames }).catch(() => null)),
+  const bounded = async (work, deadline) => {
+    let timer;
+    try { await Promise.race([work, new Promise(resolve => { timer = setTimeout(resolve, deadline); })]); }
+    finally { clearTimeout(timer); }
+  };
+  // Inline analysis stays fast (media:false). Explicit PDF workflows wait for
+  // bounded, retried media loads instead of racing the old five-second deadline.
+  await Promise.all([
+    ...(media ? [bounded(Promise.allSettled([prepareReportAssets(schema), prepareReportMaps(schema, language)]), timeoutMs)] : []),
+    bounded(Promise.all(texts.map(text => localizePresentationText({ text, targetLocale: language, protectedNames }).catch(() => null))), Math.min(timeoutMs, 5000)),
   ]);
-  // Translation/media are presentation enhancements, not a prerequisite for
-  // returning the analysis. The safe original and coordinate-map fallback remain
-  // available while existing single-flight preparations finish in the background.
-  let timer;
-  try {
-    await Promise.race([work, new Promise(resolve => { timer = setTimeout(resolve, timeoutMs); })]);
-  } finally { clearTimeout(timer); }
 }
 export function reportNarrativeCacheKey(schema, language) {
   const property = schema?.sections?.propertySummary?.data || {};

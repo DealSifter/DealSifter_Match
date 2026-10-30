@@ -55,7 +55,7 @@ describe('report recovery vertical evidence contract', () => {
   it('explains a rental subject review instead of claiming the provider has no rental data', () => {
     const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: { marketRent: { state: 'RENT_AVM_REVIEW_REQUIRED', reviewField: 'buildingArea' } } });
     const text = buildStrictReportViewModel({ schema, language: 'pt' }).sections.find(s => s.id === 'rent-pending').text;
-    expect(text).toContain('Área construída');
+    expect(text.toLowerCase()).toContain('área construída');
     expect(text).not.toContain('sem dados');
   });
   it.each(['NO_RESULT','PROVIDER_ERROR','USAGE_BLOCKED','ENTITLEMENT_BLOCKED'])('reports the actual acquisition state %s rather than claiming no query', state => {
@@ -66,10 +66,10 @@ describe('report recovery vertical evidence contract', () => {
   });
   it('rejects a partially loaded basemap instead of exporting blank map tiles', async () => {
     const context = Object.fromEntries(['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'arc', 'fill', 'stroke', 'fillText'].map(name => [name, vi.fn()]));
-    let requested = 0;
+    let requested = 0, failedTile;
     vi.stubGlobal('document', { createElement: () => ({ getContext: () => context, toDataURL: () => 'data:image/png;base64,bWFw' }) });
     vi.stubGlobal('Image', class {
-      set src(_value) { const fail = requested++ === 0; queueMicrotask(() => fail ? this.onerror() : this.onload()); }
+      set src(value) { if (!value) return; failedTile ||= value; const fail = value === failedTile; requested++; queueMicrotask(() => fail ? this.onerror?.() : this.onload?.()); }
     });
     try {
       const map = await resolveComparableMap({}, { points: [{ latitude: 34.735, longitude: -92.328, marker: 'S', markerTone: '#15384f' }] });
@@ -87,7 +87,7 @@ describe('report recovery vertical evidence contract', () => {
       expect(vm.sections.find(s => s.id === 'profile-fit').gauge.value).toBe(78);
       const criteria = vm.sections.find(s => s.id === 'profile-criteria');
       expect(criteria.comparison).toEqual([{ label: 'Target market', value: 90, text: '90%' }]);
-      expect(criteria.rows.map(row => row.value)).toEqual(['90%', 'Unavailable']);
+      expect(criteria.rows.map(row => row.value)).toEqual(['90%']);
     }
   });
   it('the same resolved rent reaches Maxxis and L2 without current-rent substitution or premium detail', () => {

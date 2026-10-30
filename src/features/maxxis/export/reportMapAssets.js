@@ -1,28 +1,21 @@
 import { buildLandReportView } from './maxxisLandReportView';
 import { comparableMapViewport } from './comparableMapGeometry';
+import { loadReportMediaImage } from './reportMediaImage';
 
 // UI-only preparation, outside the PDF renderer. The geometry is shared by ARV and rentals.
 const array = value => Array.isArray(value) ? value : [];
 const section = (schema,key) => schema?.sections?.[key]?.available ? schema.sections[key].data : null;
 const MAP_TILE_SIZE = 256;
-async function loadMapTile(url) {
-  if (typeof Image === 'undefined') return null;
-  const image = new Image();
-  image.crossOrigin = 'anonymous';
-  let timer;
-  try {
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error('MAP_TILE_LOAD_FAILED'));
-      timer = setTimeout(() => reject(new Error('MAP_TILE_TIMEOUT')), 3500);
-      image.src = url;
-    });
+const tileCache = new Map();
+function loadMapTile(url) {
+  if (tileCache.has(url)) return tileCache.get(url);
+  const request = loadReportMediaImage(url).catch(() => null).then(image => {
+    if (!image) tileCache.delete(url);
     return image;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  });
+  tileCache.set(url, request);
+  if (tileCache.size > 128) tileCache.delete(tileCache.keys().next().value);
+  return request;
 }
 
 export async function resolveComparableMap(schema,options={}) {
@@ -71,22 +64,29 @@ export async function resolveComparableMap(schema,options={}) {
 
 const reportMaps = new WeakMap();
 const pendingMaps = new WeakMap();
+const completeMaps = new WeakSet();
+const revisions = new WeakMap();
+let revision = 0;
 export function getPreparedReportMaps(schema) { return reportMaps.get(schema) || {}; }
-export function preparedReportMapCacheKey(schema) { return reportMaps.has(schema) ? 'maps-ready' : 'maps-pending'; }
+export function preparedReportMapCacheKey(schema) { return `${revisions.get(schema) || 0}`; }
 export async function prepareReportMaps(schema, language = 'en') {
   if (!schema || typeof document === 'undefined') return {};
-  if (reportMaps.has(schema)) return reportMaps.get(schema);
+  if (completeMaps.has(schema)) return reportMaps.get(schema);
   if (pendingMaps.has(schema)) return pendingMaps.get(schema);
   const work = (async () => {
     const { buildStrictReportViewModel } = await import('./reportIntegrityViewModel');
     const vm = buildStrictReportViewModel({ schema, language });
     const maps = vm.sections.filter(s => s.map?.points?.length).map(s => [s.id, s.map.points]);
     if (vm.property.locationPoint) maps.push(['location', [vm.property.locationPoint]]);
+    const previous = getPreparedReportMaps(schema);
     const images = Object.fromEntries(await Promise.all(maps.map(async ([id, points]) => [id,
-      await resolveComparableMap(schema, { points: points.map(p => ({ ...p, markerTone: p.marker === 'S' ? '#15384f'
+      previous[id] || await resolveComparableMap(schema, { points: points.map(p => ({ ...p, markerTone: p.marker === 'S' ? '#15384f'
         : p.markerTone === 'sold' ? '#e6a416' : p.markerTone === 'for-sale' ? '#dc3545' : p.markerTone === 'complementary' ? '#8b5cf6' : '#0d876f' })) })])));
-    reportMaps.set(schema, images); pendingMaps.delete(schema); return images;
-  })();
+    reportMaps.set(schema, images);
+    revisions.set(schema, ++revision);
+    if (Object.values(images).every(Boolean)) completeMaps.add(schema);
+    return images;
+  })().finally(() => pendingMaps.delete(schema));
   pendingMaps.set(schema, work); return work;
 }
 

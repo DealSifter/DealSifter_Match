@@ -30,8 +30,8 @@ function emitReportStage(stage, detail = {}) {
 const reportRenderCache = new WeakMap();
 
 export function renderMaxxisReportPdfCached(options = {}) {
-  const { schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = options;
-  if (!schema || typeof schema !== 'object' || mapImageData) return renderMaxxisReportPdf(options);
+  const { schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null } = options;
+  if (!schema || typeof schema !== 'object' || mapImageData || mapImages) return renderMaxxisReportPdf(options);
   const date = generatedAt ? new Date(generatedAt) : null;
   const dateKey = date && !Number.isNaN(date.getTime()) ? date.toISOString() : '';
   const entitlementKey = `${exportEntitlement?.reportType || ''}:${exportEntitlement?.channel || ''}:${exportEntitlement?.state || ''}:${Boolean(exportEntitlement?.allowed)}`;
@@ -73,7 +73,7 @@ export function downloadMaxxisReportPdf(document, fileName = 'maxxis-report.pdf'
 
 
 
-export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
+export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null } = {}) {
   const startedAt = performanceNow();
   emitReportStage('pdf_generation_start');
   await yieldReportRendering();
@@ -97,7 +97,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const rendered = await drawStrictReportPdf({ doc, viewModel, logo: officialDealSifterLogo,
     generatedAt: prepared.document.cover.generatedAt,
     locationMapData: typeof mapImageData === 'string' && /^data:image\//i.test(mapImageData) ? mapImageData : getPreparedReportMaps(schema).location || null,
-    preparedMaps: getPreparedReportMaps(schema),
+    preparedMaps: { ...getPreparedReportMaps(schema), ...Object.fromEntries(Object.entries(mapImages || {}).filter(([, image]) => typeof image === 'string' && /^data:image\//i.test(image))) },
     yieldRendering: async () => {
       await yieldReportRendering();
     },

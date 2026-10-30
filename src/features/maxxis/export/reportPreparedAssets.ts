@@ -1,7 +1,9 @@
 /** Authorized media preparation is separate from projection/drawing. No evidence provider is called. */
+import { loadReportMediaImage } from './reportMediaImage';
 type MediaSchema = { sections?: { propertySummary?: { available?: boolean; data?: { images?: unknown } } } };
 const resolved = new WeakMap<object, readonly string[]>();
 const pending = new WeakMap<object, Promise<readonly string[]>>();
+const complete = new WeakSet<object>();
 const revisions = new WeakMap<object, number>();
 const imageCache = new Map<string, Promise<string | null>>();
 let revision = 0;
@@ -27,36 +29,20 @@ function prepareImage(source: string): Promise<string | null> {
   if (!publicHttpsImage(source) || typeof Image === 'undefined' || typeof document === 'undefined') return Promise.resolve(null);
   const cached = imageCache.get(source);
   if (cached) return cached;
-  const result = new Promise<string | null>(resolve => {
-    let image: HTMLImageElement;
-    try { image = new Image(); } catch { resolve(null); return; }
-    image.crossOrigin = 'anonymous';
-    let complete = false;
-    const finish = (value: string | null) => {
-      if (complete) return;
-      complete = true;
-      clearTimeout(timer);
-      image.onload = null;
-      image.onerror = null;
-      if (!value) { try { image.src = ''; } catch { /* The preparation transport may already be closed. */ } }
-      resolve(value);
-    };
-    const timer = setTimeout(() => finish(null), 2500);
-    image.onload = () => {
-      try {
-        if (!image.naturalWidth || !image.naturalHeight) return finish(null);
-        const ratio = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
-        const context = canvas.getContext('2d');
-        if (!context) return finish(null);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        finish(canvas.toDataURL('image/jpeg', .85));
-      } catch { finish(null); }
-    };
-    image.onerror = () => finish(null);
-    try { image.src = source; } catch { finish(null); }
+  const result = loadReportMediaImage(source).then(image => {
+    if (!image?.naturalWidth || !image.naturalHeight) return null;
+    const ratio = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', .85);
+  }).catch(() => null).then(value => {
+    // A transport/CORS failure is not a permanent statement that a photo is absent.
+    if (!value) imageCache.delete(source);
+    return value;
   });
   imageCache.set(source, result);
   if (imageCache.size > 100) imageCache.delete(imageCache.keys().next().value!);
@@ -66,12 +52,13 @@ function prepareImage(source: string): Promise<string | null> {
 /** Call only in the explicit preview/export preparation workflow, never from the renderer. */
 export function prepareReportAssets(schema: MediaSchema): Promise<readonly string[]> {
   if (!schema || typeof schema !== 'object') return Promise.resolve([]);
-  if (resolved.has(schema)) return Promise.resolve(resolved.get(schema)!);
+  if (complete.has(schema)) return Promise.resolve(resolved.get(schema)!);
   const inFlight = pending.get(schema);
   if (inFlight) return inFlight;
   const promise = Promise.all(mediaSources(schema).map(prepareImage)).then(images => {
     const photos = Object.freeze(images.filter((image): image is string => image !== null));
     resolved.set(schema, photos);
+    if (images.every(image => image !== null)) complete.add(schema);
     revisions.set(schema, ++revision);
     pending.delete(schema);
     return photos;
