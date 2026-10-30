@@ -1,11 +1,11 @@
 import React from 'react';
-import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
+import { MaxxisCanonicalReportPreview } from './MaxxisCanonicalReportPreview';
 
-function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, language = 'en' }) {
+function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, language = 'en', exportEntitlements = {}, generatedAt = null }) {
   if (!report || report.type !== 'maxxis_analysis_report') return null;
   // The old inline summary/highlights were a second, unvalidated report path.
   // Delegate the entire analytical experience to the same strict projection.
-  return <section className="maxxis-analysis-report"><MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} /></section>;
+  return <section className="maxxis-analysis-report"><MaxxisCanonicalReportPreview schema={reportSchema} language={language} exportEntitlements={exportEntitlements} generatedAt={generatedAt} /></section>;
 }
 
 const sameReportExperience = (previous, next) => previous.report === next.report

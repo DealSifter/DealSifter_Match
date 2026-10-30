@@ -1655,7 +1655,7 @@ button.maxxis-action-link:hover {
 .maxxis-report-v2 > summary::-webkit-details-marker { display: none; }
 .maxxis-report-v2[open] > summary { animation: none; box-shadow: none; }
 .maxxis-report-v2 > summary::after { content: '›'; color: #168f91; font-size: 22px; font-weight: 900; }
-.maxxis-report-v2 > summary .maxxis-v2-badge { margin-left: 0; }
+.maxxis-report-v2 > summary .maxxis-v2-badge { margin-left: 0; flex-shrink: 0; white-space: nowrap; word-break: normal; overflow-wrap: normal; }
 .maxxis-v2-open-hint {
   display: inline-flex;
   align-items: center;

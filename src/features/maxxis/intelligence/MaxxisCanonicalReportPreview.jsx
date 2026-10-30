@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
+import { isMatchingReportExportEntitlement } from '../export/reportExportEntitlement';
 import { renderMaxxisReportPdfCached } from '../export/maxxisReportPdf';
 import { prepareReportNarrativePresentation } from '../presentation/reportNarrativePresentation';
 import './MaxxisCanonicalReportPreview.css';
 
 const COPY = Object.freeze({
-  en: Object.freeze({ open: 'Open investor report experience', hint: 'CLICK TO VIEW', page: 'Page', loading: 'Preparing the exact PDF preview…', rendering: 'Rendering pages', failed: 'The report preview could not be prepared.', retry: 'Try again' }),
-  pt: Object.freeze({ open: 'Abrir experiência do relatório do investidor', hint: 'CLIQUE PARA VER', page: 'Página', loading: 'Preparando o preview exato do PDF…', rendering: 'Renderizando páginas', failed: 'Não foi possível preparar o preview do relatório.', retry: 'Tentar novamente' }),
-  es: Object.freeze({ open: 'Abrir experiencia del informe del inversor', hint: 'CLIC PARA VER', page: 'Página', loading: 'Preparando la vista previa exacta del PDF…', rendering: 'Renderizando páginas', failed: 'No se pudo preparar la vista previa del informe.', retry: 'Intentar de nuevo' }),
+  en: Object.freeze({ open: 'Open investor report experience', hint: 'CLICK TO VIEW', page: 'Page', level: 'Level', unavailable: 'Preview unavailable: report access could not be confirmed.', loading: 'Preparing the exact PDF preview…', rendering: 'Rendering pages', failed: 'The report preview could not be prepared.', retry: 'Try again' }),
+  pt: Object.freeze({ open: 'Abrir experiência do relatório do investidor', hint: 'CLIQUE PARA VER', page: 'Página', level: 'Nível', unavailable: 'Preview indisponível: o acesso a este relatório não foi confirmado.', loading: 'Preparando o preview exato do PDF…', rendering: 'Renderizando páginas', failed: 'Não foi possível preparar o preview do relatório.', retry: 'Tentar novamente' }),
+  es: Object.freeze({ open: 'Abrir experiencia del informe del inversor', hint: 'CLIC PARA VER', page: 'Página', level: 'Nivel', unavailable: 'Vista previa no disponible: no se confirmó el acceso al informe.', loading: 'Preparando la vista previa exacta del PDF…', rendering: 'Renderizando páginas', failed: 'No se pudo preparar la vista previa del informe.', retry: 'Intentar de nuevo' }),
 });
 
 const levelFor = (reportType) => reportType === 'DEAL_INTELLIGENCE' ? 3 : reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
@@ -63,12 +64,18 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
     pdfEntitlement?.accessLevel,
     pdfEntitlement?.accessSource,
   ].map((entry) => String(entry ?? '')).join(':');
-  const t = COPY[language] || COPY.en;
+  const locale = String(language).slice(0, 2).toLowerCase();
+  const t = COPY[locale] || COPY.en;
   const level = levelFor(schema?.reportType);
 
   useEffect(() => {
     const entitlement = pdfEntitlementRef.current;
-    if (!activated || !schema || schema.type !== 'maxxis_report_schema' || !entitlement) return undefined;
+    if (!activated || !schema || schema.type !== 'maxxis_report_schema') return undefined;
+    if (!isMatchingReportExportEntitlement(entitlement, schema.reportType, 'PDF')) {
+      setPdfDocument(null);
+      setStatus('unavailable');
+      return undefined;
+    }
     let active = true;
     let loadingTask = null;
     let loadedDocument = null;
@@ -79,6 +86,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
     setPdfDocument(null);
     (async () => {
       await prepareReportNarrativePresentation(schema, language);
+      if (!active) return;
       const rendered = await renderMaxxisReportPdfCached({
         schema,
         exportEntitlement: entitlement,
@@ -123,11 +131,12 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       <summary>
         <span>{t.open}</span>
         <span className="maxxis-canonical-hint"><i aria-hidden="true" />{t.hint}</span>
-        <b>LEVEL {level}</b>
+        <b className="maxxis-report-level">{t.level} {level}</b>
       </summary>
       <div className="maxxis-canonical-stage" aria-live="polite">
         {status === 'loading' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
         {status === 'rendering' ? <span className="maxxis-canonical-status is-progress">{t.rendering}: {renderedPages}/{total}</span> : null}
+        {status === 'unavailable' ? <span className="maxxis-canonical-status is-error">{t.unavailable}</span> : null}
         {status === 'failed' ? <span className="maxxis-canonical-status is-error">{t.failed}<button type="button" onClick={() => setRetryKey((value) => value + 1)}>{t.retry}</button></span> : null}
         {pdfDocument ? (
           <div className={`maxxis-canonical-pages${status === 'ready' ? ' is-ready' : ''}`} aria-label={`${total} ${t.page.toLowerCase()}`}>

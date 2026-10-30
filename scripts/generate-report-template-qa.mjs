@@ -1,13 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
+import { build } from 'esbuild';
 import { createCanvas } from '@napi-rs/canvas';
 
 // Isolated fictional fixture: never imported by the app, stored, or sent to a provider.
 const property = Object.freeze({
   id: 'PREVIEW-ONLY', address: '1200 Sample Avenue', city: 'Example City', state: 'FL', zip: '00000',
   type: 'SFR', objective: 'Buy and Hold', price: 425000, beds: 4, baths: 2, sqft: 1780,
-  lot: '9,583 sqft / 0.22 acres', rehab: 48000, capRate: 5.1, published: true, source: 'Sample fixture',
+  lot: 9583, lotSizeSqft: 9583, lotSizeAcres: 9583 / 43560, rehab: 48000, capRate: 5.1, published: true, source: 'Sample fixture',
   latitude: 27.0000, longitude: -80.0000,
   description: 'Four-bedroom single-family sample with a long-term hold objective.',
   improvement: 'Single-family residence', dealTag: 'Portfolio', portfolio: true,
@@ -160,21 +160,28 @@ mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 18
 mapContext.fillStyle = '#ffffff'; mapContext.beginPath(); mapContext.arc(410, 182, 6, 0, Math.PI * 2); mapContext.fill();
 mapContext.fillStyle = '#20344b'; mapContext.font = 'bold 20px sans-serif'; mapContext.fillText('1200 Sample Avenue', 430, 190);
 const sampleMap = mapCanvas.toDataURL('image/png');
-const server = await createServer({ root, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
-try {
-  const { buildMaxxisReportSchema } = await server.ssrLoadModule('/src/domain/maxxis/maxxisReportSchema.js');
-  const { renderMaxxisReportPdf } = await server.ssrLoadModule('/src/features/maxxis/export/maxxisReportPdf.js');
-  const { resolveReportExportEntitlement } = await server.ssrLoadModule('/src/features/maxxis/export/reportExportEntitlement.js');
-  for (const [reportType, plan, file] of [
-    ['PROPERTY_RELEASE', 'free', 'property-release.pdf'],
-    ['MAXXIS_ANALYSIS', 'pro', 'maxxis-analysis.pdf'],
-    ['DEAL_INTELLIGENCE', 'enterprise', 'deal-intelligence.pdf'],
-  ]) {
-    const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: [samplePhoto, samplePhoto, samplePhoto, samplePhoto, samplePhoto] }, maxxisAnalysis: analysis, dealIntelligence: deal, dealMetrics: sampleMetrics, structuredAnalysis });
-    const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
-    const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap });
-    if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
-    await writeFile(`${out}${file}`, result.document.binary);
-    process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
-  }
-} finally { await server.close(); }
+// Bundle the production renderer without starting the app/dev-server lifecycle.
+const runtime = new URL('../.tmp-codex/report-template-qa/runtime.mjs', import.meta.url);
+await mkdir(new URL('.', runtime), { recursive:true });
+await build({
+  stdin:{contents:[
+    "export { buildMaxxisReportSchema } from './src/domain/maxxis/maxxisReportSchema.js';",
+    "export { renderMaxxisReportPdf } from './src/features/maxxis/export/maxxisReportPdf.js';",
+    "export { resolveReportExportEntitlement } from './src/features/maxxis/export/reportExportEntitlement.js';",
+  ].join('\n'),resolveDir:root,loader:'js'},
+  outfile:fileURLToPath(runtime),bundle:true,platform:'node',format:'esm',packages:'external',
+  define:{'import.meta.env':'{}'},loader:{'.png':'dataurl','.ttf':'dataurl'},
+});
+const {buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
+for (const [reportType, plan, file] of [
+  ['PROPERTY_RELEASE', 'free', 'property-release.pdf'],
+  ['MAXXIS_ANALYSIS', 'pro', 'maxxis-analysis.pdf'],
+  ['DEAL_INTELLIGENCE', 'enterprise', 'deal-intelligence.pdf'],
+]) {
+  const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: [samplePhoto, samplePhoto, samplePhoto, samplePhoto, samplePhoto] }, maxxisAnalysis: analysis, dealIntelligence: deal, dealMetrics: sampleMetrics, structuredAnalysis });
+  const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
+  const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap });
+  if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
+  await writeFile(`${out}${file}`, result.document.binary);
+  process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
+}

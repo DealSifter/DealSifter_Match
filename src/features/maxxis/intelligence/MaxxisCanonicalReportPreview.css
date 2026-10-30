@@ -10,9 +10,11 @@
 .maxxis-canonical-preview.is-deal_intelligence { --canonical-accent: #edb01c; }
 
 .maxxis-canonical-preview > summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title level" "hint level";
   align-items: center;
-  gap: 9px;
+  gap: 5px 9px;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--canonical-accent) 65%, #cbd5e1);
   background: #fff;
@@ -23,8 +25,13 @@
 }
 
 .maxxis-canonical-preview > summary::-webkit-details-marker { display: none; }
-.maxxis-canonical-preview > summary > span:first-child { min-width: 0; }
+.maxxis-canonical-preview > summary > span:first-child { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
 .maxxis-canonical-preview > summary > b {
+  grid-area: level;
+  flex-shrink: 0;
+  width: max-content;
+  word-break: normal;
+  overflow-wrap: normal;
   padding: 4px 7px;
   border-radius: 999px;
   color: #fff;
@@ -37,7 +44,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
+  grid-area: hint;
+  justify-self: start;
+  margin-left: 0;
   padding: 4px 7px;
   border-radius: 999px;
   color: #0b6f72;

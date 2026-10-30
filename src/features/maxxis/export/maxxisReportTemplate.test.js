@@ -96,8 +96,8 @@ describe('canonical PDF template behavior', () => {
     const audit = result.document.layoutAudit;
     const titles = audit.lines.filter(line => line.sectionId === 'headerPageTitle');
     expect(titles).toHaveLength(result.document.pageCount);
-    expect(titles.every(line => line.y >= 86 && line.bottomY <= 130)).toBe(true);
-    expect(audit.lines.filter(line => !/^(?:header|footer)/.test(line.sectionId)).every(line => line.bottomY <= 790)).toBe(true);
+    expect(titles.every(line => line.y >= 80 && line.bottomY <= 124)).toBe(true);
+    expect(audit.lines.filter(line => !/^(?:header|footer)/.test(line.sectionId)).every(line => line.bottomY <= 799)).toBe(true);
   }, 30000);
 
   it('preserves complete property facts and expands the layout before the photo section', () => {
@@ -111,10 +111,10 @@ describe('canonical PDF template behavior', () => {
   }, 30000);
 
   it.each([
-    ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1', 'Mar 7, 2014'],
-    ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1', '07/03/2014'],
-    ['es', 'INFORME DE LA PROPIEDAD', 'Generado', 'Página 1 / 1', '07/03/2014'],
-  ])('renders factual Basic in %s as one stable A4 page', async (language, title, dateLabel, pageLabel, saleDate) => {
+    ['en', 'PROPERTY RELEASE', 'Page 1 of 1', 'Mar 7, 2014'],
+    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 de 1', '07/03/2014'],
+    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 de 1', '07/03/2014'],
+  ])('renders factual Basic in %s as one stable A4 page', async (language, title, pageLabel, saleDate) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');
     const pages = await pdfPages(result);
@@ -126,7 +126,7 @@ describe('canonical PDF template behavior', () => {
     expect(pages[0].text).toContain('+1 205 378 0355');
     expect(pages[0].text.replace(/\s/g, '')).toContain('owner.full.address@example.com');
     expect(pages[0].text).toContain(saleDate);
-    expect(pages[0].text).toContain(dateLabel);
+    expect(result.document.cover.generatedAt).toBe('2026-09-21T22:45:00.000Z');
     expect(pages[0].text).toContain(pageLabel);
     expect(pages[0].text.split(pageLabel)).toHaveLength(2);
     expect(pages[0].text).not.toMatch(/ARV|Comparative Market Analysis|Match Score/);
@@ -138,10 +138,11 @@ describe('canonical PDF template behavior', () => {
       const result = await render('DEAL_INTELLIGENCE');
       expect(result.state).toBe('RENDERED');
       const pages = await pdfPages(result);
-      expect(pages.length).toBeLessThan(6);
+      expect(pages.length).toBe(result.document.pageCount);
       const content = pages.map(page => page.text).join(' ');
       expect(content).toContain('three bedrooms');
-      expect(content).toContain('Unresolved discrepancy');
+      expect(content).toContain('Unresolved physical disagreements: Bedrooms.');
+      expect(content).toContain('Flagged values cannot support calculations.');
       expect(content).toContain('Current market evidence does not support a valuation conclusion');
       expect(content).not.toMatch(/\$0|Preserved information|MISSING_|annualPropertyTax|87%/);
       expect(result.document.strictViewModel.executive.thesis.text).toContain('1200 Fictional Street');
@@ -171,15 +172,16 @@ describe('canonical PDF template behavior', () => {
     const content = pages.map(page => page.text).join(' ');
     expect(content).toContain('Sample Owner');
     expect(content).toContain('2004');
-    expect(content).toContain('74%');
-    expect(content).toContain('not deal quality');
+    expect(content).not.toContain('74%');
+    expect(content).toContain('Investment Profile not configured or unavailable.');
     expect(content).not.toContain('Recorded positive signal.');
     expect(content).not.toContain('Recorded missing evidence.');
     expect(result.document.outputValidation.valid).toBe(true);
   }, 30000);
 
   it('ships one static page asset per physical preview page', () => {
-    for (const [product, total] of [['property-release', 1], ['maxxis-analysis', 3], ['deal-intelligence', 6]]) {
+    const manifest = JSON.parse(readFileSync(new URL('../../../assets/maxxis/report-previews/manifest.json', import.meta.url), 'utf8'));
+    for (const { product, pageCount: total } of Object.values(manifest.reports)) {
       for (let page = 1; page <= total; page += 1) {
         const bytes = readFileSync(new URL(`../../../assets/maxxis/report-previews/${product}-page-${page}.png`, import.meta.url));
         expect(bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');

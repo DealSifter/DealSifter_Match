@@ -292,15 +292,11 @@ describe('Maxxis Deal AI structured result presentation', () => {
         <MessageBubble language="en" message={{ id: 'maxxis-analysis', role: 'assistant', content: '75% profile fit.',
           type: 'maxxis_analysis_report', data: { maxxisAnalysisReport: report, maxxisReport } }} />,
       );
-      expect(html).toContain('MAXXIS ANALYSIS REPORT');
-      expect(html).toContain('class="is-level-2">PRO</span>');
-      expect(html).toContain('123 Analysis Street');
-      expect(html).toContain('Austin');
-      expect(html).toContain('Profile compatibility');
-      expect(html).toContain('Match Score');
+      expect(html).toContain('maxxis-canonical-preview is-maxxis_analysis');
+      expect(html).toContain('Level 2');
       expect(html).toContain('75%');
-      expect(html).toContain('not deal quality, probability of success or analysis confidence');
-      expect(html).toContain('Prioritized next checks');
+      expect(html).not.toContain('maxxis-v2-page');
+      expect(html).not.toContain('<canvas');
       expect(html).not.toMatch(/Deal Intelligence|MAXXIS DEAL INTELLIGENCE/i);
       expect(html).not.toContain('data-report-section="arv-market"');
       expect(html).not.toContain('data-report-comp-number=');
@@ -334,7 +330,8 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('100 Example St');
     expect(html).toContain('0.6 mi');
     expect(html).toContain('Similarity: 88%');
-    expect(html).toContain('Match Score indicates profile compatibility, not investment quality.');
+    expect(html).toContain('Profile fit');
+    expect(html).toContain('Unavailable');
     expect(html).toContain('Risk analysis');
     expect(html).toContain('Limitations');
     expect(html).not.toMatch(/good deal|buy this property|guaranteed return/i);

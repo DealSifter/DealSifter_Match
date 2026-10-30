@@ -19,7 +19,7 @@ describe('canonical report preview', () => {
       language="pt"
     />);
     expect(html).toContain('Abrir experiência do relatório do investidor');
-    expect(html).toContain('LEVEL 3');
+    expect(html).toContain('Nível 3');
     expect(html).not.toMatch(/Gerar PDF|Enviar por email|Compartilhar/);
   });
 

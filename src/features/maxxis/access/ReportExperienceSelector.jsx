@@ -2,25 +2,12 @@ import React, { useMemo, useState } from 'react';
 import brandLogoAsset from '../../../assets/logo.png';
 import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/avatar-idle.png';
 import maxxisIntelligenceAsset from '../../../assets/maxxis/avatar/avatar-success.png';
-import propertyReleasePage1 from '../../../assets/maxxis/report-previews/property-release-page-1.png';
-import maxxisAnalysisPage1 from '../../../assets/maxxis/report-previews/maxxis-analysis-page-1.png';
-import maxxisAnalysisPage2 from '../../../assets/maxxis/report-previews/maxxis-analysis-page-2.png';
-import maxxisAnalysisPage3 from '../../../assets/maxxis/report-previews/maxxis-analysis-page-3.png';
-import dealIntelligencePage1 from '../../../assets/maxxis/report-previews/deal-intelligence-page-1.png';
-import dealIntelligencePage2 from '../../../assets/maxxis/report-previews/deal-intelligence-page-2.png';
-import dealIntelligencePage3 from '../../../assets/maxxis/report-previews/deal-intelligence-page-3.png';
-import dealIntelligencePage4 from '../../../assets/maxxis/report-previews/deal-intelligence-page-4.png';
-import dealIntelligencePage5 from '../../../assets/maxxis/report-previews/deal-intelligence-page-5.png';
-import dealIntelligencePage6 from '../../../assets/maxxis/report-previews/deal-intelligence-page-6.png';
+import { REPORT_PREVIEW_PAGES as PREVIEW_PAGES } from '../../../assets/maxxis/report-previews/pages';
 import { resolveIntelligenceReportAccess } from '../../../domain/intelligenceAccess';
 import './ReportExperienceSelector.css';
 
 const COPY={en:{title:'Export property report',intro:'Choose the report type and see what is included in each option.',download:'PROPERTY RELEASE',downloadSub:'Download to device (PDF)',email:'PROPERTY RELEASE',emailSub:'Send by email (PDF)',maxxis:'MAXXIS ANALYSIS REPORT',maxxisSub:'AI-powered property analysis',hint:"See what's included in each report type. Tap the information icon to preview an example.",choose:'Maxxis intelligence selection',back:'Back',included:'Included',unlock:'Nuggets',analysis:'MAXXIS ANALYSIS REPORT',analysisSub:'Profile alignment, risks, limitations and next steps.',deal:'MAXXIS DEAL INTELLIGENCE REPORT',dealSub:'Evidence, existing comps, valuation, scenarios and confidence.',page:'Page'},pt:{title:'Exportar relatório do imóvel',intro:'Escolha o tipo de relatório e veja o que está incluído em cada opção.',download:'RELATÓRIO DO IMÓVEL',downloadSub:'Baixar no dispositivo (PDF)',email:'RELATÓRIO DO IMÓVEL',emailSub:'Enviar por email (PDF)',maxxis:'RELATÓRIO DE ANÁLISE MAXXIS',maxxisSub:'Análise do imóvel com inteligência artificial',hint:'Veja o que está incluído em cada relatório. Toque no ícone de informação para visualizar um exemplo.',choose:'Seleção de inteligência Maxxis',back:'Voltar',included:'Incluído',unlock:'Nuggets',analysis:'RELATÓRIO DE ANÁLISE MAXXIS',analysisSub:'Aderência ao perfil, riscos, limitações e próximos passos.',deal:'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO',dealSub:'Evidências, comparáveis existentes, avaliação, cenários e confiança.',page:'Página'},es:{title:'Exportar informe de propiedad',intro:'Elige el tipo de informe y consulta qué incluye cada opción.',download:'INFORME DE LA PROPIEDAD',downloadSub:'Descargar al dispositivo (PDF)',email:'INFORME DE LA PROPIEDAD',emailSub:'Enviar por email (PDF)',maxxis:'INFORME DE ANÁLISIS MAXXIS',maxxisSub:'Análisis de propiedad con inteligencia artificial',hint:'Consulta qué incluye cada informe. Toca el icono de información para ver un ejemplo.',choose:'Selección de inteligencia Maxxis',back:'Volver',included:'Incluido',unlock:'Nuggets',analysis:'INFORME DE ANÁLISIS MAXXIS',analysisSub:'Afinidad, riesgos, limitaciones y próximos pasos.',deal:'INFORME MAXXIS DE INTELIGENCIA DEL NEGOCIO',dealSub:'Evidencia, comparables existentes, valoración, escenarios y confianza.',page:'Página'}};
-const PREVIEW_PAGES=Object.freeze({
-  PROPERTY_RELEASE:Object.freeze([propertyReleasePage1]),
-  MAXXIS_ANALYSIS:Object.freeze([maxxisAnalysisPage1,maxxisAnalysisPage2,maxxisAnalysisPage3]),
-  DEAL_INTELLIGENCE:Object.freeze([dealIntelligencePage1,dealIntelligencePage2,dealIntelligencePage3,dealIntelligencePage4,dealIntelligencePage5,dealIntelligencePage6]),
-});
+
 
 function SelectorActions({showBack=false,onBack,onCancel,onContinue,continueDisabled=false,isPreparing=false,backLabel='Back',cancelLabel='Cancel',continueLabel='Continue',preparingLabel='Preparing...'}){
   if(!showBack&&!onCancel&&!onContinue)return null;

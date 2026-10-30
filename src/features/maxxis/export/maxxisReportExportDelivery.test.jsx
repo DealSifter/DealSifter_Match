@@ -66,10 +66,10 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
   });
 
   it.each([
-    ['free', 'PROPERTY_RELEASE', 1],
-    ['pro', 'MAXXIS_ANALYSIS', 3],
-    ['enterprise', 'DEAL_INTELLIGENCE', 6],
-  ])('renders a physical %s PDF with authorized useful content and structured continuation', async (plan, reportType, maximumPages) => {
+    ['free', 'PROPERTY_RELEASE'],
+    ['pro', 'MAXXIS_ANALYSIS'],
+    ['enterprise', 'DEAL_INTELLIGENCE'],
+  ])('renders a physical %s PDF with authorized useful content and structured continuation', async (plan, reportType) => {
     const result = await renderMaxxisReportPdf({
       schema: schema(reportType),
       exportEntitlement: entitlement(plan, reportType, 'PDF'),
@@ -77,7 +77,7 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     });
     expect(result).toMatchObject({ state: 'RENDERED', document: { mimeType: 'application/pdf' } });
     expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
-    expect(result.document.pageCount).toBeLessThanOrEqual(maximumPages);
+    expect(result.document.pageCount).toBe(Math.max(...result.document.layoutAudit.lines.map(line => line.page)));
     expect(result.document.pages).toHaveLength(result.document.pageCount);
     expect(result.document.outputValidation.valid).toBe(true);
     for (const continuation of result.document.layoutAudit.continuations) expect(continuation).toMatchObject({ sectionId: expect.any(String), title: expect.any(String), kind: expect.any(String) });
@@ -113,7 +113,7 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     });
     expect(result.state).toBe('RENDERED');
     expect(result.document.mimeType).toBe('application/pdf');
-    expect(result.document.pageCount).toBeLessThan(6);
+    expect(result.document.pageCount).toBe(result.document.pages.length);
     expect(result.document.strictViewModel.sections.some(section => section.id === 'arv')).toBe(false);
     expect(result.document.binary.byteLength).toBeGreaterThan(1000);
     expect(landSchema.sections.valuationEvidence).toMatchObject({

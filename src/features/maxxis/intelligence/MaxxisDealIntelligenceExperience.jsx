@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
+import { MaxxisCanonicalReportPreview } from './MaxxisCanonicalReportPreview';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 import { explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
 import { soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
@@ -58,7 +58,7 @@ function percentageDifference(reference, current) {
   return `${value >= 0 ? '+' : ''}${value.toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
 }
 
-function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, language = 'en' }) {
+function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, language = 'en', exportEntitlements = {}, generatedAt = null }) {
   if (!report || report.type !== 'maxxis_deal_intelligence_report') return null;
   const t = COPY[language] || COPY.en;
   const valuation = report.valuationIntelligence || {};
@@ -113,7 +113,7 @@ function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, lan
       {report.riskAnalysis?.length ? <div className="maxxis-deal-intelligence-section"><strong>{t.risks}</strong><ul>{report.riskAnalysis.map((risk) => <li key={risk.code}><span className={`maxxis-risk-severity is-${risk.severity.toLowerCase()}`}>{localizeMaxxisValue(risk.severity, language)}</span> <strong>{localizeMaxxisValue(risk.category, language)}</strong>: {explainMaxxisEvidenceState(risk.reason, language)}</li>)}</ul></div> : null}
       <div className="maxxis-deal-intelligence-section"><strong>{t.limitations}</strong><ul>{report.limitations?.map((item) => <li key={item}>{explainMaxxisEvidenceState(item, language)}</li>)}</ul></div>
       {report.nextVerificationSteps?.length ? <div className="maxxis-deal-intelligence-next"><strong>{t.next}</strong><ol>{report.nextVerificationSteps.map((item) => <li key={item}>{explainMaxxisEvidenceState(item, language)}</li>)}</ol></div> : null}
-      <MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} />
+      <MaxxisCanonicalReportPreview schema={reportSchema} language={language} exportEntitlements={exportEntitlements} generatedAt={generatedAt} />
       <small>{t.disclaimer}</small>
     </section>
   );

@@ -1,62 +1,51 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
-import * as assets from '../export/reportPreparedAssets';
-import * as projection from '../export/reportIntegrityViewModel';
-import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
-
-const schema = () => buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property: {
-  id: 'owned-property', address: '4724 W 26th St', city: 'Little Rock', state: 'AR', type: 'SFR', objective: 'Sell',
-  price: 90000, capRate: 0, rehab: 0, beds: 3, baths: 2, sqft: 1760,
-}, dealIntelligence: { propertyEvidence: { verifiedRecords: [], userProvided: [], unknown: [], conflicts: [] },
-  valuationIntelligence: { status: 'ARV_UNAVAILABLE' }, comparableEvidence: { used: [], supporting: [], excluded: [] }, provenance: {} } });
-
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
-describe('real strict inline preview lifecycle', () => {
-  it('does not project or mount a closed browser report and memoizes an open report across parent updates', async () => {
-    const prepare = vi.spyOn(assets, 'prepareReportAssets').mockResolvedValue([]);
-    const build = vi.spyOn(projection, 'buildStrictReportViewModel');
-    const input = schema();
-    const { container, rerender } = render(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />);
-    expect(container.querySelector('[data-report-page]')).toBeNull(); expect(build).not.toHaveBeenCalled();
-    rerender(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />); expect(build).not.toHaveBeenCalled();
-    const details = container.querySelector('details');
-    await act(async () => { details.querySelector('summary').click(); });
-    await waitFor(() => expect(prepare).toHaveBeenCalledOnce());
-    await waitFor(() => expect(build).toHaveBeenCalledTimes(2));
-    expect(container.querySelector('[data-report-page]')).not.toBeNull();
-    const calls = build.mock.calls.length;
-    rerender(<MaxxisDealIntelligenceReportPreview schema={input} language="pt" />); expect(build).toHaveBeenCalledTimes(calls);
-    await act(async () => { details.open = false; fireEvent(details, new Event('toggle')); });
-    expect(container.querySelector('[data-report-page]')).toBeNull();
-  });
-  it('prepares photos only after opening details and never during startup/render', async () => {
-    const prepare = vi.spyOn(assets, 'prepareReportAssets').mockResolvedValue([]);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('NO_PROVIDER_CALL_ALLOWED'));
-    const { container } = render(<MaxxisDealIntelligenceReportPreview schema={schema()} language="pt" />);
-    const details = container.querySelector('details');
-    expect(prepare).not.toHaveBeenCalled();
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(details.open).toBe(false);
-    await act(async () => { details.open = true; fireEvent(details, new Event('toggle')); });
-    await waitFor(() => expect(prepare).toHaveBeenCalled());
-    expect(container.textContent).toContain('4724 W 26th St');
-    expect(container.textContent).not.toMatch(/annualPropertyTax|MISSING_CAPRATE|\$\s*0|0%/);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('cancels pending view refresh safely on close or unmount', async () => {
-    let finish;
-    const prepare = vi.spyOn(assets, 'prepareReportAssets').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
-    const error = vi.spyOn(console, 'error');
-    const { container, unmount } = render(<MaxxisDealIntelligenceReportPreview schema={schema()} />);
-    const details = container.querySelector('details');
-    await act(async () => { details.open = true; fireEvent(details, new Event('toggle')); });
-    await waitFor(() => expect(prepare).toHaveBeenCalled());
-    unmount();
-    await act(async () => { finish([]); });
-    expect(error).not.toHaveBeenCalled();
-  });
+import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
+import {MaxxisDealIntelligenceReportPreview} from './MaxxisDealIntelligenceReportPreview';
+import {renderMaxxisReportPdfCached} from '../export/maxxisReportPdf';
+import {prepareReportNarrativePresentation} from '../presentation/reportNarrativePresentation';
+const pdf=vi.hoisted(()=>({getDocument:vi.fn(),GlobalWorkerOptions:{}}));
+vi.mock('../export/maxxisReportPdf',()=>({renderMaxxisReportPdfCached:vi.fn()}));
+vi.mock('../presentation/reportNarrativePresentation',()=>({prepareReportNarrativePresentation:vi.fn()}));
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs',()=>pdf);
+const schema={type:'maxxis_report_schema',reportType:'DEAL_INTELLIGENCE',pages:[{page:1}]};
+const entitlement={allowed:true,state:'AUTHORIZED',reportType:'DEAL_INTELLIGENCE',channel:'PDF'};
+const props={schema,language:'pt',generatedAt:'2026-10-30T12:00:00Z',exportEntitlements:{PDF:entitlement}};
+const binary=new Uint8Array([37,80,68,70,45,49,46,55]);
+const open=async container=>act(async()=>{const details=container.querySelector('details');details.open=true;fireEvent(details,new Event('toggle'));});
+beforeEach(()=>{
+ vi.clearAllMocks();vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockReturnValue({});
+ prepareReportNarrativePresentation.mockResolvedValue();renderMaxxisReportPdfCached.mockResolvedValue({state:'RENDERED',document:{binary}});
+ pdf.getDocument.mockReturnValue({promise:Promise.resolve({numPages:3,getPage:async()=>({getViewport:()=>({width:600,height:840}),render:()=>({promise:Promise.resolve(),cancel:vi.fn()})})}),destroy:vi.fn()});
+});
+afterEach(()=>{cleanup();vi.restoreAllMocks();});
+describe('chat previews the actual PDF lazily',()=>{
+ it('renders the returned PDF bytes and actual page count only after opening',async()=>{
+  const {container,rerender}=render(<MaxxisDealIntelligenceReportPreview {...props}/>);
+  expect(renderMaxxisReportPdfCached).not.toHaveBeenCalled();expect(prepareReportNarrativePresentation).not.toHaveBeenCalled();
+  await open(container);await waitFor(()=>expect(container.querySelectorAll('canvas')).toHaveLength(3));
+  expect(renderMaxxisReportPdfCached).toHaveBeenCalledWith({schema,exportEntitlement:entitlement,generatedAt:props.generatedAt,language:'pt'});
+  expect(pdf.getDocument.mock.calls[0][0].data).toEqual(binary);expect(pdf.getDocument.mock.calls[0][0].data).not.toBe(binary);
+  await waitFor(()=>expect(container.querySelector('details').className).toContain('is-deal_intelligence'));
+  rerender(<MaxxisDealIntelligenceReportPreview {...props} exportEntitlements={{PDF:{...entitlement}}}/>);
+  expect(renderMaxxisReportPdfCached).toHaveBeenCalledTimes(1);expect(container.textContent).not.toContain('maxxis-v2-page');
+ });
+ it.each([undefined,{...entitlement,allowed:false},{...entitlement,reportType:'MAXXIS_ANALYSIS'}])('does not render without matching access: %o',async decision=>{
+  const{container}=render(<MaxxisDealIntelligenceReportPreview {...props} exportEntitlements={{PDF:decision}}/>);await open(container);
+  await waitFor(()=>expect(container.textContent).toContain('o acesso a este relatório não foi confirmado'));
+  expect(renderMaxxisReportPdfCached).not.toHaveBeenCalled();expect(pdf.getDocument).not.toHaveBeenCalled();
+ });
+ it('offers retry after a PDF error instead of substituting another design',async()=>{
+  renderMaxxisReportPdfCached.mockResolvedValueOnce({state:'VALIDATION_FAILED'});
+  const{container}=render(<MaxxisDealIntelligenceReportPreview {...props}/>);await open(container);
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Tentar novamente'})).toBeTruthy());
+  fireEvent.click(screen.getByRole('button',{name:'Tentar novamente'}));await waitFor(()=>expect(container.querySelectorAll('canvas')).toHaveLength(3));
+  expect(renderMaxxisReportPdfCached).toHaveBeenCalledTimes(2);
+ });
+ it('does not start PDF work after unmounting during asset preparation',async()=>{
+  let finish;prepareReportNarrativePresentation.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+  const{container,unmount}=render(<MaxxisDealIntelligenceReportPreview {...props}/>);await open(container);unmount();
+  await act(async()=>finish());expect(renderMaxxisReportPdfCached).not.toHaveBeenCalled();
+ });
 });
