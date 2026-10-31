@@ -40,7 +40,7 @@ describe('analytical delivery recovery — deterministic integration, no live pr
  });
  it('explains a recorded cache prerequisite failure instead of claiming no sales',()=>{
   const receipt=projectSoldDelivery({soldEvidence:'UNAVAILABLE',soldProviderAttempted:false,soldEvidenceReason:'VALUATION_EVIDENCE_CACHE_REQUIRED'});
-  expect(soldDeliveryAnswer(receipt,'pt')).toContain('subject AVM compatível ausente no cache');
+  expect(soldDeliveryAnswer(receipt,'pt')).toContain('Revise e confirme cidade, estado, ZIP Code');
   expect(receipt.returned).toBeNull();
  });
  it('reports every critical conflict but never blocks rent for lot area alone',()=>{

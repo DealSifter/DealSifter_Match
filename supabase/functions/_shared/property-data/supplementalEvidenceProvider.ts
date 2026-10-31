@@ -11,19 +11,23 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   constructor(private readonly options: { client: Pick<RentCastClient, 'searchSaleListings' | 'estimateRent' | 'searchRentalListings' | 'getMarketData'>;
     usageGuard: PropertyDataUsageGuard; now?: () => Date }) {}
 
-  private async guarded<T>(operation: PropertyDataUsageOperation, propertyId: string | null, userId: string | null, load: () => Promise<T>) {
+  private async guarded<T>(operation: PropertyDataUsageOperation, propertyId: string | null, userId: string | null, load: (responseReady: () => void) => Promise<T>) {
     let reservation: UsageReservation | null = null;
     let finalized = false;
+    let responseReceived = false;
     try {
       reservation = await this.options.usageGuard.reserve({ operation, propertyId, userId });
-      const result = await load();
+      const result = await load(() => { responseReceived = true; });
+      const normalized = result as {status?:string;records?:unknown[];sale?:unknown;rental?:unknown};
+      const empty = normalized.status === 'NO_RESULT' || Array.isArray(normalized.records) && !normalized.records.length
+        || operation === 'market_data' && !normalized.sale && !normalized.rental;
       finalized = true;
-      await this.options.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
+      await this.options.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null, evidenceOutcome: empty ? 'EMPTY' : 'ACCEPTED' });
       return result;
     } catch (value) {
       const error = asPropertyDataError(value);
       if (reservation && !finalized) await this.options.usageGuard.finalize(reservation, {
-        billableSuccess: error.billableSuccess, httpStatus: error.httpStatus, errorCode: error.code,
+        billableSuccess: responseReceived || error.billableSuccess, httpStatus: responseReceived ? 200 : error.httpStatus, errorCode: error.code,
       }).catch(() => undefined);
       throw error;
     }
@@ -33,19 +37,21 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   async getSaleListings(input: Parameters<SupplementalEvidenceProvider['getSaleListings']>[0]) {
     const lookup = validatePropertyLookupInput(input);
     assertAddressCoherence(lookup);
-    return this.guarded('sale_listings', lookup.propertyId, lookup.userId, async () => {
+    return this.guarded('sale_listings', lookup.propertyId, lookup.userId, async responseReady => {
       const response = await this.options.client.searchSaleListings({ address: formatPropertyLookupAddress(lookup), radius: 5,
         status: 'Active', propertyType: input.propertyType || undefined, limit: 50 });
+      responseReady();
       return mapListings(response.records, 'sale_listings', input.queryFingerprint, this.now());
     });
   }
   async getRentEstimate(input: Parameters<SupplementalEvidenceProvider['getRentEstimate']>[0]) {
     const lookup = validatePropertyLookupInput(input);
     assertAddressCoherence(lookup);
-    return this.guarded('rent_estimate', lookup.propertyId, lookup.userId, async () => {
+    return this.guarded('rent_estimate', lookup.propertyId, lookup.userId, async responseReady => {
       const response = await this.options.client.estimateRent({ address: formatPropertyLookupAddress(lookup), ...RENTCAST_MARKET_RENT_POLICY,
         ...(input.propertyType?{propertyType:input.propertyType}:{}),...(input.bedrooms!=null?{bedrooms:input.bedrooms}:{}),
         ...(input.bathrooms!=null?{bathrooms:input.bathrooms}:{}),...(input.squareFootage!=null?{squareFootage:input.squareFootage}:{}) });
+      responseReady();
       const subject=response.data.subjectProperty as Record<string,unknown>|null;
       if(subject&&!rentCastAddressMatches(lookup,{addressLine1:subject.addressLine1??lookup.street,
         city:subject.city??lookup.city,state:subject.state??lookup.state,zipCode:subject.zipCode??lookup.zipCode}))
@@ -56,17 +62,19 @@ export class RentCastSupplementalEvidenceProvider implements SupplementalEvidenc
   async getRentalListings(input: Parameters<SupplementalEvidenceProvider['getRentalListings']>[0]) {
     const lookup = validatePropertyLookupInput(input);
     assertAddressCoherence(lookup);
-    return this.guarded('rental_listings', lookup.propertyId, lookup.userId, async () => {
+    return this.guarded('rental_listings', lookup.propertyId, lookup.userId, async responseReady => {
       const response = await this.options.client.searchRentalListings({ address: formatPropertyLookupAddress(lookup), radius: 5,
         status: 'Active', propertyType: input.propertyType || undefined, limit: 50 });
+      responseReady();
       return mapListings(response.records, 'rental_listings', input.queryFingerprint, this.now());
     });
   }
   async getMarketData(input: Parameters<SupplementalEvidenceProvider['getMarketData']>[0]) {
     const lookup = validatePropertyLookupInput(input);
     assertAddressCoherence(lookup);
-    return this.guarded('market_data', lookup.propertyId, lookup.userId, async () => {
+    return this.guarded('market_data', lookup.propertyId, lookup.userId, async responseReady => {
       const response = await this.options.client.getMarketData(lookup.zipCode);
+      responseReady();
       return mapMarketData(response.data, lookup.zipCode, input.queryFingerprint, this.now());
     });
   }

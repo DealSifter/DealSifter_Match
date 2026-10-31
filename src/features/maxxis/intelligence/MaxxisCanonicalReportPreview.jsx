@@ -1,3 +1,4 @@
+import { canIncludeReportPublisher, getReportPublisherDisclosure, setReportPublisherDisclosure } from '../export/reportPublisherDisclosure';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { isMatchingReportExportEntitlement } from '../export/reportExportEntitlement';
@@ -46,6 +47,7 @@ function CanonicalPdfPage({ pdfDocument, pageNumber, pageLabel, active, onRender
 
 export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEntitlements = {}, generatedAt = null }) {
   const [pdfDocument, setPdfDocument] = useState(null);
+  const [includePublisher, setIncludePublisher] = useState(() => getReportPublisherDisclosure(schema));
   const [activated, setActivated] = useState(false);
   const [renderedPages, setRenderedPages] = useState(0);
   const [nextPageToRender, setNextPageToRender] = useState(1);
@@ -67,6 +69,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
   const locale = String(language).slice(0, 2).toLowerCase();
   const t = COPY[locale] || COPY.en;
   const level = levelFor(schema?.reportType);
+  useEffect(() => setIncludePublisher(getReportPublisherDisclosure(schema)), [schema]);
 
   useEffect(() => {
     const entitlement = pdfEntitlementRef.current;
@@ -109,7 +112,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       loadingTask?.destroy?.();
       loadedDocument?.destroy?.();
     };
-  }, [activated, schema, pdfEntitlementKey, generatedAt, language, retryKey]);
+  }, [activated, schema, pdfEntitlementKey, generatedAt, language, retryKey, includePublisher]);
 
   const handlePageRendered = useCallback((pageNumber) => {
     if (renderedPageNumbersRef.current.has(pageNumber)) return;
@@ -133,6 +136,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
         <span className="maxxis-canonical-hint"><i aria-hidden="true" />{t.hint}</span>
         <b className="maxxis-report-level">{t.level} {level}</b>
       </summary>
+      {canIncludeReportPublisher(schema) ? <label><input type="checkbox" checked={includePublisher} onChange={event => { setReportPublisherDisclosure(schema, event.target.checked); setIncludePublisher(event.target.checked); }} />{locale === 'pt' ? 'Incluir publicador e contatos autorizados no PDF' : 'Include publisher and authorized contacts in the PDF'}</label> : null}
       <div className="maxxis-canonical-stage" aria-live="polite">
         {status === 'loading' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
         {status === 'rendering' ? <span className="maxxis-canonical-status is-progress">{t.rendering}: {renderedPages}/{total}</span> : null}

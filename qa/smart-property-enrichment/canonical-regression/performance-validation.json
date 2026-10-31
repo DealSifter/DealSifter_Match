@@ -2,7 +2,7 @@
   "fixtureOnly": true,
   "data": {
     "iterations": 100,
-    "totalMilliseconds": 586.8559410000453,
+    "totalMilliseconds": 502.13442000000214,
     "providerCalls": 0,
     "geminiCalls": 0
   }

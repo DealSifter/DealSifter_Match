@@ -134,6 +134,7 @@ describe('R-1 transport accounting including failure after HTTP', () => {
         throw new Error('RENT_CACHE_PERSISTENCE_FAILED');
       } });
     expect(result.marketRent?.providerCalls).toBe(phase === 'after' ? 1 : phase === 'before' ? 0 : null);
+    expect(result.providerCalls).toBe(phase === 'after' ? 1 : phase === 'before' ? 0 : null);
     expect(result.marketRent?.executionPhase).toBe(phase === 'after' ? 'HTTP_COMPLETED' : phase === 'before' ? 'BEFORE_HTTP' : 'UNKNOWN');
   });
   it.each([200, 500])('retains %s HTTP attempt even when cache persistence fails', async status => {

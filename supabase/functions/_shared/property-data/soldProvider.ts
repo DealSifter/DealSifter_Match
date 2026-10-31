@@ -38,6 +38,7 @@ export class RentCastSoldRecordDataProvider implements SoldRecordDataProvider {
     const policy = normalizeSoldSearchPolicy(input.policy);
     let reservation: UsageReservation | null = null;
     let finalized = false;
+    let responseReceived = false;
     try {
       reservation = await this.options.usageGuard.reserve({
         propertyId: lookup.propertyId, userId: lookup.userId, operation: 'property_sold_search',
@@ -49,10 +50,11 @@ export class RentCastSoldRecordDataProvider implements SoldRecordDataProvider {
         radius: policy.radiusMiles,
         saleDateRange: policy.saleDateRangeDays, propertyType: policy.propertyType, limit: policy.limit,
       });
-      finalized = true;
-      await this.options.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
+      responseReceived = true;
       const pool = mapRentCastSoldRecordPool({ records: response.records, policy,
         queryFingerprint: input.queryFingerprint, retrievedAt: (this.options.now || (() => new Date()))().toISOString() });
+      finalized = true;
+      await this.options.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null, evidenceOutcome: pool.records.length ? 'ACCEPTED' : 'EMPTY' });
       (this.options.logger || logPropertyDataEvent)({ operation: 'property_sold_search', success: true,
         durationMs: Date.now() - startedAt, httpStatus: 200, quotaState: 'completed' });
       return pool;
@@ -61,8 +63,8 @@ export class RentCastSoldRecordDataProvider implements SoldRecordDataProvider {
       if (reservation && !finalized) {
         finalized = true;
         try {
-          await this.options.usageGuard.finalize(reservation, { billableSuccess: error.billableSuccess,
-            httpStatus: error.httpStatus, errorCode: error.code });
+          await this.options.usageGuard.finalize(reservation, { billableSuccess: responseReceived || error.billableSuccess,
+            httpStatus: responseReceived ? 200 : error.httpStatus, errorCode: error.code });
         } catch { error = new PropertyDataError('PROVIDER_UPSTREAM_ERROR'); }
       }
       (this.options.logger || logPropertyDataEvent)({ operation: 'property_sold_search', success: false,

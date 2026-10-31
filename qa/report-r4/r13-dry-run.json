@@ -1,0 +1,7 @@
+﻿{
+    "status":  "CLEAN",
+    "destructiveOperations":  false,
+    "migrations":  [
+                       "20261031060000_provider_report_attempt_trace.sql"
+                   ]
+}

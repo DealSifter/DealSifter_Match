@@ -1,0 +1,86 @@
+﻿{
+    "projectRef":  "cyeipfskwwisbbayyaca",
+    "environment":  "Production",
+    "migration":  "20261031060000_provider_report_attempt_trace.sql",
+    "migrationApplied":  true,
+    "historicalRowsUnchanged":  true,
+    "rlsAndUsageGuardFunctionsUnchanged":  true,
+    "history":  [
+                    {
+                        "ledger":  "budget",
+                        "rows":  104,
+                        "digest":  "e91a6482174bf253d4533a901f357d6e",
+                        "labeled_rows":  0
+                    },
+                    {
+                        "ledger":  "external",
+                        "rows":  75,
+                        "digest":  "420b0f619436810d83ed76801b78af75",
+                        "labeled_rows":  0
+                    }
+                ],
+    "columns":  [
+                    {
+                        "table_name":  "external_provider_usage",
+                        "column_name":  "evidence_outcome",
+                        "data_type":  "text",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    },
+                    {
+                        "table_name":  "external_provider_usage",
+                        "column_name":  "origin",
+                        "data_type":  "text",
+                        "is_nullable":  "YES",
+                        "column_default":  "\u0027system\u0027::text"
+                    },
+                    {
+                        "table_name":  "external_provider_usage",
+                        "column_name":  "report_id",
+                        "data_type":  "uuid",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    },
+                    {
+                        "table_name":  "external_provider_usage",
+                        "column_name":  "request_id",
+                        "data_type":  "uuid",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    },
+                    {
+                        "table_name":  "maxxis_provider_budget_usage",
+                        "column_name":  "evidence_outcome",
+                        "data_type":  "text",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    },
+                    {
+                        "table_name":  "maxxis_provider_budget_usage",
+                        "column_name":  "origin",
+                        "data_type":  "text",
+                        "is_nullable":  "YES",
+                        "column_default":  "\u0027system\u0027::text"
+                    },
+                    {
+                        "table_name":  "maxxis_provider_budget_usage",
+                        "column_name":  "report_id",
+                        "data_type":  "uuid",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    },
+                    {
+                        "table_name":  "maxxis_provider_budget_usage",
+                        "column_name":  "request_id",
+                        "data_type":  "uuid",
+                        "is_nullable":  "YES",
+                        "column_default":  null
+                    }
+                ],
+    "permissions":  {
+                        "anon":  false,
+                        "authenticated":  false,
+                        "service_role":  true
+                    },
+    "providerCalls":  0
+}

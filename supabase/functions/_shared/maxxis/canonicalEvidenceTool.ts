@@ -118,5 +118,5 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
     ...(options.rentAvmSubject?{rentAvmSubject}:{}),
     analyticalInputs,
     effectiveFacts:reconciled?.facts??null,canReview:reconciled?.owner===true,
-    publicParcelState:parcels.length?'AVAILABLE':'NO_APPROVED_AVAILABLE_EVIDENCE',providerState:provider?.state??'unavailable',providerCalls:0};
+    publicParcelState:parcels.length?'AVAILABLE':'NO_APPROVED_AVAILABLE_EVIDENCE',providerState:provider?.state??'unavailable',providerCalls:marketRent?marketRent.providerCalls:0};
 }

@@ -1,3 +1,4 @@
+import {createProviderTrace} from './providerTrace.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { buildCorsHeaders, parseAllowedOrigins } from '../maxxis/corsPolicy.ts';
 import {
@@ -39,6 +40,8 @@ export async function handlePropertyIntelligenceRequest(req: Request) {
   if (!propertyIntelligenceExposed(name => Deno.env.get(name), user.id)) return json({ success: true, state: 'hidden' }, 200, origin);
   const body = await req.json().catch(() => ({}));
   const propertyId = String(body?.propertyId || '').trim();
+  // IDs are correlation labels only. Origin is always set by the authenticated server path.
+  const providerTrace=createProviderTrace({origin:'user',requestId:body?.reportTrace?.requestId,reportId:body?.reportTrace?.reportId});
 
   const result = await resolvePropertyIntelligenceAccess({
     dataMode: Deno.env.get('PROPERTY_DATA_MODE') === 'live' ? 'live' : 'disabled',
@@ -57,6 +60,7 @@ export async function handlePropertyIntelligenceRequest(req: Request) {
       const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
       const service = createBackendPropertyEvidenceService({
         supabaseAdmin: admin,
+        providerTrace,
         getEnv: (name) => name === 'PROPERTY_DATA_MODE' ? (Deno.env.get(name) === 'live' ? 'live' : 'disabled') : Deno.env.get(name),
       });
       return service.getPropertyEvidence({ propertyId: candidatePropertyId, userId });

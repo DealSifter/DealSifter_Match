@@ -40,7 +40,7 @@ describe('Maxxis report generation performance contract', () => {
     expect(result.document.pageCount).toBeGreaterThanOrEqual(1);
     // The approved reference design and substantive note continuations must not
     // be removed merely to satisfy an obsolete fixed page-count target.
-    expect(result.document.layoutPlan.composition).toBe('APPROVED_REFERENCE_PAGES');
+    expect(result.document.layoutPlan.composition).toBe('CONTENT_FLOW_R4');
     expect(result.document.layoutPlan.preflightPasses).toBe(0);
     expect(result.document.pages).toHaveLength(result.document.pageCount);
     expect(result.document.strictViewModel.type).toBe('strict_report_view_model');
@@ -76,8 +76,8 @@ describe('Maxxis report generation performance contract', () => {
     const experience = readFileSync(new URL('../intelligence/MaxxisDealIntelligenceExperience.jsx', import.meta.url), 'utf8');
     const pdf = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     expect(actions).toContain('renderMaxxisReportPdfCached');
-    expect(experience).toContain('MaxxisDealIntelligenceReportPreview');
-    expect(experience).not.toContain('MaxxisCanonicalReportPreview');
+    expect(experience).toContain('MaxxisCanonicalReportPreview');
+    expect(experience).not.toContain('MaxxisDealIntelligenceReportPreview');
     expect(`${actions}${experience}${pdf}`).not.toMatch(/generative-ai|gemini/i);
   });
 });

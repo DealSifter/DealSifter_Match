@@ -1,0 +1,9 @@
+{
+  "baseline": 32,
+  "current": 32,
+  "newDiagnostics": [],
+  "resolvedDiagnostics": [],
+  "reportedBaselineErrors": 31,
+  "reportedCurrentErrors": 31,
+  "note": "Deno reports 31 root errors; the diagnostic entry count also includes one related TS2785 annotation. All signatures match the baseline."
+}

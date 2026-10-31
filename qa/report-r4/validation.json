@@ -1,0 +1,198 @@
+{
+  "phase": "R4 + R1.3",
+  "H": {
+    "H0": "DONE",
+    "H1": "DONE",
+    "H2": "DONE",
+    "H3": "DONE",
+    "H4": "DONE",
+    "H5": "DONE",
+    "H6": "DONE",
+    "H7": "DONE",
+    "H8": "DONE",
+    "H9": "DONE",
+    "H10": "DONE",
+    "H11": "DONE",
+    "H12": "DONE",
+    "H13": "DONE",
+    "H14": "DONE",
+    "H15": "DONE"
+  },
+  "J": {
+    "J1": "DONE",
+    "J2": "DONE",
+    "J3": "DONE",
+    "J4": "DONE",
+    "J5": "DONE",
+    "J6": "DONE"
+  },
+  "runtimeCode": "LOCAL_ONLY_NOT_DEPLOYED",
+  "production": {
+    "projectRef": "cyeipfskwwisbbayyaca",
+    "environment": "Production",
+    "dryRun": [
+      "20261031060000_provider_report_attempt_trace.sql"
+    ],
+    "migrationApplied": true,
+    "historicalRowsUnchanged": true,
+    "rlsAndUsageGuardFunctionsUnchanged": true,
+    "permissions": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": true
+    }
+  },
+  "tests": {
+    "frontend": {
+      "passed": 303,
+      "total": 303
+    },
+    "backend": {
+      "passed": 255,
+      "total": 255
+    },
+    "totalPassed": 558,
+    "finalCatchBoundary": {
+      "passed": 55,
+      "total": 55,
+      "alreadyIncludedInBackendSuite": true
+    }
+  },
+  "typescript": {
+    "frontend": "PASS",
+    "baselineBackendErrors": 31,
+    "currentBackendErrors": 31,
+    "newDiagnostics": 0,
+    "comparison": "r13-type-baseline-comparison.json"
+  },
+  "build": "PASS",
+  "providerLiveCalls": 0,
+  "pricingNuggetsStripe": "UNCHANGED",
+  "financialEngines": "UNCHANGED",
+  "stash": "PRESERVED_NO_STASH_COMMANDS",
+  "commit": false,
+  "push": false,
+  "deploy": false,
+  "beforeSparsePages": 7,
+  "afterSparsePages": 2,
+  "metrics": [
+    {
+      "fixture": "rich-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        27.2
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "rich-L2",
+      "pages": 2,
+      "emptyBodyPercent": [
+        14.7,
+        35.3
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "rich-L3",
+      "pages": 3,
+      "emptyBodyPercent": [
+        13.6,
+        14.1,
+        66
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "partial-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        35.6
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "partial-L2",
+      "pages": 2,
+      "emptyBodyPercent": [
+        15.9,
+        42.6
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "partial-L3",
+      "pages": 3,
+      "emptyBodyPercent": [
+        10.1,
+        17,
+        78.6
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "sparse-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        57.3
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "sparse-L2",
+      "pages": 2,
+      "emptyBodyPercent": [
+        21.2,
+        82.2
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "fixture": "sparse-L3",
+      "pages": 2,
+      "emptyBodyPercent": [
+        10.2,
+        70.9
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    }
+  ],
+  "buildProcessExitCode": 0,
+  "completedAt": "2026-10-31T05:47:36.868Z"
+}

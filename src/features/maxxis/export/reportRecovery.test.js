@@ -115,7 +115,7 @@ describe('report recovery vertical evidence contract', () => {
   });
   it('does not describe an unqueried market as having no data', () => {
     const stack = buildFinancialEvidenceFromAuthorizedContext({ propertyId: property.id });
-    expect(buildFinancialEvidenceAnswer({ domain: 'providerMarketRentEstimate' }, stack, 'pt').answer).toMatch(/Ainda não consultei/);
+    expect(buildFinancialEvidenceAnswer({ domain: 'providerMarketRentEstimate' }, stack, 'pt').answer).toMatch(/não foi consultada/);
     const schema = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: { financialEvidence: stack } });
     expect(buildStrictReportViewModel({ schema, language: 'pt' }).sections.some(s => s.id === 'rent-pending')).toBe(true);
   });

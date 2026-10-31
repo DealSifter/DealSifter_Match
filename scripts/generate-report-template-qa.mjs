@@ -58,13 +58,14 @@ const analysis = Object.freeze({
   executiveSummary:'Fictional demonstration with a complete property record, configured investor profile, documented operating inputs and a market-rent scenario. All illustrated amounts and results are sample data.',
   keyObservations:{positives:['Four-bedroom single-family layout.','Configured long-term hold strategy.','Complete illustrated income and expense basis.'],attention:['Confirm every assumption against real records before making an investment decision.']},
   profileAlignment,marketRent:{state:'AVAILABLE',evidence:rentEvidence},financialEvidence,
-  financialReadiness:{metrics:{NOI:{readinessLevel:'READY_ACTUAL'}}},
+  financialReadiness:{readinessLevel:'READY_ACTUAL',metrics:{NOI:{readinessLevel:'READY_ACTUAL'}}},
   riskAwareness:[{category:'MARKET',explanation:'Future rent and resale prices may change.'},{category:'EXECUTION',explanation:'Inspect the actual property and validate contractor scope before reliance.'}],
   limitations:['Fictional demonstration, not an appraisal or a real provider response.','A complete data set does not guarantee investment performance.'],
   nextSteps:['Verify title and inspection.','Review the lease and operating statements.','Confirm contractor bids and exit assumptions.'],
   provenance:{property:'FICTIONAL_SAMPLE'},
 });
 const deal = Object.freeze({
+  evidenceReasons:{propertyRecord:null,valuation:null,recordedSales:null},
   executiveDealOverview:analysis.executiveSummary,whyThisPropertyStandsOut:analysis.keyObservations.positives,
   investmentFit:profileAlignment,
   propertyEvidence:{verifiedRecords:[],userProvided:[{field:'price',value:425000},{field:'capRate',value:5.36,source:'USER_PROVIDED',status:'CONFIRMED'}],unknown:[],conflicts:[]},
@@ -122,7 +123,7 @@ for (const [reportType, plan, file] of [
   if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
   const text=result.document.layoutAudit.lines.map(line=>line.text).join('\n');
   if (/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(text)) throw new Error(reportType+': incomplete demonstration content: '+JSON.stringify(result.document.layoutAudit.lines.filter(line=>/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(line.text))));
-  sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:1+Object.keys(mapImages).length,profileGauge:!!viewModel.sections.find(section=>section.id==='profile-fit')?.gauge,criteriaChart:!!viewModel.sections.find(section=>section.id==='profile-criteria')?.comparison?.length,valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
+  sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:result.document.layoutAudit.maps.length,profileGauge:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-fit-score'),criteriaTable:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-criteria-facts'),valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
   await writeFile(`${out}${file}`, result.document.binary);
   process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
 }

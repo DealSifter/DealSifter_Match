@@ -19,7 +19,7 @@ describe('Land development report projection and containment', () => {
     const output = await renderMaxxisReportPdf({ schema, language, exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType: 'DEAL_INTELLIGENCE', channel: 'PDF' }) });
     expect(output.state).toBe('RENDERED');
     expect(output.document.pageCount).toBeLessThanOrEqual(8);
-    for (const sectionId of ['landAcquisition', 'landExit']) {
+    for (const sectionId of ['landAcquisition-table']) {
       const content = output.document.layoutAudit.lines.filter(line => line.sectionId === sectionId).map(line => line.text).join(' ');
       for (let index = 0; index < 5; index += 1) expect(content).toContain(`${100 + index} Recorded Comparable`);
     }
@@ -38,7 +38,7 @@ describe('Land development report projection and containment', () => {
     expect(result.state).toBe('RENDERED');
     expect(result.document.pageCount).toBeLessThanOrEqual(8);
     const sections = result.document.layoutAudit.sections.filter(section => section.sectionId.startsWith('land'));
-    expect(sections.map(section => section.sectionId)).toEqual(expect.arrayContaining(['landBenchmark', 'landPremises', 'landKnownBasis']));
+    expect(sections.map(section => section.sectionId)).toEqual(expect.arrayContaining(['landBenchmark-facts', 'landPremises-facts', 'landKnownBasis-facts']));
     // No acquired/exit-comp page is rendered merely to say that evidence is unavailable.
     expect(sections.some(section => ['landAcquisition', 'landExit'].includes(section.sectionId))).toBe(false);
     const content = result.document.layoutAudit.lines.map(line => line.text).join(' ');

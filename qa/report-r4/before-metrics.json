@@ -1,0 +1,23 @@
+{
+  "areaDefinition": "Unused vertical body area, from measured content boxes; header/footer excluded.",
+  "metrics": [
+    {
+      "fixture": "before-sparse-L3",
+      "pages": 7,
+      "emptyBodyPercent": [
+        29.7,
+        16.1,
+        24.5,
+        24.2,
+        33.3,
+        23.5,
+        86.8
+      ],
+      "duplicateBlocks": 4,
+      "ellipses": 1,
+      "jargon": 1,
+      "pii": true,
+      "maps": 2
+    }
+  ]
+}

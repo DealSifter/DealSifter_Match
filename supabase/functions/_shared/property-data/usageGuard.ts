@@ -1,5 +1,6 @@
 import { PropertyDataError } from './types.ts';
 import type { ProviderBudgetManager, ProviderBudgetReservation } from './providerBudget.ts';
+import { annotateProviderAttempt, createProviderTrace, evidenceOutcome, type EvidenceOutcome, type ProviderTrace, type ProviderAttempt } from './providerTrace.ts';
 
 export const DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT = 45;
 export type PropertyDataUsageOperation = 'property_lookup' | 'property_value_avm' | 'property_sold_search'
@@ -13,6 +14,7 @@ export type UsageReservation = {
 };
 
 export type UsageCompletion = {
+  evidenceOutcome?: EvidenceOutcome | null;
   billableSuccess: boolean;
   httpStatus: number | null;
   errorCode: string | null;
@@ -89,7 +91,8 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
   private readonly providerBudget: ProviderBudgetManager | null;
   private readonly budgetReservations = new Map<string, ProviderBudgetReservation>();
 
-  constructor(client: PropertyDataUsageRpcClient, hardLimit: unknown = DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT, providerBudget: ProviderBudgetManager | null = null) {
+  constructor(client: PropertyDataUsageRpcClient, hardLimit: unknown = DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT, providerBudget: ProviderBudgetManager | null = null,
+    readonly trace: ProviderTrace = createProviderTrace({ origin: 'system' })) {
     this.client = client;
     this.hardLimit = normalizeRentCastHardLimit(hardLimit);
     this.providerBudget = providerBudget;
@@ -97,6 +100,12 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
 
   async reserve(input: { propertyId?: string | null; userId?: string | null; operation?: PropertyDataUsageOperation }) {
     const budgetReservation = this.providerBudget ? await this.providerBudget.reserve() : null;
+    const attempt: ProviderAttempt = { usageId: null, budgetId: budgetReservation?.id || null, operation: input.operation || 'property_lookup' };
+    this.trace.attempts.push(attempt);
+    if (budgetReservation) {
+      try { await annotateProviderAttempt(this.client, this.trace, attempt); }
+      catch { await this.providerBudget?.finalize(budgetReservation, false).catch(() => undefined); throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR'); }
+    }
     const { data, error } = await this.client.rpc('ds_reserve_external_provider_usage', {
       p_provider: 'rentcast',
       p_operation: input.operation || 'property_lookup',
@@ -117,7 +126,14 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
       throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
     }
     if (budgetReservation) this.budgetReservations.set(id, budgetReservation);
-    return { id, provider: 'rentcast', operation: input.operation || 'property_lookup', createdAt: new Date().toISOString() } as UsageReservation;
+    const reservation = { id, provider: 'rentcast', operation: input.operation || 'property_lookup', createdAt: new Date().toISOString() } as UsageReservation;
+    attempt.usageId = id;
+    try { await annotateProviderAttempt(this.client, this.trace, attempt); }
+    catch {
+      await this.finalize(reservation, { billableSuccess: false, httpStatus: null, errorCode: 'PROVIDER_ATTEMPT_TRACE_WRITE_FAILED' }).catch(() => undefined);
+      throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
+    }
+    return reservation;
   }
 
   async finalize(reservation: UsageReservation, completion: UsageCompletion) {
@@ -128,9 +144,17 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
       p_error_code: completion.errorCode,
     });
     const budgetReservation = this.budgetReservations.get(reservation.id);
-    if (budgetReservation) {
-      this.budgetReservations.delete(reservation.id);
-      await this.providerBudget?.finalize(budgetReservation, !error && Boolean(completion.billableSuccess));
+    try {
+      if (budgetReservation) {
+        this.budgetReservations.delete(reservation.id);
+        await this.providerBudget?.finalize(budgetReservation, !error && Boolean(completion.billableSuccess));
+      }
+    } finally {
+      const attempt = this.trace.attempts.find(item => item.usageId === reservation.id);
+      if (attempt) {
+        attempt.httpStatus = completion.httpStatus; attempt.errorCode = completion.errorCode; attempt.evidenceOutcome = evidenceOutcome(completion);
+        await annotateProviderAttempt(this.client, this.trace, attempt);
+      }
     }
     if (error) throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
   }

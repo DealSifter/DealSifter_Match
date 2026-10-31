@@ -248,6 +248,7 @@ export function projectMaxxisAnalysisResponse(result = {}, { reportProperty = nu
   if (!report) return null;
   const property = mergeMaxxisReportProperty(snapshotProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
+    reportTrace:result?.data?.intelligenceSnapshot?.reportTrace || result?.data?.runtimeTrace?.reportTrace || null,
     reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: report, structuredAnalysis,
   });
   return Object.freeze({

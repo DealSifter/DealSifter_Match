@@ -1,3 +1,4 @@
+import type {ProviderTrace} from '../property-data/providerTrace.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createBackendPropertyEvidenceService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 import { SupabasePropertyIntelligenceCache } from '../property-data/cache.ts';
@@ -16,7 +17,7 @@ export async function getPropertyEvidenceForAuthenticatedUser(
   userId: string,
   contextPropertyId?: string,
   allowProviderFallback = false,
-  providerBudget?: { plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket },
+  providerBudget?: { plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket; trace?: ProviderTrace },
   execution?: ProviderExecution,
 ) {
   const validated = resolvePropertyDetailsInput(input, contextPropertyId);

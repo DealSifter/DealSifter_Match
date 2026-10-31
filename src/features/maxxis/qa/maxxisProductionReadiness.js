@@ -75,9 +75,8 @@ function validateLevel(schema) {
 }
 
 function validatePages(schema) {
-  const rentPage=schema.reportType==='DEAL_INTELLIGENCE'&&Number(schema.presentation?.marketRent?.monthlyRentEstimate)>0&&schema.pages?.filter(page=>page.code==='MARKET_RENT').length===1;
-  const cap = { PROPERTY_RELEASE: 1, MAXXIS_ANALYSIS: 3, DEAL_INTELLIGENCE: rentPage?7:6 }[schema.reportType] || 0;
-  return finding('EXPORT_PAGE_LIMIT', schema.pages?.length > 0 && schema.pages.length <= cap, 'Report page count must match its commercial level.');
+  if (schema.layoutPolicy?.mode === 'CONTENT_FLOW') return finding('EXPORT_PAGE_LIMIT', schema.contentSections?.length > 0 && schema.layoutPolicy.maxPages === (schema.reportType === 'PROPERTY_RELEASE' ? 1 : schema.reportType === 'MAXXIS_ANALYSIS' ? 3 : null), 'Content flows within the authorized page ceiling.');
+  return finding('EXPORT_PAGE_LIMIT', false, 'A content layout policy is required.');
 }
 
 export function validateIntelligenceConsistency({ schema } = {}) {

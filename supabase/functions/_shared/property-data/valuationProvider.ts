@@ -61,6 +61,7 @@ export class RentCastValuationDataProvider implements ValuationDataProvider {
     assertAddressCoherence(normalizedInput);
     let reservation: UsageReservation | null = null;
     let finalizationAttempted = false;
+    let responseReceived = false;
     try {
       reservation = await this.usageGuard.reserve({
         propertyId: normalizedInput.propertyId,
@@ -71,12 +72,13 @@ export class RentCastValuationDataProvider implements ValuationDataProvider {
         address: formatPropertyLookupAddress(normalizedInput),
         ...this.policy,
       });
-      finalizationAttempted = true;
-      await this.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
+      responseReceived = true;
       const valuation = mapRentCastValueEstimate({
         raw: response.valuation, lookup: normalizedInput, requestPolicy: this.policy,
         retrievedAt: this.now().toISOString(),
       });
+      finalizationAttempted = true;
+      await this.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null, evidenceOutcome: valuation.providerEstimate.value.value !== null || valuation.comparables.length ? 'ACCEPTED' : 'EMPTY' });
       this.logger({ operation: 'property_value_avm', success: true, durationMs: Date.now() - startedAt, httpStatus: 200, quotaState: 'completed' });
       return valuation;
     } catch (value) {
@@ -85,7 +87,7 @@ export class RentCastValuationDataProvider implements ValuationDataProvider {
         finalizationAttempted = true;
         try {
           await this.usageGuard.finalize(reservation, {
-            billableSuccess: error.billableSuccess, httpStatus: error.httpStatus, errorCode: error.code,
+            billableSuccess: responseReceived || error.billableSuccess, httpStatus: responseReceived ? 200 : error.httpStatus, errorCode: error.code,
           });
         } catch {
           error = new PropertyDataError('PROVIDER_UPSTREAM_ERROR');

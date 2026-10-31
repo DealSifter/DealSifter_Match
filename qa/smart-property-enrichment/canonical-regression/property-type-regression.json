@@ -890,6 +890,23 @@
             "resolutionBasis": null,
             "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
             "requiresQualification": true
+          },
+          "buildingArea": {
+            "field": "buildingArea",
+            "consensusState": "UNAVAILABLE",
+            "analyticalUsability": "UNAVAILABLE",
+            "value": null,
+            "unit": null,
+            "range": null,
+            "provisional": false,
+            "candidates": [],
+            "supportingCandidates": [],
+            "conflictingCandidates": [],
+            "outliers": [],
+            "sourceFreshness": [],
+            "resolutionBasis": null,
+            "reasonCode": "NO_EVIDENCE",
+            "requiresQualification": true
           }
         },
         "resolvedAnalysisPropertyType": "LAND",

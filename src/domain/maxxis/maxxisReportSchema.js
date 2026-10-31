@@ -45,7 +45,7 @@ const COMPARABLE_KEYS = Object.freeze([
   'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
   'baths', 'sqft', 'latitude', 'longitude', 'sourceType', 'provenance',
   'lotSizeSqft', 'yearBuilt', 'providerCorrelation', 'saleAgeDays', 'compClass',
-  'propertyType', 'dataCompletenessScore', 'hardGatesPass',
+  'propertyType', 'dataCompletenessScore', 'hardGatesPass', 'provider', 'source', 'retrievedAt',
 ]);
 
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -399,6 +399,8 @@ function valuationEvidence(value) {
           value: finitePositive(value.providerEstimate.value),
           status: value.providerEstimate.status || 'PROVIDER_ESTIMATE_UNVALIDATED',
           provenance: 'ESTIMATED',
+          provider: /rentcast/i.test(String(value.providerEstimate.provider || value.providerEstimate.source || value.provider || '')) ? 'RentCast' : null,
+          retrievedAt: value.providerEstimate.retrievedAt || value.retrievedAt || null,
         })
       : null,
     recentSalesMarketEstimate: isObject(value.recentSalesMarketEstimate)
@@ -412,27 +414,6 @@ function valuationEvidence(value) {
     marketData: isObject(value.marketData) ? Object.freeze({ ...value.marketData }) : null,
     rentalEvidence: isObject(value.rentalEvidence) ? Object.freeze({ ...value.rentalEvidence }) : null,
   });
-}
-
-function pagesFor(reportType) {
-  if (reportType === INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE) {
-    return Object.freeze([Object.freeze({ page: 1, code: 'PROPERTY_OVERVIEW', sections: ['propertySummary', 'provenance'] })]);
-  }
-  if (reportType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS) {
-    return Object.freeze([
-      Object.freeze({ page: 1, code: 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT', sections: ['propertySummary', 'executiveSummary', 'provenance'] }),
-      Object.freeze({ page: 2, code: 'INVESTMENT_FIT_RISK', sections: ['investmentProfile', 'riskAssessment', 'limitations'] }),
-      Object.freeze({ page: 3, code: 'KEY_INSIGHTS_NEXT_STEPS', sections: ['executiveSummary', 'limitations', 'verificationChecklist', 'provenance'] }),
-    ]);
-  }
-  return Object.freeze([
-    Object.freeze({ page: 1, code: 'PROPERTY_OVERVIEW', sections: ['propertySummary', 'provenance'] }),
-    Object.freeze({ page: 2, code: 'COMPARATIVE_MARKET_ANALYSIS', sections: ['comparableEvidence', 'provenance'] }),
-    Object.freeze({ page: 3, code: 'VALUATION_INTELLIGENCE', sections: ['valuationEvidence', 'limitations'] }),
-    Object.freeze({ page: 4, code: 'INVESTMENT_FIT_RISK', sections: ['investmentProfile', 'riskAssessment', 'propertyEvidence'] }),
-    Object.freeze({ page: 5, code: 'KEY_INSIGHTS_VERIFICATION', sections: ['executiveSummary', 'limitations', 'verificationChecklist'] }),
-    Object.freeze({ page: 6, code: 'MAXXIS_AI_ANALYSIS', sections: ['executiveSummary', 'riskAssessment', 'verificationChecklist', 'provenance'] }),
-  ]);
 }
 
 function levelData(reportType, input) {
@@ -513,7 +494,7 @@ function scenarioAdjustedFocusMap(base, activeScenario) {
     })) });
 }
 
-export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null, resolvedUserLocale = null } = {}) {
+export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null, resolvedUserLocale = null, reportTrace = null } = {}) {
   const normalizedType = String(reportType || '').trim().toUpperCase();
   const allowed = LEVEL_SECTIONS[normalizedType];
   if (!allowed) return null;
@@ -535,11 +516,15 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
   return Object.freeze({
     type: 'maxxis_report_schema',
     version: MAXXIS_REPORT_SCHEMA_VERSION,
+    reportTrace: reportTrace && /^[0-9a-f-]{36}$/i.test(reportTrace.reportId || '') && /^[0-9a-f-]{36}$/i.test(reportTrace.requestId || '')
+      ? Object.freeze({reportId:reportTrace.reportId,requestId:reportTrace.requestId}) : null,
     reportType: normalizedType,
     resolvedUserLocale: ['en', 'pt', 'es'].includes(String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language))
       ? String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language) : null,
     sections,
-    pages: marketRent&&normalizedType==='DEAL_INTELLIGENCE'?Object.freeze([...pagesFor(normalizedType),Object.freeze({page:7,code:'MARKET_RENT',sections:['valuationEvidence','provenance']})]):pagesFor(normalizedType),
+    pages: Object.freeze([]),
+    contentSections: Object.freeze(Object.keys(sections).filter(key => sections[key].available)),
+    layoutPolicy: Object.freeze({ mode: 'CONTENT_FLOW', maxPages: normalizedType === 'PROPERTY_RELEASE' ? 1 : normalizedType === 'MAXXIS_ANALYSIS' ? 3 : null }),
     structuredAnalysis: isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
       ? Object.freeze(structuredAnalysis) : null,
     presentation: Object.freeze({

@@ -1,3 +1,4 @@
+import {createProviderTrace,type ProviderTrace} from '../property-data/providerTrace.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { searchServicesWithMetrics, validateSearchServicesInput } from './searchServices.ts';
 import { getMyInvestmentProfile, getMyInvestmentProfileWithClient } from './getMyInvestmentProfile.ts';
@@ -107,7 +108,8 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; rentAvmSubject?:boolean;marketRentAcquisition?:boolean;providerBudgetBucket?:'chat'|'report';parcelEvidenceReceipt?:unknown } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { requestId?: string; providerTrace?: ProviderTrace; propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; analyticalArea?:boolean; financialEvidence?:boolean; rentAvmSubject?:boolean;marketRentAcquisition?:boolean;providerBudgetBucket?:'chat'|'report';parcelEvidenceReceipt?:unknown } = {}) {
+  context = {...context, providerTrace:context.providerTrace ?? createProviderTrace({origin:context.userId?'user':'system',requestId:context.requestId,report:name==='getDealInsightContext'&&!!(args as Record<string,unknown>)?.reportType})};
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -137,7 +139,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
         let first=true;
         const service=createBackendMarketRentService({supabaseAdmin:admin,getEnv:name=>Deno.env.get(name),
           execution,
-          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:context.providerBudgetBucket || 'chat'},
+          providerBudgetContext:{userId:authenticated.userId,propertyId,plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:context.providerBudgetBucket || 'chat',trace:context.providerTrace},
           hasEntitlement:async()=>{
             if(context.plan==='PRO'||context.plan==='ENTERPRISE')return true;
             const check=await authenticated.client.rpc('ds_has_property_intelligence_entitlement',{p_property_id:propertyId,p_unlock_type:'property_record'});
@@ -229,7 +231,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     const providerPlan = context.plan === 'ENTERPRISE' ? 'ENTERPRISE' : context.plan === 'PRO' ? 'PRO' : 'FREE';
     const report = await getDealInsightContextForAuthenticatedUser(
       args, authHeader, authenticated.client as unknown as Parameters<typeof getDealInsightContextForAuthenticatedUser>[2], authenticated.userId, context.propertyId, providerPlan, context.language,
-      Boolean(context.cacheOnly),
+      Boolean(context.cacheOnly), context.providerTrace,
     );
     if ((args as Record<string, unknown>)?.reportType && report.state === 'available' && report.intelligenceSnapshot) {
       // Explicit report generation is cache-first, not cache-only. The service

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 147,
+      "right": 569.28,
+      "bottom": 277
+    }
+  },
+  {
+    "id": "report-location",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 284,
+      "width": 268.14,
+      "height": 149,
+      "right": 294.14,
+      "bottom": 433
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 301.14,
+      "y": 284,
+      "width": 268.14,
+      "height": 76,
+      "right": 569.28,
+      "bottom": 360
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 440,
+      "width": 543.28,
+      "height": 24,
+      "right": 569.28,
+      "bottom": 464
+    }
+  }
+]

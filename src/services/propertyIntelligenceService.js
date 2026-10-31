@@ -7,7 +7,7 @@ export function isPropertyIntelligenceId(value) {
   return UUID_PATTERN.test(String(value || '').trim());
 }
 
-export async function fetchPropertyIntelligence(propertyId, invoke = null) {
+export async function fetchPropertyIntelligence(propertyId, invoke = null, reportTrace = null) {
   const cleanPropertyId = String(propertyId || '').trim();
   if (!isPropertyIntelligenceId(cleanPropertyId)) throw new Error('INVALID_PROPERTY');
   if (!invoke && (!isSupabaseConfigured || !supabase)) {
@@ -17,20 +17,23 @@ export async function fetchPropertyIntelligence(propertyId, invoke = null) {
     const { data } = await supabase.auth.getSession();
     if (!data?.session) return { success: true, state: 'locked', entitled: false, authRequired: true };
   }
-  if (pendingRequests.has(cleanPropertyId)) return pendingRequests.get(cleanPropertyId);
+  const trace = isPropertyIntelligenceId(reportTrace?.reportId) && isPropertyIntelligenceId(reportTrace?.requestId)
+    ? {reportId:reportTrace.reportId,requestId:reportTrace.requestId} : null;
+  const pendingKey = trace ? `${cleanPropertyId}:${trace.reportId}` : cleanPropertyId;
+  if (pendingRequests.has(pendingKey)) return pendingRequests.get(pendingKey);
   const request = (async () => {
     const invokeFunction = invoke || ((body) => supabase.functions.invoke('property-intelligence', { body }));
-    const { data, error } = await invokeFunction({ propertyId: cleanPropertyId });
+    const { data, error } = await invokeFunction({ propertyId: cleanPropertyId, ...(trace ? {reportTrace:trace} : {}) });
     if (error) throw new Error('PROPERTY_INTELLIGENCE_UNAVAILABLE');
     if (!data || !['hidden', 'locked', 'unlocked', 'unavailable'].includes(data.state)) {
       throw new Error('PROPERTY_INTELLIGENCE_UNAVAILABLE');
     }
     return data;
   })();
-  pendingRequests.set(cleanPropertyId, request);
+  pendingRequests.set(pendingKey, request);
   try {
     return await request;
   } finally {
-    if (pendingRequests.get(cleanPropertyId) === request) pendingRequests.delete(cleanPropertyId);
+    if (pendingRequests.get(pendingKey) === request) pendingRequests.delete(pendingKey);
   }
 }

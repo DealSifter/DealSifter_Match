@@ -18,10 +18,10 @@ describe('example preview parity with production PDFs',()=>{
    expect(sample.text).toContain('DEMONSTRATION ONLY');
    expect(sample.text).not.toMatch(/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i);
    if(type!=='PROPERTY_RELEASE'){
-    expect(sample.profileGauge).toBe(true);expect(sample.criteriaChart).toBe(true);expect(sample.scenario).toBe(true);
+    expect(sample.profileGauge).toBe(true);expect(sample.criteriaTable).toBe(true);expect(sample.scenario).toBe(true);
    }
    if(type==='DEAL_INTELLIGENCE'){
-    expect(sample.valuationRange).toBe(true);expect(sample.rentRange).toBe(true);expect(sample.maps).toBeGreaterThan(2);
+    expect(sample.valuationRange).toBe(true);expect(sample.rentRange).toBe(true);expect(sample.maps).toBe(1);
    }
   }
  });

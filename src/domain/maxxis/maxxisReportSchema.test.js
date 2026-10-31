@@ -38,7 +38,7 @@ function intelligence(status = 'ARV_AVAILABLE') {
 describe('MaxxisReportSchema v2', () => {
   it('TEST 1 exports Property Release from allowlisted user-provided card data only', () => {
     const report = buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property });
-    expect(report).toMatchObject({ version: 'MAXXIS_REPORT_SCHEMA_V2', pages: [{ page: 1, code: 'PROPERTY_OVERVIEW' }] });
+    expect(report).toMatchObject({ version: 'MAXXIS_REPORT_SCHEMA_V2', pages: [], layoutPolicy: { mode: 'CONTENT_FLOW', maxPages: 1 } });
     expect(report.sections.propertySummary).toMatchObject({ available: true, sourceType: 'USER_PROVIDED' });
     expect(report.sections.propertySummary.data.internalSecret).toBeUndefined();
     expect(report.sections.propertySummary.data.owner).toEqual({
@@ -54,7 +54,7 @@ describe('MaxxisReportSchema v2', () => {
   it('TEST 2 exports Maxxis Analysis without evidence, comps, ARV, or valuation data', () => {
     const report = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: analysis() });
     expect(report.sections.executiveSummary.available).toBe(true);
-    expect(report.pages).toHaveLength(3);
+    expect(report.pages).toEqual([]); expect(report.layoutPolicy.maxPages).toBe(3);
     expect(report.sections.executiveSummary.data).toMatchObject({ summary: expect.any(String) });
     expect(report.sections.investmentProfile.data).toMatchObject({ semantics: 'PROFILE_FIT_ONLY' });
     expect(report.sections.propertyEvidence.data).toBeNull();
@@ -64,7 +64,7 @@ describe('MaxxisReportSchema v2', () => {
 
   it.each(['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE'])('TEST 3 supports the Level 3 fixture %s without inventing valuation', (status) => {
     const report = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence(status) });
-    expect(report.pages).toHaveLength(6);
+    expect(report.pages).toEqual([]); expect(report.layoutPolicy.maxPages).toBeNull();
     expect(report.sections.comparableEvidence.available).toBe(true);
     expect(report.exportFoundation).toEqual({ pdf: 'CLIENT_RENDERED', email: 'PREPARED_NOT_RENDERED', share: 'PREPARED_NOT_RENDERED' });
     if (status === 'ARV_UNAVAILABLE') {
@@ -140,8 +140,8 @@ describe('MaxxisReportSchema v2', () => {
     const executableSource = source.replace(/from ['"][^'"]*(canonicalFactSemantics|landMetrics)\.ts['"]/g, "from 'portableSemanticContract'");
     const dimensionSource = readFileSync(new URL('../../../supabase/functions/_shared/maxxis/landMetrics.ts', import.meta.url), 'utf8');
     expect(dimensionSource).not.toMatch(/\b(?:fetch|invoke|createClient|stripe|debit)\b/);
-    expect(executableSource).not.toMatch(/\b(?:fetch|supabase|rentcast|stripe|debit|invoke)\b/i);
-    expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|dealMetrics|calculatePropertyMatch)/i);
+    expect(executableSource).not.toMatch(/\b(?:fetch|supabase|stripe|debit|invoke)\b/i);
+    expect(source).not.toMatch(/from ['"].*(?:rentcast|arvEngine|compEngine|dealMetrics|calculatePropertyMatch)/i);
     expect(INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE).toBe('DEAL_INTELLIGENCE');
   });
 

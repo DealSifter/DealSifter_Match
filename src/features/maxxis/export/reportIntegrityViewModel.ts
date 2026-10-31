@@ -13,6 +13,8 @@ import type { MarketRentResult } from '../../../../supabase/functions/_shared/pr
 import { INVESTMENT_PRICE_RANGE_OPTIONS } from '../../../lib/investmentProfile';
 import { ARV_ELIGIBILITY_POLICY, arvEvidenceTier } from '../../../../supabase/functions/_shared/property-data/arvEligibilityPolicy';
 import { evidenceAbsenceReason, evidenceAbsenceCopy, type EvidenceAbsenceReason } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
+import { reportSourceRows } from './reportContentPlan';
+import { getReportPublisherDisclosure } from './reportPublisherDisclosure';
 
 type Input = Record<string, unknown>;
 const obj = (v: unknown): Input => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Input : {};
@@ -105,7 +107,7 @@ function explicitZeroProof(fact: Input): boolean {
     || !!(decision.action && decision.action !== 'REVIEW_LATER' && decision.evidenceHash && decision.evidenceHash === fact.evidenceHash);
 }
 
-export function buildStrictReportViewModel({ schema, language = 'en' }: { schema: unknown; language?: string }): ReportViewModel {
+export function buildStrictReportViewModel({ schema, language = 'en', includePublisher }: { schema: unknown; language?: string; includePublisher?: boolean }): ReportViewModel {
   const input = obj(schema), sections = obj(input.sections), section = (key: string): Input => obj(sections[key]).available === true ? obj(obj(sections[key]).data) : {};
   const property = section('propertySummary'), valuation = section('valuationEvidence'), presentation = obj(input.presentation);
   const canonical = obj(property.canonicalPropertyFacts), evidence = section('propertyEvidence');
@@ -465,9 +467,10 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   const taxRows = propertyRows(['annualPropertyTax', 'propertyTaxYear', 'assessedValue', 'assessmentYear']);
   const owner = obj(property.owner), ownerRows: ReportRow[] = [];
   const ownerName = reportNarrativeString(owner.name);
-  if (ownerName) ownerRows.push({ label: t('Publicador', 'Publisher', 'Publicador'), value: ownerName, evidenceRefs: ['property:identity'] });
+  const disclosePublisher = !!schema && typeof schema === 'object' && getReportPublisherDisclosure(schema, includePublisher);
+  if (disclosePublisher && ownerName) ownerRows.push({ label: t('Publicador', 'Publisher', 'Publicador'), value: ownerName, evidenceRefs: ['property:identity'] });
   ownerRows.push(...propertyRows(['ownerOccupied', 'ownershipRecordPresent', 'latestSalePrice', 'latestSaleDate']));
-  for (const item of list(owner.allowedContacts).map(obj)) { const contact = reportNarrativeString(item.value); if (contact) ownerRows.push({ label: /mail/i.test(scalar(item.type)) ? 'Email' : t('Contato autorizado', 'Authorized contact', 'Contacto autorizado'), value: contact, evidenceRefs: ['property:identity'] }); }
+  if (disclosePublisher) for (const item of list(owner.allowedContacts).map(obj)) { const contact = reportNarrativeString(item.value); if (contact) ownerRows.push({ label: /mail/i.test(scalar(item.type)) ? 'Email' : t('Contato autorizado', 'Authorized contact', 'Contacto autorizado'), value: contact, evidenceRefs: ['property:identity'] }); }
   const facts = (level === 1 ? [ { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows }, { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e dados fiscais', 'Land and tax records', 'Terreno y datos fiscales'), rows: [...parcelRows, ...taxRows] } ] : [ { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e registro parcelário', 'Land and parcel record', 'Terreno y registro parcelario'), rows: parcelRows }, { title: t('Registros fiscais, não valor de mercado', 'Tax records, not market value', 'Registros fiscales, no valor de mercado'), rows: taxRows }, { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows } ]).filter(group => group.rows.length);
   if (level > 1) for (const [index, group] of facts.entries()) push({ id: group.rows === taxRows ? 'property-tax' : group.rows === ownerRows ? 'property-contacts' : `property-facts-${index}`, title: group.title, kind: 'facts', priority: land ? 88 - index : 50 - index, rows: group.rows, evidenceRefs: group.rows.flatMap(row => row.evidenceRefs) });
   const metrics = propertyRows(land ? [] : ['beds', 'baths', 'sqft']);
@@ -757,6 +760,28 @@ export function buildStrictReportViewModel({ schema, language = 'en' }: { schema
   if (candidate && model.executive) {
     if (validateExecutiveNarrative(candidate, model).valid) { const thesis = obj(obj(candidate).executiveThesis); model.executive.thesis = { text: scalar(thesis.text), evidenceRefs: list(thesis.evidenceRefs).map(scalar) }; }
     else diagnostics.push('EXECUTIVE_NARRATIVE_REJECTED_DETERMINISTIC_FALLBACK');
+  }
+  model.sourceRows = reportSourceRows(input, locale);
+  const readiness = obj(presentation.financialReadiness), matrixReady = /^READY_/.test(scalar(readiness.readinessLevel));
+  const expectedGaps = Object.entries(indicatorReasons).some(([key, reason]) => reason && reason !== 'NOT_REQUESTED' && ['propertyRecord', 'marketRent', 'arv', 'noi'].includes(key));
+  model.completion = preliminaryArv ? 'PRELIMINARY' : level === 1 && known('price') && known('beds') && known('baths') || matrixReady && !expectedGaps ? 'COMPLETE' : 'PARTIAL';
+  const hasParcel = ['assessorId', 'zoning', 'legalDescription'].some(known);
+  if (!hasParcel) model.disclaimer = model.disclaimer.split(/ Registros GIS| GIS records| Los registros GIS/)[0];
+  if (!disclosePublisher) {
+    const redact = (text: string) => {
+      let result = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted]');
+      for (const value of [ownerName, ...list(owner.allowedContacts).map(item => scalar(obj(item).value))].filter(Boolean)) result = result.split(value).join('[redacted]');
+      return result.replace(/\+\d[\d ().-]{7,}\d/g, '[redacted]');
+    };
+    model.property.notes = model.property.notes.map(redact);
+    model.property.title = redact(model.property.title);
+    if (model.executive) model.executive.thesis.text = redact(model.executive.thesis.text);
+    for (const section of model.sections) {
+      if (section.text) section.text = redact(section.text);
+      section.items?.forEach(item => { item.text = redact(item.text); });
+      section.rows?.forEach(row => { row.value = redact(row.value); });
+      if (section.hero) section.hero.qualification = redact(section.hero.qualification);
+    }
   }
   return model;
 }

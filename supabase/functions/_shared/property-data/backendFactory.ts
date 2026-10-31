@@ -1,3 +1,4 @@
+import {createProviderTrace,type ProviderTrace} from './providerTrace.ts';
 import {
   SupabasePropertyIntelligenceCache,
   type PropertyIntelligenceRpcClient,
@@ -42,15 +43,15 @@ export type PropertyEvidenceBackendClient = PropertyIntelligenceRpcClient
   & PropertyDataUsageRpcClient
   & PropertyEvidenceTableClient;
 
-type ProviderBudgetContext = { userId: string; propertyId: string; plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket };
+type ProviderBudgetContext = { userId: string; propertyId: string; plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket; trace?: ProviderTrace };
 
-function usageGuard(options: { supabaseAdmin: PropertyEvidenceBackendClient; getEnv: (name: string) => string | undefined; context?: ProviderBudgetContext }) {
+function usageGuard(options: { supabaseAdmin: PropertyEvidenceBackendClient; getEnv: (name: string) => string | undefined; context?: ProviderBudgetContext; trace?: ProviderTrace }) {
   const config = readPropertyDataConfig(options.getEnv);
   const budget = options.context ? new SupabaseProviderBudgetManager(options.supabaseAdmin, {
     ...options.context,
     config: readProviderBudgetConfig(options.context.plan, options.getEnv),
   }) : null;
-  return new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit, budget);
+  return new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit, budget, options.context?.trace ?? options.trace ?? createProviderTrace({origin:options.context?'user':'system'}));
 }
 
 export function createBackendPropertyEvidenceService(options: {
@@ -59,11 +60,12 @@ export function createBackendPropertyEvidenceService(options: {
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
   providerBudgetContext?: ProviderBudgetContext;
+  providerTrace?: ProviderTrace;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   // Backend callers outside HTTP must also restrict mock to isolated tests.
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext, trace: options.providerTrace });
   const provider = createPropertyDataProvider({
     mode: config.mode,
     apiKey: config.apiKey,
@@ -91,10 +93,11 @@ export function createBackendValuationEvidenceService(options: {
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
   providerBudgetContext?: ProviderBudgetContext;
+  providerTrace?: ProviderTrace;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext, trace: options.providerTrace });
   return new ValuationEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     cache: new SupabaseValuationEvidenceCache(options.supabaseAdmin, options.getEnv('VALUATION_CACHE_TTL_HOURS')),
@@ -113,11 +116,12 @@ export function createBackendSoldEvidenceService(options: {
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
   providerBudgetContext?: ProviderBudgetContext;
+  providerTrace?: ProviderTrace;
   developmentPropertyType?: string;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext, trace: options.providerTrace });
   return new SoldEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     valuationCache: new SupabaseValuationEvidenceCache(options.supabaseAdmin, options.getEnv('VALUATION_CACHE_TTL_HOURS')),
@@ -138,10 +142,11 @@ export function createBackendSupplementalEvidenceService(options: {
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
   providerBudgetContext?: ProviderBudgetContext;
+  providerTrace?: ProviderTrace;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext, trace: options.providerTrace });
   return new SupplementalEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     cache: new SupabaseSupplementalEvidenceCache(options.supabaseAdmin),

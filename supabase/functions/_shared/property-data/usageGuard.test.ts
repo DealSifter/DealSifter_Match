@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryPropertyDataUsageGuard, normalizeRentCastHardLimit, SupabasePropertyDataUsageGuard } from './usageGuard.ts';
+import {createProviderTrace} from './providerTrace.ts';
 
 const NOW = new Date('2026-09-09T12:00:00.000Z');
 const row = (index: number, overrides: Record<string, unknown> = {}) => ({
@@ -71,10 +72,10 @@ describe('RentCast usage guard', () => {
         return { data: name.includes('reserve') ? 'reservation-id' : null, error: null };
       },
     };
-    const guard = new SupabasePropertyDataUsageGuard(client, 45);
+    const guard = new SupabasePropertyDataUsageGuard(client, 45, null, createProviderTrace({origin:'test'}));
     const reservation = await guard.reserve({ propertyId: null, userId: null });
     await guard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
     expect(calls[0]).toMatchObject({ name: 'ds_reserve_external_provider_usage', args: { p_provider: 'rentcast', p_hard_limit: 45 } });
-    expect(calls[1]).toMatchObject({ name: 'ds_finalize_external_provider_usage', args: { p_billable_success: true, p_http_status: 200 } });
+    expect(calls.find(call => call.name === 'ds_finalize_external_provider_usage')).toMatchObject({ name: 'ds_finalize_external_provider_usage', args: { p_billable_success: true, p_http_status: 200 } });
   });
 });

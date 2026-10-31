@@ -415,6 +415,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     } catch (e) { void e; return ''; }
   };
   const [emailComposeOpen, setEmailComposeOpen] = useState(false);
+  const [includeReleasePublisher, setIncludeReleasePublisher] = useState(false);
+  useEffect(() => setIncludeReleasePublisher(false), [item?.id]);
   const [activeEmailRecipient, setActiveEmailRecipient] = useState('');
   const [emailRecipients, setEmailRecipients] = useState(() => {
     try {
@@ -760,6 +762,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
 
 
   const generateReleasePdf = async ({ title, imageUrls }) => {
+    const reportTrace={reportId:crypto.randomUUID(),requestId:crypto.randomUUID()};
     const safeName = String(title || 'property-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
     const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 5);
     const reportImages = (await Promise.all(imageSources.map((source) => {
@@ -774,18 +777,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     }))).filter(Boolean);
     const baseProperty = { ...buildCurrentReportProperty({ images: reportImages }), address: item?.address || title };
     const [cachedOrAuthorizedEvidence,publicParcelEvidence] = isPropertyIntelligenceId(item?.id)
-      ? await Promise.all([fetchPropertyIntelligence(item.id).catch(() => null),fetchPropertyReportParcelEvidence(item.id,{acquire:true}).catch(() => null)]) : [null,null];
+      ? await Promise.all([fetchPropertyIntelligence(item.id,null,reportTrace).catch(() => null),fetchPropertyReportParcelEvidence(item.id,{acquire:true}).catch(() => null)]) : [null,null];
     const property = mergePropertyReleaseEvidence(baseProperty, cachedOrAuthorizedEvidence, publicParcelEvidence);
-    const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, property });
+    const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, property, reportTrace });
     const exportEntitlement = resolveReportExportEntitlement({
       plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, channel: 'PDF',
     });
     const reportLanguage = getSafeLang(getLang());
     await prepareReportNarrativePresentation(schema, reportLanguage);
-    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement, language: reportLanguage });
-    // L1 is a factual content tier, not a physical page limit. The shared
-    // containment renderer may preserve long notes on continuation pages.
-    if (rendered.state !== 'RENDERED' || !(rendered.document?.pageCount >= 1)) throw new Error('PROPERTY_RELEASE_RENDER_FAILED');
+    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement, language: reportLanguage, includePublisher:isOwnerUnlocked && includeReleasePublisher });
+    if (rendered.state !== 'RENDERED' || rendered.document?.pageCount !== 1) throw new Error('PROPERTY_RELEASE_RENDER_FAILED');
     const fileName = `${safeName || 'property_release'}.pdf`;
     if (!downloadMaxxisReportPdf(rendered.document, fileName)) throw new Error('PROPERTY_RELEASE_DOWNLOAD_FAILED');
     return fileName;
@@ -1122,6 +1123,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 }}
               />
 
+              {isOwnerUnlocked && exportMode ? <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:C.t1}}><input type="checkbox" checked={includeReleasePublisher} onChange={event=>setIncludeReleasePublisher(event.target.checked)} />{getSafeLang(getLang())==='pt'?'Incluir publicador e contatos autorizados no PDF':getSafeLang(getLang())==='es'?'Incluir publicador y contactos autorizados en el PDF':'Include publisher and authorized contacts in the PDF'}</label> : null}
               {exportError ? <div role="alert" style={{ fontSize: 12, color: C.t1, padding: 10, border: `1px solid ${C.border}`, borderRadius: 8 }}>{exportError}</div> : null}
 
               {exportMode === 'download' ? (

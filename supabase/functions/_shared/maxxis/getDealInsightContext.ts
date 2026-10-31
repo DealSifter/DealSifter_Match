@@ -1,3 +1,4 @@
+import {createProviderTrace,type ProviderTrace} from '../property-data/providerTrace.ts';
 import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 import { projectProviderListingReferences, projectSoldDelivery } from './reportMarketReferences.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -82,12 +83,14 @@ export async function getDealInsightContextForAuthenticatedUser(
   plan: ProviderBudgetPlan = 'FREE',
   languageInput: string = 'en',
   cacheOnly = false,
+  providerTrace?: ProviderTrace,
 ) {
   const validated = resolveDealInsightInput(input, contextPropertyId);
   const requestedReportType = validated.reportType;
   const maxxisAnalysisOnly = requestedReportType === 'MAXXIS_ANALYSIS';
   const reportRequested = maxxisAnalysisOnly || requestedReportType === 'DEAL_INTELLIGENCE';
   const budgetBucket = reportRequested ? 'report' : 'chat';
+  const trace = providerTrace ?? createProviderTrace({origin:'user',report:reportRequested});
   const providerAllowedByPlan = plan !== 'FREE';
   const propertyEvidenceAccess = resolvePropertyEvidenceAccess({ plan, maxxisAnalysisOnly, cacheOnly });
   // Level 2 and cache-only recomputations may consume existing evidence, but never purchase a refresh.
@@ -101,6 +104,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const propertyExecution = createProviderExecution(), valuationExecution = createProviderExecution(), soldExecution = createProviderExecution();
   const runtimeTrace = {
+    reportTrace: trace,
     reportType: reportRequested ? requestedReportType : 'CHAT',
     propertyEvidence: 'UNKNOWN',
     propertyEvidenceReason: 'NOT_REQUESTED',
@@ -169,7 +173,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
     const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
     const getEnv = (name: string) => Deno.env.get(name);
-    const providerBudgetContext = { userId, propertyId, plan, bucket: budgetBucket } as const;
+    const providerBudgetContext = { userId, propertyId, plan, bucket: budgetBucket, trace } as const;
     const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv, providerBudgetContext,
       fetchImpl: trackedProviderFetch(valuationExecution) });
     const soldService = createBackendSoldEvidenceService({
@@ -383,7 +387,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     loadPropertyEvidence: async (propertyId) => {
       const evidence = await getPropertyEvidenceForAuthenticatedUser(
         { propertyId }, authHeader, userId, propertyId, allowPropertyProvider,
-        propertyEvidenceAccess.cacheAuthorized ? { plan, bucket: budgetBucket } : undefined,
+        propertyEvidenceAccess.cacheAuthorized ? { plan, bucket: budgetBucket, trace } : undefined,
         propertyExecution,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
@@ -418,7 +422,7 @@ export async function getDealInsightContextForAuthenticatedUser(
       const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
       const supplementalService = createBackendSupplementalEvidenceService({
         supabaseAdmin: admin, getEnv: (name) => Deno.env.get(name),
-        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket },
+        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket, trace },
       });
       // MarketRentService owns report acquisition and its subject fingerprint.
       // Do not purchase a second address-only estimate in the generic bundle.
@@ -474,7 +478,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     const families = [undefined, ...(['SFR', 'TOWNHOUSE', 'CONDO'].includes(product) ? [product === 'SFR' ? product : product[0] + product.slice(1).toLowerCase()] : [])];
     for (const developmentPropertyType of families) {
       const service = createBackendSoldEvidenceService({ supabaseAdmin: admin, getEnv: name => Deno.env.get(name),
-        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket }, developmentPropertyType });
+        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket, trace }, developmentPropertyType });
       try {
         const cached = await service.getCachedSoldEvidence({ propertyId: validated.propertyId, userId });
         const sold = cached || (!cacheOnly && activeProviderEvidencePlan.families.RECORDED_SOLD.providerCallAllowed
@@ -595,6 +599,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerMarketContext,
   } : null;
   const intelligenceSnapshotBase = {
+    reportTrace: trace,
     evidenceReasons: {
       propertyRecord: result.evidence.state === 'available' ? null
         : evidenceAbsenceReason(runtimeTrace.propertyEvidenceReason,

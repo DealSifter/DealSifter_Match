@@ -35,6 +35,8 @@ export interface ReportSection {
   continuationPolicy: 'SAME_SECTION';
 }
 export interface ReportViewModel {
+  completion?: 'COMPLETE' | 'PARTIAL' | 'PRELIMINARY';
+  sourceRows?: ReportRow[];
   indicatorReasons?: Record<string, EvidenceAbsenceReason | null>;
   type: 'strict_report_view_model';
   version: 'REPORT_PROJECTION_V3';

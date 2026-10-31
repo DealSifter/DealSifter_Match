@@ -1,3 +1,4 @@
+import { getReportPublisherDisclosure } from './reportPublisherDisclosure';
 import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline';
 import notoSansRegular from '../../../assets/maxxis/fonts/NotoSans-Regular.ttf?inline';
 import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline';
@@ -30,12 +31,12 @@ function emitReportStage(stage, detail = {}) {
 const reportRenderCache = new WeakMap();
 
 export function renderMaxxisReportPdfCached(options = {}) {
-  const { schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null } = options;
+  const { schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null, includePublisher } = options;
   if (!schema || typeof schema !== 'object' || mapImageData || mapImages) return renderMaxxisReportPdf(options);
   const date = generatedAt ? new Date(generatedAt) : null;
   const dateKey = date && !Number.isNaN(date.getTime()) ? date.toISOString() : '';
   const entitlementKey = `${exportEntitlement?.reportType || ''}:${exportEntitlement?.channel || ''}:${exportEntitlement?.state || ''}:${Boolean(exportEntitlement?.allowed)}`;
-  const cacheKey = `${language}:${dateKey}:${entitlementKey}:${reportNarrativeCacheKey(schema, language)}`;
+  const cacheKey = `${getReportPublisherDisclosure(schema, includePublisher)}:${language}:${dateKey}:${entitlementKey}:${reportNarrativeCacheKey(schema, language)}`;
   let entries = reportRenderCache.get(schema);
   if (!entries) {
     entries = new Map();
@@ -73,13 +74,13 @@ export function downloadMaxxisReportPdf(document, fileName = 'maxxis-report.pdf'
 
 
 
-export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null } = {}) {
+export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null, mapImages = null, includePublisher } = {}) {
   const startedAt = performanceNow();
   emitReportStage('pdf_generation_start');
   await yieldReportRendering();
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
-  const viewModel = buildStrictReportViewModel({ schema, language: prepared.document.language });
+  const viewModel = buildStrictReportViewModel({ schema, language: prepared.document.language, includePublisher });
   const validation = validateReportViewModel(viewModel);
   if (!validation.valid) return Object.freeze({ state: 'VALIDATION_FAILED', document: null, validation });
   const preparationMs = roundedMs(performanceNow() - startedAt);
@@ -87,6 +88,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const { jsPDF } = await import('jspdf');
   const moduleMs = roundedMs(performanceNow() - moduleStartedAt);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
+  if (schema.reportTrace) doc.setProperties({subject:`DealSifter report_id=${schema.reportTrace.reportId}; request_id=${schema.reportTrace.requestId}`});
   doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular.split(',')[1]);
   doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold.split(',')[1]);
   doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');

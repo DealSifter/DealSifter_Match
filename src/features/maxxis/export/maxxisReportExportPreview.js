@@ -14,7 +14,8 @@ export function buildMaxxisReportExportPreview({ schema, exportEntitlement, chan
   return Object.freeze({
     type: 'maxxis_report_export_preview', state: allowed ? 'READY_TO_CONFIRM' : 'AVAILABLE_WITH_UPGRADE',
     allowed, channel: normalizedChannel, reportType: reportType || null,
-    pages: allowed ? schema.pages.length : null,
+    pages: null,
+    maxPages: allowed ? schema.layoutPolicy?.maxPages ?? null : null,
     includedIntelligence: allowed ? INCLUDED[reportType] || Object.freeze([]) : Object.freeze([]),
     accessLevel: exportEntitlement?.accessLevel || 'FREE', reportPayload: null,
     confirmAction: allowed ? 'PREPARE_DOCUMENT' : null,

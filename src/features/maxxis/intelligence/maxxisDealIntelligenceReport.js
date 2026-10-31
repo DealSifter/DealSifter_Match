@@ -315,6 +315,7 @@ export function projectMaxxisDealIntelligenceResponse(result = {}, { reportPrope
   if (!report) return null;
   const property = mergeMaxxisReportProperty(evidenceProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
+    reportTrace:result?.data?.intelligenceSnapshot?.reportTrace || result?.data?.runtimeTrace?.reportTrace || null,
     reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: report,
     dealMetrics: result?.data?.metrics, structuredAnalysis,
   });

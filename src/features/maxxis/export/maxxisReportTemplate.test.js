@@ -111,9 +111,9 @@ describe('canonical PDF template behavior', () => {
   }, 30000);
 
   it.each([
-    ['en', 'PROPERTY RELEASE', 'Page 1 of 1', 'Mar 7, 2014'],
-    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 de 1', '07/03/2014'],
-    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 de 1', '07/03/2014'],
+    ['en', 'PROPERTY RELEASE', 'Page 1 / 1', 'Mar 7, 2014'],
+    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 / 1', '07/03/2014'],
+    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 / 1', '07/03/2014'],
   ])('renders factual Basic in %s as one stable A4 page', async (language, title, pageLabel, saleDate) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');
@@ -123,8 +123,8 @@ describe('canonical PDF template behavior', () => {
     expect(pages[0].height).toBeCloseTo(841.89, 1);
     expect(pages[0].text).toContain(title);
     expect(pages[0].text).toContain('1200 Fictional Street');
-    expect(pages[0].text).toContain('+1 205 378 0355');
-    expect(pages[0].text.replace(/\s/g, '')).toContain('owner.full.address@example.com');
+    expect(pages[0].text).not.toContain('+1 205 378 0355');
+    expect(pages[0].text.replace(/\s/g, '')).not.toContain('owner.full.address@example.com');
     expect(pages[0].text).toContain(saleDate);
     expect(result.document.cover.generatedAt).toBe('2026-09-21T22:45:00.000Z');
     expect(pages[0].text).toContain(pageLabel);
@@ -170,7 +170,7 @@ describe('canonical PDF template behavior', () => {
     const pages = await pdfPages(result);
     expect(pages.length).toBeLessThanOrEqual(3);
     const content = pages.map(page => page.text).join(' ');
-    expect(content).toContain('Sample Owner');
+    expect(content).not.toContain('Sample Owner');
     expect(content).toContain('2004');
     expect(content).not.toContain('74%');
     expect(content).toContain('Investment Profile not configured or unavailable.');

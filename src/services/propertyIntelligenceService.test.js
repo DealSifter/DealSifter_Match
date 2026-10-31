@@ -19,6 +19,12 @@ describe('Property Intelligence frontend service', () => {
     const invoke = vi.fn().mockResolvedValue({ data: { fields: { assessedValue: 500000 } }, error: null });
     await expect(fetchPropertyIntelligence(PROPERTY_ID, invoke)).rejects.toThrow('PROPERTY_INTELLIGENCE_UNAVAILABLE');
   });
+  it('sends only correlation IDs for an explicit report and never a client origin', async () => {
+    const invoke = vi.fn().mockResolvedValue({data:{success:true,state:'unlocked'},error:null});
+    const reportTrace={reportId:'00000000-0000-4000-8000-000000000013',requestId:'00000000-0000-4000-8000-000000000014',origin:'validation'};
+    await fetchPropertyIntelligence(PROPERTY_ID,invoke,reportTrace);
+    expect(invoke).toHaveBeenCalledWith({propertyId:PROPERTY_ID,reportTrace:{reportId:reportTrace.reportId,requestId:reportTrace.requestId}});
+  });
 
   it('deduplicates concurrent StrictMode requests for the same property', async () => {
     let release;

@@ -1,0 +1,47 @@
+﻿{
+    "cutoff":  "2026-10-31T05:22:16.8329274Z",
+    "history":  [
+                    {
+                        "ledger":  "budget",
+                        "rows":  104,
+                        "digest":  "e91a6482174bf253d4533a901f357d6e",
+                        "labeled_rows":  0
+                    },
+                    {
+                        "ledger":  "external",
+                        "rows":  75,
+                        "digest":  "420b0f619436810d83ed76801b78af75",
+                        "labeled_rows":  0
+                    }
+                ],
+    "rules":  {
+                  "rls":  [
+                              {
+                                  "relname":  "external_provider_usage",
+                                  "relrowsecurity":  true
+                              },
+                              {
+                                  "relname":  "maxxis_provider_budget_usage",
+                                  "relrowsecurity":  true
+                              }
+                          ],
+                  "guards":  [
+                                 {
+                                     "proname":  "ds_finalize_external_provider_usage",
+                                     "digest":  "7eb4786a76f8263e46332fa50f6b7dea"
+                                 },
+                                 {
+                                     "proname":  "ds_finalize_maxxis_provider_budget",
+                                     "digest":  "9512c60e215d9fdd9e9b3c40534e24ad"
+                                 },
+                                 {
+                                     "proname":  "ds_reserve_external_provider_usage",
+                                     "digest":  "6bb6fe0f75bb99066d8f25a7cc4449f4"
+                                 },
+                                 {
+                                     "proname":  "ds_reserve_maxxis_provider_budget",
+                                     "digest":  "4564970e9ec3d9f92ead12d5799f171a"
+                                 }
+                             ]
+              }
+}

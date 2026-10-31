@@ -1087,7 +1087,7 @@ Deno.serve(async (req) => {
           toolName,
           functionArgs,
           req.headers.get('Authorization') || '',
-          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
+          { requestId, propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
             language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
         );
       } catch (error) {
