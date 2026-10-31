@@ -28,7 +28,7 @@ describe('R4 content and privacy contract', () => {
     const blocks = composeReportContent(model('sparse')), pending = blocks.filter(b => b.id === 'report-pending');
     expect(pending).toHaveLength(1); expect(pending[0].columns).toEqual(['Indicator', 'Reason', 'Required action']);
     expect(pending[0].table!.every(row => row.length === 3 && row.every(Boolean))).toBe(true);
-    expect(blocks.some(block => /readiness|pending/.test(block.id) && block.id !== 'report-pending')).toBe(false);
+    expect(blocks.some(block => /readiness|pending/.test(block.id) && block.id !== 'report-pending' && !['profile-readiness', 'opportunity-readiness'].includes(block.id))).toBe(false);
   });
   it('deduplicates repeated narrative and photos by content', () => {
     const vm = model(); vm.property.photos = ['data:image/png;base64,AA', 'data:image/png;base64,AA'];
@@ -66,9 +66,9 @@ describe('R4 content and privacy contract', () => {
   });
   it('labels preliminary evidence and keeps a single source/date block', () => {
     const vm = model('partial'), blocks = composeReportContent(vm);
-    expect(vm.completion).toBe('PRELIMINARY'); expect(blocks.find(b => b.id === 'arv-market')!.title).toContain('Preliminary');
+    expect(vm.completion).toBe('PARTIAL'); expect(blocks.find(b => b.id === 'arv-market')!.title).toContain('Preliminary');
     expect(blocks.filter(b => b.id === 'report-sources')).toHaveLength(1);
-    expect(JSON.stringify(blocks.find(b => b.id === 'report-sources'))).toContain('2026-10-30');
+    expect(JSON.stringify(blocks.find(b => b.id === 'report-sources'))).toContain('Oct 30, 2026');
     expect(JSON.stringify(blocks.find(b => b.id === 'report-sources'))).toContain('Comparable sales');
     expect(model('sparse').disclaimer).not.toContain('GIS'); expect(model('rich').disclaimer).toContain('GIS');
   });

@@ -1,11 +1,24 @@
 import type { ReportViewModel, ReportSection, ReportRow, ReportMapPoint } from './reportIntegrityTypes';
 import { evidenceAbsenceCopy } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
+import { buildReportReadingPlan, type ReadingSection } from './reportReadingPlan';
 
 export const REPORT_INTERNAL_JARGON = /\b(?:SOLD|AVM|gates?|structural candidates|normalized)\b|not requested in this flow/i;
+export const REPORT_RAW_ISO = /\b\d{4}-\d{2}-\d{2}(?:T[\d:.]+Z?)?\b/g;
+export const REPORT_INTERNAL_LABELS = /(?:Limitation and impact|Next verification|Reason|Unlocks)\s*:/gi;
+export function readableReportDate(value: string, locale = 'en'): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date);
+}
+export function reportCompletion(facts: { externalAccepted: boolean; hasValue: boolean; mainArv: boolean; calculatedFinancials: boolean; blocking: boolean }): NonNullable<ReportViewModel['completion']> {
+  if (!facts.externalAccepted || !facts.hasValue) return 'PRELIMINARY';
+  return facts.mainArv && facts.calculatedFinancials && !facts.blocking ? 'COMPLETE' : 'PARTIAL';
+}
 export const contentKey = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 export function reportReaderText(value: string, locale = 'en'): string {
   const pt = locale === 'pt', es = locale === 'es';
-  return value.replace(/not requested in this flow/gi, pt ? 'Não consultado neste relatório' : es ? 'No consultado en este informe' : 'Not consulted for this report')
+  return value.replace(REPORT_RAW_ISO, date => readableReportDate(date, locale))
+    .replace(/(?:Limitation and impact|Next verification|Reason|Unlocks|Limitação e impacto|Próxima verificação|Motivo|Desbloqueia|Limitación e impacto|Habilita)\s*:\s*/gi, '')
+    .replace(/not requested in this flow/gi, pt ? 'Não consultado neste relatório' : es ? 'No consultado en este informe' : 'Not consulted for this report')
     .replace(/structural candidates/gi, pt ? 'vendas em análise' : es ? 'ventas en revisión' : 'sales under review')
     .replace(/\bSOLDs?\b/gi, pt ? 'vendas registradas' : es ? 'ventas registradas' : 'recorded sales')
     .replace(/\bAVM\b/gi, pt ? 'estimativa automatizada' : es ? 'estimación automatizada' : 'automated estimate')
@@ -13,6 +26,7 @@ export function reportReaderText(value: string, locale = 'en'): string {
     .replace(/\bnormalized\b/gi, pt ? 'organizados' : es ? 'organizados' : 'organized').replace(/…/g, '.');
 }
 export interface ContentBlock {
+  readingSection?: ReadingSection; assertionIds?: string[]; afterText?: string;
   id: string; title: string; kind: 'overview' | 'text' | 'facts' | 'table' | 'map' | 'photos' | 'disclaimer';
   text?: string; rows?: ReportRow[]; columns?: string[]; table?: string[][]; photos?: string[];
   map?: { points: ReportMapPoint[]; caption: string; sourceId?: string }; score?: number;
@@ -21,7 +35,7 @@ const empty = (text: string) => !text || /^(?:—|-|unavailable|não disponível
 const point = (p: ReportMapPoint) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Math.abs(p.latitude) <= 85 && Math.abs(p.longitude) <= 180;
 
 /** Display composition only. Never calculates financial outputs or acquires evidence. */
-export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
+function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
   const t = (pt: string, en: string, es: string) => vm.locale === 'pt' ? pt : vm.locale === 'es' ? es : en;
   const clean = (text: string) => reportReaderText(text, vm.locale);
   const blocks: ContentBlock[] = [], keys = new Map<string, ContentBlock>(), texts = new Set<string>(), fields = new Set<string>();
@@ -83,6 +97,18 @@ export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
   const tableSections = rawSections.filter(section => section.table?.rows.length);
   const mapped = tableSections.find(section => section.id === 'arv-market' && section.map) || tableSections.find(section => section.map);
   for (const section of rawSections) {
+    // The actionable list is built from the final residual gaps below, not from
+    // a historical/default verification checklist that may already be resolved.
+    if (section.id === 'next-actions') continue;
+    if (['profile-readiness', 'opportunity-readiness'].includes(section.id)) {
+      const text = uniqueText(section.text || (section.rows || []).map(row => row.value).join(' '));
+      if (text) add({ id: section.id, title: section.title, kind: 'text', text });
+      continue;
+    }
+    if (section.id === 'strategy-cost-basis' && !(section.rows || []).some(row => !empty(row.value)
+      && !['UNAVAILABLE', 'NOT_APPLICABLE', 'CONFLICTED'].includes(row.state || '')
+      && !(row.value === vm.property.price && /^(asking price|price|preço pedido|precio solicitado)$/i.test(row.label))
+      && !fields.has(contentKey(`${clean(row.label)}:${clean(row.value)}`)))) continue;
     if (/readiness/.test(section.id) && section.status === 'available') continue;
     if (section.status === 'blocked' || /readiness|pending|price-positioning/.test(section.id)) {
       const correspondingIndicator = /rent/.test(section.id) ? 'marketRent' : /financial|operating/.test(section.id) ? 'noi' : /value|condition|price-position/.test(section.id) ? 'arv' : '';
@@ -92,9 +118,10 @@ export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
       if (reason && ![...pending.values()].some(item => contentKey(item.reason) === contentKey(reason))) pending.set(section.id, { label: clean(section.title), reason, action });
       continue;
     }
-    const paragraphs = [section.text, section.hero ? `${section.hero.label}: ${section.hero.value}\n${section.hero.qualification}` : '', ...(section.items || []).map(item => item.text)].filter(Boolean).map(text => uniqueText(text!)).filter(Boolean);
+    const items = section.id === 'next-actions' ? (section.items || []).filter((item, index, all) => all.findIndex(other => contentKey(other.text.split('\n')[0]) === contentKey(item.text.split('\n')[0])) === index).slice(0, 3) : section.items || [];
+    const paragraphs = [section.hero ? `${section.hero.value} · ${section.hero.label}\n${section.hero.qualification}` : '', section.text, ...items.map(item => item.text)].filter(Boolean).map(text => uniqueText(text!)).filter(Boolean);
     if (paragraphs.length) add({ id: section.id, title: section.title, kind: 'text', text: paragraphs.join('\n\n') });
-    if (section.rows?.length) rowGroup(`${section.id}-facts`, section.title, section.rows.filter(row => !section.gauge || row.label !== 'Match Score'));
+    if (section.rows?.length) rowGroup(`${section.id}-facts`, section.title, section.rows.filter(row => (!section.gauge || row.label !== 'Match Score') && !(section.id === 'market-rent' && /subject.*(?:bed|bath|area)|imóvel.*(?:quarto|banheiro|área)/i.test(row.label))));
     if (section.gauge) {
       const text = `${clean(section.gauge.label)}: ${section.gauge.value}%\n${t('O resultado total pondera vários critérios; um critério isolado pode ter nota zero sem tornar o total zero.', 'The total weights several criteria; one criterion can score zero without making the total zero.', 'El total pondera varios criterios; un criterio puede tener cero sin que el total sea cero.')}`;
       add({ id: `${section.id}-score`, title: section.title, kind: 'text', text, score: section.gauge.value });
@@ -125,11 +152,22 @@ export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
   // Put unresolved inputs beside the property context, before the analytical evidence.
   // This also keeps a large actionable table from stranding small blocks on earlier pages.
   if (pending.size) blocks.splice(pendingPosition, 0, blocks.pop()!);
+  const actionKeys = new Set<string>();
+  const nextChecks = [...groupedPending.values()].filter(item => {
+    const key = contentKey(item.action);
+    if (actionKeys.has(key)) return false;
+    actionKeys.add(key); return true;
+  }).slice(0, 3);
+  if (nextChecks.length) add({ id: 'next-actions', title: t('Próximas verificações prioritárias', 'Prioritized next checks', 'Próximas verificaciones prioritarias'), kind: 'text', text: nextChecks.map(item => `${item.labels.join(', ')}. ${item.action}`).join('\n\n') });
   const sources = vm.sourceRows || [];
-  add(sources.length ? { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'facts', rows: sources }
+  add(sources.length ? { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'facts', rows: sources.map(row => ({ ...row, value: clean(row.value) })) }
     : { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'text', text: t('Nenhum dado externo foi obtido para este relatório. O nível do relatório não comprova consulta a uma fonte externa.', 'No external data was obtained for this report. The report level does not establish that an external source was queried.', 'No se obtuvieron datos externos para este informe. El nivel no acredita una consulta a una fuente externa.') });
   add({ id: 'report-disclaimer', title: t('Ressalva', 'Important qualification', 'Advertencia'), kind: 'disclaimer', text: clean(vm.disclaimer) });
   return blocks;
+}
+
+export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
+  return buildReportReadingPlan(vm, composeRawReportContent(vm));
 }
 
 /** Source metadata only, with no addresses, publisher details or raw payloads. */
@@ -145,7 +183,7 @@ export function reportSourceRows(schema: unknown, locale: string): ReportRow[] {
     const date = typeof row.retrievedAt === 'string' ? row.retrievedAt : inheritedDate;
     if (source && !Array.isArray(value)) {
       const field = typeof row.field === 'string' && labels[row.field] ? row.field : [...path].reverse().find(key => labels[key]);
-      if (field) { const key = `${source} · ${date && !Number.isNaN(Date.parse(date)) ? new Date(date).toISOString() : locale === 'pt' ? 'Data de consulta não registrada' : 'Retrieval date not recorded'}`;
+      if (field) { const key = `${source} · ${date && !Number.isNaN(Date.parse(date)) ? readableReportDate(date, locale) : locale === 'pt' ? 'Data de consulta não registrada' : 'Retrieval date not recorded'}`;
         const names = groups.get(key) || new Set<string>(); names.add(labels[field]); groups.set(key, names); }
     }
     for (const [key, child] of Object.entries(row)) if (!/owner|contact|publisher|description|notes|name/i.test(key)) walk(child, [...path, key], date, source, depth + 1);

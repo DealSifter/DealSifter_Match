@@ -1,0 +1,38 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 268.64,
+      "height": 74,
+      "right": 294.64,
+      "bottom": 355
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 361,
+      "width": 543.28,
+      "height": 24,
+      "right": 569.28,
+      "bottom": 385
+    }
+  }
+]

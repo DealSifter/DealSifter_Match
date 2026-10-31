@@ -94,18 +94,22 @@ export class ReportBrandShell {
     this.d.roundedRect(14, 9, 567.28, 66, 10, 10, 'F');
     this.brand(34, 9 + 66 / 2);
     this.text(this.enterprise ? 'Maxxis Deal Intelligence Report' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'Maxxis Analysis Report' : this.vm.header.product, { x: 220, y: 24, w: 264, h: 20 }, 'headerProduct', 9, true, WHITE);
-    this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 220, y: 47, w: 264, h: 16 }, 'headerSubtitle', 7.5, false, WHITE);
+    const firstPage = this.flow.pages.length === 1;
+    if (firstPage) this.text(this.t('Análise inteligente do imóvel', 'Intelligent property analysis', 'Análisis inteligente del inmueble'), { x: 220, y: 47, w: 264, h: 16 }, 'headerSubtitle', 7.5, false, WHITE);
     this.d.setFillColor(...this.accent);
     this.d.roundedRect(494, 23, 70, 25, 4, 4, 'F');
     this.text(this.enterprise ? 'ENTERPRISE' : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'Basic', { x: 500, y: 29, w: 60, h: 16 }, 'headerPlan', this.enterprise ? 8 : 9, true, this.enterprise ? INK : WHITE);
-    this.d.setFillColor(...WHITE); this.d.roundedRect(14, 70, 567.28, 54, 10, 10, 'F');
-    this.icon(icon, X + 3, 85, 23, this.accent);
-    this.text(title, { x: X + 35, y: 84, w: WIDTH - 158, h: 24 }, 'headerPageTitle', 16, true, INK);
-    this.text(subtitle, { x: X + 35, y: 107, w: WIDTH - 35, h: 18 }, 'headerPageSubtitle', 9, false, BODY);
+    if (firstPage) {
+      this.d.setFillColor(...WHITE); this.d.roundedRect(14, 70, 567.28, 54, 10, 10, 'F');
+      this.icon(icon, X + 3, 85, 23, this.accent);
+      this.text(title, { x: X + 35, y: 84, w: WIDTH - 158, h: 24 }, 'headerPageTitle', 16, true, INK);
+      this.text(subtitle, { x: X + 35, y: 107, w: WIDTH - 35, h: 18 }, 'headerPageSubtitle', 9, false, BODY);
+    }
     const state = this.vm.completion || 'PARTIAL';
     const label = state === 'COMPLETE' ? this.t('Completo', 'Complete', 'Completo') : state === 'PRELIMINARY' ? this.t('Preliminar', 'Preliminary', 'Preliminar') : this.t('Parcial', 'Partial', 'Parcial');
-    this.d.setFillColor(255, 247, 224); this.d.roundedRect(456, 84, 108, 23, 5, 5, 'F');
-    this.text(label, { x: 466, y: 90, w: 90, h: 16 }, 'headerCompleteness', 9, true, INK);
-    this.flow.y = CONTENT_TOP;
+    const badgeY = firstPage ? 84 : 48;
+    this.d.setFillColor(255, 247, 224); this.d.roundedRect(456, badgeY, 108, 20, 5, 5, 'F');
+    this.text(label, { x: 466, y: badgeY + 3, w: 90, h: 16 }, 'headerCompleteness', 9, true, INK);
+    this.flow.y = firstPage ? CONTENT_TOP : 86;
   }
 }

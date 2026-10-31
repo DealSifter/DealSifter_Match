@@ -13,7 +13,7 @@ import type { MarketRentResult } from '../../../../supabase/functions/_shared/pr
 import { INVESTMENT_PRICE_RANGE_OPTIONS } from '../../../lib/investmentProfile';
 import { ARV_ELIGIBILITY_POLICY, arvEvidenceTier } from '../../../../supabase/functions/_shared/property-data/arvEligibilityPolicy';
 import { evidenceAbsenceReason, evidenceAbsenceCopy, type EvidenceAbsenceReason } from '../../../../supabase/functions/_shared/maxxis/evidenceAbsence';
-import { reportSourceRows } from './reportContentPlan';
+import { reportSourceRows, readableReportDate, reportCompletion } from './reportContentPlan';
 import { getReportPublisherDisclosure } from './reportPublisherDisclosure';
 
 type Input = Record<string, unknown>;
@@ -29,7 +29,7 @@ const finitePoint = (latitude: unknown, longitude: unknown): boolean => number(l
 export function formatReportDate(value: unknown, locale: ReportLocale): string {
   if (!scalar(value)) return '—';
   const date = new Date(scalar(value));
-  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(localeCode(locale), { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  return Number.isNaN(date.getTime()) ? '—' : readableReportDate(date.toISOString(), locale);
 }
 
 /** This scanner is the final guard, not the projection/label architecture. */
@@ -191,7 +191,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   factValue('sqft', 'sqft', true); factValue('lotSizeSqft', 'sqft', true); factValue('lotSizeAcres', 'acres', true);
   for (const key of ['rehab', 'annualPropertyTax', 'assessedValue', 'noi', 'latestSalePrice']) factValue(key, 'money');
   for (const key of ['assessorId', 'zoning', 'county', 'legalDescription', 'subdivision', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent']) factValue(key, 'text');
-  if (values.latestSaleDate.state === 'VALUE') { const date = new Date(values.latestSaleDate.text); if (!Number.isNaN(date.getTime())) values.latestSaleDate.text = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'pt-BR', { timeZone: 'UTC', year: 'numeric', month: locale === 'en' ? 'short' : '2-digit', day: locale === 'en' ? 'numeric' : '2-digit' }).format(date); }
+  if (values.latestSaleDate.state === 'VALUE') { const date = new Date(values.latestSaleDate.text); if (!Number.isNaN(date.getTime())) values.latestSaleDate.text = readableReportDate(date.toISOString(), locale); }
   const cap = factFor('capRate');
   // Stored rate must carry explicit origin; a historical zero cannot establish NOI.
   const rateProof = explicitZeroProof(cap) || /USER_PROVIDED|DECLARED|CONFIRMED/.test(`${scalar(cap.status)} ${scalar(cap.source)}`) && number(cap.value) !== 0;
@@ -391,7 +391,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
         rentSection.map = { points: mapPoints, caption: t('S: imóvel analisado; 1–5: os mesmos imóveis da tabela. Visão relativa por coordenadas, não mapa cadastral.', 'S: subject; 1–5: the same rentals shown in the table. Coordinate-derived relative view, not a cadastral map.', 'S: inmueble analizado; 1–5: los mismos alquileres de la tabla. Vista relativa por coordenadas, no mapa catastral.') + (mapPoints.length < comps.length + 1 ? ` ${rentCopy.missing}` : '') };
       } else rentSection.text = rentCopy.noComps;
       const retrievedAt = scalar(rentalView.retrievedAt), date = new Date(retrievedAt);
-      rows.push({ label: t('Fonte e atualidade', 'Source and freshness', 'Fuente y actualidad'), value: `RentCast${Number.isNaN(date.getTime()) ? '' : ` · ${rentCopy.retrieved}: ${new Intl.DateTimeFormat(localeCode(locale), { timeZone: 'UTC' }).format(date)}`}${rentalView.freshness === 'STALE_USABLE' ? ` · ${rentCopy.stale}` : ''}`, evidenceRefs: [ref] });
+      rows.push({ label: t('Fonte e atualidade', 'Source and freshness', 'Fuente y actualidad'), value: `RentCast${Number.isNaN(date.getTime()) ? '' : ` · ${rentCopy.retrieved}: ${readableReportDate(date.toISOString(), locale)}`}${rentalView.freshness === 'STALE_USABLE' ? ` · ${rentCopy.stale}` : ''}`, evidenceRefs: [ref] });
       rentSection.rows = rows;
     }
     resultSections.push(rentSection);
@@ -607,7 +607,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     if (rental && rentAmount === null) gap('rent-readiness', marketRentReportCopy(locale).title,
       t('Não há estimativa utilizável neste relatório; isso não demonstra ausência de dados no mercado.', 'This report has no usable estimate; this does not establish that market data is absent.', 'Este informe no tiene estimación utilizable; no demuestra ausencia de datos en el mercado.'),
       t('Consultar aluguel de mercado pelo fluxo autorizado e confirmar o contrato separadamente.', 'Check market rent through the authorized workflow and confirm the lease separately.', 'Consultar alquiler de mercado por el flujo autorizado y confirmar el contrato por separado.'));
-    if (!land) gap('condition-readiness', t('Condição e reforma', 'Condition and rehabilitation', 'Condición y reforma'),
+    if (!land && !usableArv) gap('condition-readiness', t('Condição e reforma', 'Condition and rehabilitation', 'Condición y reforma'),
       known('rehab') ? t(`Reforma informada: ${values.rehab.text}. O valor não comprova escopo ou condição.`, `Reported rehabilitation: ${values.rehab.text}. The amount does not establish scope or condition.`, `Reforma informada: ${values.rehab.text}. El importe no demuestra alcance ni condición.`)
         : t('Escopo e custo de reforma não confirmados; não se presume custo zero.', 'Rehabilitation scope and cost are unconfirmed; zero cost is not presumed.', 'Alcance y costo de reforma no confirmados; no se presume costo cero.'),
       t('Conferir inspeção, escopo e orçamento para testar a estratégia.', 'Review inspection, scope and quote to test the strategy.', 'Revisar inspección, alcance y presupuesto para evaluar la estrategia.'));
@@ -763,8 +763,27 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   }
   model.sourceRows = reportSourceRows(input, locale);
   const readiness = obj(presentation.financialReadiness), matrixReady = /^READY_/.test(scalar(readiness.readinessLevel));
-  const expectedGaps = Object.entries(indicatorReasons).some(([key, reason]) => reason && reason !== 'NOT_REQUESTED' && ['propertyRecord', 'marketRent', 'arv', 'noi'].includes(key));
-  model.completion = preliminaryArv ? 'PRELIMINARY' : level === 1 && known('price') && known('beds') && known('baths') || matrixReady && !expectedGaps ? 'COMPLETE' : 'PARTIAL';
+  const expectedGaps = Object.entries(indicatorReasons).some(([key, reason]) => reason && reason !== 'NOT_REQUESTED' && ['propertyRecord', 'marketRent', 'arv', 'noi', 'capRate', 'roi', 'cashFlow'].includes(key));
+  const externalAccepted = !upstreamReasons.propertyRecord && (publicCount > 0 || list(evidence.verifiedRecords).map(obj).some(record => record.value != null && !/REJECTED|QUARANTINED|CONFLICT/.test(scalar(record.status))));
+  const hasValue = usableArv || providerEstimate !== null;
+  const calculatedFinancials = matrixReady && ['noi', 'capRate'].every(key => {
+    const value = values[key], fact = factFor(key);
+    const calculationRecorded = /CALCULAT/.test(`${scalar(fact.source)} ${scalar(fact.sourceType)} ${scalar(fact.sourceFamily)}`)
+      || value?.evidenceRefs.some(ref => ref.startsWith('calculation:'));
+    return value?.numericValue !== null && value?.numericValue !== undefined && calculationRecorded;
+  });
+  const blocking = expectedGaps || blockers.length > 0 || resultSections.some(section => section.status === 'blocked' && !['profile-readiness', 'opportunity-readiness'].includes(section.id));
+  model.completion = reportCompletion({ externalAccepted, hasValue, mainArv: usableArv && !preliminaryArv, calculatedFinancials, blocking });
+  model.completionBasis = { externalAccepted, hasValue, mainArv: usableArv && !preliminaryArv, calculatedFinancials, blocking };
+  // Completeness describes the promised tier, not the existence of higher-tier queries.
+  const identityReady = !!identityAddress && known('price') && !!typeToken;
+  const cardReady = identityReady && (land ? known('lotSizeSqft') || known('lotSizeAcres') : ['beds', 'baths', 'sqft'].every(known)) && !conflictCount;
+  if (level === 1) model.completion = cardReady ? 'COMPLETE' : identityReady ? 'PARTIAL' : 'PRELIMINARY';
+  if (level === 2) {
+    const profileReady = resultSections.some(section => section.id === 'profile-fit');
+    const scopedReady = cardReady && profileReady && !conflictCount && (land || rentAmount !== null && matrixReady);
+    model.completion = scopedReady ? 'COMPLETE' : identityReady ? 'PARTIAL' : 'PRELIMINARY';
+  }
   const hasParcel = ['assessorId', 'zoning', 'legalDescription'].some(known);
   if (!hasParcel) model.disclaimer = model.disclaimer.split(/ Registros GIS| GIS records| Los registros GIS/)[0];
   if (!disclosePublisher) {

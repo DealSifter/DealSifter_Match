@@ -1,0 +1,86 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 268.64,
+      "height": 129,
+      "right": 294.64,
+      "bottom": 410
+    }
+  },
+  {
+    "id": "property-photos",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 281,
+      "width": 268.64,
+      "height": 111,
+      "right": 569.28,
+      "bottom": 392
+    }
+  },
+  {
+    "id": "property-notes",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 398,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 472
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 416,
+      "width": 268.64,
+      "height": 65,
+      "right": 294.64,
+      "bottom": 481
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 478,
+      "width": 268.64,
+      "height": 52,
+      "right": 569.28,
+      "bottom": 530
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 536,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 572
+    }
+  }
+]

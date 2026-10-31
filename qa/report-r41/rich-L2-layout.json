@@ -1,0 +1,194 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "operating-evidence-facts",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 268.64,
+      "height": 172,
+      "right": 294.64,
+      "bottom": 453
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 281,
+      "width": 268.64,
+      "height": 112,
+      "right": 569.28,
+      "bottom": 393
+    }
+  },
+  {
+    "id": "property-photos",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 399,
+      "width": 268.64,
+      "height": 111,
+      "right": 569.28,
+      "bottom": 510
+    }
+  },
+  {
+    "id": "profile-fit-score",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 459,
+      "width": 268.64,
+      "height": 103,
+      "right": 294.64,
+      "bottom": 562
+    }
+  },
+  {
+    "id": "investor-profile",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 516,
+      "width": 268.64,
+      "height": 95,
+      "right": 569.28,
+      "bottom": 611
+    }
+  },
+  {
+    "id": "executive-thesis",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 568,
+      "width": 268.64,
+      "height": 74,
+      "right": 294.64,
+      "bottom": 642
+    }
+  },
+  {
+    "id": "property-notes",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 617,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 691
+    }
+  },
+  {
+    "id": "property-metrics",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 648,
+      "width": 268.64,
+      "height": 69,
+      "right": 294.64,
+      "bottom": 717
+    }
+  },
+  {
+    "id": "profile-criteria-facts",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 697,
+      "width": 268.64,
+      "height": 69,
+      "right": 569.28,
+      "bottom": 766
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 723,
+      "width": 268.64,
+      "height": 65,
+      "right": 294.64,
+      "bottom": 788
+    }
+  },
+  {
+    "id": "market-rent",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 86,
+      "width": 268.64,
+      "height": 61,
+      "right": 294.64,
+      "bottom": 147
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 86,
+      "width": 268.64,
+      "height": 52,
+      "right": 569.28,
+      "bottom": 138
+    }
+  },
+  {
+    "id": "property-group-2",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 144,
+      "width": 268.64,
+      "height": 52,
+      "right": 569.28,
+      "bottom": 196
+    }
+  },
+  {
+    "id": "risk-considerations",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 153,
+      "width": 268.64,
+      "height": 48,
+      "right": 294.64,
+      "bottom": 201
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 207,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 243
+    }
+  }
+]

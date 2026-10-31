@@ -1,0 +1,163 @@
+{
+  "areaDefinition": "Unused two-dimensional body area, union of measured content boxes; header/footer excluded.",
+  "metrics": [
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "rich-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        40.3
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "rich-L2",
+      "pages": 2,
+      "emptyBodyPercent": [
+        7.3,
+        79.9
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PARTIAL",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "rich-L3",
+      "pages": 2,
+      "emptyBodyPercent": [
+        4.3,
+        9.9
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "partial-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        48.6
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "partial-L2",
+      "pages": 2,
+      "emptyBodyPercent": [
+        8.6,
+        70.5
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PARTIAL",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "partial-L3",
+      "pages": 2,
+      "emptyBodyPercent": [
+        7.5,
+        18
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 1
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "sparse-L1",
+      "pages": 1,
+      "emptyBodyPercent": [
+        68.8
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "sparse-L2",
+      "pages": 1,
+      "emptyBodyPercent": [
+        18.9
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    },
+    {
+      "completion": "PRELIMINARY",
+      "rawIso": 0,
+      "internalLabels": 0,
+      "finalOrphan": 0,
+      "repeatedTitles": 0,
+      "fixture": "sparse-L3",
+      "pages": 2,
+      "emptyBodyPercent": [
+        9.4,
+        93.2
+      ],
+      "duplicateBlocks": 0,
+      "ellipses": 0,
+      "jargon": 0,
+      "pii": false,
+      "maps": 0
+    }
+  ]
+}

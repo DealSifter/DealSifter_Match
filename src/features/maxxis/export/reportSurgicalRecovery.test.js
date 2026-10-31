@@ -39,7 +39,7 @@ describe('surgical report recovery',()=>{
   expect(model.sections.find(s=>s.id==='investor-profile')).toBeDefined();
  });
  it('formats source dates without changing the timestamp',()=>{
-  const raw='2026-07-10T00:00:00.000Z';expect(formatReportDate(raw,'pt')).toBe('10/07/2026');expect(raw).toContain('T00:00');
+  const raw='2026-07-10T00:00:00.000Z';expect(formatReportDate(raw,'pt')).toBe('10 de jul. de 2026');expect(raw).toContain('T00:00');
  });
  it('does not block residential rent on a lot-only dispute',()=>{
   expect(resolveRentAvmSubjectAttributes({property:{...property,beds:4,baths:2,sqft:1680},projections:{lotArea:{analyticalUsability:'CONFLICTED'}}}).state).toBe('READY');

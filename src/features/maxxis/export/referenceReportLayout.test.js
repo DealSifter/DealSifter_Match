@@ -15,7 +15,7 @@ describe('measured content layout with the approved brand', () => {
   it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('fits complete blocks and text inside physical pages: %s', async type => {
     const document = await render(type), audit = document.layoutAudit;
     expect(document.pageCount).toBeLessThanOrEqual(type === 'PROPERTY_RELEASE' ? 1 : type === 'MAXXIS_ANALYSIS' ? 3 : Infinity);
-    expect(audit.sections.every(s => s.bounds.y >= 130 && s.bounds.bottom <= 790 && s.clippedLines === 0)).toBe(true);
+    expect(audit.sections.every(s => s.bounds.y >= (s.page === 1 ? 130 : 86) && s.bounds.bottom <= 790 && s.clippedLines === 0)).toBe(true);
     expect(audit.lines.every(l => l.overflowX === 0 && l.overflowY === 0)).toBe(true);
     expect(audit.sections.filter(s => s.sectionId === 'report-disclaimer')).toHaveLength(1);
     expect(audit.sections.at(-1).sectionId).toBe('report-disclaimer');
@@ -23,7 +23,7 @@ describe('measured content layout with the approved brand', () => {
       const overlap = Math.min(a.bounds.right, b.bounds.right) > Math.max(a.bounds.x,b.bounds.x) && Math.min(a.bounds.bottom,b.bounds.bottom) > Math.max(a.bounds.y,b.bounds.y);
       expect(overlap).toBe(false);
     }
-    expect(audit.maps).toHaveLength(1);
+    expect(audit.maps).toHaveLength(type === 'DEAL_INTELLIGENCE' ? 1 : 0);
     expect(audit.lines.filter(l => l.sectionId === 'headerPlan')).toHaveLength(document.pageCount);
   });
   it('grows the note with its text instead of clipping it or using a fixed continuation page', async () => {

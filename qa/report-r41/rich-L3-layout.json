@@ -1,0 +1,242 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "report-pending",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 543.28,
+      "height": 82.5,
+      "right": 569.28,
+      "bottom": 363.5
+    }
+  },
+  {
+    "id": "sales-comparables-table",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 369.5,
+      "width": 543.28,
+      "height": 306.5,
+      "right": 569.28,
+      "bottom": 676
+    }
+  },
+  {
+    "id": "profile-fit-score",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 682,
+      "width": 268.64,
+      "height": 103,
+      "right": 294.64,
+      "bottom": 785
+    }
+  },
+  {
+    "id": "investor-profile",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 682,
+      "width": 268.64,
+      "height": 95,
+      "right": 569.28,
+      "bottom": 777
+    }
+  },
+  {
+    "id": "operating-evidence-facts",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 86,
+      "width": 268.64,
+      "height": 172,
+      "right": 294.64,
+      "bottom": 258
+    }
+  },
+  {
+    "id": "market-rent",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 86,
+      "width": 268.64,
+      "height": 147,
+      "right": 569.28,
+      "bottom": 233
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 239,
+      "width": 268.64,
+      "height": 112,
+      "right": 569.28,
+      "bottom": 351
+    }
+  },
+  {
+    "id": "property-photos",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 264,
+      "width": 268.64,
+      "height": 111,
+      "right": 294.64,
+      "bottom": 375
+    }
+  },
+  {
+    "id": "arv-market",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 357,
+      "width": 268.64,
+      "height": 91,
+      "right": 569.28,
+      "bottom": 448
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 381,
+      "width": 268.64,
+      "height": 78,
+      "right": 294.64,
+      "bottom": 459
+    }
+  },
+  {
+    "id": "executive-thesis",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 454,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 528
+    }
+  },
+  {
+    "id": "property-notes",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 465,
+      "width": 268.64,
+      "height": 74,
+      "right": 294.64,
+      "bottom": 539
+    }
+  },
+  {
+    "id": "property-metrics",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 534,
+      "width": 268.64,
+      "height": 69,
+      "right": 569.28,
+      "bottom": 603
+    }
+  },
+  {
+    "id": "profile-criteria-facts",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 545,
+      "width": 268.64,
+      "height": 69,
+      "right": 294.64,
+      "bottom": 614
+    }
+  },
+  {
+    "id": "next-actions",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 609,
+      "width": 268.64,
+      "height": 61,
+      "right": 569.28,
+      "bottom": 670
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 620,
+      "width": 268.64,
+      "height": 52,
+      "right": 294.64,
+      "bottom": 672
+    }
+  },
+  {
+    "id": "property-group-2",
+    "page": 2,
+    "bounds": {
+      "x": 300.64,
+      "y": 676,
+      "width": 268.64,
+      "height": 52,
+      "right": 569.28,
+      "bottom": 728
+    }
+  },
+  {
+    "id": "risk-considerations",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 678,
+      "width": 268.64,
+      "height": 48,
+      "right": 294.64,
+      "bottom": 726
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 734,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 770
+    }
+  }
+]

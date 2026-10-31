@@ -112,8 +112,8 @@ describe('canonical PDF template behavior', () => {
 
   it.each([
     ['en', 'PROPERTY RELEASE', 'Page 1 / 1', 'Mar 7, 2014'],
-    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 / 1', '07/03/2014'],
-    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 / 1', '07/03/2014'],
+    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 / 1', '7 de mar. de 2014'],
+    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 / 1', '7 mar 2014'],
   ])('renders factual Basic in %s as one stable A4 page', async (language, title, pageLabel, saleDate) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');

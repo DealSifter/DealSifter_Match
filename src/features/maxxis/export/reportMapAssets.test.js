@@ -17,6 +17,7 @@ describe('report map preparation and PDF cache revisions', () => {
     expect(getPreparedReportMaps(schema)).toEqual({ comparables: null, location: null });
     const failedRevision = preparedReportMapCacheKey(schema), failedRequests = loadReportMediaImage.mock.calls.length;
     expect(failedRequests).toBeGreaterThan(0);
+    expect(loadReportMediaImage.mock.calls.every(([url]) => /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(url))).toBe(true);
     loadReportMediaImage.mockResolvedValue({});
     await prepareReportMaps(schema);
     expect(getPreparedReportMaps(schema)).toEqual({ comparables: 'data:image/png;base64,bWFw', location: 'data:image/png;base64,bWFw' });

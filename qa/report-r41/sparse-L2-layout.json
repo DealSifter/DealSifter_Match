@@ -1,0 +1,110 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "report-pending",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 543.28,
+      "height": 142.5,
+      "right": 569.28,
+      "bottom": 423.5
+    }
+  },
+  {
+    "id": "next-actions",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 429.5,
+      "width": 268.64,
+      "height": 113,
+      "right": 294.64,
+      "bottom": 542.5
+    }
+  },
+  {
+    "id": "executive-thesis",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 429.5,
+      "width": 268.64,
+      "height": 87,
+      "right": 569.28,
+      "bottom": 516.5
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 522.5,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 596.5
+    }
+  },
+  {
+    "id": "property-metrics",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 548.5,
+      "width": 268.64,
+      "height": 69,
+      "right": 294.64,
+      "bottom": 617.5
+    }
+  },
+  {
+    "id": "decision-blockers",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 602.5,
+      "width": 268.64,
+      "height": 61,
+      "right": 569.28,
+      "bottom": 663.5
+    }
+  },
+  {
+    "id": "investor-profile",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 623.5,
+      "width": 268.64,
+      "height": 48,
+      "right": 294.64,
+      "bottom": 671.5
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 677.5,
+      "width": 543.28,
+      "height": 24,
+      "right": 569.28,
+      "bottom": 701.5
+    }
+  }
+]

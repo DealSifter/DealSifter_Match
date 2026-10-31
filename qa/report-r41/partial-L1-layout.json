@@ -1,0 +1,74 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 268.64,
+      "height": 129,
+      "right": 294.64,
+      "bottom": 410
+    }
+  },
+  {
+    "id": "property-notes",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 281,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 355
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 361,
+      "width": 268.64,
+      "height": 65,
+      "right": 569.28,
+      "bottom": 426
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 416,
+      "width": 268.64,
+      "height": 52,
+      "right": 294.64,
+      "bottom": 468
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 474,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 510
+    }
+  }
+]

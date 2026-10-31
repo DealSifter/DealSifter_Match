@@ -1,0 +1,73 @@
+{
+  "phase": "R4.1",
+  "K": {
+    "K1": "DONE",
+    "K2": "DONE",
+    "K3": "DONE",
+    "K4": "DONE",
+    "K5": "DONE",
+    "K6": "DONE",
+    "K7": "DONE",
+    "K8": "DONE",
+    "K9": "DONE"
+  },
+  "fixtures": 9,
+  "pdfs": 9,
+  "pngs": 14,
+  "metrics": "metrics.md",
+  "lint": {
+    "rawIso": 0,
+    "internalLabels": 0,
+    "finalOrphan": 0,
+    "duplicateBlocks": 0,
+    "repeatedTitles": 0
+  },
+  "tests": {
+    "targeted": {
+      "passed": 68,
+      "total": 68,
+      "files": 8
+    },
+    "broaderRegression": {
+      "passed": 321,
+      "total": 322,
+      "failedCase": "L1 over-cap error contract",
+      "correctionVerifiedByFinalTargetedRun": true
+    }
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit -p tsconfig.report-integrity.json",
+    "status": "PASS"
+  },
+  "build": {
+    "standard": {
+      "command": "npm run build",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    "finalSource": {
+      "command": "node node_modules/vite/bin/vite.js build --minify false --outDir .tmp-codex/r41-final-build",
+      "status": "PASS",
+      "exitCode": 0
+    }
+  },
+  "rendererFingerprint": "705534e201d107a83fb9afb721d072b4be0066e8ba20d78fc1d62be7f9a39330",
+  "productionTiles": {
+    "realTilePathConfirmedInCode": true,
+    "mockedTilePathAndCacheTests": "PASS",
+    "liveDeliveryVerified": false,
+    "reason": "Offline phase; no browser/Production tile request was made"
+  },
+  "liveCalls": {
+    "RentCast": 0,
+    "Gemini": 0
+  },
+  "protectedChanges": [],
+  "stashPreserved": true,
+  "head": "d36ea4a",
+  "commit": false,
+  "push": false,
+  "deploy": false,
+  "nextPhasesStarted": false,
+  "completedAt": "2026-10-31T07:12:00.744Z"
+}

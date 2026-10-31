@@ -1,0 +1,134 @@
+[
+  {
+    "id": "property-overview",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 145,
+      "right": 569.28,
+      "bottom": 275
+    }
+  },
+  {
+    "id": "report-pending",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 281,
+      "width": 543.28,
+      "height": 180,
+      "right": 569.28,
+      "bottom": 461
+    }
+  },
+  {
+    "id": "next-actions",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 467,
+      "width": 268.64,
+      "height": 126,
+      "right": 294.64,
+      "bottom": 593
+    }
+  },
+  {
+    "id": "executive-thesis",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 467,
+      "width": 268.64,
+      "height": 87,
+      "right": 569.28,
+      "bottom": 554
+    }
+  },
+  {
+    "id": "opportunity-readiness",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 560,
+      "width": 268.64,
+      "height": 74,
+      "right": 569.28,
+      "bottom": 634
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 599,
+      "width": 268.64,
+      "height": 74,
+      "right": 294.64,
+      "bottom": 673
+    }
+  },
+  {
+    "id": "property-metrics",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 640,
+      "width": 268.64,
+      "height": 69,
+      "right": 569.28,
+      "bottom": 709
+    }
+  },
+  {
+    "id": "decision-blockers",
+    "page": 1,
+    "bounds": {
+      "x": 26,
+      "y": 679,
+      "width": 268.64,
+      "height": 61,
+      "right": 294.64,
+      "bottom": 740
+    }
+  },
+  {
+    "id": "profile-readiness",
+    "page": 1,
+    "bounds": {
+      "x": 300.64,
+      "y": 715,
+      "width": 268.64,
+      "height": 61,
+      "right": 569.28,
+      "bottom": 776
+    }
+  },
+  {
+    "id": "investor-profile",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 86,
+      "width": 268.64,
+      "height": 48,
+      "right": 294.64,
+      "bottom": 134
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 2,
+    "bounds": {
+      "x": 26,
+      "y": 140,
+      "width": 543.28,
+      "height": 24,
+      "right": 569.28,
+      "bottom": 164
+    }
+  }
+]

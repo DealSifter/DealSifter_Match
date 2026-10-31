@@ -42,3 +42,13 @@ qa-artifacts/
 test-results/
 # Local build stages, operator receipts and private diagnostic fixtures.
 .cache/
+
+# Generated report evidence is reviewed locally, never committed by validation.
+/qa/report-r2/
+/qa/report-r41/**/*.pdf
+/qa/report-r41/**/*.png
+/qa/report-r42/**/*.pdf
+/qa/report-r42/**/*.png
+/qa/report-template/*.pdf
+/qa/report-template/*-page-*.png
+/src/assets/maxxis/report-previews/*-page-*.png

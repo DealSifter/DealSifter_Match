@@ -1,6 +1,6 @@
 import { ReportBrandShell } from './reportBrandShell';
-import { composeReportContent, contentKey, type ContentBlock } from './reportContentPlan';
-const X = 26, WIDTH = 543.28, TOP = 130, BOTTOM = 790, PAD = 9, GAP = 7;
+import { composeReportContent, contentKey, readableReportDate, type ContentBlock } from './reportContentPlan';
+const X = 26, WIDTH = 543.28, TOP = 130, BOTTOM = 790, PAD = 8, GAP = 6;
 export class ContentReportComposition extends ReportBrandShell {
   private renderWidth = WIDTH;
   private renderX = X;
@@ -95,36 +95,73 @@ export class ContentReportComposition extends ReportBrandShell {
     f.pages[f.pages.length - 1].sectionKeys.push(block.id); f.y = end + GAP;
   }
   async draw(yieldRendering: () => Promise<void>) {
-    const original = composeReportContent(this.vm), queue = this.fitBlocks(original.filter(block => block.kind !== 'disclaimer'));
+    const original = composeReportContent(this.vm).filter(block => !block.map || !!(block.map.sourceId ? this.maps[block.map.sourceId] : this.location) || block.map.points.some(point => point.id !== 'subject'));
+    // Keep geography beside the property/comparable context, before lower priority narrative.
+    for (const block of original) if (block.map) {
+      const real = !!(block.map.sourceId ? this.maps[block.map.sourceId] : this.location);
+      block.map.caption += real ? ' ? OpenStreetMap contributors.' : ' Schematic, not to scale.';
+    }
+    const map = original.find(block => block.map);
+    if (map) {
+      const table = original.find(block => block.id === map.map!.sourceId + '-table');
+      original.splice(original.indexOf(map), 1);
+      if (table) table.map = map.map; // Table and its numbered geography are one intact block.
+      else original.splice(1, 0, map);
+    }
+    const queue = this.fitBlocks(original.filter(block => block.kind !== 'disclaimer'));
     const disclaimer = original.find(block => block.kind === 'disclaimer')!, keys = new Set<string>();
     const cap = this.vm.reportType === 'PROPERTY_RELEASE' ? 1 : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 3 : Infinity;
     const nextPage = () => { if (this.flow.pages.length >= cap) throw Object.assign(Error(`REPORT_PAGE_LIMIT_EXCEEDED:${cap}`), { layoutAudit: this.flow.audit, remainingBlockIds: queue.map(block => block.id) }); this.page(this.vm.header.product, this.vm.header.subtitle); };
-    nextPage();
-    let columns = [TOP, TOP];
-    while (queue.length) {
-      let index = queue.findIndex(block => { this.setWidth(block); const y = this.fullWidth(block) ? Math.max(...columns) : Math.min(...columns); return this.measure(block) <= BOTTOM - y; });
-      if (index >= 0 && this.fullWidth(queue[index])) {
-        const gap = Math.abs(columns[0] - columns[1]);
-        const filler = queue.findIndex(block => { this.setWidth(block); return !this.fullWidth(block) && this.measure(block) + GAP <= gap; });
-        if (filler >= 0) index = filler;
+    // Full-width evidence comes first; best-fit decreasing fills both columns across
+    // all existing pages rather than abandoning earlier gaps after a page break.
+    const priority = (block: ContentBlock) => block.id === 'property-overview' ? 0 : block.id === 'report-pending' ? 1 : this.fullWidth(block) ? 2 : block.map ? 3 : 4;
+    queue.sort((a, b) => priority(a) - priority(b) || (priority(a) === 4 ? (this.setWidth(b), this.measure(b)) - (this.setWidth(a), this.measure(a)) : 0));
+    this.setWidth(disclaimer);
+    const qualificationHeight = this.measure(disclaimer) + GAP;
+    let pages: number[][] = [];
+    let placements: { block: ContentBlock; page: number; column: number; y: number }[] = [];
+    for (let count = 1; count <= Math.min(cap, queue.length); count++) {
+      const candidate = Array.from({ length: count }, (_, index) => [index ? 86 : TOP, index ? 86 : TOP]);
+      const planned: typeof placements = [];
+      for (const block of queue) {
+        this.setWidth(block);
+        const full = this.fullWidth(block), height = this.measure(block);
+        const page = candidate.findIndex((columns, index) => height <= BOTTOM - (index === count - 1 ? qualificationHeight : 0) - (full ? Math.max(...columns) : Math.min(...columns)));
+        if (page < 0) break;
+        const columns = candidate[page], column = full || columns[0] <= columns[1] ? 0 : 1;
+        const y = full ? Math.max(...columns) : columns[column];
+        planned.push({ block, page, column, y });
+        if (full) columns[0] = columns[1] = y + height + GAP; else columns[column] = y + height + GAP;
       }
-      if (index < 0) { nextPage(); columns = [TOP, TOP]; index = 0; }
-      const [block] = queue.splice(index, 1), key = contentKey(JSON.stringify(block));
-      if (keys.has(key)) throw Error(`DUPLICATE_REPORT_BLOCK:${block.id}`); keys.add(key);
-      this.setWidth(block);
-      const full = this.fullWidth(block), column = columns[0] <= columns[1] ? 0 : 1;
-      this.renderX = full ? X : X + column * ((WIDTH + GAP) / 2);
-      this.flow.y = full ? Math.max(...columns) : columns[column];
-      this.drawBlock(block);
-      if (full) columns = [this.flow.y, this.flow.y]; else columns[column] = this.flow.y;
-      await yieldRendering();
+      if (planned.length === queue.length) {
+        // A page created only to reserve the qualification is never a valid plan.
+        if (!planned.some(item => item.page === count - 1)) {
+          const movable = [...planned].reverse().find(item => !item.block.map && item.block.kind !== 'overview');
+          if (!movable) continue;
+          const top = count > 1 ? 86 : TOP;
+          movable.page = count - 1; movable.column = 0; movable.y = top;
+          this.setWidth(movable.block);
+          const end = top + this.measure(movable.block) + GAP;
+          candidate[count - 1] = this.fullWidth(movable.block) ? [end, end] : [end, top];
+        }
+        pages = candidate; placements = planned; break;
+      }
     }
-    this.setWidth(disclaimer); this.renderX = X; this.flow.y = Math.max(...columns);
-    if (this.flow.y + this.measure(disclaimer) > BOTTOM) nextPage();
+    if (!placements.length) throw Error('REPORT_PAGE_LIMIT_EXCEEDED:' + cap);
+    for (let page = 0; page < pages.length; page++) {
+      nextPage();
+      for (const placement of placements.filter(item => item.page === page).sort((a, b) => a.y - b.y || a.column - b.column)) {
+        const { block, column, y } = placement, key = contentKey(JSON.stringify(block));
+        if (keys.has(key)) throw Error('DUPLICATE_REPORT_BLOCK:' + block.id); keys.add(key);
+        this.setWidth(block); this.renderX = this.fullWidth(block) ? X : X + column * ((WIDTH + GAP) / 2); this.flow.y = y;
+        this.drawBlock(block); await yieldRendering();
+      }
+    }
+    this.setWidth(disclaimer); this.renderX = X; this.flow.y = Math.max(...pages[pages.length - 1]);
     this.drawBlock(disclaimer);
     const result = this.flow.finish();
     for (let page = 1; page <= result.pageCount; page++) {
-      this.d.setPage(page); this.flow.drawText(`${new Date(this.flow.meta.generatedAt).toISOString()} UTC`, 35, 817, 400, 'footer-date', 7, false, [44, 70, 108], 839);
+      this.d.setPage(page); this.flow.drawText(readableReportDate(this.flow.meta.generatedAt, this.vm.locale), 35, 817, 400, 'footer-date', 7, false, [44, 70, 108], 839);
       this.flow.drawText(`${this.t('Página', 'Page', 'Página')} ${page} / ${result.pageCount}`, 485, 817, 80, 'footer-page', 7, false, [44, 70, 108], 839);
     }
     return result;
