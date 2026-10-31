@@ -1,0 +1,60 @@
+{
+  "phase": "R-4.2",
+  "targetedTests": {
+    "passed": 336,
+    "total": 336,
+    "files": 29,
+    "network": "blocked"
+  },
+  "typescript": {
+    "project": "tsconfig.report-integrity.json",
+    "status": "PASS",
+    "backendChanges": false,
+    "backendKnownPriorErrors": 31,
+    "backendFullTypecheckReexecuted": false
+  },
+  "build": {
+    "status": "PASS",
+    "command": "vite build",
+    "release": "local",
+    "network": "blocked"
+  },
+  "fixtures": {
+    "controls": 9,
+    "pdfs": 9,
+    "pngs": 15,
+    "orphans": 0,
+    "duplicateBlocks": 0,
+    "semanticDuplicateAssertions": 0,
+    "rawIso": 0,
+    "internalLabels": 0,
+    "sectionOrder": "PASS"
+  },
+  "liveCalls": {
+    "rentcast": 0,
+    "gemini": 0,
+    "arcgis": 0,
+    "osmTiles": 0
+  },
+  "part4": {
+    "status": "R-2 NOT EXECUTED (gate de data)",
+    "checkedAtUtc": "2026-10-31 18:49:17 UTC",
+    "minimumUtc": "2026-11-01 00:00:00 UTC",
+    "localLinkedProject": "cyeipfskwwisbbayyaca",
+    "remoteTargetVerified": false,
+    "ledgerQueries": 0
+  },
+  "protectedScopes": {
+    "financialEngines": "UNCHANGED",
+    "pricing": "UNCHANGED",
+    "nuggets": "UNCHANGED",
+    "stripe": "UNCHANGED",
+    "auth": "UNCHANGED",
+    "migrations": "UNCHANGED"
+  },
+  "checkpointCommit": "2cfe28a",
+  "documentationCommit": "5aa9504",
+  "generatedBinariesCommitted": false,
+  "push": false,
+  "deploy": false
+}

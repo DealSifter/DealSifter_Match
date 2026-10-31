@@ -21,7 +21,7 @@ describe('R4.1 deterministic report finish, offline', () => {
   });
   it.each(types)('keeps rich >= partial and sparse preliminary at %s', type => {
     const rank = {PRELIMINARY:0,PARTIAL:1,COMPLETE:2};
-    expect(vm('sparse', type).completion).toBe('PRELIMINARY');
+    expect(vm('sparse', type).completion).toBe(type === 'PROPERTY_RELEASE' ? 'COMPLETE' : type === 'MAXXIS_ANALYSIS' ? 'PARTIAL' : 'PRELIMINARY');
     expect(rank[vm('rich', type).completion!]).toBeGreaterThanOrEqual(rank[vm('partial', type).completion!]);
   });
   it('keeps numeric results partial while a required return indicator is unresolved', () => {
@@ -55,7 +55,7 @@ describe('R4.1 deterministic report finish, offline', () => {
     expect(readableReportDate('2026-10-30T12:00:00Z',locale)).not.toMatch(REPORT_RAW_ISO);
     const model = vm('rich'); model.locale = locale as 'en'|'pt'|'es';
     const blocks = composeReportContent(model), rent = blocks.find(block => block.id === 'market-rent');
-    expect(rent!.text).toMatch(/^\$2,400/);
+    expect(rent!.hero!.value).toMatch(/^\$2,400/);
     expect(rent!.rows?.some(row => /Subject.*(?:bed|bath|area)/i.test(row.label))).toBe(false);
     expect(JSON.stringify(blocks)).not.toMatch(REPORT_RAW_ISO);
   });

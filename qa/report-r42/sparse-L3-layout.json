@@ -1,0 +1,100 @@
+[
+  {
+    "id": "reading-section-1-page-1",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 148
+    }
+  },
+  {
+    "id": "property-overview",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 148,
+      "width": 543.28,
+      "height": 125,
+      "right": 569.28,
+      "bottom": 273
+    }
+  },
+  {
+    "id": "reading-section-2-page-1",
+    "page": 1,
+    "section": 2,
+    "bounds": {
+      "x": 26,
+      "y": 277,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 295
+    }
+  },
+  {
+    "id": "report-pending",
+    "page": 1,
+    "section": 2,
+    "assertionIds": [
+      "SEM_DADO_EXTERNO",
+      "SEM_EVIDENCIA_VALUATION",
+      "SEM_PERFIL",
+      "ENTRADAS_FINANCEIRAS_PENDENTES",
+      "ASSERTION:this_information_could_not_be_obtained_or_confirmed_try_again_contact_support_if_the_problem_persists_"
+    ],
+    "bounds": {
+      "x": 26,
+      "y": 295,
+      "width": 543.28,
+      "height": 203.5,
+      "right": 569.28,
+      "bottom": 498.5
+    }
+  },
+  {
+    "id": "reading-section-6-page-1",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 502.5,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 520.5
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 520.5,
+      "width": 543.28,
+      "height": 44,
+      "right": 569.28,
+      "bottom": 564.5
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 568.5,
+      "width": 543.28,
+      "height": 24,
+      "right": 569.28,
+      "bottom": 592.5
+    }
+  }
+]

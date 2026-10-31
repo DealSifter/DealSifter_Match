@@ -10,6 +10,7 @@ export const REPORT_PREVIEW_RENDERER_SOURCES = Object.freeze([
   'src/features/maxxis/export/reportBrandShell.ts',
   'src/features/maxxis/export/contentReportComposition.ts',
   'src/features/maxxis/export/reportContentPlan.ts',
+  'src/features/maxxis/export/reportReadingPlan.ts',
   'src/features/maxxis/export/reportPublisherDisclosure.ts',
   'src/features/maxxis/export/reportIntegrityViewModel.ts',
   'src/features/maxxis/export/maxxisReportVisualPolicy.js',

@@ -18,15 +18,16 @@ export function readingSectionTitle(section: ReadingSection, locale: string): st
 
 /** Stable assertion identities, independent of a particular generated sentence. */
 export function semanticAssertionId(text: string): string {
-  if (/profile|perfil|compatib/i.test(text) && /not|unavailable|unknown|não|sin |no |ausent|missing|unconfigured|configur/i.test(text)) return 'SEM_PERFIL';
-  if (/external|extern|provider|provedor|fuente|source|registro público/i.test(text) && /no |not |none|nenhum|não|sin |missing|unavailable|insuf/i.test(text)) return 'SEM_DADO_EXTERNO';
-  if (/valu|ARV|market evidence|evidências de mercado|evidencia de mercado|discount|desconto|margem|return|retorno/i.test(text) && /not|no |não|sem |sin |unavailable|unknown|insuf|unconfirmed|limit|uncertain/i.test(text)) return 'SEM_EVIDENCIA_VALUATION';
-  if (/condition|condição|condición|rehab|reforma/i.test(text) && /not|no |não|sem |sin |unconfirmed|unknown|unavailable|pending/i.test(text)) return 'CONDICAO_PENDENTE';
+  const absent = /\b(?:not|no|none|without|unavailable|unknown|insufficient|unconfirmed|limited|uncertainty|missing|pending)\b|não|nenhum|\bsem\b|\bsin\b/i.test(text);
+  if (/profile|perfil|compatib/i.test(text) && (absent || /unconfigured/i.test(text))) return 'SEM_PERFIL';
+  if (/external|extern|provider|provedor|fuente|source|registro público/i.test(text) && absent) return 'SEM_DADO_EXTERNO';
+  if (/valu|ARV|market evidence|evidências de mercado|evidencia de mercado|discount|desconto|margem|return|retorno|reported price|asking price|opportunity signals|sinais.*oportunidade/i.test(text) && absent) return 'SEM_EVIDENCIA_VALUATION';
+  if (/condition|condição|condición|rehab|reforma/i.test(text) && absent) return 'CONDICAO_PENDENTE';
   return 'ASSERTION:' + key(text).replace(/[^\p{L}\p{N}]+/gu, '_');
 }
 
 /** Display-only reconciliation. No financial calculation and no evidence acquisition. */
-export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[]): ContentBlock[] {
+export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[], readerText: (text: string) => string): ContentBlock[] {
   const t = (pt: string, en: string, es: string) => vm.locale === 'pt' ? pt : vm.locale === 'es' ? es : en;
   const result: ContentBlock[] = [], assertions = new Map<string, string>();
   const add = (block: ContentBlock, section: ReadingSection) => result.push({ ...block, readingSection: section });
@@ -61,7 +62,14 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[])
   const profiles: ContentBlock[] = [];
   for (const block of raw) {
     if (['property-overview', 'property-metrics', 'property-photos', 'report-pending', 'next-actions', 'report-sources', 'report-disclaimer'].includes(block.id)) continue;
+    if (block.id === 'data-discrepancies') {
+      const specific = raw.find(candidate => candidate.id === 'decision-blockers')?.text || '';
+      if (!/Flagged values|valores sinalizados|valores señalados/i.test(specific) && block.text) assert('DADOS_CONFLITANTES', block.text);
+      if (block.rows?.length || block.table?.length) add({ ...block, text: undefined }, 1);
+      continue;
+    }
     if (['executive-thesis', 'opportunity-readiness', 'decision-blockers', 'profile-readiness'].includes(block.id)) {
+      if (block.id === 'profile-readiness') continue; // SEM_PERFIL already owns this assertion.
       const sentences = (block.text || '').split(/(?<=[.!?])\s+|\n\n/).filter(Boolean);
       for (const sentence of sentences) {
         const id = semanticAssertionId(sentence);
@@ -82,10 +90,17 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[])
     });
     const prepared = { ...block, ...(block.rows ? { rows } : {}) };
     if (block.rows?.length && !rows?.length && !block.text && !block.table && block.score === undefined) continue;
-    const section: ReadingSection = /rent|arv|sold-reference|comparable|listing-reference|land-market|report-location/.test(block.id) ? 3
+    const section: ReadingSection = block.id === 'report-location' && !block.map?.sourceId ? 1 : /rent|arv|sold-reference|comparable|listing-reference|land-market|report-location/.test(block.id) ? 3
       : /operating|financial|scenario|strategy-cost|acquisition/.test(block.id) ? 4
       : /risk|profile/.test(block.id) ? 5 : 1;
-    if (section === 4 && prepared.rows) prepared.rows = prepared.rows.map(financeRow);
+    if (section === 4 && prepared.rows) prepared.rows = prepared.rows.map(row => finance.test(row.label) || row.evidenceRefs.some(ref => ref.includes(':output:')) ? financeRow(row) : row);
+    if (block.id === 'market-rent') {
+      const rent = vm.sections.find(section => section.id === 'market-rent');
+      if (rent?.hero) {
+        prepared.hero = { value: `${rent.hero.value}${t('/mês', '/mo', '/mes')}` };
+        prepared.text = [rent.hero.qualification.replace(/^(?:per month|por mês|por mes)\s*·?\s*/i, ''), rent.text].filter(Boolean).join('\n');
+      }
+    }
     add(prepared, section);
   }
 
@@ -94,21 +109,30 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[])
     const label = name === 'noi' ? 'NOI' : name === 'capRate' ? 'Cap rate' : name === 'roi' ? 'ROI' : t('Fluxo de caixa', 'Cash flow', 'Flujo de caja');
     if (!deferredFinance.some(row => key(row.label).replace(/\s/g, '') === key(label).replace(/\s/g, ''))) collectFinance({ label, value: value.text, evidenceRefs: value.evidenceRefs, source: value.source, state: value.state });
   }
-  if (deferredFinance.length) add({ id: 'financial-indicators', title: t('Indicadores financeiros e origem', 'Financial indicators and origin', 'Indicadores financieros y origen'), kind: 'facts', rows: deferredFinance }, 4);
+  if (deferredFinance.length && vm.reportType !== 'PROPERTY_RELEASE') add({ id: 'financial-indicators', title: t('Indicadores financeiros e origem', 'Financial indicators and origin', 'Indicadores financieros y origen'), kind: 'facts', rows: deferredFinance }, 4);
 
   const actionRows: string[][] = [];
   const actionKeys = new Set<string>();
   for (const [labels, reason, action] of pendingRows) {
-    const id = semanticAssertionId(reason);
-    if (!assertions.has(id)) assert(id, reason);
+    if (vm.reportType === 'MAXXIS_ANALYSIS' && /^(?:ROI|NOI|Cap rate|Cash flow)(?:, (?:ROI|NOI|Cap rate|Cash flow))*$/i.test(labels)) continue;
+    const financialInputs = /NOI|cap rate|\bROI\b|cash flow/i.test(labels) && /inputs|entradas|datos|confirma/i.test(reason);
+    const id = financialInputs ? 'ENTRADAS_FINANCEIRAS_PENDENTES' : semanticAssertionId(reason);
+    if (!assertions.has(id)) assert(id, financialInputs ? t('As entradas dos indicadores financeiros pendentes precisam de confirmação.', 'Inputs for the pending financial indicators require confirmation.', 'Las entradas de los indicadores financieros pendientes requieren confirmación.') : reason);
     const actionId = key(`${labels}:${action}`);
     if (!actionKeys.has(actionId)) { actionKeys.add(actionId); actionRows.push([labels, action]); }
   }
-  const additional = (vm.sections.find(section => section.id === 'next-actions')?.items || []).map(item => item.text.split('\n')[0].trim())
+  const additional = (vm.sections.find(section => section.id === 'next-actions')?.items || []).map(item => readerText(item.text.split('\n')[0].trim()))
     .filter(text => /inspect|inspeç|inspec|lease|contract|contrato|title|título|titul|contractor|empreiteir|orçamento/i.test(text))
     .filter(text => !actionRows.some(row => key(row[1]).includes(key(text)) || key(text).includes(key(row[1]))));
-  const checks = [...new Set(additional.map(text => text.replace(/^(?:Reason|Unlocks):\s*/i, '')))].slice(0, 3);
-  if (assertions.size || actionRows.length || checks.length) add({ id: 'report-pending', title: t('Limitações', 'Limitations', 'Limitaciones'), kind: 'table',
+  const checkAssertions = new Set<string>();
+  const checks = additional.map(text => text.replace(/^(?:Reason|Unlocks):\s*/i, '')).filter(text => {
+    const id = /title|título|titul|encumbrance|gravame/i.test(text) ? 'CHECK_TITLE'
+      : /lease|locaç|arrendamiento/i.test(text) ? 'CHECK_LEASE'
+        : /inspect|inspeç|inspec/i.test(text) ? 'CHECK_INSPECTION' : semanticAssertionId(text);
+    if (checkAssertions.has(id)) return false;
+    checkAssertions.add(id); return true;
+  }).slice(0, 3);
+  if (assertions.size || actionRows.length) add({ id: 'report-pending', title: t('Limitações', 'Limitations', 'Limitaciones'), kind: 'table',
     assertionIds: [...assertions.keys()], text: [...assertions.values()].join('\n'),
     columns: actionRows.length ? [t('Indicador', 'Indicator', 'Indicador'), t('Ação necessária', 'Required action', 'Acción necesaria')] : undefined,
     table: actionRows.length ? actionRows : undefined,
@@ -124,6 +148,6 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[])
   else add({ id: 'report-sources', title: t('Fontes', 'Sources', 'Fuentes'), kind: 'text', text: t('Fontes consultadas e respectivas datas não registradas.', 'Retrieved sources and dates were not recorded.', 'No se registraron fuentes consultadas y fechas.') }, 6);
   const disclaimer = raw.find(block => block.kind === 'disclaimer');
   if (disclaimer) add(disclaimer, 6);
-  const order = (block: ContentBlock) => block.id === 'property-overview' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'property-notes' ? 2 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
+  const order = (block: ContentBlock) => block.id === 'property-overview' || block.id === 'profile-compatibility' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'property-notes' ? 2 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
   return result.sort((a, b) => a.readingSection! - b.readingSection! || order(a) - order(b));
 }

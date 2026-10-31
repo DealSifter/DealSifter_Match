@@ -119,11 +119,11 @@ for (const [reportType, plan, file] of [
   const sampleMap=await sampleReportMap([{...property,marker:'S'}]);
   const mapImages=Object.fromEntries(await Promise.all(viewModel.sections.filter(section=>section.map?.points.length).map(async section=>[section.id,await sampleReportMap(section.map.points)])));
   const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
-  const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap, mapImages });
+  const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap, mapImages }).catch(error=>{console.error(JSON.stringify(error.layoutPlans));throw error;});
   if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
   const text=result.document.layoutAudit.lines.map(line=>line.text).join('\n');
   if (/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(text)) throw new Error(reportType+': incomplete demonstration content: '+JSON.stringify(result.document.layoutAudit.lines.filter(line=>/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(line.text))));
-  sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:result.document.layoutAudit.maps.length,profileGauge:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-fit-score'),criteriaTable:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-criteria-facts'),valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
+  sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:result.document.layoutAudit.maps.length,profileGauge:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-compatibility'),criteriaTable:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-compatibility'),valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
   await writeFile(`${out}${file}`, result.document.binary);
   process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
 }

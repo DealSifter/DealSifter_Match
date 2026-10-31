@@ -26,6 +26,7 @@ export function reportReaderText(value: string, locale = 'en'): string {
     .replace(/\bnormalized\b/gi, pt ? 'organizados' : es ? 'organizados' : 'organized').replace(/…/g, '.');
 }
 export interface ContentBlock {
+  hero?: { value: string; note?: string };
   readingSection?: ReadingSection; assertionIds?: string[]; afterText?: string;
   id: string; title: string; kind: 'overview' | 'text' | 'facts' | 'table' | 'map' | 'photos' | 'disclaimer';
   text?: string; rows?: ReportRow[]; columns?: string[]; table?: string[][]; photos?: string[];
@@ -167,7 +168,7 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
 }
 
 export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
-  return buildReportReadingPlan(vm, composeRawReportContent(vm));
+  return buildReportReadingPlan(vm, composeRawReportContent(vm), text => reportReaderText(text, vm.locale));
 }
 
 /** Source metadata only, with no addresses, publisher details or raw payloads. */

@@ -143,7 +143,7 @@ describe('canonical PDF template behavior', () => {
       expect(content).toContain('three bedrooms');
       expect(content).toContain('Unresolved physical disagreements: Bedrooms.');
       expect(content).toContain('Flagged values cannot support calculations.');
-      expect(content).toContain('Current market evidence does not support a valuation conclusion');
+      expect(content).toContain('Available evidence does not support a value or return conclusion.');
       expect(content).not.toMatch(/\$0|Preserved information|MISSING_|annualPropertyTax|87%/);
       expect(result.document.strictViewModel.executive.thesis.text).toContain('1200 Fictional Street');
       expect(result.document.outputValidation.valid).toBe(true);
@@ -173,7 +173,7 @@ describe('canonical PDF template behavior', () => {
     expect(content).not.toContain('Sample Owner');
     expect(content).toContain('2004');
     expect(content).not.toContain('74%');
-    expect(content).toContain('Investment Profile not configured or unavailable.');
+    expect(content).toContain('Investor profile and compatibility: profile not configured.');
     expect(content).not.toContain('Recorded positive signal.');
     expect(content).not.toContain('Recorded missing evidence.');
     expect(result.document.outputValidation.valid).toBe(true);
