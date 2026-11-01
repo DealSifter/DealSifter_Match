@@ -1,6 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {schemaCompatCheck} from './schema-compat-check.mjs';
 import {validationDataTypes,createValidationTransport,runValidationAcquisition} from './report-r2-validation.mjs';
-const base={supabaseOrigin:'https://test.supabase.co',reportId:'offline-report',requestId:'offline-request'};
+const mockCatalog=JSON.parse(readFileSync(new URL('./fixtures/schema-compat-after.json',import.meta.url),'utf8'));
+mockCatalog.observedUtc=new Date().toISOString();
+const schemaCompatibility=await schemaCompatCheck({catalog:mockCatalog});
+const base={supabaseOrigin:'https://test.supabase.co',reportId:'offline-report',requestId:'offline-request',schemaCompatibility};
 test('optional restriction rejects forbidden families and duplicate entries',()=>{
  for(const list of [['sale_listing_evidence'],['market_evidence'],['rental_listing_evidence'],['property_record','property_record']])assert.throws(()=>validationDataTypes(list));
  assert.equal(validationDataTypes().size,4);
@@ -24,14 +29,14 @@ test('ArcGIS has a separate six-request ceiling',async()=>{
  for(let n=0;n<6;n++)await t.fetch('https://example.arcgis.com/FeatureServer/0');await assert.rejects(t.fetch('https://example.arcgis.com/FeatureServer/0'));assert.equal(t.arcgisCalls,6);assert.equal(t.rentcastCalls,0);
 });
 test('restriction is applied before services can reserve quota',async()=>{
- let reservations=0;const presentProperty=()=>({state:'unavailable'}),transport={assertContinue(){},stop(){},stopped:null};
+ let reservations=0;const presentProperty=()=>({state:'unavailable'}),transport={assertSchemaCompatible(){},assertContinue(){},stop(){},stopped:null};
  await runValidationAcquisition({dataTypes:['rent_estimate_evidence'],propertyId:'offline',userId:'offline',transport,
  services:{presentProperty,property:{getPropertyEvidence(){reservations++;}},valuation:{getValuationEvidence(){reservations++;}},sold:{getSoldEvidence(){reservations++;}},rent:{get(){return {state:'AVAILABLE',cacheHit:true};}}},
  orchestrate:async deps=>{await deps.loadPropertyEvidence();await deps.loadArvEvaluation();return {};},loadArvEvaluation:async()=>null});
  assert.equal(reservations,0);
 });
 test('cached repetition invokes no HTTP and creates no new reservations',async()=>{
- let reservations=0;const cached=new Set(),transport={assertContinue(){},stop(){},stopped:null};
+ let reservations=0;const cached=new Set(),transport={assertSchemaCompatible(){},assertContinue(){},stop(){},stopped:null};
  const service=type=>async()=>{const cacheHit=cached.has(type);if(!cacheHit){reservations++;cached.add(type);}return {cacheHit,state:'AVAILABLE'};};
  const options={propertyId:'offline',userId:'offline',transport,services:{property:{getPropertyEvidence:service('record')},valuation:{getValuationEvidence:service('avm')},sold:{getSoldEvidence:service('sold')},rent:{get:service('rent')},presentProperty:()=>({state:'available'})},orchestrate:async deps=>{await deps.loadPropertyEvidence();await deps.loadArvEvaluation();return {};},loadArvEvaluation:async()=>null};
  await runValidationAcquisition(options);assert.equal(reservations,4);await runValidationAcquisition(options);assert.equal(reservations,4);

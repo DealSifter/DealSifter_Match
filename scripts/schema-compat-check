@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+import {schemaCompatCheck} from './schema-compat-check.mjs';
+const result=await schemaCompatCheck();
+console.log(JSON.stringify({target:result.target,checked:result.checked,incompatibilities:result.incompatibilities},null,2));
+process.exitCode=result.incompatibilities.length?2:0;

@@ -1,4 +1,10 @@
 // Opt-in validation tooling only. No application module imports this runner.
+import {schemaCompatCheck,assertSchemaCompatible} from './schema-compat-check.mjs';
+export async function createSchemaVerifiedValidationTransport(options,{catalog}={}) {
+  const schemaCompatibility=await schemaCompatCheck({catalog});
+  assertSchemaCompatible(schemaCompatibility);
+  return createValidationTransport({...options,schemaCompatibility});
+}
 export const R2_DATA_TYPES = Object.freeze(['property_record', 'property_value_avm', 'property_sold_record_pool', 'rent_estimate_evidence']);
 export function validationDataTypes(value = R2_DATA_TYPES) {
   if (!Array.isArray(value) || value.length === 0 || value.some(type => !R2_DATA_TYPES.includes(type)) || new Set(value).size !== value.length) throw Error('R2_INVALID_DATA_TYPES');
@@ -10,7 +16,8 @@ export function rentcastDataType(url) {
   if (/\/properties$/.test(url.pathname)) return url.searchParams.has('saleDateRange') || url.searchParams.has('radius') ? 'property_sold_record_pool' : 'property_record';
   return null;
 }
-export function createValidationTransport({fetchImpl, dataTypes, supabaseOrigin, arcgisOrigins = [], maxRentcastCalls = 4, maxArcgisRequests = 6, reportId, requestId,onAttempt}) {
+export function createValidationTransport({fetchImpl, dataTypes, supabaseOrigin, arcgisOrigins = [], maxRentcastCalls = 4, maxArcgisRequests = 6, reportId, requestId,onAttempt,schemaCompatibility}) {
+  assertSchemaCompatible(schemaCompatibility);
   const allowed = validationDataTypes(dataTypes), attempts = [];
   let rentcastCalls = 0, arcgisCalls = 0, stopped = null;
   if (!Number.isInteger(maxRentcastCalls) || maxRentcastCalls < 0 || maxRentcastCalls > 4 || !Number.isInteger(maxArcgisRequests) || maxArcgisRequests < 0 || maxArcgisRequests > 6) throw Error('R2_INVALID_REQUEST_LIMIT');
@@ -26,6 +33,7 @@ export function createValidationTransport({fetchImpl, dataTypes, supabaseOrigin,
     if (url.origin === supabaseOrigin) return fetchImpl(input, init);
     let type = null;
     if (rentcast) {
+      assertSchemaCompatible(schemaCompatibility);
       type = rentcastDataType(url); assertContinue();
       if (!type || !allowed.has(type)) throw Error('R2_DATA_TYPE_FORBIDDEN');
       if (rentcastCalls >= maxRentcastCalls) throw Error('R2_RENTCAST_LIMIT');
@@ -51,13 +59,14 @@ export function createValidationTransport({fetchImpl, dataTypes, supabaseOrigin,
     } catch { if (rentcast) stop('TRANSPORT_ERROR'); throw Error('R2_TRANSPORT_FAILED'); }
     finally { attempt.latencyMs = Date.now()-start; await onAttempt?.(attempts); }
   }
-  return {fetch:fetcher,assertContinue,stop,attempts,get stopped(){return stopped;},get rentcastCalls(){return rentcastCalls;},get arcgisCalls(){return arcgisCalls;}};
+  return {fetch:fetcher,assertContinue,stop,attempts,assertSchemaCompatible:()=>assertSchemaCompatible(schemaCompatibility),get stopped(){return stopped;},get rentcastCalls(){return rentcastCalls;},get arcgisCalls(){return arcgisCalls;}};
 }
 /** Dependency boundary is the real domain orchestrator, never the Gemini/chat API.
  * The optional dataTypes parameter affects this tooling call only. A suppressed
  * family is not invoked, so it cannot reserve quota before the transport gate.
  */
 export async function runValidationAcquisition({dataTypes,orchestrate,propertyId,userId,services,loadPropertyDetails,loadInvestmentProfile,calculateMatch,loadArvEvaluation,transport,parcelCovered=false,analysisAssumptions}) {
+  transport.assertSchemaCompatible();
   const allowed=validationDataTypes(dataTypes),results={},errors=[];
   async function family(type,work) {
     if (!allowed.has(type) || type==='property_record'&&parcelCovered) return null;
