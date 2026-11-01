@@ -1,4 +1,4 @@
-# CONTRATO DO PIPELINE DE ANÁLISE — Maxxis / DealSifter (v0.6)
+# CONTRATO DO PIPELINE DE ANÁLISE — Maxxis / DealSifter (v0.7)
 
 1. ORDEM DE AQUISIÇÃO
    DB → cache → ArcGIS → RentCast → Gemini → GapResolver (chat). Cada
@@ -55,10 +55,6 @@
    ALVO R-3: a preparação da análise (aquisição + GapResolver) ocorre no
    chat ANTES da geração cobrada; gerar o PDF é o ato cobrado e deve
    reaproveitar o que foi apurado (cache hit).
-   AQUISIÇÃO POR NÍVEL (alvo): L2 = aluguel de mercado + pool de vendas
-   fechadas (3 a 5 exemplos) + anúncios à venda (3, só suporte), além do
-   que vier de DB, cache e ArcGIS. AVM e ARV só no L3. Custo com cache
-   frio: L2 ~3 chamadas RentCast; L3 ~4 a 5. Preço inalterado.
 
 8. RELATÓRIO
    Seções em ordem fixa; selo de completude relativo ao nível;
@@ -85,3 +81,18 @@
     L2 > 85%; L3 > 95%.
     Selo: Completo >= meta; Parcial >= 70% da meta; Preliminar abaixo.
     O PDF e o chat exibem a cobertura e o que falta. Cobrança inalterada.
+
+11. AQUISIÇÃO MÍNIMA NO RENTCAST (alvo, a confirmar no código)
+    Cada endpoint do RentCast é uma requisição separada; não há chamada
+    única que traga tudo. Mapa: registro do imóvel (/properties) =
+    terreno, impostos, HOA, histórico; valor (/avm/value) = valor, faixa,
+    atributos do imóvel e comps de ANÚNCIOS de venda com coordenadas;
+    aluguel (/avm/rent/long-term) = aluguel, faixa e comps de anúncios de
+    aluguel; vendas fechadas = busca em /properties por área (única fonte
+    de preço de fechamento); anúncios avulsos (/listings) e estatísticas
+    de mercado (/markets) não são buscados (os comps de anúncios já vêm
+    nas respostas do AVM e do aluguel; mercado não alimenta nenhum campo).
+    Plano alvo com cache frio: L2 = aluguel + vendas fechadas + AVM (só
+    para os comps de suporte; o valor estimado não é exibido no L2);
+    L3 = AVM + aluguel + vendas fechadas (+ registro do imóvel quando o
+    ArcGIS não cobrir HOA/impostos). Custo: L2 ~3 chamadas; L3 ~3 a 4.

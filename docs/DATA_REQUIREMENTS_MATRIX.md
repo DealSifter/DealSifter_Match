@@ -1,6 +1,6 @@
 # Matriz de requisitos de dados — Maxxis / DealSifter
 
-Escopo: R-2.0/P3, leitura offline do código e fixtures R-4.2; contrato v0.6 como alvo. Nenhuma aquisição externa, alteração de motor, premissa automática ou implementação de computeCoverage. As divergências descritas são achados, não autorização para alterar cobrança ou aquisição.
+Escopo: R-2.0/P3, leitura offline do código e fixtures R-4.2; contrato v0.7 como alvo. Nenhuma aquisição externa, alteração de motor, premissa automática ou implementação de computeCoverage. As divergências descritas são achados, não autorização para alterar cobrança ou aquisição.
 
 ## P3.1 — Campos, aplicabilidade e fontes
 
@@ -129,19 +129,41 @@ Entradas exclusivamente privadas exigidas pelo cenário: L1 nenhuma; L2 nenhuma 
 5. Retornar numeratorAutomatic, numeratorFinal, denominator, excludedWithReason, missingWithReason, investorInputsSeparate, matrixVersion e badge. Campo sem motivo de ausência é erro de integridade; classificar pelos motivos do contrato, não como preenchido.
 6. Badge-alvo: L1 Completo >=50%; L2 Completo >85%; L3 Completo >95%; Parcial >=70% da meta e abaixo de Completo; Preliminar abaixo. Preservar o operador estrito > de L2/L3 nas fronteiras exatas. Exibir denominador e faltas; cobertura não mede exatidão. Nenhuma implementação desse algoritmo foi acrescentada ao app nesta fase.
 
-## P3.6 — Custo de provedor com cache frio
+## P3.6 — Custos atuais e plano mínimo do contrato v0.7
 
-ArcGIS é tentativa pública conforme cobertura/licença, não garantia de registro completo. Cache válido reduz custo a zero por família. Uma resposta de AVM com comparáveis não equivale a pool independente de vendas fechadas.
+Atualização v2: as coberturas P3.1–P3.5 acima continuam sendo o inventário das mesmas nove fixtures; não houve alteração de dados nem implementação de computeCoverage. O contrato vigente é v0.7. O cálculo de custo anterior, que incluía uma chamada avulsa de anúncios, foi substituído pela comparação abaixo.
 
-| Nível/cenário-alvo | RentCast (sem retries) | Pro 8 chamadas/mês | Enterprise 10 | Global 45 |
-|---|---:|---:|---:|---:|
-| L1 (card) | 0 | sem limite derivável por chamadas | idem | idem |
-| L2: aluguel + vendidos + anúncios, registro já disponível | 3 | 2 gerações frias | 3 | 15 |
-| L2 + registro ausente no ArcGIS/cache | 4 | 2 | 2 | 11 |
-| L3: anteriores + AVM, registro já disponível | 4 | 2 | 2 | 11 |
-| L3 + registro ausente no ArcGIS/cache | 5 | 1 | 2 | 9 |
+Cache frio, todas as fontes autorizadas e sem falhas: L1 não compra dados; L2 atual compra apenas aluguel pelo caminho específico do relatório (até uma chamada), consumindo as demais famílias somente em cache. L3 atual faz até seis chamadas em Sell/flip ou Buy-and-hold (registro + AVM + vendidos + aluguel + mercado + anúncios de venda OU de aluguel); Subject-to faz até cinco (sem anúncios avulsos). PROVIDER_AVM_COMPS compartilha a requisição AVM, não é outra chamada. ArcGIS/DB/cache podem reduzir esses números; orçamento, identidade ou falta de cobertura podem interromper tentativas. Não são garantias de execução.
 
-São pisos matemáticos de orçamento/custo, não cotas comerciais de geração: orçamento é por usuário, teto global é compartilhado, outras funcionalidades e chamadas billable podem consumi-lo. L2 atual compra apenas aluguel (até 1 nova chamada nesse caminho), podendo usar evidência já em cache; L3 atual pode pedir famílias adicionais de mercado/aluguéis conforme estratégia. Não prometer que o plano atual custa exatamente quatro. Defaults de código: Pro total10/20% chat => relatório8; Enterprise total20/50% => relatório10. **Valor efetivo Production não foi reconsultado nesta fase offline**; 8/10 são decisões vigentes do usuário e defaults coincidentes, não prova de secrets remotos.
+| Plano de aquisição com cache frio | Chamadas | Pro 8/mês | Enterprise 10/mês | Global 45/mês | Teto temporário 30 |
+|---|---:|---:|---:|---:|---:|
+| L1 atual e mínimo | 0 | não limitado por esta quota | idem | idem | idem |
+| L2 atual (apenas aluguel novo) | 1 | 8 | 10 | 45 | 30 |
+| L3 atual Subject-to | 5 | 1 | 2 | 9 | 6 |
+| L3 atual Sell/flip ou renda | 6 | 1 | 1 | 7 | 5 |
+| L2 mínimo v0.7: aluguel + vendidos + AVM de suporte | 3 | 2 | 3 | 15 | 10 |
+| L3 mínimo v0.7: AVM + aluguel + vendidos | 3 | 2 | 3 | 15 | 10 |
+| L3 mínimo + registro, quando necessário | 4 | 2 | 2 | 11 | 7 |
+
+São pisos matemáticos de chamadas disponíveis/custo, não cotas comerciais de geração. O teto global é compartilhado com outras operações; o ciclo mensal UTC do app não prova renovação do ciclo do fornecedor. Os 35 créditos restantes informados pelo usuário não equivalem a um novo ciclo de 45. O teto 30 é a proteção temporária solicitada, a verificar/aplicar na Parte 4 sem alterar código. PRO 8 e Enterprise 10 são decisões vigentes; o valor efetivo de Production será registrado nos gates da validação, sem confundir defaults locais com configuração remota.
+
+**L2 atual adquire pool de vendas e anúncios? NÃO.** A ativação de AVM apenas para comps no L2 é alvo do contrato, não foi instalada no fluxo do usuário. O valor AVM e o ARV continuam exclusivos do L3. Não foram alterados pricing ou cobrança.
+
+## P3.7 — Data_types sem campo e preservação dos comps
+
+| Data type | Aquisição atual | Relação com a tabela-base e PDF atual | Normalização/cache |
+|---|---|---|---|
+| market_evidence | /markets, requisição própria; requerido pelo plano L3 comum | Estatísticas agregadas não são campo obrigatório da tabela-base. O schema pode preservar marketData, mas o renderer não exige um indicador desse agregado; ele não é entrada obrigatória de aluguel, ARV, NOI ou retornos calculados. | Segmentos de mercado; não substitui vendas verificadas. |
+| rental_listing_evidence | /listings/rental/long-term, requisição própria | Anúncios de aluguel separados não são requisito obrigatório independente; a estimativa principal vem de /avm/rent/long-term. Não é reaproveitamento automático dessa resposta. | records com price/status/latitude/longitude quando fornecidos. |
+| sale_listing_evidence | /listings/sale, requisição própria | O conceito de três anúncios de suporte existe na tabela-base, mas o caminho explícito de providerListingReferences do relatório é projetado dos comps do AVM. O bundle de anúncios avulsos não é garantia de que um campo chegará ao PDF; não contar duplicadamente. | records com price/status/latitude/longitude quando fornecidos. |
+| property_value_avm | /avm/value | Valor/faixa (L3) e comps de anúncios de suporte; não são vendas elegíveis por si só. | comparables preserva price, priceSemantic=PROVIDER_LISTING_PRICE, listingStatus, latitude/longitude, datas e atributos físicos. Status ausente permanece null; não inferir ACTIVE. |
+| rent_estimate_evidence | /avm/rent/long-term | Estimativa/faixa de aluguel; comps podem dispensar uma busca avulsa para a demonstração de suporte se a resposta tiver dados suficientes. | comparables preserva price/status/latitude/longitude, distância, idade e correlação; subjectProperty separado. Campos ausentes permanecem null. |
+
+Guardar coordenadas/status/preço não garante que existam três anúncios ativos utilizáveis. Isso deve ser contado na resposta real da Parte 4. Os mapeadores não inventam status ou preços ausentes. AVM e aluguel não transformam anúncios em transações fechadas, nem comprovam condição reformada. As respostas normalizadas são persistidas pelo cache respectivo; o payload cru não deve ser impresso para demonstrar esses campos.
+
+TTL padrão por data_type: property_record 168h; property_value_avm 72h; property_sold_record_pool 720h; rent_estimate_evidence 72h; sale_listing_evidence e rental_listing_evidence 24h; market_evidence 168h. Variáveis de TTL podem alterar registro/AVM/vendas; a efetividade deve ser conferida em Production. Expirado retido pode ser apresentado como STALE_USABLE em caminhos específicos, mas não é cache com TTL válido nem prova de zero renovação no caminho live padrão.
+
+Referências adicionais: property-data/rentcast/rentcastClient.ts (endpoints independentes); valuationMapper.ts e valuationTypes.ts (comps AVM); supplementalEvidenceMapper.ts/types/cache (comps aluguel e anúncios); maxxis/providerEvidencePlan.ts, getDealInsightContext.ts e src/domain/maxxis/maxxisReportSchema.js (aquisição versus campos efetivamente projetados). Nenhuma chamada foi feita para elaborar esta atualização.
 
 ## Inventário estático para os gates da Parte 4
 
