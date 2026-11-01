@@ -7,7 +7,7 @@ import { resolveReportExportEntitlement } from '../../features/maxxis/export/rep
 const source=readFileSync(new URL('./MatchesPortfolio.jsx',import.meta.url),'utf8');
 describe('L1 portfolio export ceiling and authorized disclosure',()=>{
   it('rejects over-cap content explicitly without cutting notes or changing tier access',async()=>{
-    const notes=Array.from({length:30},(_,index)=>`Recorded owner note ${index+1}: verify the published property information before proceeding.`).join(' ');
+    const notes=Array.from({length:200},(_,index)=>`Recorded owner note ${index+1}: verify the published property information before proceeding.`).join(' ');
     const property={id:'l1-regression-fixture',address:'100 Synthetic Example St',city:'Example City',state:'AR',zip:'00000',type:'SFR',price:90000,beds:3,baths:2,sqft:1760,lot:5000,notes};
     const fetchSpy=vi.spyOn(globalThis,'fetch').mockImplementation(()=>{throw new Error('NO_PROVIDER_CALLS_ALLOWED');});
     try{

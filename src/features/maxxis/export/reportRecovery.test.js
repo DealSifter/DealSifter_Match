@@ -34,7 +34,7 @@ describe('report recovery vertical evidence contract', () => {
     expect(section.map.points.filter(p => p.marker !== 'S')).toHaveLength(5);
     expect(section.hero.value).toBe('$970');
   });
-  it('ranks 5 SOLDs, 3 complementary SOLDs and 5 FOR SALE references without inventing ARV', () => {
+  it('ranks up to 5 recorded sales and 3 listing references without inventing ARV', () => {
     const listings = Array.from({ length: 10 }, (_, i) => ({ address: `${i} QA Listing`, price: 100000 + i * 1000, priceSemantic: 'PROVIDER_LISTING_PRICE', providerCorrelation: .80 + i / 100, latitude: 34.73, longitude: -92.33 }));
     expect(projectProviderListingReferences(listings).map(row => row.address)).toEqual(['9 QA Listing', '8 QA Listing', '7 QA Listing', '6 QA Listing', '5 QA Listing']);
     const sold = Array.from({ length: 8 }, (_, i) => ({ compIdentifier: `sold-${i}`, address: `${i} QA Closed Sale`, salePrice: 120000 + i * 1000, saleDate: '2026-09-01', role: 'PRIMARY', similarity: 80 + i, latitude: 34.73, longitude: -92.33 }));
@@ -43,12 +43,12 @@ describe('report recovery vertical evidence contract', () => {
     } });
     const vm = buildStrictReportViewModel({ schema, language: 'en' }), market = vm.sections.find(s => s.id === 'sales-comparables');
     expect(market.table.rows.filter(row => row[5] === 'SOLD')).toHaveLength(5);
-    expect(market.table.rows.filter(row => row[5].includes('Complementary'))).toHaveLength(3);
-    expect(market.table.rows.filter(row => row[5] === 'FOR SALE')).toHaveLength(5);
+    expect(market.table.rows.filter(row => row[5].includes('Complementary'))).toHaveLength(0);
+    expect(market.table.rows.filter(row => row[5] === 'FOR SALE')).toHaveLength(3);
     expect(market.table.rows[0][1]).toBe('7 QA Closed Sale');
     expect(market.map.points.filter(p => p.markerTone === 'sold')).toHaveLength(5);
-    expect(market.map.points.filter(p => p.markerTone === 'complementary')).toHaveLength(3);
-    expect(market.map.points.filter(p => p.markerTone === 'for-sale')).toHaveLength(5);
+    expect(market.map.points.filter(p => p.markerTone === 'complementary')).toHaveLength(0);
+    expect(market.map.points.filter(p => p.markerTone === 'for-sale')).toHaveLength(3);
     expect(vm.sections.some(s => s.id === 'arv-market')).toBe(false);
     expect(projectProviderListingReferences([{ ...listings[0], priceSemantic: 'RECORDED_SALE' }])).toEqual([]);
   });

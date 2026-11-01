@@ -26,8 +26,8 @@ describe('R4 content and privacy contract', () => {
   });
   it('consolidates missing indicators into one actionable table', () => {
     const blocks = composeReportContent(model('sparse')), pending = blocks.filter(b => b.id === 'report-pending');
-    expect(pending).toHaveLength(1); expect(pending[0].columns).toEqual(['Indicator', 'Required action']);
-    expect(pending[0].table!.every(row => row.length === 2 && row.every(Boolean))).toBe(true);
+    expect(pending).toHaveLength(1); expect(pending[0].columns).toEqual(['Indicator', 'Cause', 'Required action']);
+    expect(pending[0].table!.every(row => row.length === 3 && row.every(Boolean))).toBe(true);
     expect(blocks.some(block => /readiness|pending/.test(block.id) && block.id !== 'report-pending')).toBe(false);
   });
   it('deduplicates repeated narrative and photos by content', () => {

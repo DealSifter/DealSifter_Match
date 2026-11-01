@@ -12,7 +12,7 @@ export function projectMarketRentReport(evidence,property={},level=3,financialEv
   }
   if(!evidence||evidence.provider!=='rentcast'||evidence.evidenceType!=='rent_estimate'||evidence.status!=='AVAILABLE'||!positive(evidence.rent))return null;
   if(level<2)return null;
-  const common={monthlyRentEstimate:evidence.rent,currency:'USD',cadence:'MONTHLY',source:'RentCast',evidenceClass:'PROVIDER_ESTIMATE',scope:evidence.scope??'PROPERTY'};
+  const common={monthlyRentEstimate:evidence.rent,currency:'USD',cadence:'MONTHLY',source:'RentCast',evidenceClass:'PROVIDER_ESTIMATE',scope:evidence.scope??'PROPERTY',retrievedAt:evidence.retrievedAt??null};
   if(level===2)return Object.freeze(common);
   const subject=evidence.subjectProperty??{},sqft=positive(subject.livingAreaSqft),beds=positive(subject.bedrooms);
   const seen=new Set();

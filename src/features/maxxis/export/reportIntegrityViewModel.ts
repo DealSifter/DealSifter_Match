@@ -7,7 +7,7 @@ import { getCachedPresentationText } from '../../../services/chatTranslation';
 import { projectSavedReportScenario } from './reportSavedScenarioProjection';
 import { formatFinancialEvidenceSource } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceLabels';
 import type { FinancialResolvedInput } from '../../../../supabase/functions/_shared/maxxis/financialEvidence';
-import { projectProviderListingReferences, rankReportComparables, projectSoldDelivery, soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
+import { projectProviderListingReferences, excludeSubjectReferences, rankReportComparables, projectSoldDelivery, soldDeliveryAnswer } from '../../../../supabase/functions/_shared/maxxis/reportMarketReferences';
 import { marketRentStateAnswer } from '../../../../supabase/functions/_shared/maxxis/financialEvidenceAnswer';
 import type { MarketRentResult } from '../../../../supabase/functions/_shared/property-data/marketRentService';
 import { INVESTMENT_PRICE_RANGE_OPTIONS } from '../../../lib/investmentProfile';
@@ -236,7 +236,10 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   if (areaConflict) addBlocker('parcel-area', t('As áreas do lote divergem. A área utilizável e o preço por acre não podem ser afirmados até a revisão.', 'Parcel areas disagree. Usable area and price per acre cannot be established until review.', 'Las áreas del lote difieren. No se puede afirmar el área utilizable ni el precio por acre hasta revisar.'), t('Compare a área declarada com o registro parcelário e salve sua escolha na revisão de dados para liberar os indicadores de terreno.', 'Compare the declared area with the parcel record and save the review decision to unlock land metrics.', 'Compare el área declarada con el registro parcelario y guarde la decisión para habilitar los indicadores de terreno.'), ['fact:lotSizeSqft', 'fact:lotSizeAcres'], 100);
   if (property.propertyTypeConflict === true) addBlocker('property-type', t('O tipo informado diverge do registro externo; referências de outro tipo não sustentam esta avaliação.', 'The declared type differs from the external record; another property type cannot support this valuation.', 'El tipo declarado difiere del registro externo; otro tipo no sustenta esta valoración.'), t('Revise a classificação do imóvel com a fonte do cadastro antes de usar a estimativa externa.', 'Review the property classification against the record source before using the external estimate.', 'Revise la clasificación del inmueble con la fuente del registro antes de usar la estimación externa.'), ['property:identity'], 95);
   const rentalView = obj(presentation.marketRent), rentAmount = !land ? positive(rentalView.monthlyRentEstimate) : null;
-  const comps = section('comparableEvidence'), selectedSold = rankReportComparables(list(comps.used).map(obj).filter(item => item.role === 'PRIMARY' && positive(item.salePrice) !== null && scalar(item.saleDate) && !Number.isNaN(new Date(scalar(item.saleDate)).getTime()))).slice(0, 5);
+  const rawComps = section('comparableEvidence');
+  const subjectSold = excludeSubjectReferences([...list(rawComps.used), ...list(rawComps.supporting)], property);
+  const comps: Input = { ...rawComps, used: excludeSubjectReferences(rawComps.used, property).references, supporting: excludeSubjectReferences(rawComps.supporting, property).references };
+  const selectedSold = rankReportComparables(list(comps.used).map(obj).filter(item => item.role === 'PRIMARY' && positive(item.salePrice) !== null && scalar(item.saleDate) && !Number.isNaN(new Date(scalar(item.saleDate)).getTime()))).slice(0, 5);
   const reportedSales = rankReportComparables([...list(comps.used), ...list(comps.supporting), ...list(comps.excluded)].map(obj).filter(item => positive(item.salePrice) !== null && scalar(item.saleDate)));
   const soldReasons: Record<string, string> = {
     CONDITION_REVIEW_PENDING: t('Condição do comparável ainda não revisada em relação à condição-alvo.', 'Comparable condition has not been reviewed against the target condition.', 'Condición del comparable no revisada frente a la condición objetivo.'),
@@ -353,7 +356,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     }
   }
   if (level === 3 && !land) {
-    const listings = projectProviderListingReferences(valuation.providerListingReferences).slice(0, 5);
+    const listings = projectProviderListingReferences(valuation.providerListingReferences, property).slice(0, 5);
     if (listings.length) {
       const points: ReportMapPoint[] = finitePoint(property.latitude, property.longitude) ? [{ id: 'subject', marker: 'S', latitude: Number(property.latitude), longitude: Number(property.longitude) }] : [];
       const refs: string[][] = [];
@@ -379,7 +382,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
       for (const [key, label, decimals] of [['rentPerSqft', rentCopy.perSqft, 2], ['rentPerBedroom', rentCopy.perBed, 0]] as const) { const n = positive(obj(rentalView[key]).value); if (n !== null) { const id = register(`calculation:${key}`, rentCopy.calculated, [n]); rows.push({ label, value: money(n, locale, decimals), source: rentCopy.calculated, evidenceRefs: [id] }); } }
       const subject = obj(rentalView.subject);
       for (const [key, field] of [['bedrooms', 'beds'], ['bathrooms', 'baths'], ['livingAreaSqft', 'sqft']] as const) { const n = positive(subject[key]); if (n !== null) rows.push({ label: `${rentCopy.subject} · ${reportFieldLabel(field, locale)}`, value: `${numeric(n, locale)}${field === 'sqft' ? ' sqft' : ''}`, source: 'RentCast', evidenceRefs: [ref] }); }
-      const comps = list(rentalView.reportRentalComparables).map(obj).filter(item => positive(item.monthlyRent) !== null).slice(0, 5);
+      const comps = excludeSubjectReferences(rentalView.reportRentalComparables, property).references.map(obj).filter(item => positive(item.monthlyRent) !== null).slice(0, 5);
       const mapPoints: ReportMapPoint[] = [];
       if (finitePoint(subject.latitude, subject.longitude)) mapPoints.push({ id: 'subject', marker: 'S', latitude: Number(subject.latitude), longitude: Number(subject.longitude) });
       if (comps.length) {
@@ -469,10 +472,16 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   const ownerName = reportNarrativeString(owner.name);
   const disclosePublisher = !!schema && typeof schema === 'object' && getReportPublisherDisclosure(schema, includePublisher);
   if (disclosePublisher && ownerName) ownerRows.push({ label: t('Publicador', 'Publisher', 'Publicador'), value: ownerName, evidenceRefs: ['property:identity'] });
-  ownerRows.push(...propertyRows(['ownerOccupied', 'ownershipRecordPresent', 'latestSalePrice', 'latestSaleDate']));
+  // Sale records are property evidence, never publisher/contact information.
+  const saleRows = propertyRows(['latestSalePrice', 'latestSaleDate']);
   if (disclosePublisher) for (const item of list(owner.allowedContacts).map(obj)) { const contact = reportNarrativeString(item.value); if (contact) ownerRows.push({ label: /mail/i.test(scalar(item.type)) ? 'Email' : t('Contato autorizado', 'Authorized contact', 'Contacto autorizado'), value: contact, evidenceRefs: ['property:identity'] }); }
   const facts = (level === 1 ? [ { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows }, { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e dados fiscais', 'Land and tax records', 'Terreno y datos fiscales'), rows: [...parcelRows, ...taxRows] } ] : [ { title: t('Dados do imóvel', 'Property facts', 'Datos del inmueble'), rows: physicalRows }, { title: t('Terreno e registro parcelário', 'Land and parcel record', 'Terreno y registro parcelario'), rows: parcelRows }, { title: t('Registros fiscais, não valor de mercado', 'Tax records, not market value', 'Registros fiscales, no valor de mercado'), rows: taxRows }, { title: t('Publicador e contatos autorizados', 'Publisher and authorized contacts', 'Publicador y contactos autorizados'), rows: ownerRows } ]).filter(group => group.rows.length);
   if (level > 1) for (const [index, group] of facts.entries()) push({ id: group.rows === taxRows ? 'property-tax' : group.rows === ownerRows ? 'property-contacts' : `property-facts-${index}`, title: group.title, kind: 'facts', priority: land ? 88 - index : 50 - index, rows: group.rows, evidenceRefs: group.rows.flatMap(row => row.evidenceRefs) });
+  if (saleRows.length) {
+    const saleHistory = { title: t('Histórico de vendas', 'Sale history', 'Historial de ventas'), rows: saleRows };
+    facts.push(saleHistory);
+    if (level > 1) push({ id: 'sale-history', title: saleHistory.title, kind: 'facts', priority: 48, rows: saleRows, evidenceRefs: saleRows.flatMap(row=>row.evidenceRefs) });
+  }
   const metrics = propertyRows(land ? [] : ['beds', 'baths', 'sqft']);
   const disputed = Object.values(values).filter(value => value.state === 'CONFLICTED');
   if (disputed.length) {
@@ -679,18 +688,20 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
         const record = allSold.find(item => reportNarrativeString(item.address) === row[1]);
         add(row, sold!.table!.evidenceRefs[i], sold!.map?.points.find(point => point.marker === row[0]), 'SOLD', 'sold', record?.similarity ?? record?.providerCorrelation);
       });
-      const complementary = allSold.filter(item => !seen.has(reportNarrativeString(item.address)) && positive(item.salePrice) !== null && scalar(item.saleDate) && !Number.isNaN(new Date(scalar(item.saleDate)).getTime())).slice(0, 3);
+      const complementary = allSold.filter(item => !seen.has(reportNarrativeString(item.address)) && positive(item.salePrice) !== null && scalar(item.saleDate) && !Number.isNaN(new Date(scalar(item.saleDate)).getTime())).slice(0, Math.max(0, 5-rows.length));
       complementary.forEach((item, i) => {
         const address = reportNarrativeString(item.address) || unavailable, ref = register(`sold-complementary:${i + 1}`, address, [Number(item.salePrice)], [scalar(item.compIdentifier)].filter(Boolean));
         const point = finitePoint(item.latitude, item.longitude) ? { id: ref, marker: '', latitude: Number(item.latitude), longitude: Number(item.longitude) } : undefined;
         add(['', address, money(Number(item.salePrice), locale), formatReportDate(item.saleDate, locale), number(item.distanceMiles) === null ? '—' : `${numeric(Number(item.distanceMiles), locale, 2)} mi`], [ref], point,
           `SOLD · ${t('Complementar', 'Complementary', 'Complementario')}`, 'complementary', item.similarity ?? item.providerCorrelation);
       });
-      const advertisedData = projectProviderListingReferences(valuation.providerListingReferences);
-      forSale.forEach((row, i) => add(row, advertised!.table!.evidenceRefs[i], advertised!.map?.points.find(point => point.marker === row[0]), 'FOR SALE', 'for-sale', advertisedData[i]?.providerCorrelation));
-      const caption = t('Amarelo: SOLD. Vermelho: FOR SALE. Roxo: complementares. Até 5 principais por grupo e 3 SOLDs complementares, ordenados por similaridade disponível. Anúncios não comprovam vendas nem entram no ARV.', 'Yellow: SOLD. Red: FOR SALE. Purple: complementary. Up to 5 main references per group and 3 complementary SOLDs, ordered by available similarity. Listings do not prove sales or enter ARV.', 'Amarillo: SOLD. Rojo: FOR SALE. Morado: complementarios. Hasta 5 principales por grupo y 3 SOLD complementarios, según similitud disponible. Anuncios no prueban ventas ni entran en ARV.');
-      push({ id: 'sales-comparables', title: t('Comparáveis de venda: SOLD e FOR SALE', 'Sales comparables: SOLD and FOR SALE', 'Comparables de venta: SOLD y FOR SALE'), kind: 'comparables', priority: 90,
-        table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Preço', 'Price', 'Precio'), t('Data', 'Date', 'Fecha'), t('Distância', 'Distance', 'Distancia'), 'Status', t('Similaridade', 'Similarity', 'Similitud')], rows, evidenceRefs: refs },
+      const advertisedData = projectProviderListingReferences(valuation.providerListingReferences, property);
+      forSale.slice(0,3).forEach((row, i) => add(row, advertised!.table!.evidenceRefs[i], advertised!.map?.points.find(point => point.marker === row[0]), 'FOR SALE', 'for-sale', advertisedData[i]?.providerCorrelation));
+      const caption = t('Amarelo: vendas principais. Roxo: vendas de apoio. Vermelho: anúncios. Até 5 vendas e 3 anúncios, por similaridade disponível. Anúncios não entram no ARV.', 'Yellow: primary sales. Purple: supporting sales. Red: listings. Up to 5 sales and 3 listings, ranked by available similarity. Listings never enter ARV.', 'Amarillo: ventas principales. Morado: ventas de apoyo. Rojo: anuncios. Hasta 5 ventas y 3 anuncios, según similitud disponible. Anuncios no entran en ARV.');
+      const hasSales = rows.some(row=>row[5].startsWith('SOLD')), hasListings = rows.some(row=>row[5]==='FOR SALE');
+      push({ id: 'sales-comparables', title: hasSales && hasListings ? t('Vendas registradas e anúncios de apoio', 'Recorded sales and supporting listings', 'Ventas registradas y anuncios de apoyo')
+          : hasSales ? t('Vendas registradas', 'Recorded sales', 'Ventas registradas') : t('Anúncios comparáveis (à venda)', 'Comparable listings (for sale)', 'Anuncios comparables (en venta)'), kind: 'comparables', priority: 90,
+        table: { columns: ['#', t('Endereço', 'Address', 'Dirección'), t('Preço', 'Price', 'Precio'), hasSales && hasListings ? t('Data', 'Date', 'Fecha') : hasSales ? t('Venda', 'Sold', 'Venta') : t('Anúncio', 'Listed', 'Anuncio'), t('Distância', 'Distance', 'Distancia'), t('Tipo', 'Type', 'Tipo'), t('Similaridade', 'Similarity', 'Similitud')], rows, evidenceRefs: refs },
         map: { points, caption: `${caption} ${t('FOR SALE identifica preço de anúncio, inclusive histórico/inativo; não significa oferta ativa hoje.', 'FOR SALE identifies a listing price, including historical/inactive listings; it does not mean the offer is active today.', 'FOR SALE identifica un precio anunciado, incluso histórico/inactivo; no significa una oferta activa hoy.')}` }, evidenceRefs: refs.flat() });
       for (const original of [sold, advertised]) if (original?.table) {
         delete original.table; delete original.map;
@@ -711,7 +722,8 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   indicatorReasons.marketRent = level === 1 || land ? 'NOT_REQUESTED' : rentAmount !== null ? null
     : evidenceAbsenceReason(rentState.absenceReason || rentState.reason || rentState.state, 'PROVIDER_ERROR');
   indicatorReasons.arv = level < 3 || land ? 'NOT_REQUESTED' : usableArv ? null
-    : indicatorReasons.recordedSales || (selectedSold.length < ARV_ELIGIBILITY_POLICY.minimumPreliminarySales ? 'NO_COVERAGE' : 'USER_INPUT_REQUIRED');
+    : indicatorReasons.recordedSales || (list(comps.supporting).map(obj).some(comp=>positive(comp.salePrice)!==null&&scalar(comp.saleDate))
+      ? 'USER_INPUT_REQUIRED' : selectedSold.length < ARV_ELIGIBILITY_POLICY.minimumPreliminarySales ? 'NO_COVERAGE' : 'USER_INPUT_REQUIRED');
   const savedRows = resultSections.find(section => section.id === 'saved-scenario-results')?.rows || [];
   indicatorReasons.roi = level === 1 ? 'NOT_REQUESTED'
     : savedRows.some(row => /\bROI\b/i.test(row.label) && row.value !== unavailable && row.value !== '—') ? null : 'USER_INPUT_REQUIRED';
@@ -748,6 +760,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     kind: 'list', priority: 65, items: absenceItems, evidenceRefs: absenceItems.flatMap(item => item.evidenceRefs) });
   resultSections.sort((a, b) => b.priority - a.priority);
   const model: ReportViewModel = { type: 'strict_report_view_model', version: 'REPORT_PROJECTION_V3', reportType, locale,
+    excludedSubjectComparables: excludeSubjectReferences(valuation.providerListingReferences, property).excludedCount + subjectSold.excludedCount + excludeSubjectReferences(rentalView.reportRentalComparables, property).excludedCount,
     header: { product: level === 1 ? t('RELATÓRIO DO IMÓVEL', 'PROPERTY RELEASE', 'INFORME DE LA PROPIEDAD') : level === 2 ? t('RELATÓRIO DE ANÁLISE MAXXIS', 'MAXXIS ANALYSIS REPORT', 'INFORME DE ANÁLISIS MAXXIS') : t('INTELIGÊNCIA DO NEGÓCIO MAXXIS', 'MAXXIS DEAL INTELLIGENCE REPORT', 'INTELIGENCIA DEL NEGOCIO MAXXIS'), subtitle: t('Dados reais. Decisões mais inteligentes.', 'Real Data. Smarter Decisions.', 'Datos reales. Decisiones más inteligentes.'), plan: `L${level}`, tagline: 'DealSifter Match' },
     property: { title: reportNarrativeString(property.title) || identityAddress, address: identityAddress, location, price: values.price.text, type: typeLabel, strategy: strategyLabel, metrics, facts, notes, photos,
       locationPoint: finitePoint(property.latitude, property.longitude) ? { id: 'subject', marker: 'S', latitude: Number(property.latitude), longitude: Number(property.longitude) } : null },

@@ -7,12 +7,13 @@ export class ContentReportComposition extends ReportBrandShell {
   private get bodySize() { return this.compact ? 8.5 : 9; }
   private renderWidth = WIDTH;
   private renderX = X;
-  fullWidth(block: ContentBlock) { return ['overview', 'table', 'disclaimer'].includes(block.kind) || ['market-rent', 'financial-indicators', 'profile-compatibility', 'report-sources'].includes(block.id); }
+  fullWidth(block: ContentBlock) { return ['overview', 'table', 'disclaimer'].includes(block.kind) || ['market-rent', 'financial-indicators', 'profile-compatibility', 'report-sources', 'listing-description'].includes(block.id); }
   setWidth(block: ContentBlock) { this.renderWidth = this.fullWidth(block) ? WIDTH : (WIDTH - GAP) / 2; }
   textHeight(text: string, width = this.renderWidth - 2 * PAD, size = this.bodySize, bold = false) { return this.flow.lines(text, width, size, bold).length * (size + 4); }
   tableWidths(block: ContentBlock) {
     const WIDTH = this.renderWidth;
     const count = block.columns?.length || 1, width = WIDTH - 2 * PAD;
+    if(count===7)return [.04,.30,.14,.13,.09,.19,.11].map(ratio=>width*ratio);
     return count === 3 ? [width * .22, width * .43, width * .35] : count === 5 ? [width * .06, width * .41, width * .19, width * .18, width * .16] : Array.from({ length: count }, () => width / count);
   }
   rowHeight(row: string[], widths: number[]) { return Math.max(...row.map((cell, i) => this.textHeight(cell, widths[i] - 9, 8.5))) + 5; }
@@ -22,13 +23,13 @@ export class ContentReportComposition extends ReportBrandShell {
     let height = PAD * 2 + this.textHeight(block.title, WIDTH - 2 * PAD, 10, true) + 5;
     if (block.kind === 'overview') return height + Math.max(this.textHeight(block.text || '', (WIDTH - 2 * PAD) * .55, 10), block.photos?.length ? 94 : 0) + ((block.photos?.length || 0) > 1 ? 54 : 0);
     if (block.hero) height += 25;
-    if (block.text) height += this.textHeight(block.text);
+    if (block.text) height += this.textHeight(block.text, WIDTH - 2 * PAD, block.textSize ?? this.bodySize);
     if (block.afterText) height += 4 + this.textHeight(block.afterText);
     if (block.rows?.length) for (let i = 0; i < block.rows.length; i += 2) height += Math.max(...block.rows.slice(i, i + 2).map(row => this.textHeight(`${row.label}: ${row.value}`, (WIDTH - 3 * PAD) / 2))) + 4;
     if (block.table?.length) { const widths = this.tableWidths(block); height += this.rowHeight(block.columns || [], widths) + block.table.reduce((sum, row) => sum + this.rowHeight(row, widths), 0); }
     if (block.map) height += (this.vm.reportType === 'PROPERTY_RELEASE' ? 95 : 135) + 5 + this.textHeight(block.map.caption, WIDTH - 2 * PAD, 8);
     if (block.kind === 'photos' && block.photos?.length) height += Math.ceil(block.photos.length / 4) * 76;
-    if (block.score !== undefined) height += 29;
+    if (block.score !== undefined) height += 42;
     return height;
   }
   fitBlocks(blocks: ContentBlock[]): ContentBlock[] {
@@ -77,7 +78,7 @@ export class ContentReportComposition extends ReportBrandShell {
       }
     } else {
       if (block.hero) cursor = f.drawText(block.hero.value, X + PAD, cursor, WIDTH - PAD * 2, block.id, 18, true, this.accent, end) + 3;
-      if (block.text) cursor = f.drawText(block.text, X + PAD, cursor, WIDTH - PAD * 2, block.id, block.kind === 'disclaimer' ? 8 : this.bodySize, false, [44, 70, 108], end);
+      if (block.text) cursor = f.drawText(block.text, X + PAD, cursor, WIDTH - PAD * 2, block.id, block.kind === 'disclaimer' ? 8 : block.textSize ?? this.bodySize, false, [44, 70, 108], end);
       for (let i = 0; i < (block.rows?.length || 0); i += 2) {
         const rows = block.rows!.slice(i, i + 2), half = (WIDTH - 3 * PAD) / 2;
         const rowH = Math.max(...rows.map(row => this.textHeight(`${row.label}: ${row.value}`, half))) + 4;
@@ -99,6 +100,7 @@ export class ContentReportComposition extends ReportBrandShell {
       }
       if (block.kind === 'photos') block.photos?.forEach((photo, index) => f.image(photo, X + PAD + index % 4 * (WIDTH - 2 * PAD) / 4, cursor + Math.floor(index / 4) * 76, (WIDTH - 2 * PAD) / 4 - 5, 71, 'contain'));
       if (block.score !== undefined) {
+        cursor = f.drawText(`Match Score: ${block.score}%`, X + PAD, cursor, WIDTH - 2 * PAD, block.id, 9, true, [44,70,108], end);
         const w = WIDTH - 2 * PAD; d.setFillColor(222, 232, 238); d.rect(X + PAD, cursor + 7, w, 7, 'F'); d.setFillColor(...this.accent); d.rect(X + PAD, cursor + 7, w * block.score / 100, 7, 'F');
         f.drawText('0%', X + PAD, cursor + 15, 35, block.id, 7, false, [44, 70, 108], end); f.drawText('100%', X + WIDTH - PAD - 30, cursor + 15, 30, block.id, 7, false, [44, 70, 108], end);
       }

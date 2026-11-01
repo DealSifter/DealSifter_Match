@@ -35,6 +35,7 @@ export interface ReportSection {
   continuationPolicy: 'SAME_SECTION';
 }
 export interface ReportViewModel {
+  excludedSubjectComparables?: number;
   completionBasis?: { externalAccepted: boolean; hasValue: boolean; mainArv: boolean; calculatedFinancials: boolean; blocking: boolean };
   completion?: 'COMPLETE' | 'PARTIAL' | 'PRELIMINARY';
   sourceRows?: ReportRow[];

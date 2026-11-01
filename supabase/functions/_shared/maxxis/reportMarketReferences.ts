@@ -1,11 +1,38 @@
 import {evidenceAbsenceReason,evidenceAbsenceCopy} from './evidenceAbsence.ts';
+/** Presentation safeguard only. Never mutates provider records or the ARV engine. */
+export function excludeSubjectReferences(input: unknown, subjectInput: unknown) {
+  const subject = subjectInput && typeof subjectInput === 'object' ? subjectInput as Record<string, unknown> : {};
+  const norm = (v: unknown) => typeof v === 'string' ? v.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9#]/g, '') : '';
+  const addresses = (r: Record<string,unknown>) => [r.formattedAddress, r.address, r.addressLine1, r.street].map(norm).filter(Boolean);
+  const subjectAddresses = addresses(subject), ids = [subject.id, subject.providerPropertyId, subject.compIdentifier].filter(Boolean);
+  const num = (v:unknown) => typeof v==='number' && Number.isFinite(v) ? v : null;
+  let excludedCount=0;
+  const references = (Array.isArray(input)?input:[]).filter(raw=>{
+    if (!raw || typeof raw!=='object') return false;
+    const row=raw as Record<string,unknown>;
+    const sameId=[row.id,row.providerPropertyId,row.compIdentifier].some(id=>!!id&&ids.includes(id));
+    const sameAddress=addresses(row).some(a=>subjectAddresses.includes(a));
+    const lat=num(row.latitude),lng=num(row.longitude),sLat=num(subject.latitude??subject.lat),sLng=num(subject.longitude??subject.lng);
+    let nearby=false;
+    if(lat!==null&&lng!==null&&sLat!==null&&sLng!==null){
+      const rad=Math.PI/180, a=Math.sin((lat-sLat)*rad/2)**2+Math.cos(lat*rad)*Math.cos(sLat*rad)*Math.sin((lng-sLng)*rad/2)**2;
+      nearby=3958.7613*2*Math.atan2(Math.sqrt(a),Math.sqrt(Math.max(0,1-a)))<.05;
+    }
+    const attributes=[[row.price??row.salePrice,subject.price],[row.bedrooms??row.beds,subject.bedrooms??subject.beds],
+      [row.bathrooms??row.baths,subject.bathrooms??subject.baths],[row.livingAreaSqft??row.sqft,subject.livingAreaSqft??subject.sqft]];
+    const identical=attributes.every(([a,b])=>num(a)!==null&&num(b)!==null&&num(a)===num(b));
+    if(sameId||sameAddress||nearby&&identical){excludedCount++;return false;}
+    return true;
+  });
+  return { references: references as Record<string,unknown>[], excludedCount };
+}
 /** Provider AVM comparables are listing references, never recorded-sale inputs. */
-export function projectProviderListingReferences(input: unknown) {
+export function projectProviderListingReferences(input: unknown, subject?: unknown) {
   const number = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : null;
   const text = (v: unknown) => typeof v === 'string' ? v.trim() : '';
   const seen = new Set<string>();
   const normalize = (v: unknown) => text(v).toUpperCase().replace(/[^A-Z0-9#]/g, '');
-  return (Array.isArray(input) ? input : []).flatMap((raw: unknown) => {
+  return excludeSubjectReferences(input, subject).references.flatMap((raw: unknown) => {
     if (!raw || typeof raw !== 'object') return [];
     const row = raw as Record<string, unknown>, address = text(row.formattedAddress || row.address || row.addressLine1);
     const price = number(row.price);

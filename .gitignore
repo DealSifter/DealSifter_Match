@@ -52,3 +52,7 @@ test-results/
 /qa/report-template/*.pdf
 /qa/report-template/*-page-*.png
 /src/assets/maxxis/report-previews/*-page-*.png
+
+qa/report-r2*/
+qa/report-r43/**/*.pdf
+qa/report-r43/**/*.png

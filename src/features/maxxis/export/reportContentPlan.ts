@@ -27,7 +27,7 @@ export function reportReaderText(value: string, locale = 'en'): string {
 }
 export interface ContentBlock {
   hero?: { value: string; note?: string };
-  readingSection?: ReadingSection; assertionIds?: string[]; afterText?: string;
+  readingSection?: ReadingSection; assertionIds?: string[]; afterText?: string; textSize?: number;
   id: string; title: string; kind: 'overview' | 'text' | 'facts' | 'table' | 'map' | 'photos' | 'disclaimer';
   text?: string; rows?: ReportRow[]; columns?: string[]; table?: string[][]; photos?: string[];
   map?: { points: ReportMapPoint[]; caption: string; sourceId?: string }; score?: number;
@@ -92,7 +92,14 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     const requiredAction = financial ? t('Confirme renda, despesas e a base de investimento do cenário.', 'Confirm income, expenses and the investment basis for the scenario.', 'Confirme ingresos, gastos y la base de inversión del escenario.')
       : key === 'arv' ? t('Confirme a condição do imóvel e vendas comparáveis elegíveis.', 'Confirm property condition and eligible comparable sales.', 'Confirme la condición del inmueble y ventas comparables elegibles.')
       : key === 'comparablesMap' ? t('Confirme as coordenadas dos imóveis comparáveis.', 'Confirm coordinates for the comparable properties.', 'Confirme las coordenadas de los inmuebles comparables.') : action;
-    pending.set(key, { label: labels[key], reason: copy, action: reason === 'USER_INPUT_REQUIRED' ? requiredAction : t('Revise o cadastro e a disponibilidade da fonte; gere novamente após resolver a pendência.', 'Review the listing and source availability; regenerate after resolving the issue.', 'Revise el registro y la fuente; regenere después de resolver la incidencia.') });
+    const actions = {
+      IDENTITY_MISMATCH: t('Confirme cidade, estado e ZIP.', 'Confirm city, state and ZIP.', 'Confirme ciudad, estado y ZIP.'),
+      QUOTA_BLOCKED: t('Orçamento mensal de dados atingido; disponível na renovação.', 'Monthly data allowance reached; available upon renewal.', 'Presupuesto mensual agotado; disponible al renovarse.'),
+      NO_COVERAGE: t('O provedor não tem registro; informe manualmente.', 'The provider has no record; supply the information manually.', 'El proveedor no tiene registro; aporte los datos manualmente.'),
+      INTERNAL_ERROR: t('Gere novamente mais tarde. Nenhum dado do provedor foi perdido.', 'Regenerate later. No provider data was lost.', 'Genere más tarde. No se perdieron datos del proveedor.'),
+      PROVIDER_ERROR: t('Tente novamente mais tarde.', 'Try again later.', 'Inténtelo de nuevo más tarde.'),
+    };
+    pending.set(key, { label: labels[key], reason: copy, action: reason === 'USER_INPUT_REQUIRED' ? requiredAction : actions[reason as keyof typeof actions] || copy });
   }
   const rawSections = vm.sections.filter(section => !/^(property-facts-|property-tax$|property-contacts$|publisher-notes$|evidence-availability$|positive-signals$|evidence-coverage$|sold-delivery$|sold-diagnostic|comparables-by-group$)/.test(section.id));
   const tableSections = rawSections.filter(section => section.table?.rows.length);
@@ -122,12 +129,12 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     const items = section.id === 'next-actions' ? (section.items || []).filter((item, index, all) => all.findIndex(other => contentKey(other.text.split('\n')[0]) === contentKey(item.text.split('\n')[0])) === index).slice(0, 3) : section.items || [];
     const paragraphs = [section.hero ? `${section.hero.value} · ${section.hero.label}\n${section.hero.qualification}` : '', section.text, ...items.map(item => item.text)].filter(Boolean).map(text => uniqueText(text!)).filter(Boolean);
     if (paragraphs.length) add({ id: section.id, title: section.title, kind: 'text', text: paragraphs.join('\n\n') });
-    if (section.rows?.length) rowGroup(`${section.id}-facts`, section.title, section.rows.filter(row => (!section.gauge || row.label !== 'Match Score') && !(section.id === 'market-rent' && /subject.*(?:bed|bath|area)|imóvel.*(?:quarto|banheiro|área)/i.test(row.label))));
+    if (section.rows?.length) rowGroup(`${section.id}-facts`, section.title, section.rows.filter(row => (!section.gauge || row.label !== 'Match Score') && !(section.id === 'market-rent' && /subject.*(?:bed|bath|area)|imóvel.*(?:quarto|banheiro|área)/i.test(row.label))).map(row=>section.id==='profile-criteria'&&row.source?{...row,value:`${row.value} · ${row.source}`}:row));
     if (section.gauge) {
       const text = `${clean(section.gauge.label)}: ${section.gauge.value}%\n${t('O resultado total pondera vários critérios; um critério isolado pode ter nota zero sem tornar o total zero.', 'The total weights several criteria; one criterion can score zero without making the total zero.', 'El total pondera varios criterios; un criterio puede tener cero sin que el total sea cero.')}`;
       add({ id: `${section.id}-score`, title: section.title, kind: 'text', text, score: section.gauge.value });
     }
-    if (section.comparison?.length) rowGroup(`${section.id}-criteria`, section.title, section.comparison.map(item => ({ label: item.label, value: item.text, evidenceRefs: [] })));
+    if (section.comparison?.length && section.id!=='profile-criteria') rowGroup(`${section.id}-criteria`, section.title, section.comparison.map(item => ({ label: item.label, value: item.text, evidenceRefs: [] })));
     if (section.table?.rows.length) add({ id: `${section.id}-table`, title: section.title, kind: 'table', columns: section.table.columns.map(clean), table: section.table.rows.map(row => row.map(clean)) });
   }
   const notes = vm.property.notes.map(uniqueText).filter(Boolean);
@@ -138,7 +145,7 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     const completeCoordinates = !!mapped && comparablePoints.length === mapped.table!.rows.length;
     const points = [...(subject ? [subject] : []), ...(completeCoordinates ? comparablePoints.map((p, index) => ({ ...p, marker: String(index + 1) })) : [])];
     if (points.length) add({ id: 'report-location', title: t('Localização', 'Location', 'Ubicación'), kind: 'map', map: { points, sourceId: completeCoordinates ? mapped!.id : undefined,
-      caption: completeCoordinates ? t(`Marcadores 1–${comparablePoints.length}: mesmos imóveis e mesma ordem da tabela ${clean(mapped!.title)}. S: imóvel principal.`, `Markers 1–${comparablePoints.length}: the same properties and order as the ${clean(mapped!.title)} table. S: subject property.`, `Marcadores 1–${comparablePoints.length}: mismos inmuebles y orden de la tabla ${clean(mapped!.title)}. S: inmueble principal.`)
+      caption: completeCoordinates ? t(`Marcadores 1–${comparablePoints.length}: mesmos imóveis e mesma ordem da tabela ${clean(mapped!.title)}.${subject ? ' S: imóvel principal.' : ''}`, `Markers 1–${comparablePoints.length}: the same properties and order as the ${clean(mapped!.title)} table.${subject ? ' S: subject property.' : ''}`, `Marcadores 1–${comparablePoints.length}: mismos inmuebles y orden de la tabla ${clean(mapped!.title)}.${subject ? ' S: inmueble principal.' : ''}`)
         : !mapped ? t('S: imóvel principal.', 'S: subject property.', 'S: inmueble principal.')
         : t('Somente o imóvel principal. Não há coordenadas completas para posicionar os comparáveis com segurança.', 'Subject property only. Complete coordinates are not available to safely place the comparables.', 'Solo el inmueble principal. No hay coordenadas completas para ubicar los comparables.') } });
   }
@@ -161,7 +168,7 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
   }).slice(0, 3);
   if (nextChecks.length) add({ id: 'next-actions', title: t('Próximas verificações prioritárias', 'Prioritized next checks', 'Próximas verificaciones prioritarias'), kind: 'text', text: nextChecks.map(item => `${item.labels.join(', ')}. ${item.action}`).join('\n\n') });
   const sources = vm.sourceRows || [];
-  add(sources.length ? { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'facts', rows: sources.map(row => ({ ...row, value: clean(row.value) })) }
+  add(sources.length ? { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'facts', rows: sources.map(row => ({ ...row, label: clean(row.label), value: clean(row.value) })) }
     : { id: 'report-sources', title: t('Fontes e data', 'Sources and dates', 'Fuentes y fechas'), kind: 'text', text: t('Nenhum dado externo foi obtido para este relatório. O nível do relatório não comprova consulta a uma fonte externa.', 'No external data was obtained for this report. The report level does not establish that an external source was queried.', 'No se obtuvieron datos externos para este informe. El nivel no acredita una consulta a una fuente externa.') });
   add({ id: 'report-disclaimer', title: t('Ressalva', 'Important qualification', 'Advertencia'), kind: 'disclaimer', text: clean(vm.disclaimer) });
   return blocks;
@@ -173,22 +180,23 @@ export function composeReportContent(vm: ReportViewModel): ContentBlock[] {
 
 /** Source metadata only, with no addresses, publisher details or raw payloads. */
 export function reportSourceRows(schema: unknown, locale: string): ReportRow[] {
-  const groups = new Map<string, Set<string>>();
-  const labels: Record<string, string> = { propertyEvidence: 'Property record', valuationEvidence: 'Value evidence', comparableEvidence: 'Comparable sales', marketRent: 'Market rent',
-    rentEstimate: 'Market rent', annualPropertyTax: 'Annual property tax', propertyTax: 'Annual property tax', county: 'County', zoning: 'Zoning', lotSizeSqft: 'Lot area',
-    beds: 'Bedrooms', baths: 'Bathrooms', livingAreaSqft: 'Living area', assessorId: 'Parcel identifier' };
-  const walk = (value: unknown, path: string[], inheritedDate = '', inheritedSource = '', depth = 0) => {
-    if (!value || typeof value !== 'object' || depth > 12) return;
-    const row = value as Record<string, unknown>, sourceText = String(row.provider || row.source || row.sourceType || inheritedSource);
-    const source = /rentcast/i.test(sourceText) ? 'RentCast' : /GIS|ASSESSOR|PUBLIC_RECORD|PUBLIC_TAX|public record/i.test(sourceText) ? 'Public record / GIS' : inheritedSource;
-    const date = typeof row.retrievedAt === 'string' ? row.retrievedAt : inheritedDate;
-    if (source && !Array.isArray(value)) {
-      const field = typeof row.field === 'string' && labels[row.field] ? row.field : [...path].reverse().find(key => labels[key]);
-      if (field) { const key = `${source} · ${date && !Number.isNaN(Date.parse(date)) ? readableReportDate(date, locale) : locale === 'pt' ? 'Data de consulta não registrada' : 'Retrieval date not recorded'}`;
-        const names = groups.get(key) || new Set<string>(); names.add(labels[field]); groups.set(key, names); }
+  const groups = new Map<string, { provider: string; family: string; date: string }>();
+  const familyLabels: Record<string,string> = {property_record:'Property record',property_value_avm:'Automated value estimate',property_sold_record_pool:'Comparable sales',rent_estimate_evidence:'Market rent',sale_listing_evidence:'For-sale listings',rental_listing_evidence:'Rental listings',market_evidence:'Market statistics'};
+  const families: Record<string,string> = {propertyEvidence:'property_record',valuationEvidence:'property_value_avm',valuationIntelligence:'property_value_avm',comparableEvidence:'property_sold_record_pool',marketRent:'rent_estimate_evidence',rentEstimate:'rent_estimate_evidence'};
+  const walk=(value:unknown,path:string[],inheritedDate='',inheritedProvider='',inheritedFamily='',depth=0)=>{
+    if(!value||typeof value!=='object'||depth>12)return;
+    const row=value as Record<string,unknown>;
+    const sourceText=String(row.provider||row.source||row.sourceType||inheritedProvider);
+    const provider=/rentcast/i.test(sourceText)?'RentCast':/census/i.test(sourceText)?'Census':/GIS|ASSESSOR|PUBLIC_RECORD|PUBLIC_TAX|public record/i.test(sourceText)?'Public record / GIS':inheritedProvider;
+    const family=String(row.data_type||row.dataType||row.evidenceType||inheritedFamily||families[[...path].reverse().find(k=>families[k])||'']||'property_record');
+    const date=typeof row.retrievedAt==='string'&&!Number.isNaN(Date.parse(row.retrievedAt))?row.retrievedAt:inheritedDate;
+    const normalizedFamily=({rent_estimate:'rent_estimate_evidence',property_valuation:'property_value_avm',sold_record_pool:'property_sold_record_pool'} as Record<string,string>)[family]||family;
+    if(provider&&!Array.isArray(value)){
+      const key=provider+':'+normalizedFamily,previous=groups.get(key);
+      if(!previous||Date.parse(date)>Date.parse(previous.date)||!previous.date&&!!date)groups.set(key,{provider,family:normalizedFamily,date});
     }
-    for (const [key, child] of Object.entries(row)) if (!/owner|contact|publisher|description|notes|name/i.test(key)) walk(child, [...path, key], date, source, depth + 1);
+    for(const[key,child]of Object.entries(row))if(!/owner|contact|publisher|description|notes|name/i.test(key))walk(child,[...path,key],date,provider,families[key]||normalizedFamily,depth+1);
   };
-  walk(schema, []);
-  return [...groups].map(([source, names]) => ({ label: [...names].join(', '), value: source, evidenceRefs: ['property:identity'] }));
+  walk(schema,[]);
+  return [...groups.values()].sort((a,b)=>(a.provider+a.family).localeCompare(b.provider+b.family)).map(row=>({label:`${row.provider} · ${familyLabels[row.family]||row.family.replace(/_/g,' ')}`,value:row.date?readableReportDate(row.date,locale):locale==='pt'?'Data de consulta indisponível':locale==='es'?'Fecha de consulta no disponible':'Retrieval date unavailable',evidenceRefs:['property:identity']}));
 }

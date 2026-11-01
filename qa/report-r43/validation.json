@@ -1,0 +1,90 @@
+{
+  "localChecks": {
+    "reports": {
+      "passed": 345,
+      "total": 345,
+      "files": 30
+    },
+    "leasesAbsenceAndTelemetry": {
+      "passed": 18,
+      "total": 18
+    },
+    "validationRunner": {
+      "passed": 8,
+      "total": 8
+    },
+    "total": {
+      "passed": 371,
+      "total": 371
+    },
+    "changedTypeScript": "PASS",
+    "maxxisPreexistingErrors": 31,
+    "increase": 0,
+    "build": "PASS",
+    "buildFinalArvBranchVerified": true,
+    "buildCompletion": "built in 9m 1s"
+  },
+  "fixtures": {
+    "count": 10,
+    "orphans": 0,
+    "duplicates": 0,
+    "rawISO": 0,
+    "internalLabels": 0,
+    "fixedSectionOrder": true
+  },
+  "live": {
+    "target": "cyeipfskwwisbbayyaca",
+    "rentcastCalls": 1,
+    "geminiCalls": 0,
+    "billableDelta": 1,
+    "monthBillable": 3,
+    "guard": 30,
+    "reportBudgetConsumed": 3,
+    "reportBudgetLimit": 10,
+    "outcomes": [
+      "ACCEPTED"
+    ],
+    "leaseFailures": 0,
+    "secondExecution": "NOT_EXECUTED_AFTER_STOP",
+    "pipeline": "FAIL",
+    "reason": "Production reservation RPC excludes rent_estimate; no database function or migration changed.",
+    "traceability": "PASS",
+    "closedSales": {
+      "total": 100,
+      "withPriceAndClosingDate": 100,
+      "transactions": 100,
+      "coordinates": 100,
+      "cacheFreshness": "FRESH"
+    },
+    "arv": "ARV_UNAVAILABLE",
+    "eligibleSales": 0,
+    "census": [
+      {
+        "http": 200,
+        "latencyMs": 774
+      },
+      {
+        "http": 200,
+        "latencyMs": 258
+      }
+    ],
+    "pdf": {
+      "path": "qa/report-r2/controlled-L3.pdf",
+      "pages": 3,
+      "redactedQAOnly": true,
+      "comps": 8,
+      "excludedSubject": 1
+    }
+  },
+  "protected": {
+    "pricing": "UNCHANGED",
+    "nuggets": "UNCHANGED",
+    "stripe": "UNCHANGED",
+    "auth": "UNCHANGED",
+    "financialEngines": "UNCHANGED",
+    "migrations": "NONE",
+    "push": false,
+    "deploy": false,
+    "stashRef": "e6871a826f822fa3b42a2c904d901e212c52c89a"
+  }
+}

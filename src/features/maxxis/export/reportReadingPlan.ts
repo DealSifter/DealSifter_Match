@@ -61,7 +61,7 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[],
 
   const profiles: ContentBlock[] = [];
   for (const block of raw) {
-    if (['property-overview', 'property-metrics', 'property-photos', 'report-pending', 'next-actions', 'report-sources', 'report-disclaimer'].includes(block.id)) continue;
+    if (['property-overview', 'property-metrics', 'property-photos', 'property-notes', 'report-pending', 'next-actions', 'report-sources', 'report-disclaimer'].includes(block.id)) continue;
     if (block.id === 'data-discrepancies') {
       const specific = raw.find(candidate => candidate.id === 'decision-blockers')?.text || '';
       if (!/Flagged values|valores sinalizados|valores señalados/i.test(specific) && block.text) assert('DADOS_CONFLITANTES', block.text);
@@ -119,11 +119,11 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[],
     const id = financialInputs ? 'ENTRADAS_FINANCEIRAS_PENDENTES' : semanticAssertionId(reason);
     if (!assertions.has(id)) assert(id, financialInputs ? t('As entradas dos indicadores financeiros pendentes precisam de confirmação.', 'Inputs for the pending financial indicators require confirmation.', 'Las entradas de los indicadores financieros pendientes requieren confirmación.') : reason);
     const actionId = key(`${labels}:${action}`);
-    if (!actionKeys.has(actionId)) { actionKeys.add(actionId); actionRows.push([labels, action]); }
+    if (!actionKeys.has(actionId)) { actionKeys.add(actionId); actionRows.push([labels, reason, action]); }
   }
   const additional = (vm.sections.find(section => section.id === 'next-actions')?.items || []).map(item => readerText(item.text.split('\n')[0].trim()))
     .filter(text => /inspect|inspeç|inspec|lease|contract|contrato|title|título|titul|contractor|empreiteir|orçamento/i.test(text))
-    .filter(text => !actionRows.some(row => key(row[1]).includes(key(text)) || key(text).includes(key(row[1]))));
+    .filter(text => !actionRows.some(row => key(row[2]).includes(key(text)) || key(text).includes(key(row[2]))));
   const checkAssertions = new Set<string>();
   const checks = additional.map(text => text.replace(/^(?:Reason|Unlocks):\s*/i, '')).filter(text => {
     const id = /title|título|titul|encumbrance|gravame/i.test(text) ? 'CHECK_TITLE'
@@ -133,21 +133,23 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[],
     checkAssertions.add(id); return true;
   }).slice(0, 3);
   if (assertions.size || actionRows.length) add({ id: 'report-pending', title: t('Limitações', 'Limitations', 'Limitaciones'), kind: 'table',
-    assertionIds: [...assertions.keys()], text: [...assertions.values()].join('\n'),
-    columns: actionRows.length ? [t('Indicador', 'Indicator', 'Indicador'), t('Ação necessária', 'Required action', 'Acción necesaria')] : undefined,
+    assertionIds: [...assertions.keys()], text: [...assertions.values()].filter(text=>!actionRows.some(row=>key(row[1])===key(text))).join('\n'),
+    columns: actionRows.length ? [t('Indicador', 'Indicator', 'Indicador'), t('Motivo', 'Cause', 'Motivo'), t('Ação necessária', 'Required action', 'Acción necesaria')] : undefined,
     table: actionRows.length ? actionRows : undefined,
     afterText: checks.length ? `${t('Verificações adicionais', 'Additional checks', 'Verificaciones adicionales')}:\n${checks.join('\n')}` : undefined }, 2);
 
   if (profiles.length) {
     const rows = profiles.flatMap(block => block.rows || []), scoreBlock = profiles.find(block => block.score !== undefined);
-    const text = profiles.map(block => block.text).filter(Boolean).filter(text => !/Match Score:/.test(text!)).join('\n');
+    const text = profiles.map(block => block.text).filter(Boolean).map(text=>text!.replace(/^Match Score:[^\n]*(?:\n)?/, '')).filter(Boolean).join('\n');
     add({ id: 'profile-compatibility', title: t('Perfil, compatibilidade e critérios', 'Profile, compatibility and criteria', 'Perfil, compatibilidad y criterios'), kind: 'facts', rows, text: text || undefined, score: scoreBlock?.score }, 5);
   }
+  const notes = raw.find(block=>block.id==='property-notes');
+  if (notes?.text) add({ ...notes, id:'listing-description', title:t('Descrição do anúncio','Listing description','Descripción del anuncio'), textSize:8 },6);
   const sources = raw.find(block => block.id === 'report-sources');
   if (sources?.rows?.length) add(sources, 6);
   else add({ id: 'report-sources', title: t('Fontes', 'Sources', 'Fuentes'), kind: 'text', text: t('Fontes consultadas e respectivas datas não registradas.', 'Retrieved sources and dates were not recorded.', 'No se registraron fuentes consultadas y fechas.') }, 6);
   const disclaimer = raw.find(block => block.kind === 'disclaimer');
   if (disclaimer) add(disclaimer, 6);
-  const order = (block: ContentBlock) => block.id === 'property-overview' || block.id === 'profile-compatibility' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'property-notes' ? 2 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
+  const order = (block: ContentBlock) => block.id === 'listing-description' ? 0 : block.id === 'report-sources' ? 1 : block.id === 'property-overview' || block.id === 'profile-compatibility' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
   return result.sort((a, b) => a.readingSection! - b.readingSection! || order(a) - order(b));
 }

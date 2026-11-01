@@ -1,0 +1,106 @@
+[
+  {
+    "id": "reading-section-1-page-1",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 148
+    }
+  },
+  {
+    "id": "property-overview",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 148,
+      "width": 543.28,
+      "height": 125,
+      "right": 569.28,
+      "bottom": 273
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 277,
+      "width": 269.64,
+      "height": 48,
+      "right": 295.64,
+      "bottom": 325
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 299.64,
+      "y": 277,
+      "width": 269.64,
+      "height": 125,
+      "right": 569.28,
+      "bottom": 402
+    }
+  },
+  {
+    "id": "reading-section-6-page-1",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 406,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 424
+    }
+  },
+  {
+    "id": "listing-description",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 424,
+      "width": 543.28,
+      "height": 43,
+      "right": 569.28,
+      "bottom": 467
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 471,
+      "width": 543.28,
+      "height": 48,
+      "right": 569.28,
+      "bottom": 519
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 1,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 523,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 559
+    }
+  }
+]
