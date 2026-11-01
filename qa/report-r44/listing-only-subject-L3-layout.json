@@ -1,0 +1,306 @@
+[
+  {
+    "id": "reading-section-1-page-1",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 130,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 148
+    }
+  },
+  {
+    "id": "property-overview",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 148,
+      "width": 543.28,
+      "height": 125,
+      "right": 569.28,
+      "bottom": 273
+    }
+  },
+  {
+    "id": "property-group-0",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 277,
+      "width": 269.64,
+      "height": 48,
+      "right": 295.64,
+      "bottom": 325
+    }
+  },
+  {
+    "id": "property-group-1",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 299.64,
+      "y": 277,
+      "width": 269.64,
+      "height": 108,
+      "right": 569.28,
+      "bottom": 385
+    }
+  },
+  {
+    "id": "property-group-2",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 329,
+      "width": 269.64,
+      "height": 48,
+      "right": 295.64,
+      "bottom": 377
+    }
+  },
+  {
+    "id": "property-group-3",
+    "page": 1,
+    "section": 1,
+    "bounds": {
+      "x": 26,
+      "y": 381,
+      "width": 269.64,
+      "height": 61,
+      "right": 295.64,
+      "bottom": 442
+    }
+  },
+  {
+    "id": "reading-section-2-page-1",
+    "page": 1,
+    "section": 2,
+    "bounds": {
+      "x": 26,
+      "y": 446,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 464
+    }
+  },
+  {
+    "id": "report-pending",
+    "page": 1,
+    "section": 2,
+    "assertionIds": [
+      "SEM_EVIDENCIA_VALUATION",
+      "ASSERTION:a_temporary_issue_occurred_on_our_side_",
+      "ENTRADAS_FINANCEIRAS_PENDENTES"
+    ],
+    "bounds": {
+      "x": 26,
+      "y": 464,
+      "width": 543.28,
+      "height": 165,
+      "right": 569.28,
+      "bottom": 629
+    }
+  },
+  {
+    "id": "reading-section-3-page-1",
+    "page": 1,
+    "section": 3,
+    "bounds": {
+      "x": 26,
+      "y": 633,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 651
+    }
+  },
+  {
+    "id": "market-rent",
+    "page": 1,
+    "section": 3,
+    "bounds": {
+      "x": 26,
+      "y": 651,
+      "width": 543.28,
+      "height": 116,
+      "right": 569.28,
+      "bottom": 767
+    }
+  },
+  {
+    "id": "reading-section-3-page-2",
+    "page": 2,
+    "section": 3,
+    "bounds": {
+      "x": 26,
+      "y": 86,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 104
+    }
+  },
+  {
+    "id": "sales-comparables-table",
+    "page": 2,
+    "section": 3,
+    "bounds": {
+      "x": 26,
+      "y": 104,
+      "width": 543.28,
+      "height": 265,
+      "right": 569.28,
+      "bottom": 369
+    }
+  },
+  {
+    "id": "reading-section-4-page-2",
+    "page": 2,
+    "section": 4,
+    "bounds": {
+      "x": 26,
+      "y": 373,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 391
+    }
+  },
+  {
+    "id": "operating-evidence-facts",
+    "page": 2,
+    "section": 4,
+    "bounds": {
+      "x": 26,
+      "y": 391,
+      "width": 543.28,
+      "height": 116,
+      "right": 569.28,
+      "bottom": 507
+    }
+  },
+  {
+    "id": "reading-section-5-page-2",
+    "page": 2,
+    "section": 5,
+    "bounds": {
+      "x": 26,
+      "y": 511,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 529
+    }
+  },
+  {
+    "id": "profile-compatibility",
+    "page": 2,
+    "section": 5,
+    "bounds": {
+      "x": 26,
+      "y": 529,
+      "width": 543.28,
+      "height": 108,
+      "right": 569.28,
+      "bottom": 637
+    }
+  },
+  {
+    "id": "reading-section-5-page-3",
+    "page": 3,
+    "section": 5,
+    "bounds": {
+      "x": 26,
+      "y": 86,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 104
+    }
+  },
+  {
+    "id": "profile-compatibility-part-next",
+    "page": 3,
+    "section": 5,
+    "bounds": {
+      "x": 26,
+      "y": 104,
+      "width": 543.28,
+      "height": 90,
+      "right": 569.28,
+      "bottom": 194
+    }
+  },
+  {
+    "id": "risk-considerations",
+    "page": 3,
+    "section": 5,
+    "bounds": {
+      "x": 26,
+      "y": 198,
+      "width": 269.64,
+      "height": 44,
+      "right": 295.64,
+      "bottom": 242
+    }
+  },
+  {
+    "id": "reading-section-6-page-3",
+    "page": 3,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 246,
+      "width": 543.28,
+      "height": 18,
+      "right": 569.28,
+      "bottom": 264
+    }
+  },
+  {
+    "id": "listing-description",
+    "page": 3,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 264,
+      "width": 543.28,
+      "height": 43,
+      "right": 569.28,
+      "bottom": 307
+    }
+  },
+  {
+    "id": "report-sources",
+    "page": 3,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 311,
+      "width": 543.28,
+      "height": 48,
+      "right": 569.28,
+      "bottom": 359
+    }
+  },
+  {
+    "id": "report-disclaimer",
+    "page": 3,
+    "section": 6,
+    "bounds": {
+      "x": 26,
+      "y": 363,
+      "width": 543.28,
+      "height": 36,
+      "right": 569.28,
+      "bottom": 399
+    }
+  }
+]

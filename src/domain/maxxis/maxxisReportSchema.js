@@ -401,6 +401,8 @@ function valuationEvidence(value) {
           provenance: 'ESTIMATED',
           provider: /rentcast/i.test(String(value.providerEstimate.provider || value.providerEstimate.source || value.provider || '')) ? 'RentCast' : null,
           retrievedAt: value.providerEstimate.retrievedAt || value.retrievedAt || null,
+          rangeLow: finitePositive(value.providerEstimate.rangeLow?.value ?? value.providerEstimate.rangeLow ?? value.providerEstimate.range?.low),
+          rangeHigh: finitePositive(value.providerEstimate.rangeHigh?.value ?? value.providerEstimate.rangeHigh ?? value.providerEstimate.range?.high),
         })
       : null,
     recentSalesMarketEstimate: isObject(value.recentSalesMarketEstimate)

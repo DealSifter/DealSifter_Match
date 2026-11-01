@@ -1,5 +1,5 @@
 import { buildLandReportView } from './maxxisLandReportView';
-import { comparableMapViewport } from './comparableMapGeometry';
+import { comparableMapViewport, comparableMapMarkers } from './comparableMapGeometry';
 import { loadReportMediaImage } from './reportMediaImage';
 
 // UI-only preparation, outside the PDF renderer. The geometry is shared by ARV and rentals.
@@ -33,7 +33,8 @@ export async function resolveComparableMap(schema,options={}) {
   if (!all.length || typeof document === 'undefined') return null;
   try {
     const width = 900; const height = 330; const padding = 65;
-    const {zoom,world,left,top}=comparableMapViewport(all,width,height,padding);
+    const view=comparableMapViewport(all,width,height,padding);
+    const {zoom,left,top}=view;
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
     const context = canvas.getContext('2d'); if (!context) return null;
     context.fillStyle = '#eef4f6'; context.fillRect(0, 0, width, height);
@@ -50,8 +51,9 @@ export async function resolveComparableMap(schema,options={}) {
     }
     const loaded = await Promise.all(tiles); if (!loaded.length || !loaded.every((tile) => tile.image)) return null;
     loaded.forEach((tile) => { if (tile.image) context.drawImage(tile.image, tile.x, tile.y, MAP_TILE_SIZE, MAP_TILE_SIZE); });
-    world.forEach(({ x, y, item }) => {
-      const px = x - left; const py = y - top;
+    comparableMapMarkers(view).forEach(({ x: px, y: py, anchorX, anchorY, item }) => {
+      context.strokeStyle = '#15384f'; context.lineWidth = 2;
+      context.beginPath(); context.moveTo(anchorX, anchorY); context.lineTo(px, py); context.stroke();
       context.save(); context.shadowColor = 'rgba(15,32,49,.35)'; context.shadowBlur = 6; context.shadowOffsetY = 2;
       context.fillStyle = item.markerTone; context.strokeStyle = '#fff'; context.lineWidth = 4;
       context.beginPath(); context.arc(px, py, item.marker === 'S' ? 18 : 15, 0, Math.PI * 2); context.fill(); context.stroke();

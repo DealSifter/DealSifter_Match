@@ -42,7 +42,7 @@ describe('R4.3 report integrity, offline fictional subjects',()=>{
   const model=vm(),pending=composeReportContent(model).find(b=>b.id==='report-pending')!;
   expect(model.indicatorReasons!.recordedSales).toBe('INTERNAL_ERROR');
   const row=pending.table!.find(r=>r[0].includes('Comparable sales'))!;
-  expect(row).toHaveLength(3);expect(row[1]).toContain('our side');expect(row[2]).toContain('No provider data was lost');
+  expect(row).toHaveLength(3);expect(row[1]).toContain('our side');expect(row[2]).toBe('Regenerate later.');
  });
  it('keeps the full description in a final small-font block and the numeric score with criteria',()=>{
   const input=special();input.property.description='Full fictional description. '.repeat(15)+'FINAL SENTENCE.';

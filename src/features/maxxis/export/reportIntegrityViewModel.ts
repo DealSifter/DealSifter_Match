@@ -403,6 +403,11 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   if (providerEstimate !== null && level > 1) { const id = register('market:provider-value', money(providerEstimate, locale), [providerEstimate]);
     push({ id: 'provider-reference', title: t('Referência automatizada de valor', 'Automated value reference', 'Referencia automatizada de valor'), kind: 'market', priority: 55,
       hero: { label: t('Estimativa do provedor', 'Provider estimate', 'Estimación del proveedor'), value: money(providerEstimate, locale), qualification: t('Estimativa automatizada: não é ARV, avaliação oficial ou valor de venda confirmado.', 'Automated estimate: not ARV, appraisal or confirmed sale value.', 'Estimación automatizada: no es ARV, tasación ni valor de venta confirmado.') }, evidenceRefs: [id] }); }
+  if (providerEstimate !== null && level > 1) {
+    const estimate = obj(valuation.providerEstimate), low = positive(estimate.rangeLow), high = positive(estimate.rangeHigh);
+    const reference = resultSections.find(section => section.id === 'provider-reference');
+    if (reference && low !== null && high !== null && low <= providerEstimate && high >= providerEstimate) reference.range = { low: money(low, locale), high: money(high, locale), estimate: money(providerEstimate, locale), position: high > low ? (providerEstimate - low) / (high - low) : .5 };
+  }
   // Previously calculated scenarios remain auditable, without feeding a new return engine.
   const activeScenario = obj(presentation.activeScenario), output = obj(presentation.landDevelopment);
   if (!land && level > 1) {

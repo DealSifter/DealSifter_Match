@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf';
-import { comparableMapViewport } from './comparableMapGeometry';
+import { comparableMapViewport, comparableMapMarkers } from './comparableMapGeometry';
 import type { ReportViewModel, ReportSection } from './reportIntegrityTypes';
 import { ReferenceReportComposition, reportCategoryAccent } from './referenceReportPdf';
 
@@ -166,13 +166,14 @@ export class StrictPdfFlow {
     this.doc.setDrawColor(222, 232, 235); this.doc.setLineWidth(.5);
     if (!background) for (let i = 1; i < 5; i += 1) { this.doc.line(x + width * i / 5, y + 8, x + width * i / 5, y + height - 8); this.doc.line(x + 8, y + height * i / 5, x + width - 8, y + height * i / 5); }
     const plotted: AuditMap['points'] = [];
-    for (const { x: worldX, y: worldY, item } of view.world) {
-      const px = x + (worldX - view.left) / view.width * width;
-      const py = y + (worldY - view.top) / view.height * height;
-      const radius = item.marker === 'S' ? 10 : 8;
+    for (const { x: worldX, y: worldY, anchorX, anchorY, item } of comparableMapMarkers(view)) {
+      const px = x + worldX / view.width * width;
+      const py = y + worldY / view.height * height;
+      const radius = (item.marker === 'S' ? 18 : 15) * Math.min(width / 900, height / 330);
       if (px - radius < x || px + radius > x + width || py - radius < y || py + radius > y + height) throw new Error('REPORT_MAP_MARKER_OUTSIDE_BOUNDS');
       plotted.push({ id: item.id, marker: item.marker, x: px, y: py, radius });
       if (background) continue;
+      this.doc.setDrawColor(...INK); this.doc.setLineWidth(.5); this.doc.line(x + anchorX / 900 * width, y + anchorY / 330 * height, px, py);
       const color: Color = item.marker === 'S' ? INK : item.markerTone === 'sold' ? [230, 164, 22] : item.markerTone === 'for-sale' ? [220, 53, 69] : item.markerTone === 'complementary' ? [139, 92, 246] : [13, 135, 111];
       this.doc.setFillColor(...color); this.doc.setDrawColor(...WHITE); this.doc.setLineWidth(2); this.doc.circle(px, py, radius, 'FD');
       this.doc.setFont('NotoSans', 'bold'); this.doc.setFontSize(8);

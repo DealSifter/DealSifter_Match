@@ -56,3 +56,6 @@ test-results/
 qa/report-r2*/
 qa/report-r43/**/*.pdf
 qa/report-r43/**/*.png
+
+qa/report-r44/**/*.pdf
+qa/report-r44/**/*.png

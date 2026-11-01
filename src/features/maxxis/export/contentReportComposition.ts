@@ -7,7 +7,25 @@ export class ContentReportComposition extends ReportBrandShell {
   private get bodySize() { return this.compact ? 8.5 : 9; }
   private renderWidth = WIDTH;
   private renderX = X;
-  fullWidth(block: ContentBlock) { return ['overview', 'table', 'disclaimer'].includes(block.kind) || ['market-rent', 'financial-indicators', 'profile-compatibility', 'report-sources', 'listing-description'].includes(block.id); }
+  fullWidth(block: ContentBlock) { return ['overview', 'table', 'disclaimer'].includes(block.kind) || ['market-rent', 'arv-market', 'operating-evidence-facts', 'financial-indicators', 'profile-compatibility', 'report-sources', 'listing-description'].some(id => block.id === id || block.id.startsWith(id + '-part-')); }
+  splitForSpace(block: ContentBlock, available: number): [ContentBlock, ContentBlock] | null {
+    this.setWidth(block);
+    const continued = (tail: ContentBlock): ContentBlock => ({ ...tail, id: block.id + '-part-next', assertionIds: undefined });
+    if (block.id.startsWith('profile-compatibility') && (block.rows?.length || 0) > 2) {
+      for (let count = block.rows!.length - (block.rows!.length % 2 || 2); count >= 2; count -= 2) {
+        const head = { ...block, rows: block.rows!.slice(0, count), score: undefined };
+        if (this.measure(head) <= available) return [head, continued({ ...block, text: undefined, rows: block.rows!.slice(count) })];
+      }
+    }
+    if (block.id.startsWith('listing-description') && block.text) {
+      const paragraphs = block.text.split(/\n\s*\n/).filter(Boolean);
+      for (let count = paragraphs.length - 1; count >= 1; count--) {
+        const head = { ...block, text: paragraphs.slice(0, count).join('\n\n') };
+        if (this.measure(head) <= available) return [head, continued({ ...block, text: paragraphs.slice(count).join('\n\n') })];
+      }
+    }
+    return null;
+  }
   setWidth(block: ContentBlock) { this.renderWidth = this.fullWidth(block) ? WIDTH : (WIDTH - GAP) / 2; }
   textHeight(text: string, width = this.renderWidth - 2 * PAD, size = this.bodySize, bold = false) { return this.flow.lines(text, width, size, bold).length * (size + 4); }
   tableWidths(block: ContentBlock) {
@@ -125,7 +143,7 @@ export class ContentReportComposition extends ReportBrandShell {
     }
     const cap = this.vm.reportType === 'PROPERTY_RELEASE' ? 1 : this.vm.reportType === 'MAXXIS_ANALYSIS' ? 3 : Infinity;
     type Placement = { block?: ContentBlock; section: ReadingSection; page: number; column: number; y: number; height: number; heading?: boolean };
-    const plan = (compact: boolean, forceBefore?: ReadingSection) => {
+    const plan = (compact: boolean, forceBefore?: ReadingSection, balanceProfile = false) => {
       this.compact = compact;
       const placements: Placement[] = [];
       let page = 0, cursor = TOP;
@@ -142,19 +160,34 @@ export class ContentReportComposition extends ReportBrandShell {
         if (forceBefore === section && cursor > (page ? 86 : TOP)) newPage();
         let columns = [cursor, cursor];
         let headingNeeded = true;
+        const breakBefore = new Set<ContentBlock>();
+        if (balanceProfile && section === 5 && cursor > (page ? 86 : TOP)) {
+          this.setWidth(queue[0]);
+          const split = this.splitForSpace(queue[0], Math.min(BOTTOM - cursor - 18, this.measure(queue[0]) * .7));
+          if (split) { queue.splice(0, 1, ...split); breakBefore.add(split[1]); }
+        }
         while (queue.length) {
+          if (breakBefore.has(queue[0])) { breakBefore.delete(queue[0]); newPage(); columns = [cursor, cursor]; headingNeeded = true; }
           if (headingNeeded) {
             this.setWidth(queue[0]);
-            if (Math.max(...columns) + 18 + this.measure(queue[0]) > BOTTOM) { newPage(); columns = [cursor, cursor]; }
+            const available = BOTTOM - Math.max(...columns) - 18;
+            if (this.measure(queue[0]) > available && !this.splitForSpace(queue[0], available)) { newPage(); columns = [cursor, cursor]; }
             const y = Math.max(...columns);
             placements.push({ section, page, column: 0, y, height: 18, heading: true });
             columns = [y + 18, y + 18]; headingNeeded = false;
           }
           let index = queue.findIndex(block => { this.setWidth(block); return this.measure(block) <= BOTTOM - (this.fullWidth(block) ? Math.max(...columns) : Math.min(...columns)); });
           if (index < 0) {
+            const available = BOTTOM - Math.max(...columns);
+            const splitIndex = queue.findIndex(block => !!this.splitForSpace(block, available));
+            if (splitIndex >= 0) {
+              const parts = this.splitForSpace(queue[splitIndex], available)!;
+              queue.splice(splitIndex, 1, ...parts);
+              continue;
+            }
             newPage(); columns = [cursor, cursor]; headingNeeded = true;
             this.setWidth(queue[0]);
-            if (this.measure(queue[0]) + 18 > BOTTOM - 86) throw Error(Number.isFinite(cap) ? 'REPORT_PAGE_LIMIT_EXCEEDED:' + cap : 'REPORT_BLOCK_EXCEEDS_PAGE:' + queue[0].id);
+            if (this.measure(queue[0]) + 18 > BOTTOM - 86 && !this.splitForSpace(queue[0], BOTTOM - 86 - 18)) throw Error(Number.isFinite(cap) ? 'REPORT_PAGE_LIMIT_EXCEEDED:' + cap : 'REPORT_BLOCK_EXCEEDS_PAGE:' + queue[0].id);
             continue;
           }
           // Fill only gaps within this section. No earlier section is revisited.
@@ -167,11 +200,15 @@ export class ContentReportComposition extends ReportBrandShell {
         cursor = Math.max(...columns);
       }
       const lastArea = placements.filter(item => item.page === page).reduce((area, item) => area + (item.heading || this.fullWidth(item.block!) ? WIDTH : (WIDTH - GAP) / 2) * item.height, 0);
-      return { placements, pages: page + 1, compact, orphan: lastArea / ((BOTTOM - (page ? 86 : TOP)) * WIDTH) < .25 };
+      const nonFinalExcess = Array.from({length:page},(_,index)=>{
+        const area=placements.filter(item=>item.page===index).reduce((sum,item)=>sum+(item.heading||this.fullWidth(item.block!)?WIDTH:(WIDTH-GAP)/2)*item.height,0);
+        return Math.max(0,.7-area/((BOTTOM-(index?86:TOP))*WIDTH));
+      }).reduce((sum,value)=>sum+value,0);
+      return { placements, pages: page + 1, compact, nonFinalExcess, orphan: lastArea / ((BOTTOM - (page ? 86 : TOP)) * WIDTH) < .25 };
     };
-    const trials = [plan(false), plan(true), plan(true, 5), plan(true, 4)];
+    const trials = [plan(false), plan(true), plan(true, 5), plan(true, 4), plan(false, undefined, true), plan(true, undefined, true)];
     const candidates = trials.filter(candidate => candidate.pages <= cap);
-    candidates.sort((a,b) => a.pages - b.pages || Number(a.orphan) - Number(b.orphan) || Number(a.compact) - Number(b.compact));
+    candidates.sort((a,b) => a.pages - b.pages || Number(a.orphan) - Number(b.orphan) || a.nonFinalExcess - b.nonFinalExcess || Number(a.compact) - Number(b.compact));
     const selected = candidates[0];
     if (!selected) throw Object.assign(Error('REPORT_PAGE_LIMIT_EXCEEDED:' + cap), { layoutPlans: trials.map(trial => ({ compact: trial.compact, pages: trial.pages, blocks: trial.placements.map(item => ({ id: item.block?.id, section: item.section, page: item.page, y: item.y, height: item.height })) })) });
     this.compact = selected.compact;

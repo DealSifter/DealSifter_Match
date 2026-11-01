@@ -44,6 +44,7 @@ function propertyEvidence(context) {
       ? fields[name].status
       : 'UNKNOWN',
     source: safeText(fields[name]?.source) || null,
+    retrievedAt: safeText(fields[name]?.retrievedAt) || null,
   });
   return Object.freeze({
     strength: safeText(context?.evidenceSummary?.strength) || 'LOW',
@@ -74,6 +75,10 @@ function valuationIntelligence(context, language = 'en') {
         value: Number(valuation.providerEstimate.value),
         status: safeText(valuation.providerEstimate.status) || 'PROVIDER_ESTIMATE_UNVALIDATED',
         provenance: 'ESTIMATED',
+        provider: safeText(valuation.providerEstimate.provider) || safeText(valuation.providerEstimate.source) || null,
+        retrievedAt: valuation.providerEstimate.retrievedAt || market.evidenceFreshness?.valuation?.retrievedAt || null,
+        rangeLow: nullableNumber(valuation.providerEstimate.rangeLow?.value ?? valuation.providerEstimate.rangeLow ?? market.providerEstimateRange?.low),
+        rangeHigh: nullableNumber(valuation.providerEstimate.rangeHigh?.value ?? valuation.providerEstimate.rangeHigh ?? market.providerEstimateRange?.high),
       })
     : null;
   return Object.freeze({
@@ -162,6 +167,8 @@ function comparableEvidence(context, diagnostics = []) {
       propertyType: diagnostic?.propertyType ?? comp.propertyType });
   });
   return Object.freeze({
+    provider: context?.providerMarketContext?.evidenceFreshness?.sold?.retrievedAt ? 'RentCast' : null,
+    retrievedAt: context?.providerMarketContext?.evidenceFreshness?.sold?.retrievedAt || null,
     used: Object.freeze(items.filter((item) => item.role === 'PRIMARY').slice(0, 5)),
     supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 8)),
     excluded: Object.freeze(items.filter((item) => item.role === 'EXCLUDED').slice(0, 3)),

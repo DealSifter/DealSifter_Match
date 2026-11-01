@@ -90,7 +90,7 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[],
     });
     const prepared = { ...block, ...(block.rows ? { rows } : {}) };
     if (block.rows?.length && !rows?.length && !block.text && !block.table && block.score === undefined) continue;
-    const section: ReadingSection = block.id === 'report-location' && !block.map?.sourceId ? 1 : /rent|arv|sold-reference|comparable|listing-reference|land-market|report-location/.test(block.id) ? 3
+    const section: ReadingSection = block.id === 'report-location' && !block.map?.sourceId ? 1 : /rent|arv|provider-reference|sold-reference|comparable|listing-reference|land-market|report-location/.test(block.id) ? 3
       : /operating|financial|scenario|strategy-cost|acquisition/.test(block.id) ? 4
       : /risk|profile/.test(block.id) ? 5 : 1;
     if (section === 4 && prepared.rows) prepared.rows = prepared.rows.map(row => finance.test(row.label) || row.evidenceRefs.some(ref => ref.includes(':output:')) ? financeRow(row) : row);

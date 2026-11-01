@@ -95,6 +95,7 @@ const runtime = new URL('../.tmp-codex/report-template-qa/runtime.mjs', import.m
 await mkdir(new URL('.', runtime), { recursive:true });
 await build({
   stdin:{contents:[
+    "export {comparableMapViewport,comparableMapMarkers} from './src/features/maxxis/export/comparableMapGeometry.ts';",
     "export { calculateScenario } from './supabase/functions/_shared/maxxis/scenarioEngine.ts';",
     "export { buildStrictReportViewModel } from './src/features/maxxis/export/reportIntegrityViewModel.ts';",
     "export { buildMaxxisReportSchema } from './src/domain/maxxis/maxxisReportSchema.js';",
@@ -104,7 +105,7 @@ await build({
   outfile:fileURLToPath(runtime),bundle:true,platform:'node',format:'esm',packages:'external',
   define:{'import.meta.env':'{}'},loader:{'.png':'dataurl','.ttf':'dataurl'},
 });
-const {calculateScenario,buildStrictReportViewModel,buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
+const {comparableMapViewport,comparableMapMarkers,calculateScenario,buildStrictReportViewModel,buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
 const assumptions={purchasePrice:425000,rent:3200,vacancyRate:5,propertyTax:5120,insurance:1800,HOA:75,managementPercent:8,maintenancePercent:5,otherOperatingExpenses:900,monthlyPI:1450,cashInvested:125000};
 const calculatedOutputs=calculateScenario('BUY_AND_HOLD',assumptions);
 const activeScenario={id:'SAMPLE-SCENARIO-ONLY',propertyId:property.id,confirmed:true,strategy:'BUY_AND_HOLD',status:'COMPLETE',assumptions,calculatedOutputs,unresolvedInputs:[],source:Object.fromEntries([...Object.keys(assumptions).map(key=>[key,'USER_PROVIDED']),...Object.keys(calculatedOutputs).map(key=>[key,'CALCULATED'])])};
@@ -116,8 +117,8 @@ for (const [reportType, plan, file] of [
 ]) {
   const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: samplePhotos }, maxxisAnalysis: {...analysis,activeScenario}, dealIntelligence: {...deal,activeScenario}, dealMetrics: sampleMetrics, structuredAnalysis });
   const viewModel=buildStrictReportViewModel({schema,language:'en'});
-  const sampleMap=await sampleReportMap([{...property,marker:'S'}]);
-  const mapImages=Object.fromEntries(await Promise.all(viewModel.sections.filter(section=>section.map?.points.length).map(async section=>[section.id,await sampleReportMap(section.map.points)])));
+  const sampleMap=await sampleReportMap([{...property,marker:'S'}],{comparableMapViewport,comparableMapMarkers});
+  const mapImages=Object.fromEntries(await Promise.all(viewModel.sections.filter(section=>section.map?.points.length).map(async section=>[section.id,await sampleReportMap(section.map.points,{comparableMapViewport,comparableMapMarkers})])));
   const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
   const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap, mapImages }).catch(error=>{console.error(JSON.stringify(error.layoutPlans));throw error;});
   if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);

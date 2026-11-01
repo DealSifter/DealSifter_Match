@@ -9,7 +9,7 @@ vi.mock('./reportIntegrityViewModel', () => ({ buildStrictReportViewModel: () =>
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe('report map preparation and PDF cache revisions', () => {
   it('retries failed maps on the same report and shares tiles across its sections', async () => {
-    const context = Object.fromEntries(['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'arc', 'fill', 'stroke', 'fillText'].map(name => [name, vi.fn()]));
+    const context = Object.fromEntries(['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'moveTo', 'lineTo', 'arc', 'fill', 'stroke', 'fillText'].map(name => [name, vi.fn()]));
     vi.stubGlobal('document', { createElement: () => ({ getContext: () => context, toDataURL: () => 'data:image/png;base64,bWFw' }) });
     const schema = {};
     loadReportMediaImage.mockResolvedValue(null);
@@ -23,6 +23,8 @@ describe('report map preparation and PDF cache revisions', () => {
     expect(getPreparedReportMaps(schema)).toEqual({ comparables: 'data:image/png;base64,bWFw', location: 'data:image/png;base64,bWFw' });
     expect(preparedReportMapCacheKey(schema)).not.toBe(failedRevision);
     expect(loadReportMediaImage).toHaveBeenCalledTimes(failedRequests * 2);
+    expect(context.moveTo).toHaveBeenCalled();
+    expect(context.lineTo).toHaveBeenCalled();
     await prepareReportMaps(schema);
     expect(loadReportMediaImage).toHaveBeenCalledTimes(failedRequests * 2);
   });

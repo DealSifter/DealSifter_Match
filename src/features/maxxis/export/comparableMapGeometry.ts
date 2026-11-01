@@ -28,3 +28,25 @@ export function comparableMapViewport<T extends ComparableCoordinate>(all: reado
   const top = (Math.min(...world.map(point => point.y)) + Math.max(...world.map(point => point.y))) / 2 - height / 2;
   return { zoom, world, left, top, width, height, padding };
 }
+
+/** Display offsets only. Leader lines preserve the true coordinate of each marker. */
+export function comparableMapMarkers<T extends ComparableCoordinate>(view: ReturnType<typeof comparableMapViewport<T>>) {
+  const placed: Array<{ x: number; y: number; anchorX: number; anchorY: number; item: T }> = [];
+  for (const point of view.world) {
+    const anchorX = point.x - view.left, anchorY = point.y - view.top;
+    let x = anchorX, y = anchorY, found = false;
+    for (let ring = 0; ring <= 12 && !found; ring++) {
+      const count = ring ? ring * 12 : 1;
+      for (let i = 0; i < count; i++) {
+        const angle = i / count * Math.PI * 2;
+        const px = anchorX + Math.cos(angle) * ring * 20, py = anchorY + Math.sin(angle) * ring * 20;
+        if (px < 25 || px > view.width - 25 || py < 25 || py > view.height - 35) continue;
+        if (placed.some(previous => Math.hypot(previous.x - px, previous.y - py) < 42)) continue;
+        x = px; y = py; found = true; break;
+      }
+    }
+    if (!found) throw Error('REPORT_MAP_MARKER_LAYOUT_EXHAUSTED');
+    placed.push({ x, y, anchorX, anchorY, item: point.item });
+  }
+  return placed;
+}
