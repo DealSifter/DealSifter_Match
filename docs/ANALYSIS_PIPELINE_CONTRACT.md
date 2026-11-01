@@ -1,4 +1,4 @@
-# CONTRATO DO PIPELINE DE ANÁLISE — Maxxis / DealSifter (v0.8)
+# CONTRATO DO PIPELINE DE ANÁLISE — Maxxis / DealSifter (v0.9)
 
 1. ORDEM DE AQUISIÇÃO
    DB → cache → ArcGIS/Census → RentCast → Gemini → GapResolver (chat).
@@ -9,9 +9,8 @@
    Estado atual do ArcGIS: o resolvedor de county (Census) está ativo;
    adaptadores de parcela habilitados apenas em condados fora da Flórida
    (UT Salt Lake, MA Middlesex, NJ Mercer, NC Wake, AR Pulaski, GA Fulton
-   parcial). Na Flórida, terreno/APN/zoneamento/impostos vêm do registro
-   do RentCast até haver lacuna real que justifique adaptadores de
-   condado.
+   parcial). Na Flórida, terreno/APN/zoneamento/impostos vêm do registro do
+   RentCast até haver lacuna real que justifique adaptadores de condado.
 
 2. PAPEL DO GEMINI
    Raciocina e redige sobre evidências já apuradas. Nunca cria fato ou
@@ -45,8 +44,9 @@
 
 6. CÁLCULOS DETERMINÍSTICOS
    ARV: >=3 vendas elegíveis = principal; 2 = faixa preliminar de baixa
-   confiança; <2 = indisponível. Sem premissas: rendimento bruto, spread
-   preço pedido x ARV, preço/sqft vs comps. Com entradas disponíveis: NOI,
+   confiança; <2 = indisponível; a elegibilidade exige a condição-alvo
+   confirmada (GapResolver). Sem premissas: rendimento bruto, spread preço
+   pedido x AVM/ARV, preço/sqft vs comps. Com entradas disponíveis: NOI,
    Cap Rate, ROI, cash-on-cash, DSCR, em cenário rascunho rotulado. Nenhuma
    premissa padrão automática. Anúncios (comps de AVM e de aluguel) são
    suporte e nunca entram na elegibilidade do ARV; o próprio imóvel é
@@ -59,8 +59,8 @@
    L1, L2 e L3 inclusos. Orçamento mensal de chamadas de provedor para
    relatórios por usuário (Pro 8, Enterprise 10); teto global RentCast 45
    (guard em produção: 30 até confirmar a renovação do ciclo do
-   fornecedor). Débito antes da aquisição, sem reembolso automático.
-   Sem premissas padrão automáticas.
+   fornecedor). Débito antes da aquisição, sem reembolso automático. Sem
+   premissas padrão automáticas.
    DECISÃO PENDENTE: manter o desbloqueio único ou migrar para cobrança por
    geração.
    ALVO R-3: a preparação da análise (aquisição + GapResolver) ocorre no
@@ -70,9 +70,10 @@
 8. RELATÓRIO
    Seções em ordem fixa; selo de completude relativo ao nível; pendências
    em quadro único com motivo e ação por indicador; sem jargão e sem
-   repetição semântica; bloco "Fontes e data" consolidado; contatos do
-   publicador e nomes de proprietários fora do PDF por padrão; endereço do
-   imóvel visível no PDF do usuário (redação só em artefatos de QA).
+   repetição semântica; bloco "Fontes e data" consolidado com todos os
+   data_types usados; contatos do publicador e nomes de proprietários fora
+   do PDF por padrão; endereço do imóvel visível no PDF do usuário
+   (redação só em artefatos de QA).
 
 9. DECISÕES EM ABERTO
    Cobrança: desbloqueio único (atual) vs. por geração.
@@ -97,17 +98,25 @@
     traga tudo. Registro do imóvel (/properties) = terreno, APN,
     zoneamento, descrição legal, impostos, valor avaliado, HOA, histórico;
     valor (/avm/value) = valor, faixa, atributos e comps de ANÚNCIOS de
-    venda com coordenadas (confirmado: 20 comps, 4 ativos); aluguel
+    venda com coordenadas (observado: 20 comps, 4 ativos); aluguel
     (/avm/rent/long-term) = aluguel, faixa e comps de anúncios de aluguel;
-    vendas fechadas = busca em /properties por área (única fonte de preço
-    de fechamento); anúncios avulsos (/listings) e estatísticas de mercado
-    (/markets) não são buscados enquanto nenhum campo obrigatório os exigir.
-    Plano com cache frio: L2 = aluguel + vendas fechadas + AVM (só para os
-    comps de suporte; o valor estimado não é exibido no L2); L3 = AVM +
-    aluguel + vendas fechadas + registro do imóvel (quando o cache vencer).
-    TTLs efetivos: registro 168h; AVM 72h; vendas 720h; aluguel 72h;
-    anúncios 24h; mercado 168h.
+    vendas fechadas = busca em /properties por área, única fonte de preço
+    de fechamento (observado: 100 registros com preço, data e
+    coordenadas); anúncios avulsos (/listings) e estatísticas de mercado
+    (/markets) não são buscados enquanto nenhum campo obrigatório os
+    exigir. Plano com cache frio: L2 = aluguel + vendas fechadas + AVM (só
+    para os comps de suporte; o valor estimado não é exibido no L2); L3 =
+    AVM + aluguel + vendas fechadas + registro do imóvel (quando o cache
+    vencer). TTLs efetivos: registro 168h; AVM 72h; vendas 720h; aluguel
+    72h; anúncios 24h; mercado 168h.
 
 12. LEASES DE EVIDÊNCIA
     Toda chave de lease deve ter formato UUID (constraint em Production).
     Chaves compostas são convertidas de forma determinística para UUID.
+
+13. COMPATIBILIDADE CÓDIGO × BANCO
+    Todo valor enviado pelo código às RPCs e tabelas do ledger, dos leases
+    e do cache (provider, operation, data_type, status, outcome, origin,
+    chaves) deve ser aceito pelo schema de Production. O
+    scripts/schema-compat-check é pré-voo obrigatório antes de qualquer
+    chamada live e deve terminar com zero incompatibilidades.
