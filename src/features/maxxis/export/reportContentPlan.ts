@@ -200,6 +200,14 @@ export function reportSourceRows(schema: unknown, locale: string): ReportRow[] {
     for(const[key,child]of Object.entries(row))if(!/owner|contact|publisher|description|notes|name/i.test(key))walk(child,[...path,key],date,provider,families[key]||normalizedFamily,depth+1);
   };
   walk(schema,[]);
+  // Older saved reports may contain sales but no source metadata. Keep that
+  // family visible without inventing a provider or a retrieval timestamp.
+  const sections = (schema as { sections?: Record<string, { data?: Record<string, unknown> }> })?.sections;
+  const sales = sections?.comparableEvidence?.data;
+  if (sales && ['used','supporting','excluded'].some(key => Array.isArray(sales[key]) && sales[key].length)
+    && ![...groups.values()].some(row => row.family === 'property_sold_record_pool')) {
+    groups.set('unknown:property_sold_record_pool', {provider: locale === 'pt' ? 'Provedor não registrado' : locale === 'es' ? 'Proveedor no registrado' : 'Provider not recorded',family:'property_sold_record_pool',date:''});
+  }
   let missingDateShown=false;
   return [...groups.values()].sort((a,b)=>(a.provider+a.family).localeCompare(b.provider+b.family)).map(row=>({label:`${row.provider} · ${familyLabels[row.family]||row.family.replace(/_/g,' ')}`,value:row.date?readableReportDate(row.date,locale):missingDateShown?'—':(missingDateShown=true,locale==='pt'?'Data de consulta indisponível':locale==='es'?'Fecha de consulta no disponible':'Retrieval date unavailable'),evidenceRefs:['property:identity']}));
 }

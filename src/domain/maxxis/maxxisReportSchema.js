@@ -311,7 +311,9 @@ function comparableEvidence(value) {
   const select = (items) => Object.freeze((Array.isArray(items) ? items : []).map((item) => Object.freeze(
     Object.fromEntries(COMPARABLE_KEYS.filter((key) => Object.hasOwn(item || {}, key)).map((key) => [key, item[key]])),
   )));
-  return Object.freeze({ used: select(value.used), supporting: select(value.supporting), excluded: select(value.excluded) });
+  return Object.freeze({ provider: typeof value.provider === 'string' ? value.provider : null,
+    retrievedAt: typeof value.retrievedAt === 'string' ? value.retrievedAt : null,
+    used: select(value.used), supporting: select(value.supporting), excluded: select(value.excluded) });
 }
 
 function comparableStatistics(comparables, property) {

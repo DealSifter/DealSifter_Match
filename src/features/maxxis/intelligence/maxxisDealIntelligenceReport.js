@@ -217,7 +217,9 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
   const valuation = valuationIntelligence({ ...context, providerMarketContext: {
     ...context.providerMarketContext, ...snapshot.providerMarketContext,
   } }, canonical?.language || 'en');
-  const comps = comparableEvidence(context, snapshot.compPromotionDiagnostics);
+  const comps = comparableEvidence({ ...context, providerMarketContext: {
+    ...context.providerMarketContext, ...snapshot.providerMarketContext,
+  } }, snapshot.compPromotionDiagnostics);
   const reportLanguage = canonical?.language || 'en';
   const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });
   const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
