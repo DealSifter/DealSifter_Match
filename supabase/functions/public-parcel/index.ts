@@ -70,6 +70,8 @@ Deno.serve(async req => {
     if(!query)throw new Error('INVALID_QUERY');
     const resolver = new PublicParcelResolver({ cache,
       resolveCounty: (point, signal) => counties.resolve(point, signal),
+      resolveCountyEvidence: (point, signal) => counties.resolveEvidence(point, signal),
+      resolveBoundsEvidence: (bounds, signal) => counties.resolveBoundsEvidence(bounds, signal),
       resolveBoundsCounties: (bounds, signal) => counties.resolveBounds(bounds, signal),
       providerFactory: source => { let adapter = providers.get(source.sourceId); if (!adapter) { adapter = new ArcGISParcelAdapter(source, publicFetcher); providers.set(source.sourceId, adapter); } return adapter; },
       logger: event => console.log(JSON.stringify({ event: 'public_parcel', ...event })),

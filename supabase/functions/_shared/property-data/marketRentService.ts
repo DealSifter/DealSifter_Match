@@ -28,13 +28,15 @@ export class MarketRentService {
     try {result=await this.load(input);}catch(error){
       const raw=error instanceof Error?error.message:'';
       result={propertyId:input.propertyId,state:'PROVIDER_ERROR',providerCalls:null,
+        absenceReason:evidenceAbsenceReason(raw,execution?.recorded&&execution.providerCalls===initialCalls?'INTERNAL_ERROR':'PROVIDER_ERROR'),
         reason:/CACHE/.test(raw)?((execution?.providerCalls??0)>initialCalls?'RENT_CACHE_PERSISTENCE_FAILED':'RENT_CACHE_READ_FAILED')
           :/ENTITLEMENT/.test(raw)?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'};
     }
     if(execution?.recorded)result={...result,providerCalls:execution.providerCalls-initialCalls,executionPhase:execution.phase};
-    return result.state==='AVAILABLE'?result:{...result,absenceReason:evidenceAbsenceReason(result.reason||result.state)};
+    return result.state==='AVAILABLE'?result:{...result,absenceReason:result.absenceReason??evidenceAbsenceReason(result.reason||result.state)};
   }
   private async load(input:{propertyId:string;userId:string;acquire:boolean}):Promise<MarketRentResult>{
+    const execution=this.options.execution,initialCalls=execution?.providerCalls??0;
     const base={propertyId:input.propertyId,providerCalls:0};
     if(!input.userId||!await this.options.hasEntitlement())return {...base,state:'ENTITLEMENT_BLOCKED'};
     const subject=await this.options.resolveSubject();
@@ -65,9 +67,13 @@ export class MarketRentService {
         evidence=await (this.options.providerGate??serialProvider)(()=>this.options.provider.getRentEstimate({...subject.lookup!,...subject.overrides,propertyId:input.propertyId,userId:input.userId,queryFingerprint:identity.queryFingerprint}));
       }catch(error){
         const reason=error instanceof Error?error.message:'';
+        if(evidenceAbsenceReason(reason)==='INTERNAL_ERROR')throw error;
         if(reason==='ADDRESS_CONFIRMATION_REQUIRED'||reason==='ADDRESS_MISMATCH')return {...base,state:'SUBJECT_UNAVAILABLE',reason};
         if(/BUDGET|MONTHLY_PROVIDER_LIMIT|COOLDOWN|CREDITS/.test(reason))return existing?.evidence.status==='AVAILABLE'?{...present(existing),reason:'REFRESH_BUDGET_BLOCKED'}:{...base,state:'USAGE_BLOCKED'};
         if(/PROVIDER_DISABLED|NOT_CONFIGURED/.test(reason))return {...base,state:'PROVIDER_DISABLED'};
+        // Reservation/lease errors can arrive as a generic upstream error. The
+        // tracked transport proves whether a provider request actually began.
+        if(execution?.recorded&&execution.phase==='BEFORE_HTTP'&&execution.providerCalls===initialCalls)throw new Error('INTERNAL_ERROR');
         // Existing availability circuit uses 60s backoff. Persist only a normalized
         // attempt (not an error payload), so other isolates do not repeat a miss.
         evidence=existing?.evidence.evidenceType==='rent_estimate'&&existing.evidence.status==='AVAILABLE'

@@ -38,7 +38,7 @@ export type ParcelEvidence = {
 };
 export type ParcelQuery = { operation: 'resolve' | 'query-point' | 'query-apn' | 'query-bounds' | 'query-lens' | 'coverage'; point?: Point; bounds?: Bounds; zoom?: number;
   countyFips?: string; stateFips?: string; apn?: string; address?: { address: string; city?: string; state?: string; zip?: string }; signal?: AbortSignal };
-export type ProviderResult = { parcels: ParcelEvidence[]; exceededLimit: boolean };
+export type ProviderResult = { parcels: ParcelEvidence[]; exceededLimit: boolean; telemetry?: import('./telemetry.ts').ParcelRequestTelemetry[] };
 export interface PublicParcelProvider {
   queryByPoint(point: Point, signal?: AbortSignal): Promise<ProviderResult>;
   queryByAPN(apn: string, signal?: AbortSignal): Promise<ProviderResult>;
@@ -48,7 +48,7 @@ export interface PublicParcelProvider {
 }
 export type ParcelResult = { status: 'COVERAGE_AVAILABLE' | 'NO_ACTIVE_PUBLIC_SOURCE' | 'SOURCE_TEMPORARILY_UNAVAILABLE' | 'AMBIGUOUS_LOCATION' | 'PARCEL_NOT_FOUND';
   parcels: ParcelEvidence[]; countyFips: string | null; sourceIds: string[]; ambiguity: boolean; exceededLimit: boolean;
-  freshness: 'FRESH' | 'STALE_USABLE' | 'UNAVAILABLE'; cacheHit: boolean; expiresAt: string | null; reason?: string };
+  freshness: 'FRESH' | 'STALE_USABLE' | 'UNAVAILABLE'; cacheHit: boolean; expiresAt: string | null; reason?: string; telemetry?: import('./telemetry.ts').ParcelRequestTelemetry[] };
 export const PARCEL_MIN_ZOOM = 16;
 export const PARCEL_MAX_RESULTS = 120;
 export const PARCEL_LENS_DIAMETER_MILES = 0.20;

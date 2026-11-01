@@ -2,13 +2,17 @@ import { PARCEL_MAX_RESULTS, type Bounds, type ParcelEvidence, type ParcelField,
 import { approvedLayerUrl, PARCEL_APPROVED_ORIGINS } from './registry.ts';
 import { arcgisRingsToGeometry, areaCrossCheck, geodesicParcelArea, validGeometry, validPoint } from './geometry.ts';
 import { waitForParcelRequest } from './cache.ts';
+import { type ParcelRequestTelemetry, type ParcelTrace, parcelTelemetryObserver } from './telemetry.ts';
 
-export async function boundedJson(url: string, fetcher: typeof fetch, signal?: AbortSignal, timeoutMs = 7500) {
+export async function boundedJson(url: string, fetcher: typeof fetch, signal?: AbortSignal, timeoutMs = 7500, observe?: (entry: ParcelRequestTelemetry) => void) {
+  const started = performance.now(), requestedAt = new Date().toISOString();
+  let httpStatus: number | null = null, outcome: ParcelRequestTelemetry['outcome'] = 'TRANSPORT_ERROR';
   const controller = new AbortController(); const abort = () => controller.abort();
   signal?.addEventListener('abort', abort, { once: true }); if (signal?.aborted) controller.abort();
   const timer = setTimeout(abort, timeoutMs);
   try {
     const response = await fetcher(url, { signal: controller.signal, redirect: 'error', headers: { Accept: 'application/json' } });
+    httpStatus = response.status; outcome = response.ok ? 'INVALID_RESPONSE' : 'HTTP_ERROR';
     if (!response.ok) throw new Error(`GIS_HTTP_${response.status}`);
     if (Number(response.headers.get('content-length')) > 5_000_000) throw new Error('GIS_RESPONSE_TOO_LARGE');
     const reader = response.body?.getReader();
@@ -22,8 +26,13 @@ export async function boundedJson(url: string, fetcher: typeof fetch, signal?: A
     parts.forEach(part => { buffer.set(part, offset); offset += part.length; });
     const data = JSON.parse(new TextDecoder().decode(buffer));
     if (data?.error) throw new Error(`ARCGIS_${data.error.code || 'ERROR'}`);
-    return data;
-  } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+    outcome = 'SUCCESS'; return data;
+  } finally {
+    clearTimeout(timer); signal?.removeEventListener('abort', abort);
+    const service = new URL(url);
+    observe?.({ provider: service.hostname === 'tigerweb.geo.census.gov' ? 'census' : 'arcgis',
+      service: `${service.origin}${service.pathname}`, httpStatus, latencyMs: Math.max(0, Math.round(performance.now()-started)), requestedAt, outcome });
+  }
 }
 
 const fieldName = (value: string) => { if (!/^[A-Za-z_][A-Za-z_0-9]*$/.test(value)) throw new Error('INVALID_REGISTRY_FIELD'); return value; };
@@ -65,24 +74,28 @@ export function normalizeParcel(source: ParcelSource, attributes: Record<string,
 }
 
 export class ArcGISParcelAdapter implements PublicParcelProvider {
+  private metadataTelemetry: ParcelRequestTelemetry[] = [];
   private metadata: Record<string, any> | null = null;
   private metadataAt = 0;
   private metadataPending: Promise<Record<string, any>> | null = null;
   private layerUrl: string;
-  constructor(readonly source: ParcelSource, private fetcher: typeof fetch = fetch, origins: readonly string[] = PARCEL_APPROVED_ORIGINS) {
+  constructor(readonly source: ParcelSource, private fetcher: typeof fetch = fetch, origins: readonly string[] = PARCEL_APPROVED_ORIGINS, private trace: ParcelTrace = {}) {
     this.layerUrl = approvedLayerUrl(source, origins);
   }
   getCoverage() { return this.source; }
   async inspect(signal?: AbortSignal) {
     if (this.metadata && Date.now() - this.metadataAt < 3600_000) return this.metadata;
     if(!this.metadataPending) this.metadataPending=(async()=>{
-      const data = await boundedJson(`${this.layerUrl}?f=json`, this.fetcher);
+      this.metadataTelemetry = [];
+      const data = await boundedJson(`${this.layerUrl}?f=json`, this.fetcher, undefined, 7500, parcelTelemetryObserver(this.metadataTelemetry, this.trace));
       if (data.geometryType !== 'esriGeometryPolygon' || !/\bQuery\b/i.test(data.capabilities || '') || !Array.isArray(data.fields)) throw new Error('UNSUPPORTED_PARCEL_SCHEMA');
       this.metadata = data; this.metadataAt = Date.now(); return data;
     })().finally(()=>{this.metadataPending=null;});
     return waitForParcelRequest(this.metadataPending,signal);
   }
   private async query(params: Record<string, string>, signal?: AbortSignal): Promise<ProviderResult> {
+    const telemetry: ParcelRequestTelemetry[] = [];
+    try {
     const metadata = await this.inspect(signal);
     const available = new Set(metadata.fields.map((field: { name: string }) => field.name));
     const mappedNames = [...Object.values(this.source.fieldMapping), ...Object.values(this.source.areaMapping || {})];
@@ -93,7 +106,7 @@ export class ArcGISParcelAdapter implements PublicParcelProvider {
     const limit = Math.max(1, Math.min(PARCEL_MAX_RESULTS, Number(metadata.maxRecordCount) || PARCEL_MAX_RESULTS));
     const query = new URLSearchParams({ f: format, where: '1=1', outFields: requestedFields.join(',') || String(metadata.objectIdField || 'OBJECTID'),
       returnGeometry: 'true', outSR: '4326', resultRecordCount: String(limit), ...params });
-    const data = await boundedJson(`${this.layerUrl}/query?${query}`, this.fetcher, signal);
+    const data = await boundedJson(`${this.layerUrl}/query?${query}`, this.fetcher, signal, 7500, parcelTelemetryObserver(telemetry, this.trace));
     const features = Array.isArray(data.features) ? data.features : [];
     const stamp = new Date().toISOString();
     const update = asNumber(metadata.editingInfo?.lastEditDate); const updatedAt = update == null ? null : new Date(update).toISOString();
@@ -106,7 +119,8 @@ export class ArcGISParcelAdapter implements PublicParcelProvider {
       }
       return normalizeParcel(this.source, feature.properties || feature.attributes || {}, geometry, stamp, updatedAt);
     });
-    return { parcels, exceededLimit: data.exceededTransferLimit === true || features.length >= limit };
+    return { parcels, exceededLimit: data.exceededTransferLimit === true || features.length >= limit, telemetry: [...this.metadataTelemetry, ...telemetry] };
+    } catch (error) { throw Object.assign(error instanceof Error ? error : new Error('GIS_QUERY_FAILED'), { telemetry: [...this.metadataTelemetry, ...telemetry] }); }
   }
   queryByPoint(point: Point, signal?: AbortSignal) {
     if (!validPoint(point)) return Promise.reject(new Error('INVALID_POINT'));

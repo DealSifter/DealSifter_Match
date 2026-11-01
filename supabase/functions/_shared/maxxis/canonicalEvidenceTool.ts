@@ -99,9 +99,9 @@ export async function getCanonicalPropertyEvidenceWithDependencies(options:Optio
   const rentExecution=createProviderExecution();
   const marketRent:MarketRentResult|undefined=options.financialEvidence?(provider?.entitlementState!=='authorized'?{propertyId:input.propertyId,
     state:providerAccessCheckFailed?'PROVIDER_ERROR' as const:'ENTITLEMENT_BLOCKED' as const,providerCalls:0,
-    absenceReason:providerAccessCheckFailed?'PROVIDER_ERROR':'NOT_ENTITLED',...(providerAccessCheckFailed?{reason:'PROPERTY_EVIDENCE_ACCESS_CHECK_FAILED'}:{})}
+    absenceReason:providerAccessCheckFailed?'INTERNAL_ERROR':'NOT_ENTITLED',...(providerAccessCheckFailed?{reason:'PROPERTY_EVIDENCE_ACCESS_CHECK_FAILED'}:{})}
     :options.loadMarketRent&&rentAvmSubject?await options.loadMarketRent(input.propertyId,rentAvmSubject,rentExecution).catch((error)=>({propertyId:input.propertyId,state:'PROVIDER_ERROR' as const,
-      providerCalls:rentExecution.recorded?rentExecution.providerCalls:null,executionPhase:rentExecution.recorded?rentExecution.phase:'UNKNOWN' as const,absenceReason:evidenceAbsenceReason('RENT_EXECUTION_FAILED'),
+      providerCalls:rentExecution.recorded?rentExecution.providerCalls:null,executionPhase:rentExecution.recorded?rentExecution.phase:'UNKNOWN' as const,absenceReason:evidenceAbsenceReason(error instanceof Error?error.message:'',rentExecution.recorded&&rentExecution.phase==='BEFORE_HTTP'?'INTERNAL_ERROR':'PROVIDER_ERROR'),
       // A cache/guard/execution failure is not an invalid physical attribute.
       // Retain a bounded diagnostic category, never an arbitrary error payload.
       reason:/CACHE/.test(error instanceof Error?error.message:'')?'RENT_CACHE_READ_FAILED':/ENTITLEMENT/.test(error instanceof Error?error.message:'')?'RENT_ENTITLEMENT_CHECK_FAILED':'RENT_EXECUTION_FAILED'})):undefined):undefined;

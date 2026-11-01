@@ -4,6 +4,8 @@ import { PublicCountyResolver } from './county.ts';
 import { ParcelSourceRegistry, normalizeCountyFips } from './registry.ts';
 import { validPoint } from './geometry.ts';
 import { contextualLensBounds } from './lens.ts';
+import type { CountyEvidence } from './county.ts';
+import type { ParcelRequestTelemetry, ParcelTrace } from './telemetry.ts';
 import { PARCEL_MIN_ZOOM, PARCEL_MAX_RESULTS, type ParcelQuery, type ParcelResult, type ParcelSource, type Point, type ProviderResult, type PublicParcelProvider } from './types.ts';
 
 export function validBounds(value: unknown): value is [number, number, number, number] {
@@ -39,6 +41,9 @@ type ResolverOptions = {
   registry?: ParcelSourceRegistry;
   providerFactory?: (source: ParcelSource) => PublicParcelProvider;
   resolveCounty?: (point: Point, signal?: AbortSignal) => Promise<string[]>;
+  resolveCountyEvidence?: (point: Point, signal?: AbortSignal) => Promise<CountyEvidence>;
+  resolveBoundsEvidence?: (bounds: [number, number, number, number], signal?: AbortSignal) => Promise<CountyEvidence>;
+  trace?: ParcelTrace;
   resolveBoundsCounties?: (bounds: [number, number, number, number], signal?: AbortSignal) => Promise<string[]>;
   geocode?: (address: NonNullable<ParcelQuery['address']>, signal?: AbortSignal) => Promise<Point | null>;
   cache?: ParcelRequestCache<ProviderResult>;
@@ -53,11 +58,14 @@ export class PublicParcelResolver {
   constructor(options: ResolverOptions = {}) {
     this.options = options; this.registry = options.registry || new ParcelSourceRegistry(); this.cache = options.cache || new ParcelRequestCache();
     if (!this.options.resolveCounty) {
-      const counties = new PublicCountyResolver(); this.options.resolveCounty = (point, signal) => counties.resolve(point, signal);
+      const counties = new PublicCountyResolver(fetch, this.options.trace); this.options.resolveCounty = (point, signal) => counties.resolve(point, signal);
+      this.options.resolveCountyEvidence ||= (point, signal) => counties.resolveEvidence(point, signal);
+      this.options.resolveBoundsEvidence ||= (bounds, signal) => counties.resolveBoundsEvidence(bounds, signal);
       this.options.resolveBoundsCounties ||= (bounds, signal) => counties.resolveBounds(bounds, signal);
     }
   }
   async resolve(query: ParcelQuery): Promise<ParcelResult> {
+    const telemetry: ParcelRequestTelemetry[] = [];
     if (query.operation === 'query-lens') {
       const bounds = contextualLensBounds(query.point!);
       if (!bounds) throw new Error('POINT_REQUIRED');
@@ -65,7 +73,7 @@ export class PublicParcelResolver {
     }
     const start = Date.now();
     const empty = (status: ParcelResult['status'], reason: string, fips: string | null = null): ParcelResult =>
-      ({ status, reason, parcels: [], countyFips: fips, sourceIds: [], ambiguity: status === 'AMBIGUOUS_LOCATION', exceededLimit: false, cacheHit: false, freshness: 'UNAVAILABLE', expiresAt: null });
+      ({ status, reason, parcels: [], countyFips: fips, sourceIds: [], ambiguity: status === 'AMBIGUOUS_LOCATION', exceededLimit: false, cacheHit: false, freshness: 'UNAVAILABLE', expiresAt: null, telemetry });
     if (query.operation === 'query-bounds' && (!validBounds(query.bounds) || (query.zoom ?? 0) < PARCEL_MIN_ZOOM)) return empty('PARCEL_NOT_FOUND', 'ZOOM_REQUIRED');
     if (query.bounds && (query.bounds[2] - query.bounds[0] > 0.08 || query.bounds[3] - query.bounds[1] > 0.06)) return empty('PARCEL_NOT_FOUND', 'NARROWER_VIEWPORT_REQUIRED');
     let point = query.point;
@@ -79,10 +87,13 @@ export class PublicParcelResolver {
     // A client FIPS hint cannot override the spatial county when a point is available.
     if (point) {
       try {
-        const counties = query.bounds && this.options.resolveBoundsCounties ? await this.options.resolveBoundsCounties(query.bounds, query.signal) : await this.options.resolveCounty!(point, query.signal);
+        const evidence = query.bounds && this.options.resolveBoundsEvidence ? await this.options.resolveBoundsEvidence(query.bounds, query.signal)
+          : !query.bounds && this.options.resolveCountyEvidence ? await this.options.resolveCountyEvidence(point, query.signal) : null;
+        if (evidence) telemetry.push(...evidence.telemetry);
+        const counties = evidence?.countyFips ?? (query.bounds && this.options.resolveBoundsCounties ? await this.options.resolveBoundsCounties(query.bounds, query.signal) : await this.options.resolveCounty!(point, query.signal));
         if (counties.length !== 1 || fips && counties[0] !== fips) return empty('AMBIGUOUS_LOCATION', 'COUNTY_UNRESOLVED_OR_CONFLICT');
         fips = counties[0];
-      } catch { return empty('SOURCE_TEMPORARILY_UNAVAILABLE', 'COUNTY_LOOKUP_UNAVAILABLE'); }
+      } catch (error) { telemetry.push(...((error as { telemetry?: ParcelRequestTelemetry[] }).telemetry || [])); return empty('SOURCE_TEMPORARILY_UNAVAILABLE', 'COUNTY_LOOKUP_UNAVAILABLE'); }
     }
     if (!fips) return empty('AMBIGUOUS_LOCATION', 'COUNTY_OR_LOCATION_REQUIRED');
     // Non-parcel role registrations are preparation, not an implicit consensus layer.
@@ -102,21 +113,23 @@ export class PublicParcelResolver {
         if (cached?.fresh) { value = cached.value; cacheHit = true; }
         else value = await waitForParcelRequest(this.cache.run(key, source.sourceId, async () => {
           let provider = this.providers.get(source.sourceId);
-          if (!provider) { provider = this.options.providerFactory?.(source) || new ArcGISParcelAdapter(source); this.providers.set(source.sourceId, provider); }
+          if (!provider) { provider = this.options.providerFactory?.(source) || new ArcGISParcelAdapter(source, fetch, undefined, this.options.trace); this.providers.set(source.sourceId, provider); }
           // Public shared work is bounded by provider timeouts, not owned by the
           // first subscriber. User A disconnecting must not cancel user B.
           return query.bounds ? provider.queryByBounds(query.bounds) : query.apn ? provider.queryByAPN(query.apn) : provider.queryByPoint(point!);
         }),query.signal);
       } catch (error) {
+        telemetry.push(...((error as { telemetry?: ParcelRequestTelemetry[] }).telemetry || []));
         if (query.signal?.aborted) throw error;
         this.options.logger?.({ sourceId: source.sourceId, countyFips: fips, operation: query.operation, cacheHit: !!cached, duration: Date.now() - start, resultCount: cached?.value.parcels.length || 0, errorClass: (error as Error).message.slice(0, 80) });
         if (!cached) { records.push({ ...empty('SOURCE_TEMPORARILY_UNAVAILABLE', 'SOURCE_QUERY_UNAVAILABLE', fips), sourceIds: [source.sourceId] }); continue; }
         value = cached.value; freshness = 'STALE_USABLE'; cacheHit = true;
       }
       const row = this.cache.get(key);
+      telemetry.push(...(value.telemetry || []));
       records.push({ status: value.parcels.length ? 'COVERAGE_AVAILABLE' : 'PARCEL_NOT_FOUND', parcels: value.parcels,
         countyFips: fips, sourceIds: [source.sourceId], ambiguity: query.operation !== 'query-bounds' && value.parcels.length > 1,
-        exceededLimit: value.exceededLimit, freshness, cacheHit, expiresAt: row ? new Date(row.expiresAt).toISOString() : null });
+        exceededLimit: value.exceededLimit, freshness, cacheHit, expiresAt: row ? new Date(row.expiresAt).toISOString() : null, telemetry });
       this.options.logger?.({ sourceId: source.sourceId, countyFips: fips, operation: query.operation, cacheHit, duration: Date.now() - start, resultCount: value.parcels.length, errorClass: null });
       // Complementary registrations are fallbacks, not an implicit consensus.
       // Do not stack two geometries for the same public subject from different
