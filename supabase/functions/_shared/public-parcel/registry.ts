@@ -1,9 +1,17 @@
 import type { ParcelSource } from './types.ts';
 import { EXPANSION_SOURCES } from './sources.ts';
 import { STRATEGIC_SOURCES } from './strategicSources.ts';
+import { STATEWIDE_CANDIDATES } from './statewideSources.ts';
+import { PHASE2_CANDIDATES } from './phase2Sources.ts';
+import { PRIORITY_NC_COUNTIES, PRIORITY_MA_POINT_COUNTIES } from './priorityCoverage.ts';
+import { SUBJECT_FL_COUNTIES, SUBJECT_NC_COUNTIES } from './subjectCoverage.ts';
+import { REQUESTED_STATES_SOURCES } from './requestedStatesSources.ts';
+import { MUNICIPAL_EXPANSION_SOURCES } from './municipalExpansionSources.ts';
 
 // Configuration only. Discovery cannot modify this registry or activate a source.
 export const PARCEL_SOURCES: readonly ParcelSource[] = Object.freeze([
+  ...MUNICIPAL_EXPANSION_SOURCES,
+  ...REQUESTED_STATES_SOURCES,
   {
     sourceId: 'us-al-jefferson-parcels', country: 'US', state: 'AL', stateFips: '01', county: 'Jefferson', countyFips: '01073', providerType: 'ARCGIS',
     statusReason: 'Backend receives HTTP 403 HTML from an Imperva/Incapsula gateway; usable public runtime not established.', licenseReason: 'Catalog disclaimer does not resolve commercial data redistribution terms.', role: 'PARCEL_PRIMARY',
@@ -55,7 +63,46 @@ export const PARCEL_SOURCES: readonly ParcelSource[] = Object.freeze([
     lastValidatedAt: '2026-10-12', sourceFreshness: 'Source editing timestamp, where published', status: 'LICENSE_REVIEW_REQUIRED',
   },
   ...EXPANSION_SOURCES,
+  ...EXPANSION_SOURCES.filter(source => source.sourceId === 'us-ma-massgis-parcels').map(source => ({
+    ...source, sourceId: 'us-ma-massgis-point-expansion', county: 'Barnstable', countyFips: '25001',
+    coverageCountyFips: [...PRIORITY_MA_POINT_COUNTIES], coverageScope: 'PARTIAL_COUNTY' as const,
+    capabilities: { subjectLookup: true, neighborLens: true, apnLookup: false },
+    preferredQueryFormat: 'json' as const, lastValidatedAt: '2026-10-22',
+    statusReason: 'Ten additional counties passed bounded point and viewport controls. APN-only lookup is deliberately disabled because statewide LOC_ID queries exceeded the existing timeout. Essex and Hampshire excluded. Partial parcel coverage.',
+    validation: { ...source.validation!, apnQueryValidated: false, counties: [...PRIORITY_MA_POINT_COUNTIES], sampledCountyFips: [...PRIORITY_MA_POINT_COUNTIES], evidencePath: 'qa/gis-priority-expansion-release/MA_POINT_RESULTS.json' },
+  })),
   ...STRATEGIC_SOURCES,
+  ...STATEWIDE_CANDIDATES.filter(source => source.sourceId === 'us-nc-nconemap-statewide-candidate').map(source => ({
+    ...source, sourceId: 'us-nc-nconemap-apn-priority', status: 'ACTIVE' as const,
+    county: 'Bertie', countyFips: '37015', coverageCountyFips: [...SUBJECT_NC_COUNTIES],
+    capabilities: { subjectLookup: false, apnLookup: true, neighborLens: false },
+    preferredQueryFormat: 'json' as const, defaultLookupGeometry: true, lastValidatedAt: '2026-10-22',
+    statusReason: 'Exact county-bound APN and polygon verified. Point ambiguity/truncation is not bypassed; point and neighborhood operations remain disabled in this additional scope.',
+    validation: { ...source.validation!, viewportQueryValidated: false, counties: [...SUBJECT_NC_COUNTIES], sampledCountyFips: [...SUBJECT_NC_COUNTIES], evidencePath: 'qa/gis-subject-first-release/CONTRACT_RESULTS.json' },
+  })),
+  // Approved bounded rollout: only counties with saved APN + interior-point +
+  // viewport proof. This is partial parcel coverage, never a statewide promise.
+  ...STATEWIDE_CANDIDATES.map(source => source.sourceId === 'us-nc-nconemap-statewide-candidate' ? {
+    ...source, status: 'ACTIVE' as const, countyFips: '37183', coverageCountyFips: [...PRIORITY_NC_COUNTIES],
+    lastValidatedAt: '2026-10-22',
+    statusReason: 'Prior scope preserved; 61 additional counties passed bounded county-bound APN and interior-point checks using the existing statewide schema and viewport contract. Failed or unproven controls remain excluded. Not universal parcel coverage.',
+    validation: source.validation ? { ...source.validation, counties: [...PRIORITY_NC_COUNTIES], sampledCountyFips: [...PRIORITY_NC_COUNTIES], evidencePath: 'qa/gis-priority-expansion-release/LIVE_RESULTS.json' } : undefined,
+  } : source.sourceId === 'us-fl-fgio-statewide-candidate' ? {
+    ...source, status: 'ACTIVE' as const, coverageCountyFips: [...SUBJECT_FL_COUNTIES],
+    licenseStatus: 'CLEAR_FOR_USE' as const, usagePermission: 'PUBLIC_DISPLAY_ALLOWED' as const,
+    licenseReason: 'Reviewed 2026-10-22: official FloridaGIO portal explicitly permits anyone to use its open data at no cost and offers this specific 2026 DOR parcel dataset as a web feature service. Specific item terms contain accuracy/public-record and non-survey disclaimers, not a conflicting use restriction. Limited property lookup/display, with DOR and county attribution; no bulk owner-data export.',
+    capabilities: { subjectLookup: false, apnLookup: true, neighborLens: false },
+    preferredQueryFormat: 'json' as const, defaultLookupGeometry: true, apnNormalization: 'REMOVE_SEPARATORS' as const, lastValidatedAt: '2026-10-22',
+    statusReason: 'All 67 Florida counties have bounded unique APN/original-polygon proof. Literal asterisks in official APNs are preserved, not interpreted as wildcards. Separator variants reuse existing exact/normalized lookup. Point and neighborhood queries remain disabled; ambiguous individual APNs are not selected or merged.',
+    validation: { ...source.validation!, viewportQueryValidated: false, counties: [...SUBJECT_FL_COUNTIES], sampledCountyFips: [...SUBJECT_FL_COUNTIES], evidencePath: 'qa/gis-florida-completion/CONTRACT_RESULTS.json' },
+  } : source),
+  ...PHASE2_CANDIDATES.map(source => ['us-mn-mn-metro-washington-phase2-candidate','us-ut-ut-49001-phase2-candidate','us-ut-ut-49003-phase2-candidate'].includes(source.sourceId) ? {
+    ...source, status: 'ACTIVE' as const, lastValidatedAt: '2026-10-22',
+    ...(source.sourceId === 'us-mn-mn-metro-washington-phase2-candidate' ? { preferredQueryFormat: 'json' as const } : {}),
+    capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
+    statusReason: 'Approved Washington MN / Beaver UT / Box Elder UT only. Dataset-specific terms rechecked and bounded APN/interior-point/viewport controls passed. Partial parcel coverage, not state coverage.',
+    validation: source.validation ? { ...source.validation, apnQueryValidated: true, geometryQueryValidated: true, viewportQueryValidated: true, evidencePath: 'qa/gis-coverage-expansion-release/LIVE_RESULTS.json' } : undefined,
+  } : source),
 ]);
 export const PARCEL_APPROVED_ORIGINS = Object.freeze([...new Set(PARCEL_SOURCES.map(source => new URL(source.serviceUrl).origin))]);
 export const licenseCleared = (source: ParcelSource) => ['APPROVED', 'CLEAR_FOR_USE'].includes(source.licenseStatus);
@@ -80,10 +127,19 @@ export function normalizeCountyFips(county: unknown, state?: unknown) {
   return /^\d{3}$/.test(value) && /^\d{2}$/.test(prefix) ? prefix + value : null;
 }
 export class ParcelSourceRegistry {
-  constructor(readonly sources: readonly ParcelSource[] = PARCEL_SOURCES) {}
+  constructor(readonly sources: readonly ParcelSource[] = PARCEL_SOURCES, readonly disabledSourceIds: readonly string[] = []) {}
   forCounty(fips: string, diagnostics = false) {
-    return this.sources.filter(source => (source.countyFips === fips || source.coverageCountyFips?.includes(fips)) && (productionSourceAllowed(source)
-      || diagnostics && !['DISABLED', 'BROKEN'].includes(source.status)));
+    return this.sources.filter(source => !this.disabledSourceIds.includes(source.sourceId)
+      && (source.countyFips === fips || source.coverageCountyFips?.includes(fips)) && (productionSourceAllowed(source)
+      || diagnostics && !['DISABLED', 'BROKEN'].includes(source.status)))
+      .map(source => {
+        // Existing AR registration predates county-bound APN queries. The saved
+        // Phase 2 schema uses FIPS3, not FIPS5; never let repeated local APNs
+        // query the entire state. Keep the 17 reviewed declarations unchanged.
+        const countyQuery = source.countyQuery ?? (source.sourceId === 'us-ar-agiso-state-parcels'
+          ? { field: 'countyfips', codes: Object.fromEntries([source.countyFips, ...source.coverageCountyFips ?? []].map(code => [code, code.slice(2)])) } : undefined);
+        return countyQuery ? { ...source, countyQuery, queryCountyFips: fips } : source;
+      });
   }
 }
 export function approvedLayerUrl(source: ParcelSource, origins: readonly string[] = PARCEL_APPROVED_ORIGINS) {

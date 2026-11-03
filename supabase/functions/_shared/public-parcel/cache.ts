@@ -55,8 +55,9 @@ export class ParcelRequestCache<T> {
           throw error;
         }
         const failures = (this.health.get(sourceId)?.consecutiveFailures ?? health.consecutiveFailures) + 1;
+        const retryAfterMs = Number((error as { retryAfterMs?: number })?.retryAfterMs);
         this.health.set(sourceId, { ...health, lastFailure: new Date(this.now()).toISOString(), consecutiveFailures: failures,
-          nextAllowedAt: this.now() + Math.min(300_000, 5000 * 2 ** Math.min(failures, 6)), status: failures >= 3 ? 'CIRCUIT_OPEN' : 'BACKOFF' });
+          nextAllowedAt: this.now() + Math.max(Math.min(300_000, 5000 * 2 ** Math.min(failures, 6)), Number.isFinite(retryAfterMs) ? Math.max(0, retryAfterMs) : 0), status: failures >= 3 ? 'CIRCUIT_OPEN' : 'BACKOFF' });
         throw error;
       } finally { this.pending.delete(key); }
     })();

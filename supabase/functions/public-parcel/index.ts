@@ -5,6 +5,7 @@ import { PublicParcelResolver, validateParcelQuery } from '../_shared/public-par
 import { ParcelRequestCache } from '../_shared/public-parcel/cache.ts';
 import { PublicCountyResolver } from '../_shared/public-parcel/county.ts';
 import { ArcGISParcelAdapter } from '../_shared/public-parcel/arcgis.ts';
+import { ParcelSourceRegistry } from '../_shared/public-parcel/registry.ts';
 import type { ProviderResult } from '../_shared/public-parcel/types.ts';
 import { parcelOperationAllowed } from '../_shared/public-parcel/lens.ts';
 import { createParcelUpstreamFetch } from '../_shared/public-parcel/upstreamBudget.ts';
@@ -68,12 +69,13 @@ Deno.serve(async req => {
         if(error)throw new Error('PROPERTY_DETAILS_UNAVAILABLE');return data&&typeof data==='object'&&!Array.isArray(data)?data as Record<string,unknown>:null;
       }}),200,origin);
     if(!query)throw new Error('INVALID_QUERY');
-    const resolver = new PublicParcelResolver({ cache,
+    const disabledSourceIds = (Deno.env.get('PUBLIC_PARCEL_DISABLED_SOURCE_IDS') || '').split(',').map(v => v.trim()).filter(Boolean);
+    const resolver = new PublicParcelResolver({ cache, registry: new ParcelSourceRegistry(undefined, disabledSourceIds),
       resolveCounty: (point, signal) => counties.resolve(point, signal),
       resolveCountyEvidence: (point, signal) => counties.resolveEvidence(point, signal),
       resolveBoundsEvidence: (bounds, signal) => counties.resolveBoundsEvidence(bounds, signal),
       resolveBoundsCounties: (bounds, signal) => counties.resolveBounds(bounds, signal),
-      providerFactory: source => { let adapter = providers.get(source.sourceId); if (!adapter) { adapter = new ArcGISParcelAdapter(source, publicFetcher); providers.set(source.sourceId, adapter); } return adapter; },
+      providerFactory: source => { const key = `${source.sourceId}:${source.queryCountyFips || ''}`; let adapter = providers.get(key); if (!adapter) { adapter = new ArcGISParcelAdapter(source, publicFetcher); providers.set(key, adapter); } return adapter; },
       logger: event => console.log(JSON.stringify({ event: 'public_parcel', ...event })),
       geocode: async (address, signal) => {
         // Reuse existing geocoder/cache. Omitting propertyId prevents property mutations.
@@ -83,7 +85,7 @@ Deno.serve(async req => {
       },
     });
     const result=await resolver.resolve({ ...query, signal: req.signal });
-    const evidenceReceipt=query.operation==='query-point'&&query.point
+    const evidenceReceipt=['query-point','query-apn'].includes(query.operation)&&query.point
       ?await issueParcelEvidenceReceipt(result,query.point,user.id,serviceKey):null;
     return reply({...result,...(evidenceReceipt?{evidenceReceipt}:{})}, 200, origin);
   } catch (error) {

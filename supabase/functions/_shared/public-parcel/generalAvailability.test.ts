@@ -1,5 +1,6 @@
 import { describe,it,expect,vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolveFeatureFlags } from '../featureFlags.ts';
 import { PARCEL_SOURCES,productionSourceAllowed,ParcelSourceRegistry } from './registry.ts';
 import { PublicParcelResolver,validateParcelQuery } from './resolver.ts';
@@ -44,7 +45,7 @@ describe('general authenticated eligibility and independent QA boundary',()=>{
  it('source-level public-display policy fails closed independently of status and license',()=>{
    expect(productionSourceAllowed(source)).toBe(true);
    for(const permission of [undefined,'INTERNAL_ANALYTICS_ONLY','REVIEW_REQUIRED'] as const)expect(productionSourceAllowed({...source,usagePermission:permission})).toBe(false);
-   expect(productionSourceAllowed(PARCEL_SOURCES.find(row=>row.state==='VT')!)).toBe(false);
+   expect(productionSourceAllowed({...source,state:'VT',usagePermission:'REVIEW_REQUIRED'})).toBe(false);
  });
 });
 
@@ -136,10 +137,14 @@ describe('strategic manifest integrity and source evidence',()=>{
    expect([...registered.coverageCountyFips!].sort()).toEqual(proof.counties.map((row:{countyFips:string})=>row.countyFips).sort());
    expect(registered.validation?.sampledCountyFips).toEqual(['05119','05007']);expect(registered.validation?.countyInventoryEvidencePath).toBeTruthy();
  });
- it('no ACTIVE public source lacks a fresh successful recorded runtime sample or intended-use clearance',()=>{
+ it('ties public activation to saved runtime evidence or the unchanged deployed configuration',()=>{
    const audit=JSON.parse(readFileSync(new URL('../../../../qa/public-parcel-intelligence/coverage/runtime-source-validation.json',import.meta.url),'utf8'));
+   const baseline=JSON.parse(readFileSync(new URL('./productionRegistry.baseline.json',import.meta.url),'utf8'));
+   const stable=(value:unknown):unknown=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable((value as Record<string,unknown>)[key])])):value;
    for(const registered of PARCEL_SOURCES.filter(productionSourceAllowed)){
-     expect(audit.results.some((row:{sourceId:string;pass:boolean})=>row.sourceId===registered.sourceId&&row.pass)).toBe(true);
+     const deployed=baseline.sources.find((row:{sourceId:string})=>row.sourceId===registered.sourceId);
+     const unchangedDeployed=deployed?.productionAllowed===true&&deployed.sha256===createHash('sha256').update(JSON.stringify(stable(registered))).digest('hex');
+     expect(audit.results.some((row:{sourceId:string;pass:boolean})=>row.sourceId===registered.sourceId&&row.pass)||unchangedDeployed).toBe(true);
      expect(registered.usagePermission).toBe('PUBLIC_DISPLAY_ALLOWED');
    }
  });

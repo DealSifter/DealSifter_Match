@@ -2,7 +2,7 @@ export type SourceStatus = 'DISCOVERED' | 'SCHEMA_VALIDATED' | 'AUTHORITY_VALIDA
 export type LicenseStatus = 'APPROVED' | 'CLEAR_FOR_USE' | 'LICENSE_REVIEW_REQUIRED' | 'UNKNOWN' | 'UNVERIFIED';
 export type SourceRole = 'PARCEL_PRIMARY' | 'ASSESSMENT' | 'TAX' | 'ZONING' | 'SECONDARY_PARCEL';
 export type SourceStrength = 'PARCEL_GEOMETRY' | 'APN' | 'AREA' | 'OWNER' | 'ASSESSMENT' | 'TAX' | 'ZONING';
-export type ParcelField = 'apn' | 'parcelId' | 'situsAddress' | 'assessorAcres' | 'gisAcres' | 'lotSqft' | 'ownerName' | 'assessedValue' | 'assessedYear' | 'propertyTax' | 'propertyTaxYear' | 'taxCode' | 'zoning' | 'legalDescription' | 'subdivision';
+export type ParcelField = 'apn' | 'parcelId' | 'situsAddress' | 'assessorAcres' | 'gisAcres' | 'lotSqft' | 'ownerName' | 'assessedValue' | 'assessedYear' | 'propertyTax' | 'propertyTaxYear' | 'taxCode' | 'zoning' | 'legalDescription' | 'subdivision' | 'buildingArea' | 'yearBuilt';
 export type Point = { lat: number; lng: number };
 export type Bounds = [number, number, number, number];
 export type ParcelGeometry = { type: 'Polygon'; coordinates: number[][][] } | { type: 'MultiPolygon'; coordinates: number[][][][] };
@@ -20,6 +20,16 @@ export type ParcelSource = Readonly<{
   coverageScope?: 'COUNTY_DATASET' | 'PARTIAL_COUNTY';
   // Some authorities publish mixed area units in a companion field. Never assume acres.
   areaMapping?: { valueField: string; unitField: string };
+  // State datasets can repeat local APNs across counties. Bound by the registry,
+  // never supplied as an arbitrary SQL predicate by a client.
+  countyQuery?: { field: string; codes?: Readonly<Record<string, string | number>> };
+  queryCountyFips?: string;
+  // Attribute-heavy services may default to lightweight subject lookups.
+  // Explicit polygon requests remain separate cache entries; this grants no source permission.
+  defaultLookupGeometry?: boolean;
+  /** Source-specific REST JSON fallback after bounded GeoJSON failure; no timeout change. */
+  preferredQueryFormat?: 'json';
+  situsMapping?: { street: string; city: string; zip: string };
   validation?: { authorityVerified: boolean; schemaValidated: boolean; geometryQueryValidated: boolean;
     apnQueryValidated: boolean; viewportQueryValidated: boolean; counties: readonly string[]; evidencePath: string;
     sampledCountyFips?: readonly string[]; countyInventoryEvidencePath?: string };
@@ -29,6 +39,7 @@ export type ParcelEvidence = {
   lotSqft: number | null; acres: number | null; assessorAcres: number | null; gisAcres: number | null;
   geometryCalculatedSqft: number | null; geometryCalculatedAcres: number | null;
   ownerName: string | null; assessedValue: number | null; assessedYear: number | null; propertyTax: number | null; propertyTaxYear: number | null;
+  buildingArea?: number | null; yearBuilt?: number | null;
   taxCode: string | null; zoning: string | null; legalDescription: string | null; subdivision: string | null;
   source: string; sourceAuthority: string; sourceUrl: string; licenseStatus: LicenseStatus; licenseUrl: string; usageNotes: string;
   retrievedAt: string; sourceUpdatedAt: string | null; evidenceStatus: 'PUBLIC_RECORD';
@@ -36,12 +47,12 @@ export type ParcelEvidence = {
   provenance: Record<string, { value: unknown; source: string; sourceField: string | null; status: 'PUBLIC_RECORD' | 'CALCULATED' | 'UNAVAILABLE' }>;
   areaCrossCheck: { status: 'CONSISTENT' | 'MINOR_VARIANCE' | 'MATERIAL_CONFLICT' | 'NOT_EVALUATED'; relativeDifference: number | null };
 };
-export type ParcelQuery = { operation: 'resolve' | 'query-point' | 'query-apn' | 'query-bounds' | 'query-lens' | 'coverage'; point?: Point; bounds?: Bounds; zoom?: number;
+export type ParcelQuery = { operation: 'resolve' | 'query-point' | 'query-apn' | 'query-bounds' | 'query-lens' | 'coverage'; point?: Point; bounds?: Bounds; zoom?: number; includeGeometry?: boolean;
   countyFips?: string; stateFips?: string; apn?: string; address?: { address: string; city?: string; state?: string; zip?: string }; signal?: AbortSignal };
 export type ProviderResult = { parcels: ParcelEvidence[]; exceededLimit: boolean; telemetry?: import('./telemetry.ts').ParcelRequestTelemetry[] };
 export interface PublicParcelProvider {
-  queryByPoint(point: Point, signal?: AbortSignal): Promise<ProviderResult>;
-  queryByAPN(apn: string, signal?: AbortSignal): Promise<ProviderResult>;
+  queryByPoint(point: Point, signal?: AbortSignal, includeGeometry?: boolean): Promise<ProviderResult>;
+  queryByAPN(apn: string, signal?: AbortSignal, includeGeometry?: boolean): Promise<ProviderResult>;
   queryByAddress?(address: string, signal?: AbortSignal): Promise<ProviderResult>;
   queryByBounds(bounds: Bounds, signal?: AbortSignal): Promise<ProviderResult>;
   getCoverage(): ParcelSource;

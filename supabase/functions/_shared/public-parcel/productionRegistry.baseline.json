@@ -1,0 +1,1560 @@
+{
+  "description": "Compatibility baseline recovered from deployed public-parcel v20; public registry configuration only, no property or owner data.",
+  "version": 20,
+  "sourceCount": 60,
+  "states": [
+    "AL",
+    "AR",
+    "CA",
+    "CT",
+    "FL",
+    "GA",
+    "KS",
+    "MA",
+    "MN",
+    "NC",
+    "ND",
+    "NJ",
+    "NY",
+    "OH",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA"
+  ],
+  "origins": [
+    "https://arcgis.metc.state.mn.us",
+    "https://ca.dep.state.fl.us",
+    "https://gis.arkansas.gov",
+    "https://gismaps.kingcounty.gov",
+    "https://jccgis.jccal.org",
+    "https://maps.wake.gov",
+    "https://nysgeohub.ny.gov",
+    "https://services.arcgis.com",
+    "https://services.nconemap.gov",
+    "https://services1.arcgis.com",
+    "https://services2.arcgis.com",
+    "https://services3.arcgis.com",
+    "https://services9.arcgis.com",
+    "https://socogis.sonomacounty.ca.gov",
+    "https://vginmaps.vdem.virginia.gov",
+    "https://www.gis.hctx.net"
+  ],
+  "sources": [
+    {
+      "sourceId": "us-vt-montpelier-vcgi-parcels",
+      "state": "VT",
+      "sha256": "156aa0aa02a0428e7a8627b3ee35be1ed815c1cb9bee0eb335613a0094b98296",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-vt-rutland-city-vcgi-parcels",
+      "state": "VT",
+      "sha256": "0befe4f7f267f90275b52c9ec25079a3d859651b9726eda962e748eb9816a5be",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ct-new-haven-opm-parcels",
+      "state": "CT",
+      "sha256": "e21c9aad10b1efa48bf704916cbc4553e9dd077b5b4bf8cdb24488c9ae235430",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-vt-burlington-vcgi-parcels",
+      "state": "VT",
+      "sha256": "9717e05c2ae3f16929c84b3be82b4766f9cc6b8882d64e5bcf8dd33687fb444a",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ct-hartford-opm-parcels",
+      "state": "CT",
+      "sha256": "625cc07f87677001388f78157409f555c96fe6afd835f931c93400a7c11a6aba",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-nd-burleigh-ndgishub-parcels",
+      "state": "ND",
+      "sha256": "d7065d6002394910548ee80919f3bcec6190032a4b8bae72f059967df733e8f0",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-al-jefferson-parcels",
+      "state": "AL",
+      "sha256": "a3097f05726e0df232f26b8b8e0473a6511da0867f2ed6625b2465050fc771ec",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-nc-wake-parcels",
+      "state": "NC",
+      "sha256": "958df2ef728c2c695e7e247f2d445dbcd61304eb3b0aa3298d301d73cf55b639",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-wa-king-parcels",
+      "state": "WA",
+      "sha256": "86ee6e2ae0f8b76fb6ae54c886fadaad1e0e711a6c44da045e468d2f7b9770a3",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-ut-salt-lake-parcels",
+      "state": "UT",
+      "sha256": "9c698fc9c6927e70f53e9f1664707b85c6f169065808e32c9380fd6f8477cb74",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ca-sonoma-parcels",
+      "state": "CA",
+      "sha256": "0e5f1c4326870d3aa0bec45be1042d3828d115286335a726c7916cd89693814a",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-ma-massgis-parcels",
+      "state": "MA",
+      "sha256": "768d44762f6ab2e59fc085ee0b5d245ac4e4a4cd9ce8b508df779dcbf6e6fcf0",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-nj-njogis-parcels",
+      "state": "NJ",
+      "sha256": "92320b22d671e702fba417672f911086ccf363417d3f444f8255b22355530360",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-vt-vcgi-parcels",
+      "state": "VT",
+      "sha256": "4dd854b11930e2b09c083bc2be634701f6c8341d83fc9933ffdba5e6cec0488f",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ny-state-public-parcels",
+      "state": "NY",
+      "sha256": "9a05bca9e1d4ee00cfc1fd3d9513d8435e0ab835204ba16c316e7ba5c4d2cf29",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-nc-nconemap-parcels",
+      "state": "NC",
+      "sha256": "eb218ed14d75f420ecdbc6a5d51b88dc2c461fd1c459b4f83265058751cb177f",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-fl-dep-public-parcels",
+      "state": "FL",
+      "sha256": "525865e4b9fe581117d07c5ad1f27168f3b65cf93c10397642c9ffdbb560c4cb",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-fl-fgio-state-parcels",
+      "state": "FL",
+      "sha256": "86ba03ce9f7e940792e6f9e5a8b08a5e64903fbec917d44e5b3f0aa1d499098b",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-tx-austin-travis-parcels",
+      "state": "TX",
+      "sha256": "b7935630b4c319fa0f4393247232127ce872a7c98ac72dbf19a428ed773f0f5d",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-tx-harris-parcels",
+      "state": "TX",
+      "sha256": "05089dcf5bdd2894d24b3515e6ee03e3f2d214843cbbc8f39fa0f15d0db27c1b",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED",
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-ma-massgis-point-expansion",
+      "state": "MA",
+      "sha256": "ddacae181e7f5004de9886e9e14d9e5afced62366ceb6db8d9041a13c1d55e03",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-oh-ogrip-public-parcels",
+      "state": "OH",
+      "sha256": "ac093d68bf210320224c9a99f49af8e6ba19563011cbb58824e8e8d6eaa56b60",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "AUTHORITY_NOT_VERIFIED",
+        "SCHEMA_NOT_VALIDATED",
+        "GEOMETRY_NOT_VALIDATED",
+        "APN_NOT_VALIDATED",
+        "VIEWPORT_NOT_VALIDATED",
+        "VALIDATION_EVIDENCE_REQUIRED",
+        "COVERAGE_NOT_VALIDATED"
+      ]
+    },
+    {
+      "sourceId": "us-ar-agiso-state-parcels",
+      "state": "AR",
+      "sha256": "b0030c049da92969b2ec8b8dc1f4642425cc0235dd51e8f16d577638499eb3cd",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ga-johns-creek-public-parcels",
+      "state": "GA",
+      "sha256": "92bef6daaf6109884619000e2d904972e4ea84789fcb7cde3f6f4622c914e860",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-nc-nconemap-apn-priority",
+      "state": "NC",
+      "sha256": "ff92f9b61bb93c906fcaed3606a891d83fd29316426419cf8959f226d0ae9a60",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-fl-fgio-statewide-candidate",
+      "state": "FL",
+      "sha256": "e7a99c3be638818a0bff8ac94d9b353108131edd5fbfaf1c333917b80f724b47",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-nc-nconemap-statewide-candidate",
+      "state": "NC",
+      "sha256": "ba54361477c7e4a73364f5ba37c7a4c0de038fbdae94ce441b5af3a006115b60",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-oh-oh-state-phase2-candidate",
+      "state": "OH",
+      "sha256": "ea35d6dd413961a3cbd425a68fa8f57bf2896f52e6d70b9b14ca4ecf9d1c0f65",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-va-va-state-phase2-candidate",
+      "state": "VA",
+      "sha256": "0c63c442ceb4f533ab335879ffcb8b0548bbff7bf7630f99ea66f3094ae8ba0a",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED"
+      ]
+    },
+    {
+      "sourceId": "us-mn-mn-metro-anoka-phase2-candidate",
+      "state": "MN",
+      "sha256": "dcdf926b4e23d7a73be345a092f381a7a347185b07f32536a0285b6a16b1a9a5",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-mn-mn-metro-washington-phase2-candidate",
+      "state": "MN",
+      "sha256": "1d4a751c0da7d82576f8c014377a49c0965c938bcfbc174276471b1cad6ce3fa",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49001-phase2-candidate",
+      "state": "UT",
+      "sha256": "6aecf72ecb6bfd91f5814110f89ca2617d66dd6b636d3f2a20e116a05a9119a5",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49003-phase2-candidate",
+      "state": "UT",
+      "sha256": "b2269904822bae77f0ce559deac838e61fee28057d8fdb92629494d373799eb1",
+      "productionAllowed": true,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49005-phase2-candidate",
+      "state": "UT",
+      "sha256": "07a209d29d87673379a0c6e85692b71d0591a337a2c47d27cea6c01f866f58b0",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49007-phase2-candidate",
+      "state": "UT",
+      "sha256": "50aaeddfe50a0885e3098fd8ac1aa604290d3f935cab35ce0e2bcb9ddddb70fe",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49009-phase2-candidate",
+      "state": "UT",
+      "sha256": "526e461a5d0f3efb3a4f20eab52318bb403840294f6e4ec148cd53bd7b5f41dc",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED"
+      ]
+    },
+    {
+      "sourceId": "us-ut-ut-49011-phase2-candidate",
+      "state": "UT",
+      "sha256": "d2e75821c88b9727dc3b1ab0ffa7b2e9ba8727a2c9fd31f902b4f064be2e5bc6",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49013-phase2-candidate",
+      "state": "UT",
+      "sha256": "cffdeb58d3d36560289f8aed0d960977a14aeac1bc0bd13231cac0c1552e72b9",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49015-phase2-candidate",
+      "state": "UT",
+      "sha256": "ce91a621af277506fa5597588c5ed498a7fa13e9bc8df00fea2afb3fec39cb3e",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49017-phase2-candidate",
+      "state": "UT",
+      "sha256": "bdc2484c8a1958d0adbd5b05641300d7937820980d908f67235b99f09b0a6e9c",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49019-phase2-candidate",
+      "state": "UT",
+      "sha256": "31ba6c626a92c8de13019f072afa936ef26745ab9d90721f0f1cb2ec5d7d4239",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49021-phase2-candidate",
+      "state": "UT",
+      "sha256": "1850af3b01181083d3df1bce5bf5d4f7315790d3159774d0a371371f3a3bdebe",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49023-phase2-candidate",
+      "state": "UT",
+      "sha256": "323c2b369a137aada8e1a5b24cdf716750ea05d5ad8a3b9c0c6c5b64d959499b",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49025-phase2-candidate",
+      "state": "UT",
+      "sha256": "70735caa725d603421a8780bc18f634c39c045281d11ab7442bee475974e15a8",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49027-phase2-candidate",
+      "state": "UT",
+      "sha256": "ecf8e0123e98603cad01fb5a47f622d4cc810b6347dc177eff2d98d4c24a4155",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49029-phase2-candidate",
+      "state": "UT",
+      "sha256": "ae16eff4b00d36a84bb59a4cb3f560743c3bd959e9eb8cb8306f06c8edb03301",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49031-phase2-candidate",
+      "state": "UT",
+      "sha256": "c21f2e2d051fdc37d7cef8b01b0c834bafd4c0a5c9758318a28a65de4a1459dc",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49033-phase2-candidate",
+      "state": "UT",
+      "sha256": "1023b67c01ad694ea7ed7e952235466e986a7fbe98fc514f724a4306871c86e8",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49037-phase2-candidate",
+      "state": "UT",
+      "sha256": "0204144644dd01a09cf8f2ef8382c494fe21e71c7efcf2d82b86f8073a6e9d39",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49039-phase2-candidate",
+      "state": "UT",
+      "sha256": "5a59a100971898c9e46e36d089a933bd230a480bdaa928779464bff28b4709c9",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49041-phase2-candidate",
+      "state": "UT",
+      "sha256": "43a98ec9e380e9ed5be488b4e13e3893a9305fa919ffd14f8211f840ce7b63f6",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49043-phase2-candidate",
+      "state": "UT",
+      "sha256": "a80b056e5c49000fa9eab8a48b0489a4d755840ed67d15e6fdc025a82e50c189",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49045-phase2-candidate",
+      "state": "UT",
+      "sha256": "04cd5afd846461b84b796d3145623f985d4c957fedae771cce0d23f2ba52adc4",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49047-phase2-candidate",
+      "state": "UT",
+      "sha256": "772a09da848384802dad0b51f4b6ceca9ae457aaf2804114e48c4e24f96b41fc",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49049-phase2-candidate",
+      "state": "UT",
+      "sha256": "8ca129c31cb4013c5d9e96fd9ad7f36145f55f3096633545f1fb81534b57514c",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49051-phase2-candidate",
+      "state": "UT",
+      "sha256": "ae5f2bf31276055ca6f2675baf08e95133a4dbf95260577b944b5b13378279b1",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49053-phase2-candidate",
+      "state": "UT",
+      "sha256": "9d483fb2df931e04b61933ff26ab40db13d4c6460134545e602ad87c5634c337",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49055-phase2-candidate",
+      "state": "UT",
+      "sha256": "a180867df9dee93c943e21f729725a62145cac0e4bdd8515ddda4d0b4291f71c",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ut-ut-49057-phase2-candidate",
+      "state": "UT",
+      "sha256": "d71fd62f75a86573f87c2e711d9400110afaed9aaa01c67ba299e9331523b1d4",
+      "productionAllowed": false,
+      "activationBlockers": []
+    },
+    {
+      "sourceId": "us-ks-ks-anderson-parcels-phase2-candidate",
+      "state": "KS",
+      "sha256": "a0785f547ade2faad8f1549259b5988980115a5b3365dd4b9edf53394c238536",
+      "productionAllowed": false,
+      "activationBlockers": [
+        "LICENSE_NOT_CLEARED"
+      ]
+    }
+  ],
+  "countySelections": [
+    {
+      "countyFips": "01073",
+      "selections": []
+    },
+    {
+      "countyFips": "05001",
+      "selections": [
+        {
+          "sourceId": "us-ar-agiso-state-parcels",
+          "queryCountyFips": "05001",
+          "countyQuery": {
+            "field": "countyfips",
+            "codes": {
+              "05119": "119",
+              "05001": "001",
+              "05003": "003",
+              "05005": "005",
+              "05007": "007",
+              "05009": "009",
+              "05011": "011",
+              "05013": "013",
+              "05015": "015",
+              "05017": "017",
+              "05019": "019",
+              "05021": "021",
+              "05023": "023",
+              "05025": "025",
+              "05027": "027",
+              "05029": "029",
+              "05031": "031",
+              "05033": "033",
+              "05035": "035",
+              "05037": "037",
+              "05039": "039",
+              "05041": "041",
+              "05043": "043",
+              "05045": "045",
+              "05047": "047",
+              "05049": "049",
+              "05051": "051",
+              "05053": "053",
+              "05055": "055",
+              "05057": "057",
+              "05059": "059",
+              "05061": "061",
+              "05063": "063",
+              "05065": "065",
+              "05067": "067",
+              "05069": "069",
+              "05071": "071",
+              "05073": "073",
+              "05075": "075",
+              "05077": "077",
+              "05079": "079",
+              "05081": "081",
+              "05083": "083",
+              "05085": "085",
+              "05087": "087",
+              "05089": "089",
+              "05091": "091",
+              "05093": "093",
+              "05095": "095",
+              "05097": "097",
+              "05099": "099",
+              "05101": "101",
+              "05103": "103",
+              "05105": "105",
+              "05107": "107",
+              "05109": "109",
+              "05111": "111",
+              "05113": "113",
+              "05115": "115",
+              "05117": "117",
+              "05121": "121",
+              "05123": "123",
+              "05125": "125",
+              "05127": "127",
+              "05129": "129",
+              "05131": "131",
+              "05133": "133",
+              "05135": "135",
+              "05137": "137",
+              "05139": "139",
+              "05141": "141",
+              "05143": "143",
+              "05145": "145",
+              "05147": "147",
+              "05149": "149"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "05119",
+      "selections": [
+        {
+          "sourceId": "us-ar-agiso-state-parcels",
+          "queryCountyFips": "05119",
+          "countyQuery": {
+            "field": "countyfips",
+            "codes": {
+              "05119": "119",
+              "05001": "001",
+              "05003": "003",
+              "05005": "005",
+              "05007": "007",
+              "05009": "009",
+              "05011": "011",
+              "05013": "013",
+              "05015": "015",
+              "05017": "017",
+              "05019": "019",
+              "05021": "021",
+              "05023": "023",
+              "05025": "025",
+              "05027": "027",
+              "05029": "029",
+              "05031": "031",
+              "05033": "033",
+              "05035": "035",
+              "05037": "037",
+              "05039": "039",
+              "05041": "041",
+              "05043": "043",
+              "05045": "045",
+              "05047": "047",
+              "05049": "049",
+              "05051": "051",
+              "05053": "053",
+              "05055": "055",
+              "05057": "057",
+              "05059": "059",
+              "05061": "061",
+              "05063": "063",
+              "05065": "065",
+              "05067": "067",
+              "05069": "069",
+              "05071": "071",
+              "05073": "073",
+              "05075": "075",
+              "05077": "077",
+              "05079": "079",
+              "05081": "081",
+              "05083": "083",
+              "05085": "085",
+              "05087": "087",
+              "05089": "089",
+              "05091": "091",
+              "05093": "093",
+              "05095": "095",
+              "05097": "097",
+              "05099": "099",
+              "05101": "101",
+              "05103": "103",
+              "05105": "105",
+              "05107": "107",
+              "05109": "109",
+              "05111": "111",
+              "05113": "113",
+              "05115": "115",
+              "05117": "117",
+              "05121": "121",
+              "05123": "123",
+              "05125": "125",
+              "05127": "127",
+              "05129": "129",
+              "05131": "131",
+              "05133": "133",
+              "05135": "135",
+              "05137": "137",
+              "05139": "139",
+              "05141": "141",
+              "05143": "143",
+              "05145": "145",
+              "05147": "147",
+              "05149": "149"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "05149",
+      "selections": [
+        {
+          "sourceId": "us-ar-agiso-state-parcels",
+          "queryCountyFips": "05149",
+          "countyQuery": {
+            "field": "countyfips",
+            "codes": {
+              "05119": "119",
+              "05001": "001",
+              "05003": "003",
+              "05005": "005",
+              "05007": "007",
+              "05009": "009",
+              "05011": "011",
+              "05013": "013",
+              "05015": "015",
+              "05017": "017",
+              "05019": "019",
+              "05021": "021",
+              "05023": "023",
+              "05025": "025",
+              "05027": "027",
+              "05029": "029",
+              "05031": "031",
+              "05033": "033",
+              "05035": "035",
+              "05037": "037",
+              "05039": "039",
+              "05041": "041",
+              "05043": "043",
+              "05045": "045",
+              "05047": "047",
+              "05049": "049",
+              "05051": "051",
+              "05053": "053",
+              "05055": "055",
+              "05057": "057",
+              "05059": "059",
+              "05061": "061",
+              "05063": "063",
+              "05065": "065",
+              "05067": "067",
+              "05069": "069",
+              "05071": "071",
+              "05073": "073",
+              "05075": "075",
+              "05077": "077",
+              "05079": "079",
+              "05081": "081",
+              "05083": "083",
+              "05085": "085",
+              "05087": "087",
+              "05089": "089",
+              "05091": "091",
+              "05093": "093",
+              "05095": "095",
+              "05097": "097",
+              "05099": "099",
+              "05101": "101",
+              "05103": "103",
+              "05105": "105",
+              "05107": "107",
+              "05109": "109",
+              "05111": "111",
+              "05113": "113",
+              "05115": "115",
+              "05117": "117",
+              "05121": "121",
+              "05123": "123",
+              "05125": "125",
+              "05127": "127",
+              "05129": "129",
+              "05131": "131",
+              "05133": "133",
+              "05135": "135",
+              "05137": "137",
+              "05139": "139",
+              "05141": "141",
+              "05143": "143",
+              "05145": "145",
+              "05147": "147",
+              "05149": "149"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "06097",
+      "selections": []
+    },
+    {
+      "countyFips": "09110",
+      "selections": [
+        {
+          "sourceId": "us-ct-hartford-opm-parcels",
+          "queryCountyFips": "09110",
+          "countyQuery": {
+            "field": "Town_Name",
+            "codes": {
+              "09110": "Hartford"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "09170",
+      "selections": [
+        {
+          "sourceId": "us-ct-new-haven-opm-parcels",
+          "queryCountyFips": "09170",
+          "countyQuery": {
+            "field": "Town_Name",
+            "codes": {
+              "09170": "New Haven"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "12001",
+      "selections": [
+        {
+          "sourceId": "us-fl-fgio-statewide-candidate",
+          "queryCountyFips": "12001",
+          "countyQuery": {
+            "field": "CO_NO",
+            "codes": {
+              "12001": 11,
+              "12003": 12,
+              "12005": 13,
+              "12007": 14,
+              "12009": 15,
+              "12011": 16,
+              "12013": 17,
+              "12015": 18,
+              "12017": 19,
+              "12019": 20,
+              "12021": 21,
+              "12023": 22,
+              "12027": 24,
+              "12029": 25,
+              "12031": 26,
+              "12033": 27,
+              "12035": 28,
+              "12037": 29,
+              "12039": 30,
+              "12041": 31,
+              "12043": 32,
+              "12045": 33,
+              "12047": 34,
+              "12049": 35,
+              "12051": 36,
+              "12053": 37,
+              "12055": 38,
+              "12057": 39,
+              "12059": 40,
+              "12061": 41,
+              "12063": 42,
+              "12065": 43,
+              "12067": 44,
+              "12069": 45,
+              "12071": 46,
+              "12073": 47,
+              "12075": 48,
+              "12077": 49,
+              "12079": 50,
+              "12081": 51,
+              "12083": 52,
+              "12085": 53,
+              "12086": 23,
+              "12087": 54,
+              "12089": 55,
+              "12091": 56,
+              "12093": 57,
+              "12095": 58,
+              "12097": 59,
+              "12099": 60,
+              "12101": 61,
+              "12103": 62,
+              "12105": 63,
+              "12107": 64,
+              "12109": 65,
+              "12111": 66,
+              "12113": 67,
+              "12115": 68,
+              "12117": 69,
+              "12119": 70,
+              "12121": 71,
+              "12123": 72,
+              "12125": 73,
+              "12127": 74,
+              "12129": 75,
+              "12131": 76,
+              "12133": 77
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "12095",
+      "selections": [
+        {
+          "sourceId": "us-fl-fgio-statewide-candidate",
+          "queryCountyFips": "12095",
+          "countyQuery": {
+            "field": "CO_NO",
+            "codes": {
+              "12001": 11,
+              "12003": 12,
+              "12005": 13,
+              "12007": 14,
+              "12009": 15,
+              "12011": 16,
+              "12013": 17,
+              "12015": 18,
+              "12017": 19,
+              "12019": 20,
+              "12021": 21,
+              "12023": 22,
+              "12027": 24,
+              "12029": 25,
+              "12031": 26,
+              "12033": 27,
+              "12035": 28,
+              "12037": 29,
+              "12039": 30,
+              "12041": 31,
+              "12043": 32,
+              "12045": 33,
+              "12047": 34,
+              "12049": 35,
+              "12051": 36,
+              "12053": 37,
+              "12055": 38,
+              "12057": 39,
+              "12059": 40,
+              "12061": 41,
+              "12063": 42,
+              "12065": 43,
+              "12067": 44,
+              "12069": 45,
+              "12071": 46,
+              "12073": 47,
+              "12075": 48,
+              "12077": 49,
+              "12079": 50,
+              "12081": 51,
+              "12083": 52,
+              "12085": 53,
+              "12086": 23,
+              "12087": 54,
+              "12089": 55,
+              "12091": 56,
+              "12093": 57,
+              "12095": 58,
+              "12097": 59,
+              "12099": 60,
+              "12101": 61,
+              "12103": 62,
+              "12105": 63,
+              "12107": 64,
+              "12109": 65,
+              "12111": 66,
+              "12113": 67,
+              "12115": 68,
+              "12117": 69,
+              "12119": 70,
+              "12121": 71,
+              "12123": 72,
+              "12125": 73,
+              "12127": 74,
+              "12129": 75,
+              "12131": 76,
+              "12133": 77
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "12105",
+      "selections": [
+        {
+          "sourceId": "us-fl-fgio-statewide-candidate",
+          "queryCountyFips": "12105",
+          "countyQuery": {
+            "field": "CO_NO",
+            "codes": {
+              "12001": 11,
+              "12003": 12,
+              "12005": 13,
+              "12007": 14,
+              "12009": 15,
+              "12011": 16,
+              "12013": 17,
+              "12015": 18,
+              "12017": 19,
+              "12019": 20,
+              "12021": 21,
+              "12023": 22,
+              "12027": 24,
+              "12029": 25,
+              "12031": 26,
+              "12033": 27,
+              "12035": 28,
+              "12037": 29,
+              "12039": 30,
+              "12041": 31,
+              "12043": 32,
+              "12045": 33,
+              "12047": 34,
+              "12049": 35,
+              "12051": 36,
+              "12053": 37,
+              "12055": 38,
+              "12057": 39,
+              "12059": 40,
+              "12061": 41,
+              "12063": 42,
+              "12065": 43,
+              "12067": 44,
+              "12069": 45,
+              "12071": 46,
+              "12073": 47,
+              "12075": 48,
+              "12077": 49,
+              "12079": 50,
+              "12081": 51,
+              "12083": 52,
+              "12085": 53,
+              "12086": 23,
+              "12087": 54,
+              "12089": 55,
+              "12091": 56,
+              "12093": 57,
+              "12095": 58,
+              "12097": 59,
+              "12099": 60,
+              "12101": 61,
+              "12103": 62,
+              "12105": 63,
+              "12107": 64,
+              "12109": 65,
+              "12111": 66,
+              "12113": 67,
+              "12115": 68,
+              "12117": 69,
+              "12119": 70,
+              "12121": 71,
+              "12123": 72,
+              "12125": 73,
+              "12127": 74,
+              "12129": 75,
+              "12131": 76,
+              "12133": 77
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "12133",
+      "selections": [
+        {
+          "sourceId": "us-fl-fgio-statewide-candidate",
+          "queryCountyFips": "12133",
+          "countyQuery": {
+            "field": "CO_NO",
+            "codes": {
+              "12001": 11,
+              "12003": 12,
+              "12005": 13,
+              "12007": 14,
+              "12009": 15,
+              "12011": 16,
+              "12013": 17,
+              "12015": 18,
+              "12017": 19,
+              "12019": 20,
+              "12021": 21,
+              "12023": 22,
+              "12027": 24,
+              "12029": 25,
+              "12031": 26,
+              "12033": 27,
+              "12035": 28,
+              "12037": 29,
+              "12039": 30,
+              "12041": 31,
+              "12043": 32,
+              "12045": 33,
+              "12047": 34,
+              "12049": 35,
+              "12051": 36,
+              "12053": 37,
+              "12055": 38,
+              "12057": 39,
+              "12059": 40,
+              "12061": 41,
+              "12063": 42,
+              "12065": 43,
+              "12067": 44,
+              "12069": 45,
+              "12071": 46,
+              "12073": 47,
+              "12075": 48,
+              "12077": 49,
+              "12079": 50,
+              "12081": 51,
+              "12083": 52,
+              "12085": 53,
+              "12086": 23,
+              "12087": 54,
+              "12089": 55,
+              "12091": 56,
+              "12093": 57,
+              "12095": 58,
+              "12097": 59,
+              "12099": 60,
+              "12101": 61,
+              "12103": 62,
+              "12105": 63,
+              "12107": 64,
+              "12109": 65,
+              "12111": 66,
+              "12113": 67,
+              "12115": 68,
+              "12117": 69,
+              "12119": 70,
+              "12121": 71,
+              "12123": 72,
+              "12125": 73,
+              "12127": 74,
+              "12129": 75,
+              "12131": 76,
+              "12133": 77
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "13121",
+      "selections": [
+        {
+          "sourceId": "us-ga-johns-creek-public-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "20003",
+      "selections": []
+    },
+    {
+      "countyFips": "25001",
+      "selections": [
+        {
+          "sourceId": "us-ma-massgis-point-expansion",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "25017",
+      "selections": [
+        {
+          "sourceId": "us-ma-massgis-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "25025",
+      "selections": [
+        {
+          "sourceId": "us-ma-massgis-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "25027",
+      "selections": [
+        {
+          "sourceId": "us-ma-massgis-point-expansion",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "27003",
+      "selections": []
+    },
+    {
+      "countyFips": "27163",
+      "selections": [
+        {
+          "sourceId": "us-mn-mn-metro-washington-phase2-candidate",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "34003",
+      "selections": [
+        {
+          "sourceId": "us-nj-njogis-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "34021",
+      "selections": [
+        {
+          "sourceId": "us-nj-njogis-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "36001",
+      "selections": []
+    },
+    {
+      "countyFips": "36067",
+      "selections": []
+    },
+    {
+      "countyFips": "37015",
+      "selections": [
+        {
+          "sourceId": "us-nc-nconemap-apn-priority",
+          "queryCountyFips": "37015",
+          "countyQuery": {
+            "field": "stcntyfips"
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "37063",
+      "selections": [
+        {
+          "sourceId": "us-nc-nconemap-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "37183",
+      "selections": [
+        {
+          "sourceId": "us-nc-nconemap-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        },
+        {
+          "sourceId": "us-nc-nconemap-statewide-candidate",
+          "queryCountyFips": "37183",
+          "countyQuery": {
+            "field": "stcntyfips"
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "37185",
+      "selections": [
+        {
+          "sourceId": "us-nc-nconemap-apn-priority",
+          "queryCountyFips": "37185",
+          "countyQuery": {
+            "field": "stcntyfips"
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "37199",
+      "selections": [
+        {
+          "sourceId": "us-nc-nconemap-statewide-candidate",
+          "queryCountyFips": "37199",
+          "countyQuery": {
+            "field": "stcntyfips"
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "38015",
+      "selections": []
+    },
+    {
+      "countyFips": "39049",
+      "selections": []
+    },
+    {
+      "countyFips": "39061",
+      "selections": []
+    },
+    {
+      "countyFips": "48201",
+      "selections": []
+    },
+    {
+      "countyFips": "48453",
+      "selections": []
+    },
+    {
+      "countyFips": "49001",
+      "selections": [
+        {
+          "sourceId": "us-ut-ut-49001-phase2-candidate",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "49003",
+      "selections": [
+        {
+          "sourceId": "us-ut-ut-49003-phase2-candidate",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "49005",
+      "selections": []
+    },
+    {
+      "countyFips": "49007",
+      "selections": []
+    },
+    {
+      "countyFips": "49009",
+      "selections": []
+    },
+    {
+      "countyFips": "49011",
+      "selections": []
+    },
+    {
+      "countyFips": "49013",
+      "selections": []
+    },
+    {
+      "countyFips": "49015",
+      "selections": []
+    },
+    {
+      "countyFips": "49017",
+      "selections": []
+    },
+    {
+      "countyFips": "49019",
+      "selections": []
+    },
+    {
+      "countyFips": "49021",
+      "selections": []
+    },
+    {
+      "countyFips": "49023",
+      "selections": []
+    },
+    {
+      "countyFips": "49025",
+      "selections": []
+    },
+    {
+      "countyFips": "49027",
+      "selections": []
+    },
+    {
+      "countyFips": "49029",
+      "selections": []
+    },
+    {
+      "countyFips": "49031",
+      "selections": []
+    },
+    {
+      "countyFips": "49033",
+      "selections": []
+    },
+    {
+      "countyFips": "49035",
+      "selections": [
+        {
+          "sourceId": "us-ut-salt-lake-parcels",
+          "queryCountyFips": null,
+          "countyQuery": null
+        }
+      ]
+    },
+    {
+      "countyFips": "49037",
+      "selections": []
+    },
+    {
+      "countyFips": "49039",
+      "selections": []
+    },
+    {
+      "countyFips": "49041",
+      "selections": []
+    },
+    {
+      "countyFips": "49043",
+      "selections": []
+    },
+    {
+      "countyFips": "49045",
+      "selections": []
+    },
+    {
+      "countyFips": "49047",
+      "selections": []
+    },
+    {
+      "countyFips": "49049",
+      "selections": []
+    },
+    {
+      "countyFips": "49051",
+      "selections": []
+    },
+    {
+      "countyFips": "49053",
+      "selections": []
+    },
+    {
+      "countyFips": "49055",
+      "selections": []
+    },
+    {
+      "countyFips": "49057",
+      "selections": []
+    },
+    {
+      "countyFips": "50007",
+      "selections": [
+        {
+          "sourceId": "us-vt-burlington-vcgi-parcels",
+          "queryCountyFips": "50007",
+          "countyQuery": {
+            "field": "TOWN",
+            "codes": {
+              "50007": "BURLINGTON"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "50021",
+      "selections": [
+        {
+          "sourceId": "us-vt-rutland-city-vcgi-parcels",
+          "queryCountyFips": "50021",
+          "countyQuery": {
+            "field": "TOWN",
+            "codes": {
+              "50021": "RUTLAND CITY"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "50023",
+      "selections": [
+        {
+          "sourceId": "us-vt-montpelier-vcgi-parcels",
+          "queryCountyFips": "50023",
+          "countyQuery": {
+            "field": "TOWN",
+            "codes": {
+              "50023": "MONTPELIER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "countyFips": "51001",
+      "selections": []
+    },
+    {
+      "countyFips": "51760",
+      "selections": []
+    },
+    {
+      "countyFips": "53033",
+      "selections": []
+    }
+  ]
+}

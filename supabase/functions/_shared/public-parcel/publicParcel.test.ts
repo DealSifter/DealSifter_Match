@@ -10,8 +10,10 @@ import { resolveFeatureFlags } from '../featureFlags.ts';
 import type { ParcelSource, ParcelGeometry, ProviderResult } from './types.ts';
 
 const geometry: ParcelGeometry = { type: 'Polygon', coordinates: [[[-122, 47], [-121.999, 47], [-121.999, 47.001], [-122, 47.001], [-122, 47]]] };
-const active = (index = 2): ParcelSource => ({ ...PARCEL_SOURCES[index], status: 'ACTIVE', usagePermission: 'PUBLIC_DISPLAY_ALLOWED', licenseStatus: 'APPROVED', lastValidatedAt: '2026-10-12',
-  validation: { authorityVerified: true, schemaValidated: true, geometryQueryValidated: true, apnQueryValidated: true, viewportQueryValidated: true, counties: [PARCEL_SOURCES[index].countyFips], evidencePath: 'UNIT_FIXTURE' } });
+const foundationSources = ['us-al-jefferson-parcels', 'us-nc-wake-parcels', 'us-wa-king-parcels', 'us-ut-salt-lake-parcels', 'us-ca-sonoma-parcels']
+  .map(id => PARCEL_SOURCES.find(source => source.sourceId === id)!);
+const active = (index = 2): ParcelSource => ({ ...foundationSources[index], status: 'ACTIVE', usagePermission: 'PUBLIC_DISPLAY_ALLOWED', licenseStatus: 'APPROVED', lastValidatedAt: '2026-10-12',
+  validation: { authorityVerified: true, schemaValidated: true, geometryQueryValidated: true, apnQueryValidated: true, viewportQueryValidated: true, counties: [foundationSources[index].countyFips], evidencePath: 'UNIT_FIXTURE' } });
 const metadata = (source: ParcelSource, formats = 'JSON, geoJSON') => ({ geometryType: 'esriGeometryPolygon', capabilities: 'Query,Map', fields: Object.values(source.fieldMapping).map(name => ({ name })), maxRecordCount: 1000, objectIdField: 'OBJECTID', supportedQueryFormats: formats });
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 const providerResult = (source: ParcelSource): ProviderResult => ({ parcels: [normalizeParcel(source, { [source.fieldMapping.apn!]: '001-000-09' }, geometry, '2026-10-12T00:00:00Z', null)], exceededLimit: false });
