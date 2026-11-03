@@ -59,10 +59,10 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
 
   it('prepares an auditable document structure without producing a binary or URL', () => {
     const result = renderMaxxisReportDocument({ schema: schema('DEAL_INTELLIGENCE'), exportEntitlement: entitlement('enterprise', 'DEAL_INTELLIGENCE', 'PDF'), generatedAt: '2026-09-14T12:00:00.000Z', language: 'pt' });
-    expect(result).toMatchObject({ state: 'PREPARED', document: { reportType: 'DEAL_INTELLIGENCE', language: 'pt', pageCount: 6, binary: null, downloadUrl: null } });
+    expect(result).toMatchObject({ state: 'PREPARED', document: { reportType: 'DEAL_INTELLIGENCE', language: 'pt', pageCount: 0, pages: [], binary: null, downloadUrl: null } });
     expect(result.document.cover).toMatchObject({ propertyAddress: '100 Stored St', propertyType: 'SFR', strategy: 'Fix and Flip', heroImage: 'https://portfolio.example/subject.jpg' });
-    expect(result.document.pages[0]).toMatchObject({ header: { brand: 'DealSifter Match', product: 'MAXXIS DEAL INTELLIGENCE REPORT' }, footer: { page: 1, generatedAt: '2026-09-14T12:00:00.000Z' } });
-    expect(Object.keys(result.document.pages[0].footer)).toEqual(['page', 'generatedAt']);
+    // Only physical PDF composition determines pagination and page headers/footers.
+    expect(result.document.cover.generatedAt).toBe('2026-09-14T12:00:00.000Z');
   });
 
   it.each([

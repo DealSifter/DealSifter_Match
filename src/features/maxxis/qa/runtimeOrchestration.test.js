@@ -106,10 +106,11 @@ describe('LAND runtime and multi-topic action orchestration — cache only', () 
     const snapshot = { ...first.data.intelligenceSnapshot, dealAssumptions: { ...first.data.scenario.assumptions,
       activeScenario: { ...first.data.scenario, provenance: 'USER_PROVIDED' } } };
     const projected = projectMaxxisDealIntelligenceResponse(reportResult(snapshot));
-    expect(projected.data.maxxisReport.pages).toHaveLength(6);
+    // Physical pages are composed from content by the PDF renderer, not this schema.
+    expect(projected.data.maxxisReport.pages).toHaveLength(0);
     expect(projected.data.maxxisReport.presentation.landDevelopment.proposedUnitCount).toBe(1);
     expect(projected.data.maxxisReport.presentation.landDevelopment.hardCost).toBeNull();
-    receipts['report-action-routing'] = { action, reportType: projected.data.maxxisReport.reportType, basePages: 6, analyticalGapsBlock: false };
+    receipts['report-action-routing'] = { action, reportType: projected.data.maxxisReport.reportType, fixedPages: false, analyticalGapsBlock: false };
   });
   it('separates execution payloads from visible action labels at every handoff', () => {
     expect(source).toContain('visibleUserMessage: followUp?.label');

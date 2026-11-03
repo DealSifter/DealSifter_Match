@@ -30,7 +30,7 @@ describe('R-1 single absence vocabulary and user copy', () => {
     ['MONTHLY_PROVIDER_LIMIT_REACHED', 'QUOTA_BLOCKED'], ['PROVIDER_DISABLED', 'PLAN_GATE'],
     ['PROVIDER_NOT_CONFIGURED', 'PLAN_GATE'], ['ADDRESS_MISMATCH', 'IDENTITY_MISMATCH'],
     ['ADDRESS_CONFIRMATION_REQUIRED', 'USER_INPUT_REQUIRED'], ['PROPERTY_NOT_FOUND', 'NO_COVERAGE'],
-    ['RENT_ENTITLEMENT_CHECK_FAILED', 'PROVIDER_ERROR'], ['NOT_QUERIED', 'NOT_REQUESTED'],
+    ['RENT_ENTITLEMENT_CHECK_FAILED', 'INTERNAL_ERROR'], ['NOT_QUERIED', 'NOT_REQUESTED'],
   ])('%s has one truthful bounded reason', (input, expected) => expect(evidenceAbsenceReason(input)).toBe(expected));
   it.each(['pt', 'en', 'es'])('renders every absence reason without internal jargon in %s', language => {
     for (const reason of EVIDENCE_ABSENCE_REASONS) {
@@ -109,7 +109,7 @@ describe('R-1 transport accounting including failure after HTTP', () => {
     const result=await getCanonicalPropertyEvidenceWithDependencies({input:{propertyId:id},propertyId:id,userId:'offline',secret:'',parcelEnabled:false,financialEvidence:true,
       loadPublicProperty:async()=>property,loadCachedProvider:async()=>{if(failure==='throw')throw new Error('CACHE_READ_FAILED');
         return {type:'property_evidence',propertyId:id,state:'unavailable',entitlementState:'not_authorized',cacheState:'unknown',reason:'PROPERTY_INTELLIGENCE_ENTITLEMENT_CHECK_FAILED'};},loadMarketRent});
-    expect(result.marketRent).toMatchObject({state:'PROVIDER_ERROR',absenceReason:'PROVIDER_ERROR',providerCalls:0});
+    expect(result.marketRent).toMatchObject({state:'PROVIDER_ERROR',absenceReason:'INTERNAL_ERROR',providerCalls:0});
     expect(loadMarketRent).not.toHaveBeenCalled();
   });
   it('records quota rejection before the HTTP boundary as zero calls', async () => {

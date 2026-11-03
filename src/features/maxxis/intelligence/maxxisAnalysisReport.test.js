@@ -53,7 +53,7 @@ describe('Maxxis Analysis Report Experience v1', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'pro', reportType: 'MAXXIS_ANALYSIS' }).allowed).toBe(true);
     expect(buildMaxxisAnalysisReport(context())).toMatchObject({
       type: 'maxxis_analysis_report', reportType: 'MAXXIS_ANALYSIS',
-      profileAlignment: { score: 75, semantics: 'PROFILE_FIT_ONLY' },
+      profileAlignment: { score: null, semantics: 'PROFILE_FIT_ONLY', profileSource: null },
       exportCompatibility: { structured: true, pdfRendered: false },
     });
   });
@@ -62,6 +62,15 @@ describe('Maxxis Analysis Report Experience v1', () => {
     const payload = { type: 'deal_insight', propertyId: 'property-1', state: 'available', dealIntelligence: context() };
     expect(normalizeMaxxisResponsePayload('deal_insight', payload)).toEqual({ type: 'deal_insight', data: payload });
     expect(normalizeMaxxisResponsePayload('deal_insight', { propertyId: 'property-1' })).toEqual({ type: 'text', data: null });
+  });
+
+  it('retains deterministic fit only when the snapshot includes the authenticated profile', () => {
+    const input = context();
+    input.matchContext.calculable = true;
+    const profile = { strategies: ['Wholesale'] };
+    const report = buildMaxxisAnalysisReport(input, null, { propertyFacts: {}, investmentProfile: { profile } });
+    expect(report.profileAlignment).toMatchObject({ score: 75, calculable: true,
+      profileSource: 'AUTHENTICATED_CURRENT_PROFILE', sourceProfile: profile });
   });
 
   it('blocks Free without a report entitlement', () => {
@@ -118,7 +127,7 @@ describe('Maxxis Analysis Report Experience v1', () => {
     const report = buildMaxxisAnalysisReport(context());
     expect(report.keyObservations.positives).toContain('Existing deterministic price per square foot: $200.');
     expect(report.provenance).toMatchObject({
-      match: 'DETERMINISTIC_PROFILE_FIT', dealMetrics: 'EXISTING_DETERMINISTIC_ENGINE',
+      match: 'UNKNOWN', dealMetrics: 'EXISTING_DETERMINISTIC_ENGINE',
       analyticalPolicy: 'MAXXIS_ANALYTICAL_INTERACTION',
     });
     expect(report.executiveSummary).not.toMatch(/great opportunity|good investment|buy|guarantee/i);

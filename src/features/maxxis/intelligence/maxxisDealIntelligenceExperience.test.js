@@ -46,7 +46,7 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     });
     expect(buildMaxxisDealIntelligenceReport(context())).toMatchObject({
       type: 'maxxis_deal_intelligence_report', reportType: 'DEAL_INTELLIGENCE',
-      investmentFit: { score: 75, semantics: 'PROFILE_FIT_ONLY' },
+      investmentFit: { score: null, semantics: 'PROFILE_FIT_ONLY', profileSource: null },
       analysisConfidence: { semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true },
       investorPerspective: { persona: 'WHOLESALER', narrativeOnly: true },
       executiveSummaryIntelligence: { lines: expect.any(Array) },
@@ -61,8 +61,19 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
       { key: 'property_type', status: 'not_evaluated', points: 0, maxPoints: 25, detail: 'unknown' },
       { key: 'strategy', status: 'not_evaluated', points: null, maxPoints: 15, detail: 'unavailable' },
     ];
-    const report = buildMaxxisDealIntelligenceReport(input);
+    const report = buildMaxxisDealIntelligenceReport(input, null, {
+      propertyFacts: {}, investmentProfile: { profile: { strategies: ['Wholesale'] } },
+    });
     expect(report.investmentFit.criteria.map((criterion) => criterion.score)).toEqual([100, 0, null, null]);
+  });
+
+  it('retains deterministic fit with the authenticated profile rather than an unbound score', () => {
+    const input = context();
+    input.matchContext.calculable = true;
+    const profile = { strategies: ['Wholesale'] };
+    const report = buildMaxxisDealIntelligenceReport(input, null, { propertyFacts: {}, investmentProfile: { profile } });
+    expect(report.investmentFit).toMatchObject({ score: 75, calculable: true,
+      profileSource: 'AUTHENTICATED_CURRENT_PROFILE', sourceProfile: profile });
   });
 
   it('asks Pro without a complete entitlement to unlock instead of exposing premium content', () => {
@@ -157,7 +168,8 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
   it('preserves missing data explicitly as UNKNOWN', () => {
     const report = buildMaxxisDealIntelligenceReport(context({ missing: true }));
     expect(report.limitations).toEqual(expect.arrayContaining(['yearBuilt: UNKNOWN', 'lotSizeSqft: UNKNOWN']));
-    expect(report.investmentFit.strategy.explanation).toBe('Property objective is missing.');
+    expect(report.investmentFit.strategy.status).toBe('not_evaluated');
+    expect(report.investmentFit.score).toBeNull();
   });
 
   it('removes recommendation leakage from every projected response field', () => {

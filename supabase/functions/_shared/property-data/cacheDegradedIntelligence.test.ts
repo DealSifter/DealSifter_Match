@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { cacheFreshness, canReadRetained } from './cacheFreshness.ts';
 import { matchesCachedSubject } from './cacheIdentity.ts';
 import { propertyAddressFingerprint } from './address.ts';
@@ -25,6 +25,13 @@ const valuation = mapRentCastValueEstimate({ lookup, requestPolicy: { ...DEFAULT
     zipCode: property.zip, propertyType: 'Single Family', squareFootage: 1838, latitude: property.lat, longitude: property.lng }, comparables: [] } });
 
 describe('retained cache degradation, zero acquisition', () => {
+  beforeEach(() => {
+    // Cache repositories and service freshness must observe the same fixture clock.
+    // Leave timers real: these tests also exercise asynchronous mock transports.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+  });
+  afterEach(() => vi.useRealTimers());
   it('saved old sales remain identifiable historical references, never current valuation comps', async () => {
     const estimate = { methodology: 'RECENT_SALES_MARKET_ESTIMATE', centralEstimate: 2100000,
       valuationComps: [{ address: '111 Sample St', saleDate: '2020-01-01', salePrice: 2000000 }, { address: '222 Sample St', saleDate: '2020-02-01', salePrice: 2200000 }] };
@@ -87,12 +94,12 @@ describe('retained cache degradation, zero acquisition', () => {
     expect(result?.freshness?.state).toBe('FRESH');
     expect(provider.getSoldRecordPool).not.toHaveBeenCalled();
   });
-  it('finds a legitimate old subject fingerprint through independently validated canonical payload identity', async () => {
+  it('rejects an old cache fingerprint even when its payload resembles the current subject', async () => {
     const cache = new InMemoryValuationEvidenceCache({ now: () => now });
     await cache.setValuation(ID, 'a'.repeat(64), valuation);
     const provider = { getValuationEvidence: vi.fn() };
     const service = new ValuationEvidenceService({ repository: { getById: async () => property }, cache, provider });
-    expect((await service.getCachedValuationEvidence({ propertyId: ID }))?.freshness?.state).toBe('STALE_USABLE');
+    expect(await service.getCachedValuationEvidence({ propertyId: ID })).toBeNull();
     expect(provider.getValuationEvidence).not.toHaveBeenCalled();
   });
   it('recovers stale AVM after one budget rejection without retrying refresh', async () => {
