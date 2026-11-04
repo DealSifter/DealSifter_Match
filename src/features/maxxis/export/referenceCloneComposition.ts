@@ -155,42 +155,54 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     if (block.afterText) body += 3 + this.h(block.afterText, width, 6.8);
     return { heading, height: heading + body + 4 };
   }
-  /** Measure every remaining block before drawing the bottom half of the one-page release. */
-  private basicLowerPlan(blocks: ContentBlock[], start: number, hasGallery: boolean, note: ContentBlock | undefined, showMap: boolean, mapId?: string) {
-    const sources = blocks.find(block => block.id === 'report-sources'),
-      noteWidth = (showMap ? W * (1 - DESIGN.overview.mapWidthRatio) - G : W) - 16,
-      previousGap = this.flow.lineGap;
-    for (const galleryHeight of hasGallery ? [DESIGN.gallery.heights.PROPERTY_RELEASE, 92, 74] : [0]) {
-      for (const lineGap of [2, 1]) {
-        this.flow.lineGap = lineGap;
-        const rowTop = start + (hasGallery ? galleryHeight + 9 : 0),
-          noteLines = note ? this.flow.lines(note.text || '', noteWidth, 7) : [],
-          sourceHeight = sources ? 14 + this.factsHeight(sources.rows || [], noteWidth, 6.5) + (sources.text ? this.h(sources.text, noteWidth, 6.5) : 0) : 0;
-        for (const inlineSources of note && sources ? [true, false] : [false]) {
-          const remaining = blocks.filter(block => !this.used.has(block.id)
-            && block.id !== note?.id && block.id !== mapId && block.id !== 'report-location'
-            && !(inlineSources && block.id === sources?.id)),
-            baseline = [...this.details, ...remaining],
-            baselineHeight = baseline.reduce((sum, block) => sum + this.basicBlockSize(block).height, 0),
-            naturalHeight = note ? 37 + noteLines.length * (7 + lineGap) + (inlineSources ? 5 + sourceHeight : 0) : 0,
-            height = showMap ? DESIGN.overview.mapHeight : note ? Math.max(42, Math.min(naturalHeight, BOTTOM - rowTop - baselineHeight - G)) : 0,
-            capacity = Math.max(0, Math.floor((height - 37 - (inlineSources ? 5 + sourceHeight : 0)) / (7 + lineGap)));
-          if (inlineSources && noteLines.length > capacity) continue;
-          const continued = note && noteLines.length > capacity ? {
-            ...note, id: note.id + '-continued', text: noteLines.slice(capacity).join(' ')
-          } : null;
-          const tail = [...this.details, ...(continued ? [continued] : []), ...remaining],
-            tailHeight = tail.reduce((sum, block) => sum + this.basicBlockSize(block).height, 0),
-            cursor = rowTop + height + (height && tail.length ? G : 0);
-          if (cursor + tailHeight <= BOTTOM + .01) {
-            this.flow.lineGap = previousGap;
-            return { galleryHeight, height, lineGap, inlineSources, capacity, cursor };
-          }
-        }
-      }
+  private basicTailLayout(blocks: ContentBlock[]) {
+    const width = W - 18, half = (width - 12) / 2;
+    const description = blocks.find(block => block.id.startsWith('listing-description')),
+      sources = blocks.find(block => block.id === 'report-sources'),
+      disclaimer = blocks.find(block => block.id === 'report-disclaimer');
+    const cells: { block: ContentBlock; x: number; y: number; width: number; fontSize: number; titleSize: number; heading: number; height: number }[] = [];
+    let y = 0;
+    for (const block of blocks.filter(block => block !== description && block !== sources && block !== disclaimer)) {
+      const measured = this.basicBlockSize(block);
+      cells.push({ block, x: 9, y, width, fontSize: 6.8, titleSize: 7.5, ...measured });
+      y += measured.height;
     }
-    this.flow.lineGap = previousGap;
-    throw Error('REPORT_REFERENCE_BASIC_OVERFLOW');
+    const compact = (block: ContentBlock, x: number, top: number, cellWidth: number) => {
+      const fontSize = DESIGN.release.footerFontSize, titleSize = DESIGN.release.footerTitleSize,
+        heading = this.h(block.title, cellWidth, titleSize, true) + 1,
+        text = [block.text, ...(block.rows || []).map(row => `${this.keyLabel(row)}: ${row.value}`), block.afterText].filter(Boolean).join(' · '),
+        height = heading + this.h(text, cellWidth, fontSize);
+      cells.push({ block: { ...block, text, rows: undefined, afterText: undefined }, x, y: top, width: cellWidth, fontSize, titleSize, heading, height });
+      return height;
+    };
+    const pair = [description, sources].filter((block): block is ContentBlock => !!block);
+    if (pair.length) {
+      const heights = pair.map((block, index) => compact(block, 9 + index * (half + 12), y, half));
+      y += Math.max(...heights) + 3;
+    }
+    if (disclaimer) y += compact(disclaimer, 9, y, width);
+    return { cells, height: y };
+  }
+  /** Anchor small print above the footer and assign the remaining height to the photos. */
+  private basicLowerPlan(blocks: ContentBlock[], start: number, hasGallery: boolean, note: ContentBlock | undefined, showMap: boolean, mapId?: string) {
+    const noteWidth = (showMap ? W * (1 - DESIGN.overview.mapWidthRatio) - G : W) - 16,
+      previousGap = this.flow.lineGap;
+    const lineGap = 1;
+    this.flow.lineGap = lineGap;
+    try {
+      const noteLines = note ? this.flow.lines(note.text || '', noteWidth, 7) : [],
+        height = showMap ? DESIGN.overview.mapHeight : note ? Math.max(42, Math.min(DESIGN.overview.mapHeight, 37 + noteLines.length * (7 + lineGap))) : 0,
+        capacity = Math.max(0, Math.floor((height - 37) / (7 + lineGap))),
+        continued = note && noteLines.length > capacity ? { ...note, id: note.id + '-continued', text: noteLines.slice(capacity).join(' ') } : null,
+        remaining = blocks.filter(block => !this.used.has(block.id) && block.id !== note?.id && block.id !== mapId && block.id !== 'report-location'),
+        tail = this.basicTailLayout([...this.details, ...(continued ? [continued] : []), ...remaining]),
+        rowGap = height && tail.height ? G : 0,
+        available = BOTTOM - start - height - rowGap - tail.height - (hasGallery ? 9 : 0),
+        galleryHeight = hasGallery ? Math.floor(available * 100) / 100 : 0,
+        cursor = start + (hasGallery ? galleryHeight + 9 : 0) + height + rowGap;
+      if (available < (hasGallery ? 74 : 0) - .01) throw Error('REPORT_REFERENCE_BASIC_OVERFLOW');
+      return { galleryHeight, height, lineGap, inlineSources: false, capacity, cursor };
+    } finally { this.flow.lineGap = previousGap; }
   }
   private range(range: NonNullable<ContentBlock['range']>, b: Box, id: string) {
     const y = b.y + 17;
@@ -1399,50 +1411,43 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     await yieldRendering();
     if (this.vm.reportType === 'PROPERTY_RELEASE') {
       const tail = [...this.details, ...blocks.filter(block => !this.used.has(block.id) && block.id !== 'report-location')];
-      for (const block of tail) {
-        const measured = this.basicBlockSize(block), needed = measured.height;
-        if (this.cursor + needed > BOTTOM) throw Object.assign(Error('REPORT_REFERENCE_BASIC_OVERFLOW'), {
-          layoutPlans: tail.map(item => ({
-            id: item.id,
-            rows: item.rows?.length,
-            chars: item.text?.length,
-            cursor: this.cursor,
-            needed
-          }))
-        });
-        let y = this.cursor;
-        this.write(block.title, X + 9, y, W - 18, block.id, 7.5, true, INK);
-        y += measured.heading;
+      const layout = this.basicTailLayout(tail), top = BOTTOM - layout.height;
+      if (top < this.cursor - .01) throw Error('REPORT_REFERENCE_BASIC_OVERFLOW');
+      for (const cell of layout.cells) {
+        const { block, width, fontSize, titleSize } = cell, x = X + cell.x, start = top + cell.y;
+        let y = start;
+        this.write(block.title, x, y, width, block.id, titleSize, true, INK);
+        y += cell.heading;
         if (block.rows?.length) y = this.rows(block.rows, {
-          x: X + 9,
+          x,
           y,
-          w: W - 18,
+          w: width,
           h: BOTTOM - y
-        }, block.id, 6.8, 2);
-        if (block.text) y = this.write(block.text, X + 9, y, W - 18, block.id, 6.8, false, BODY);
+        }, block.id, fontSize, 2);
+        if (block.text) y = this.write(block.text, x, y, width, block.id, fontSize, false, BODY);
         if (block.table?.length) {
-          const widths = this.tableColumnWidths(block, W - 18),
+          const widths = this.tableColumnWidths(block, width),
             rows = [...(block.columns?.length ? [block.columns] : []), ...block.table];
           for (const [index, row] of rows.entries()) {
             const heading = !!block.columns?.length && index === 0;
-            let x = X + 9;
+            let columnX = x;
             row.forEach((text, column) => {
-              this.write(text, x + 4, y, widths[column] - 8, block.id, 7.5, heading, BODY);
-              x += widths[column];
+              this.write(text, columnX + 4, y, widths[column] - 8, block.id, 7.5, heading, BODY);
+              columnX += widths[column];
             });
             y += this.tableRowHeight(row, widths, heading);
           }
         }
-        if (block.afterText) y = this.write(block.afterText, X + 9, y + 3, W - 18, block.id, 6.8, false, BODY);
+        if (block.afterText) y = this.write(block.afterText, x, y + 3, width, block.id, fontSize, false, BODY);
         this.audit(block.id, block.title, block.kind, {
-          x: X,
-          y: this.cursor,
-          w: W,
-          h: y - this.cursor
+          x,
+          y: start,
+          w: width,
+          h: y - start
         }, block.readingSection);
-        this.cursor = y + 4;
         this.used.add(block.id);
       }
+      this.cursor = BOTTOM;
       this.flow.lineGap = 2;
     } else {
       const market = blocks.filter(block => block.kind === 'table' && block.readingSection === 3).sort((a, b) => Number(!/sales|sold|landAcquisition/i.test(a.id)) - Number(!/sales|sold|landAcquisition/i.test(b.id)));

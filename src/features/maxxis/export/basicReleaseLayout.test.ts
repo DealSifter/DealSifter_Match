@@ -6,6 +6,7 @@ import { buildStrictReportViewModel } from './reportIntegrityViewModel';
 import { composeReportContent } from './reportContentPlan';
 import { renderMaxxisReportPdf } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
+import { REFERENCE_DESIGN } from './reportReferenceDesign';
 
 const photo = 'data:image/jpeg;base64,' + readFileSync(new URL('../../../assets/maxxis/report-previews/sample-property-photo.jpg', import.meta.url)).toString('base64');
 const photos = [photo, ...[1, 2, 3, 4].map(i => 'data:image/jpeg;base64,' + readFileSync(new URL(`../../../../qa/report-template/sample-photos/gallery-${i}.jpg`, import.meta.url)).toString('base64'))];
@@ -34,6 +35,10 @@ describe('one-page Basic Release with complete content', () => {
     }
     expect(text).toContain(normalized(model.disclaimer));
     expect(result.document.layoutAudit.sections.filter((s: any) => s.kind === 'reference-facts').every((s: any) => s.bounds.bottom <= 841.89 / 2)).toBe(true);
+    const audit = result.document.layoutAudit;
+    expect(audit.sections.find((s: any) => s.sectionId === 'property-gallery').bounds.height).toBeGreaterThan(110);
+    expect(audit.sections.find((s: any) => s.kind === 'map').bounds.height).toBe(194);
+    expect(audit.sections.find((s: any) => s.sectionId === 'report-disclaimer').bounds.bottom).toBeCloseTo(790, 1);
   }, 30000);
 
   it.each(['en', 'pt', 'es'])('fits a long description, authorized publisher, facts, five photos, map and qualifications in %s', async language => {
@@ -51,7 +56,7 @@ describe('one-page Basic Release with complete content', () => {
     const audit = result.document.layoutAudit;
     const text = normalized(audit.lines.map((line: any) => line.text).join(' '));
     // The report must keep every supplied word and its full qualification.
-    const noteText = normalized(audit.lines.filter((line: any) => line.sectionId.startsWith('listing-description') && line.fontSize <= 7).map((line: any) => line.text).join(' '));
+    const noteText = normalized(audit.lines.filter((line: any) => line.sectionId.startsWith('listing-description') && [7, REFERENCE_DESIGN.release.footerFontSize].includes(line.fontSize)).map((line: any) => line.text).join(' '));
     expect(noteText).toBe(normalized(description));
     expect(text).toContain(normalized(model.disclaimer));
     for (const group of composeReportContent(model).filter(block => block.id.startsWith('property-group-'))) {
@@ -61,5 +66,13 @@ describe('one-page Basic Release with complete content', () => {
     expect(result.document.strictViewModel.property.photos).toHaveLength(5);
     expect(audit.lines.every((line: any) => line.overflowX === 0 && line.overflowY === 0)).toBe(true);
     expect(audit.sections.every((section: any) => section.bounds.bottom <= 790)).toBe(true);
+    const continued = audit.sections.find((s: any) => s.sectionId === 'listing-description-continued'),
+      sources = audit.sections.find((s: any) => s.sectionId === 'report-sources'),
+      disclaimer = audit.sections.find((s: any) => s.sectionId === 'report-disclaimer');
+    expect(continued.bounds.y).toBe(sources.bounds.y);
+    expect(continued.bounds.right).toBeLessThan(sources.bounds.x);
+    expect(disclaimer.bounds.y).toBeGreaterThanOrEqual(Math.max(continued.bounds.bottom, sources.bounds.bottom));
+    expect(disclaimer.bounds.bottom).toBeCloseTo(790, 1);
+    expect(audit.lines.filter((line: any) => /^(listing-description-continued|report-sources|report-disclaimer)$/.test(line.sectionId)).every((line: any) => line.fontSize <= 5.8)).toBe(true);
   }, 30000);
 });
