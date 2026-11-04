@@ -7,6 +7,7 @@ export const REFERENCE_DESIGN = Object.freeze({
   // The opening title sits inside the overlapping card; later titles follow the strip.
   heading: { y: 96, continuedY: 164, topPadding: 14, continuedTopPadding: 24, bottomPadding: 14, height: 34, icon: 25, textX: 66, titleSize: 17, subtitleSize: 9 },
   overview: { cardY: 82, paddingBottom: 8, factsGap: 7, y: 144, height: 155, photoX: 291, photoWidth: 274, factsY: 314, minFactsHeight: 100, mapWidthRatio: .57, mapHeight: 194 },
+  facts: { bottom: 841.89 / 2, minimumFontSize: 7, lineGap: 1, headerHeight: 29, bottomPadding: 5 },
   gallery: { gapBefore: 4, imageTop: 33, paddingBottom: 8, heights: { PROPERTY_RELEASE: 110, MAXXIS_ANALYSIS: 125, DEAL_INTELLIGENCE: 112 } },
   release: { heroHeight: 134, tailReserve: 78, compactTailReserve: 42, recordsColumns: 2 },
   comparableMaps: { pairedHeight: 165, singleHeight: 190 },

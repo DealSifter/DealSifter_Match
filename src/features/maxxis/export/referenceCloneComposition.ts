@@ -2,6 +2,7 @@ import { ReportBrandShell } from './reportBrandShell';
 import { composeReportContent, readableReportDate, type ContentBlock } from './reportContentPlan';
 import { REFERENCE_DESIGN as DESIGN } from './reportReferenceDesign';
 import type { ReportRow } from './reportIntegrityTypes';
+import { layoutReportFacts } from './reportFactLayout';
 type Box = {
   x: number;
   y: number;
@@ -119,28 +120,27 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     return field && labels[field] ? this.t(...labels[field]) : row.label;
   }
   private rowHeight(row: ReportRow, width: number, size = this.font) {
-    return Math.max(this.h(this.keyLabel(row), width * .43, size), this.h(row.value, width * .57 - 7, size)) + 3;
+    return this.factRowsPlan([row], width, size).height;
   }
-  private rows(rows: ReportRow[], b: Box, id: string, size = this.font, columns = 1) {
-    const cell = (b.w - (columns - 1) * 14) / columns;
-    let y = b.y;
-    for (let i = 0; i < rows.length; i += columns) {
-      const pair = rows.slice(i, i + columns),
-        height = Math.max(...pair.map(row => this.rowHeight(row, cell, size)));
-      pair.forEach((row, index) => {
-        const x = b.x + index * (cell + 14);
-        this.write(this.keyLabel(row), x, y, cell * .43, id, size, false, BODY, b.y + b.h);
-        this.write(row.value, x + cell * .43 + 7, y, cell * .57 - 7, id, size, false, INK, b.y + b.h);
-      });
-      y += height;
+  private factRowsPlan(rows: ReportRow[], width: number, size: number, columns = 1, balanced = false) {
+    return layoutReportFacts(rows, width, columns, (text, w) => this.h(text, w, size), row => this.keyLabel(row), balanced);
+  }
+  private rows(rows: ReportRow[], b: Box, id: string, size = this.font, columns = 1, balanced = false) {
+    const plan = this.factRowsPlan(rows, b.w, size, columns, balanced);
+    for (const cell of plan.cells) {
+      const x = b.x + cell.x, y = b.y + cell.y;
+      if (cell.stacked) {
+        const labelEnd = this.write(this.keyLabel(cell.row), x, y, cell.width, id, size, false, BODY, b.y + b.h);
+        this.write(cell.row.value, x, labelEnd + 2, cell.width, id, size, false, INK, b.y + b.h);
+      } else {
+        this.write(this.keyLabel(cell.row), x, y, cell.width * .43, id, size, false, BODY, b.y + b.h);
+        this.write(cell.row.value, x + cell.width * .43 + 7, y, cell.width * .57 - 7, id, size, false, INK, b.y + b.h);
+      }
     }
-    return y;
+    return b.y + plan.height;
   }
   private factsHeight(rows: ReportRow[], width: number, size = this.font, columns = 1) {
-    let h = 0;
-    const cell = (width - (columns - 1) * 14) / columns;
-    for (let i = 0; i < rows.length; i += columns) h += Math.max(...rows.slice(i, i + columns).map(row => this.rowHeight(row, cell, size)));
-    return h;
+    return this.factRowsPlan(rows, width, size, columns).height;
   }
   private range(range: NonNullable<ContentBlock['range']>, b: Box, id: string) {
     const y = b.y + 17;
@@ -494,11 +494,12 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       this.cursor += height + G;
     }
   }
-  private overview(blocks: ContentBlock[]) {
+  private async overview(blocks: ContentBlock[], yieldRendering: () => Promise<void>) {
     const basic = this.vm.reportType === 'PROPERTY_RELEASE',
       p = this.vm.property,
       hero = basic ? DESIGN.release.heroHeight : this.brief ? 132 : !p.photos.length ? 124 : this.enterprise ? 155 : 150;
     this.chapter(this.t('Property Overview', 'Property Overview', 'Property Overview'), this.t('Informações gerais do imóvel', 'Property overview and context', 'Información general del inmueble'), 'home', false, hero);
+    await yieldRendering();
     const top = this.cursor,
       textWidth = p.photos.length ? 246 : W - 14,
       photoX = 291,
@@ -532,6 +533,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       h: hero
     }, 1);
     this.used.add('property-overview');
+    await yieldRendering();
     const facts = blocks.filter(block => block.id.startsWith('property-group-'));
     const owner = facts.filter(block => /publisher|publicador/i.test(block.title)),
       sales = facts.filter(block => /sale history|histórico|historial/i.test(block.title));
@@ -550,9 +552,31 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       size = basic ? 7 : 8;
     const weight = groups.reduce((sum, group) => sum + (group === compactRecords ? 2 : 1), 0) || 1;
     const widths = groups.map(group => (W - (count - 1) * G) * (group === compactRecords ? 2 : 1) / weight);
-    const fullHeights = groups.map((group, index) => 38 + this.factsHeight(group.flatMap(block => block.rows || []), widths[index] - 22, size, group === compactRecords ? DESIGN.release.recordsColumns : 1));
-    const factHeight = !groups.length ? 0 : basic ? Math.max(86, ...fullHeights) : this.brief ? Math.max(86, ...fullHeights) : Math.max(100, ...fullHeights),
-      factsTop = top + hero + DESIGN.overview.paddingBottom + DESIGN.overview.factsGap;
+    const priorLineGap = this.flow.lineGap;
+    this.flow.lineGap = DESIGN.facts.lineGap;
+    const factsTop = top + hero + DESIGN.overview.paddingBottom + DESIGN.overview.factsGap,
+      maxFactHeight = Math.max(0, DESIGN.facts.bottom - factsTop),
+      maxBodyHeight = maxFactHeight - DESIGN.facts.headerHeight - DESIGN.facts.bottomPadding;
+    const plans = groups.map((group, index) => {
+      const rows = group.flatMap(block => block.rows || []), width = widths[index] - 16;
+      let columns = group === compactRecords ? DESIGN.release.recordsColumns : 1, fontSize = size;
+      let layout = this.factRowsPlan(rows, width, fontSize, columns, true);
+      if (layout.height > maxBodyHeight && columns === 1) {
+        columns = 2;
+        layout = this.factRowsPlan(rows, width, fontSize, columns, true);
+      }
+      if (layout.height > maxBodyHeight && fontSize > DESIGN.facts.minimumFontSize) {
+        fontSize = DESIGN.facts.minimumFontSize;
+        layout = this.factRowsPlan(rows, width, fontSize, columns, true);
+      }
+      let shown = rows.length;
+      while (shown && layout.height > maxBodyHeight) {
+        shown--;
+        layout = this.factRowsPlan(rows.slice(0, shown), width, fontSize, columns, true);
+      }
+      return { rows: rows.slice(0, shown), tail: rows.slice(shown), layout, columns, fontSize };
+    });
+    const factHeight = !groups.length ? 0 : Math.min(maxFactHeight, Math.max(basic || this.brief ? 86 : 100, ...plans.map(plan => DESIGN.facts.headerHeight + plan.layout.height + DESIGN.facts.bottomPadding)));
     groups.forEach((group, index) => {
       const width = widths[index];
       const b = {
@@ -564,33 +588,11 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       const title = group === publisher ? this.t('Informações do publicador', 'Publisher information', 'Información del publicador') : group === physical ? this.t('Detalhes do imóvel', 'Property details', 'Detalles del inmueble') : group === taxes || group === compactRecords ? this.t('Registros fiscais', 'Tax records', 'Registros fiscales') : this.t('Dados do terreno', 'Land information', 'Datos del terreno');
       const id = 'overview-facts-' + index,
         body = this.frame(b, title, group === publisher ? 'user' : group === physical ? 'home' : 'pin', id);
-      let rowY = body.y;
-      if (group === compactRecords) {
-        rowY = this.rows(group.flatMap(block => block.rows || []), body, id, size, DESIGN.release.recordsColumns);
-        group.forEach(block => this.used.add(block.id));
-      } else for (const block of group) {
-        const shown: ReportRow[] = [],
-          tail: ReportRow[] = [];
-        for (const row of block.rows || []) {
-          const h = this.rowHeight(row, body.w, size);
-          if (!tail.length && rowY + h <= b.y + b.h - 9) {
-            shown.push(row);
-            rowY += h;
-          } else tail.push(row);
-        }
-        const start = rowY - shown.reduce((n, row) => n + this.rowHeight(row, body.w, size), 0);
-        if (shown.length) this.rows(shown, {
-          ...body,
-          y: start,
-          h: b.y + b.h - start - 8
-        }, id, size);
-        if (tail.length) this.details.push({
-          ...block,
-          id: block.id + '-continued',
-          rows: tail
-        });
-        this.used.add(block.id);
-      }
+      body.h = b.h - DESIGN.facts.headerHeight - DESIGN.facts.bottomPadding;
+      const plan = plans[index];
+      let rowY = this.rows(plan.rows, body, id, plan.fontSize, plan.columns, true);
+      if (plan.tail.length) this.details.push({ id: id + '-continued', title, kind: 'facts', rows: plan.tail, readingSection: 1 });
+      group.forEach(block => this.used.add(block.id));
       if (group === physical) {
         const extra: ReportRow[] = [{
           label: this.t('Tipo', 'Property type', 'Tipo'),
@@ -598,19 +600,24 @@ export class ReferenceCloneComposition extends ReportBrandShell {
           evidenceRefs: ['property:identity']
         }, ...metrics];
         for (const row of extra) {
-          const h = this.rowHeight(row, body.w, size);
+          const h = this.rowHeight(row, body.w, plan.fontSize);
           if (rowY + h <= b.y + b.h - 9) {
             this.rows([row], {
               ...body,
               y: rowY,
               h: b.y + b.h - rowY - 8
-            }, id, size);
+            }, id, plan.fontSize);
             rowY += h;
           }
         }
       }
       this.audit(id, title, 'reference-facts', b, 1);
+      const entry = this.flow.audit.sections.at(-1)!;
+      entry.selectedFontSize = plan.fontSize;
+      entry.factColumns = plan.columns;
     });
+    this.flow.lineGap = priorLineGap;
+    await yieldRendering();
     taxes.forEach(block => this.used.add(block.id));
     let next = factsTop + factHeight + DESIGN.gallery.gapBefore;
     const gallery = p.photos.slice(1, 5);
@@ -624,7 +631,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         },
         body = this.frame(b, this.t('Fotos do imóvel', 'Property photos', 'Fotos del inmueble'), 'photos', 'property-gallery');
       const cell = (body.w - (gallery.length - 1) * 5) / gallery.length;
-      gallery.forEach((photo, i) => this.flow.image(photo, body.x + i * (cell + 5), b.y + DESIGN.gallery.imageTop, cell, height - DESIGN.gallery.imageTop - DESIGN.gallery.paddingBottom, 'cover'));
+      for (const [i, photo] of gallery.entries()) {
+        this.flow.image(photo, body.x + i * (cell + 5), b.y + DESIGN.gallery.imageTop, cell, height - DESIGN.gallery.imageTop - DESIGN.gallery.paddingBottom, 'cover');
+        await yieldRendering();
+      }
       this.audit('property-gallery', 'Property photos', 'photos', b, 1);
       next += height + 9;
     }
@@ -659,6 +669,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       this.write('© OpenStreetMap contributors', body.x, b.y + b.h - 16, body.w, map!.id, 6.5, false, BODY, b.y + b.h);
       this.audit(map!.id, map!.title, 'map', b, 1);
       this.used.add(map!.id);
+      await yieldRendering();
     }
     if (map && !showMap) this.used.add(map.id);
     if (note) {
@@ -1338,7 +1349,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       themed = this.enterprise && analytical;
     // Sparse reports keep the same identity without reserving empty analytical panels.
     this.brief = !analytical;
-    this.overview(blocks);
+    await this.overview(blocks, yieldRendering);
     await yieldRendering();
     if (this.vm.reportType === 'PROPERTY_RELEASE') {
       const tail = [...this.details, ...blocks.filter(block => !this.used.has(block.id) && block.id !== 'report-location')];

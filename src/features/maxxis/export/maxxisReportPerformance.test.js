@@ -6,7 +6,7 @@ import { resolveReportExportEntitlement } from './reportExportEntitlement';
 
 const schema = buildMaxxisReportSchema({
   reportType: 'DEAL_INTELLIGENCE',
-  property: { id: 'perf-property', address: '9537 Dalegrove Dr', city: 'Beverly Hills', state: 'CA', type: 'SFR', price: 2195000, beds: 3, baths: 2, sqft: 1838, rehab: 65000 },
+  property: { id: 'perf-property', address: '100 Synthetic Example Street', city: 'Example City', state: 'FL', type: 'SFR', price: 425000, beds: 3, baths: 2, sqft: 1838, rehab: 65000 },
   dealIntelligence: {
     executiveDealOverview: 'Performance fixture using deterministic report data.',
     investmentFit: { score: 29 },
@@ -55,21 +55,26 @@ describe('Maxxis report generation performance contract', () => {
   it('records binary assembly time', () => expect(result.timings.assemblyMs).toBeGreaterThanOrEqual(0));
   it('records a duration for every physical page actually rendered', () => expect(result.timings.perPageMs).toHaveLength(result.document.pageCount));
   it('keeps every page duration finite', () => expect(result.timings.perPageMs.every(Number.isFinite)).toBe(true));
-  it('yields the browser main thread between PDF pages', () => {
-    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
-    expect(source).toContain('await yieldReportRendering()');
-    expect(source).toContain("globalThis.scheduler?.yield");
+  it('lets a queued browser task run before PDF generation finishes', async () => {
+    let responded = false;
+    vi.stubGlobal('window', {});
+    const timer = setTimeout(() => { responded = true; }, 0);
+    try {
+      const rendered = await renderMaxxisReportPdf(options);
+      expect(rendered.state).toBe('RENDERED');
+      expect(responded).toBe(true);
+    } finally { clearTimeout(timer); vi.unstubAllGlobals(); }
   });
   it('actually schedules browser task breaks during setup, appendices and assembly', async () => {
     let scheduledTasks = 0;
     vi.stubGlobal('window', {});
-    vi.stubGlobal('scheduler', { yield: () => new Promise(resolve => setTimeout(() => { scheduledTasks += 1; resolve(); }, 0)) });
+    const timer = setInterval(() => { scheduledTasks += 1; }, 0);
     try {
       const rendered = await renderMaxxisReportPdf(options);
       expect(rendered.state).toBe('RENDERED');
       expect(scheduledTasks).toBeGreaterThan(rendered.document.pageCount);
       expect(rendered.document.outputValidation.valid).toBe(true);
-    } finally { vi.unstubAllGlobals(); }
+    } finally { clearInterval(timer); vi.unstubAllGlobals(); }
   });
   it('uses cached exports while the inline experience avoids PDF rasterization and provider work', () => {
     const actions = readFileSync(new URL('./MaxxisReportExportActions.jsx', import.meta.url), 'utf8');

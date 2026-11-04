@@ -82,6 +82,31 @@ describe('reference-specific report compositions', () => {
     expect(audit.lines.filter((line: any) => line.sectionId === 'referenceChapter')).toHaveLength(count);
   });
 
+  it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('keeps dense %s records above the page midpoint and the legal text below its full-width label', async type => {
+    const input = structuredClone(r43Fixtures(gallery).find((fixture: any) => fixture.id === 'rich')!.input);
+    const legal = 'Fictional Lot 5-A, Block 2, Sample Beach Subdivision. Sewer easement across the eastern boundary of the parcel, together with the recorded utility access along the southern lot boundary.';
+    input.property.legalDescription = legal;
+    input.property.subdivision = 'Sample Beach Subdivision';
+    const schema = buildMaxxisReportSchema({ ...input, reportType: type });
+    const result: any = await render(schema, { mapImageData: basemap });
+    expect(result.state).toBe('RENDERED');
+    const audit = result.document.layoutAudit;
+    const facts = audit.sections.filter((s: any) => s.kind === 'reference-facts');
+    expect(facts.length).toBeGreaterThan(0);
+    expect(facts.every((s: any) => s.page === 1 && s.bounds.bottom <= REFERENCE_DESIGN.page.height / 2)).toBe(true);
+    expect(facts.some((s: any) => s.factColumns === 2)).toBe(true);
+    const label = audit.lines.find((line: any) => line.text === 'Legal description');
+    expect(label).toBeDefined();
+    const value = audit.lines.find((line: any) => line.sectionId === label.sectionId && line.text.startsWith('Fictional Lot'));
+    expect(value.page).toBe(label.page);
+    expect(value.y).toBeGreaterThanOrEqual(label.bottomY + 1);
+    expect(value.x).toBe(label.x);
+    expect(value.contentBounds.width).toBeGreaterThanOrEqual(label.contentBounds.width);
+    expect(normalize(audit.lines.filter((line: any) => line.sectionId === label.sectionId).map((line: any) => line.text).join(' '))).toContain(legal);
+    expect(audit.lines.every((line: any) => line.overflowX === 0 && line.overflowY === 0)).toBe(true);
+    expect(result.document.pageCount).toBeLessThanOrEqual(type === 'PROPERTY_RELEASE' ? 1 : type === 'MAXXIS_ANALYSIS' ? 3 : 6);
+  }, 30000);
+
   it('uses the two-by-two profile and verification compositions and separate map/table panels', () => {
     const audit = report.document.layoutAudit;
     const profile = audit.sections.find((s: any) => s.kind === 'reference-profile');

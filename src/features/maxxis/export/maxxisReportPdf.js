@@ -19,7 +19,7 @@ const performanceNow = () => typeof performance !== 'undefined' && typeof perfor
 const roundedMs = elapsed => Math.round(elapsed * 10) / 10;
 const yieldReportRendering = () => {
   if (typeof window === 'undefined') return Promise.resolve();
-  if (typeof globalThis.scheduler?.yield === 'function') return globalThis.scheduler.yield();
+  // A timer also lets input/paint and normal-priority work run on the compatibility path.
   return new Promise(resolve => setTimeout(resolve, 0));
 };
 function emitReportStage(stage, detail = {}) {

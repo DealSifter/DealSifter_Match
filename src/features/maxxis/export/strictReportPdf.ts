@@ -12,7 +12,7 @@ interface AuditLine {
   fontSize: number; lineHeight: number; lineIndex: number; contentBounds: Bounds; cardBounds: Bounds; overflowX: number; overflowY: number;
   role: 'body' | 'caption';
 }
-interface AuditSection { sectionId: string; title: string; kind: string; page: number; availableHeight: number; renderedLines: number; selectedFontSize: number; clippedLines: number; overflowPixels: number; bounds: Bounds; readingSection?: number; assertionIds?: string[] }
+interface AuditSection { sectionId: string; title: string; kind: string; page: number; availableHeight: number; renderedLines: number; selectedFontSize: number; clippedLines: number; overflowPixels: number; bounds: Bounds; readingSection?: number; assertionIds?: string[]; factColumns?: number }
 interface AuditContinuation { sectionId: string; title: string; kind: string; page: number }
 interface AuditMap { sectionId: string; page: number; bounds: Bounds; points: { id: string; marker: string; x: number; y: number; radius: number }[] }
 export interface StrictPdfAudit { lines: AuditLine[]; sections: AuditSection[]; continuations: AuditContinuation[]; maps: AuditMap[] }
