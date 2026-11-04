@@ -23,14 +23,14 @@ describe('L1 portfolio export ceiling and authorized disclosure',()=>{
     expect(exportPath).toContain("rendered.state !== 'RENDERED'");
     expect(exportPath).toContain('rendered.document?.pageCount !== 1');
     expect(exportPath).toContain('includePublisher:isOwnerUnlocked && includeReleasePublisher');
-    expect(exportPath).toContain('reportTrace={reportId:crypto.randomUUID(),requestId:crypto.randomUUID()}');
+    expect(exportPath).toContain('reportTrace=createReportRequestTrace()');
     expect(exportPath).toContain('fetchPropertyIntelligence(item.id,null,reportTrace)');
     expect(exportPath).toContain('downloadMaxxisReportPdf');
   });
   it('keeps the export dialog available for retry after a handled failure',()=>{
     const handler=source.split('const handleConfirmEmailExport =')[1].split('const metaChips')[0];
     expect(handler).toContain('if (isPreparingExport) return');
-    expect(handler).toContain('setExportError(matchesT.exportFailed');
+    expect(handler).toContain('setExportError(propertyReleaseFailureMessage');
     expect(handler).toMatch(/catch[\s\S]*?return;[\s\S]*?finally/);
     expect(source).toContain('role="alert"');
   });

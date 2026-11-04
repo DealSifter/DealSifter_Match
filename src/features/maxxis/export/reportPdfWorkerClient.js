@@ -1,3 +1,5 @@
+import { reportPdfFailureCode } from './reportPdfFailures';
+
 export const REPORT_PDF_WORKER_TIMEOUT_MS = 45000;
 const IDLE_MS = 30000;
 let worker = null;
@@ -37,7 +39,7 @@ export function renderReportPdfInWorker(input) {
     current.onmessage = ({ data }) => {
       if (data?.id !== id) return;
       cleanup();
-      if (data.error) { closeWorker(); reject(new Error('REPORT_PDF_RENDER_FAILED')); return; }
+      if (data.error) { closeWorker(); reject(new Error(reportPdfFailureCode(data.error))); return; }
       idleTimer = setTimeout(closeWorker, IDLE_MS);
       resolve(data.result);
     };

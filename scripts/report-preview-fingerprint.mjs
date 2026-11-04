@@ -7,6 +7,7 @@ export const REPORT_PREVIEW_RENDERER_SOURCES = Object.freeze([
   'src/features/maxxis/export/maxxisReportPdf.js',
   'src/features/maxxis/export/reportPdfCore.js',
   'src/features/maxxis/export/reportPdfImages.ts',
+  'src/features/maxxis/export/reportPdfFailures.js',
   'src/features/maxxis/export/reportTextValidation.ts',
   'src/features/maxxis/export/strictReportPdf.ts',
   'src/features/maxxis/export/referenceReportPdf.ts',

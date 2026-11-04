@@ -3,6 +3,7 @@ import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { buildStrictReportViewModel, validateReportViewModel } from './reportIntegrityViewModel.ts';
 import { getPreparedReportMaps } from './reportMapAssets';
 import { renderReportPdfInWorker } from './reportPdfWorkerClient';
+import { canRenderBasicWithoutWorker, reportPdfFailureCode } from './reportPdfFailures';
 import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
 import { REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS } from './maxxisReportVisualPolicy';
 
@@ -89,9 +90,21 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   };
   // Browser PDF encoding must not occupy the UI thread. Offline QA and browsers
   // without Workers use the exact same deterministic core, with task breaks.
-  const background = typeof window !== 'undefined' && typeof Worker === 'function';
-  const rendered = background ? await renderReportPdfInWorker(input)
-    : await (await import('./reportPdfCore')).renderPreparedReportPdf(input, yieldReportRendering);
+  let background = typeof window !== 'undefined' && typeof Worker === 'function';
+  const renderLocally = async () => (await import('./reportPdfCore')).renderPreparedReportPdf(input, yieldReportRendering);
+  let rendered;
+  if (background) {
+    try { rendered = await renderReportPdfInWorker(input); }
+    catch (error) {
+      if (!canRenderBasicWithoutWorker(schema.reportType, error)) throw error;
+      // Genuine compatibility path for the one-page report: same verified input,
+      // same optimized images, same PDF core and validation. No synthetic content.
+      background = false;
+      emitReportStage('pdf_worker_unavailable', { reason: reportPdfFailureCode(error) });
+      await yieldReportRendering();
+      rendered = await renderLocally();
+    }
+  } else rendered = await renderLocally();
   if (rendered.state !== 'RENDERED') return rendered;
   await yieldReportRendering();
   const timings = Object.freeze({ ...rendered.timings, totalMs: roundedMs(performanceNow() - startedAt), preparationMs,

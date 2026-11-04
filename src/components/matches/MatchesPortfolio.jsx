@@ -31,6 +31,8 @@ import { buildMaxxisReportSchema } from '../../domain/maxxis/maxxisReportSchema'
 import { mergePropertyReleaseEvidence } from '../../domain/maxxis/propertyReleaseEvidence';
 import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
+import { propertyReleaseFailureMessage } from '../../features/maxxis/export/reportPdfFailures';
+import { createReportRequestTrace } from '../../features/maxxis/export/reportRequestTrace';
 import {
   INTELLIGENCE_REPORT_TYPES,
 } from '../../domain/intelligenceAccess';
@@ -762,7 +764,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
 
 
   const generateReleasePdf = async ({ title, imageUrls }) => {
-    const reportTrace={reportId:crypto.randomUUID(),requestId:crypto.randomUUID()};
+    const reportTrace=createReportRequestTrace();
     const safeName = String(title || 'property-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
     const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 5);
     const reportImages = (await Promise.all(imageSources.map((source) => {
@@ -927,10 +929,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       if (emailAttachmentNotes.length) {
         bodySuffix = `\n\nATTACHMENTS READY TO INCLUDE IN EMAIL (manual attach):\n${emailAttachmentNotes.join('\n')}`;
       }
-    } catch {
+    } catch (error) {
       // Keep the selected delivery options open for retry, rather than leaving
       // a rejected event-handler promise and no explanation for the user.
-      setExportError(matchesT.exportFailed || 'The report could not be prepared. Please try again.');
+      setExportError(propertyReleaseFailureMessage(error, getLang()));
       return;
     } finally {
       setIsPreparingExport(false);
