@@ -137,16 +137,21 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   if (images.length) merged.images = images;
   const evidenceOwner = isObject(evidence.owner) ? evidence.owner : {};
   const appOwner = isObject(app.owner) ? app.owner : {};
+  // Contacts on the selected app surface belong to its authorized publisher,
+  // not to a potentially different legal owner returned in a property record.
+  const appPublisher = Array.isArray(appOwner.allowedContacts) && appOwner.allowedContacts.length > 0;
+  const samePublisher = !hasReportValue(appOwner.name) || !hasReportValue(evidenceOwner.name)
+    || String(appOwner.name).trim().toLowerCase() === String(evidenceOwner.name).trim().toLowerCase();
   const allowedContacts = [
-    ...(Array.isArray(evidenceOwner.allowedContacts) ? evidenceOwner.allowedContacts : []),
+    ...(Array.isArray(evidenceOwner.allowedContacts) && (!appPublisher || samePublisher) ? evidenceOwner.allowedContacts : []),
     ...(Array.isArray(appOwner.allowedContacts) ? appOwner.allowedContacts : []),
   ].filter((contact, index, values) => contact && values.findIndex((candidate) =>
     String(candidate?.type || '') === String(contact?.type || '')
       && String(candidate?.value || '') === String(contact?.value || '')) === index);
   const owner = {
-    name: hasReportValue(evidenceOwner.name) ? evidenceOwner.name : appOwner.name,
-    type: hasReportValue(evidenceOwner.type) ? evidenceOwner.type : appOwner.type,
-    status: hasReportValue(evidenceOwner.status) ? evidenceOwner.status : appOwner.status,
+    name: appPublisher && hasReportValue(appOwner.name) ? appOwner.name : hasReportValue(evidenceOwner.name) ? evidenceOwner.name : appOwner.name,
+    type: appPublisher && hasReportValue(appOwner.type) ? appOwner.type : hasReportValue(evidenceOwner.type) ? evidenceOwner.type : appOwner.type,
+    status: appPublisher && hasReportValue(appOwner.status) ? appOwner.status : hasReportValue(evidenceOwner.status) ? evidenceOwner.status : appOwner.status,
     allowedContacts,
   };
   for (const key of ['notes', 'description', 'localizedNotes', 'notesOriginal']) {
@@ -197,7 +202,10 @@ export function buildPropertyOverviewModel(property) {
       if (hasReportValue(value) && (target !== 'propertyUserNotes' || !hasReportValue(data.propertyUserNotes))) {
         data[target] = value;
       } else if (['UNKNOWN', 'UNAVAILABLE', 'NOT_APPLICABLE', 'NOT_EVALUATED'].includes(fact?.semanticState || fact?.status)) {
-        delete data[target];
+        const reportedValue = hasReportValue(data[target]) && (fact?.semanticState || fact?.status) !== 'NOT_APPLICABLE' && !fact?.conflict;
+        if (reportedValue) {
+          data.fieldProvenance = { ...data.fieldProvenance, [target]: { source: 'PROPERTY_APP_VALUE', status: 'REPORTED' } };
+        } else delete data[target];
       }
     });
     data.canonicalPropertyFacts = canonical;

@@ -65,7 +65,8 @@ describe('R4.1 deterministic report finish, offline', () => {
     expect(result.state).toBe('RENDERED');
     const {layoutAudit:audit,pageCount} = result.document, text = audit.lines.map((line:any)=>line.text).join(' ');
     expect(text).not.toMatch(REPORT_RAW_ISO); expect(text).not.toMatch(REPORT_INTERNAL_LABELS);
-    expect(audit.lines.filter((line:any)=>line.page>1&&/^header(?:PageTitle|PageSubtitle|Subtitle)$/.test(line.sectionId))).toHaveLength(0);
+    // The supplied clone repeats the product masthead/subtitle, never a body report title.
+    expect(audit.lines.filter((line:any)=>line.page>1&&/^header(?:PageTitle|PageSubtitle)$/.test(line.sectionId))).toHaveLength(0);
     const last = audit.sections.filter((block:any)=>block.page===pageCount);
     expect(last.some((block:any)=>!['map','disclaimer'].includes(block.kind))).toBe(true);
     expect(new Set(audit.sections.map((block:any)=>block.sectionId)).size).toBe(audit.sections.length);

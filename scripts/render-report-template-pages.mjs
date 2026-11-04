@@ -1,14 +1,20 @@
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createCanvas, DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas';
 import { reportPreviewRendererFingerprint } from './report-preview-fingerprint.mjs';
 
 Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
 const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
 const root = new URL('../', import.meta.url);
-const output = new URL('qa/report-template/', root);
+const outputArgument = process.argv.find(argument => argument.startsWith('--output-dir='))?.slice('--output-dir='.length);
+const outputPath = resolve(fileURLToPath(root), outputArgument || 'qa/report-template') + sep;
+if (!outputPath.startsWith(resolve(fileURLToPath(root), 'qa') + sep)) throw new Error('QA_OUTPUT_MUST_STAY_INSIDE_WORKSPACE_QA');
+const output = pathToFileURL(outputPath);
 const previews = new URL('src/assets/maxxis/report-previews/', root);
 const products = [['PROPERTY_RELEASE','property-release'],['MAXXIS_ANALYSIS','maxxis-analysis'],['DEAL_INTELLIGENCE','deal-intelligence']];
+const sampleCoverage = JSON.parse(await readFile(new URL('sample-coverage.json', output), 'utf8'));
 const manifest = { rendererFingerprint:await reportPreviewRendererFingerprint(root), reports:{} };
 const imports=[], groups=[];
 await Promise.all([mkdir(output,{recursive:true}),mkdir(previews,{recursive:true})]);
@@ -40,7 +46,8 @@ for (const [type, product] of products) {
       pages.push({file,sha256:sha256(png),width:canvas.width,height:canvas.height});
       process.stdout.write(`${file}: ${canvas.width}x${canvas.height}\n`);
     }
-    manifest.reports[type]={product,pageCount:pdf.numPages,pdfSha256:sha256(bytes),pages};
+    const coverage=sampleCoverage[type];
+    manifest.reports[type]={product,pageCount:pdf.numPages,pdfSha256:sha256(bytes),pages,coverage:{photos:coverage.photos,maps:coverage.maps,profileGauge:coverage.profileGauge,criteriaChart:coverage.criteriaTable,valuationRange:coverage.valuationRange,rentRange:coverage.rentRange,scenario:coverage.scenario,demonstrationOnly:coverage.text.includes('DEMONSTRATION ONLY'),unavailableFields:/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(coverage.text)}};
     groups.push(`  ${type}:Object.freeze([${pages.map((_,i)=>`${type}Page${i+1}`).join(',')}]),`);
     // Remove only obsolete pages for this exact report from the two generated directories.
     for(const directory of [output,previews])for(const name of await readdir(directory)){

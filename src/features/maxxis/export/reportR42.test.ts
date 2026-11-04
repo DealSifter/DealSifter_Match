@@ -50,14 +50,21 @@ describe('R4.2 reading order and semantic report contract (network denied)',()=>
   for(const check of extra)expect(pending!.table!.flat()).not.toContain(check);
   expect(blocks.find(b=>b.id==='market-rent')!.hero!.value).toBe('$2,400/mo');
  });
- for(const id of ['rich','partial','sparse'])for(const[type,plan]of levels)it(`${id} ${type}: fixed order, centered badges and no cross-section fill`,async()=>{
+ for(const id of ['rich','partial','sparse'])for(const[type,plan]of levels)it(`${id} ${type}: reference chapters, centered masthead badges and intact body panels`,async()=>{
   const schema=buildMaxxisReportSchema({...fixture(id),reportType:type});
   const result=await renderMaxxisReportPdf({schema,language:'en',generatedAt:R4_TIME,exportEntitlement:resolveReportExportEntitlement({plan,reportType:type,channel:'PDF'})});
   expect(result.state).toBe('RENDERED');const audit=result.document.layoutAudit,sections=audit.sections;
   const text=audit.lines.map((line:any)=>line.text).join(' ');expect(text).not.toMatch(REPORT_RAW_ISO);expect(text).not.toMatch(REPORT_INTERNAL_LABELS);
-  for(const a of sections)for(const b of sections)if(a.readingSection!<b.readingSection!){expect(a.page<b.page||a.page===b.page&&a.bounds.bottom<=b.bounds.y+.01).toBe(true);}
+  // The latest visual contract replaces the old cross-section flow with thematic pages.
+  for(const a of sections)for(const b of sections)if(a!==b&&a.page===b.page){
+   expect(Math.min(a.bounds.right,b.bounds.right)>Math.max(a.bounds.x,b.bounds.x)&&Math.min(a.bounds.bottom,b.bounds.bottom)>Math.max(a.bounds.y,b.bounds.y)).toBe(false);
+  }
+  const chapters=audit.lines.filter((line:any)=>line.sectionId==='referenceChapter').map((line:any)=>line.text);
+  expect(chapters[0]).toBe('Property Overview');
+  const thematic=['Comparative Market Analysis','Valuation Intelligence / ARV / KPIs','Investment Fit & Risk Analysis','Key Insights & Verification','Analysis Inputs & Sources','Maxxis AI Analysis'].map(title=>chapters.indexOf(title)).filter(index=>index>=0);
+  if(type==='DEAL_INTELLIGENCE')expect(thematic.every((index,position)=>position===0||index>thematic[position-1])).toBe(true);
   for(const badge of audit.lines.filter((line:any)=>line.sectionId==='headerCompleteness')){
-   expect(badge.x+badge.width/2).toBeCloseTo(510,1);if(badge.page>1){expect(badge.y).toBeGreaterThan(48);expect(badge.bottomY).toBeLessThan(69);}
+   expect(badge.x+badge.width/2).toBeCloseTo(534,1);expect(badge.y).toBeGreaterThanOrEqual(52);expect(badge.bottomY).toBeLessThanOrEqual(66);
   }
   if(id==='sparse'&&type==='DEAL_INTELLIGENCE')expect(result.document.pageCount).toBe(1);
   expect(audit.lines.every((line:any)=>line.overflowX===0&&line.overflowY===0)).toBe(true);

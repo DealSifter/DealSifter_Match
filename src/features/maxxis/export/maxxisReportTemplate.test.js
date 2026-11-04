@@ -81,22 +81,26 @@ describe('canonical PDF template behavior', () => {
     expect(registered.notes).toBe(original);
     expect(translate).toHaveBeenCalledTimes(1);
   }, 30000);
-  it('uses the original-color official logo only in the shared header, with no brand footer', () => {
+  it('preserves the original-color official logo in the masthead and keeps the footer logo-free', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     const drawing = readFileSync(new URL('./strictReportPdf.ts', import.meta.url), 'utf8');
     expect(source).toContain("import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline'");
     expect(drawing).toContain("this.doc.addImage(this.logo");
     expect(`${source}${drawing}`).not.toMatch(/(?:recolor|tint|grayscale)\s*\(/i);
-    const footer = drawing.split('  finish() {')[1].split('const COPY =')[0];
+    const composition = readFileSync(new URL('./referenceCloneComposition.ts', import.meta.url), 'utf8');
+    const footerStart = composition.search(/const result\s*=\s*this.flow.finish\(\)/);
+    expect(footerStart).toBeGreaterThan(0);
+    const footer = composition.slice(footerStart);
     expect(footer).not.toMatch(/addImage|officialDealSifterLogo|slogan/i);
   });
 
-  it('keeps every actual page title below the shared masthead and every body line above the footer', async () => {
+  it('keeps the report title in the shared masthead and every body line above the footer', async () => {
     const result = await render('PROPERTY_RELEASE');
     const audit = result.document.layoutAudit;
-    const titles = audit.lines.filter(line => line.sectionId === 'headerPageTitle');
+    const titles = audit.lines.filter(line => line.sectionId === 'headerProduct');
     expect(titles).toHaveLength(result.document.pageCount);
-    expect(titles.every(line => line.y >= 80 && line.bottomY <= 124)).toBe(true);
+    expect(titles.every(line => line.y >= 9 && line.bottomY <= 75)).toBe(true);
+    expect(audit.lines.some(line=>line.sectionId==='headerPageTitle')).toBe(false);
     expect(audit.lines.filter(line => !/^(?:header|footer)/.test(line.sectionId)).every(line => line.bottomY <= 799)).toBe(true);
   }, 30000);
 
@@ -111,9 +115,9 @@ describe('canonical PDF template behavior', () => {
   }, 30000);
 
   it.each([
-    ['en', 'PROPERTY RELEASE', 'Page 1 / 1', 'Mar 7, 2014'],
-    ['pt', 'RELATÓRIO DO IMÓVEL', 'Página 1 / 1', '7 de mar. de 2014'],
-    ['es', 'INFORME DE LA PROPIEDAD', 'Página 1 / 1', '7 mar 2014'],
+    ['en', 'Property Release', 'Page 1 of 1', 'Mar 7, 2014'],
+    ['pt', 'Relatório Do Imóvel', 'Página 1 de 1', '7 de mar. de 2014'],
+    ['es', 'Informe De La Propiedad', 'Página 1 de 1', '7 mar 2014'],
   ])('renders factual Basic in %s as one stable A4 page', async (language, title, pageLabel, saleDate) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');

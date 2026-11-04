@@ -19,10 +19,10 @@ describe('R4.3 report integrity, offline fictional subjects',()=>{
   const rows=[{...subject},{...subject,id:'alias',address:'100 EXAMPLE ST.'},{...subject,id:'other',address:'Alias road',latitude:28.00001},{...subject,id:'neighbour',address:'102 Example St',price:210000}];
   const result=excludeSubjectReferences(rows,subject);expect(result.excludedCount).toBe(3);expect(result.references[0].id).toBe('neighbour');
  });
- it('keeps sale history separate from absent publisher content',()=>{
+ it('keeps sale history separate from authorized publisher content',()=>{
   const model=vm(),blocks=composeReportContent(model);
   expect(model.property.facts.find(f=>f.title==='Sale history')!.rows.map(r=>r.label)).toEqual(['Latest recorded sale','Recorded sale date']);
-  expect(model.property.facts.some(f=>f.title==='Publisher and authorized contacts')).toBe(false);
+  expect(model.property.facts.some(f=>f.title==='Publisher and authorized contacts')).toBe(true);
   expect(blocks.some(b=>b.title==='Sale history')).toBe(true);
  });
  it('bounds mixed tables to five recorded sales and three listings before atomic map layout',()=>{
@@ -44,10 +44,10 @@ describe('R4.3 report integrity, offline fictional subjects',()=>{
   const row=pending.table!.find(r=>r[0].includes('Comparable sales'))!;
   expect(row).toHaveLength(3);expect(row[1]).toContain('our side');expect(row[2]).toBe('Regenerate later.');
  });
- it('keeps the full description in a final small-font block and the numeric score with criteria',()=>{
+ it('keeps the full description beside the property overview and the numeric score with criteria',()=>{
   const input=special();input.property.description='Full fictional description. '.repeat(15)+'FINAL SENTENCE.';
   const blocks=composeReportContent(vm(input)),description=blocks.find(b=>b.id==='listing-description')!;
-  expect(description.readingSection).toBe(6);expect(description.textSize).toBe(8);expect(description.text).toContain('FINAL SENTENCE.');
+  expect(description.readingSection).toBe(1);expect(description.textSize).toBe(8);expect(description.text).toContain('FINAL SENTENCE.');
   const profile=blocks.find(b=>b.id==='profile-compatibility')!;expect(profile.score).toBe(71);expect(profile.text).toContain('weights several criteria');
  });
  it('consolidates source families with the latest available retrieval date',()=>{

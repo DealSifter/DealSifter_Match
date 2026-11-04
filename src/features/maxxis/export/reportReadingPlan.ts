@@ -141,15 +141,15 @@ export function buildReportReadingPlan(vm: ReportViewModel, raw: ContentBlock[],
   if (profiles.length) {
     const rows = profiles.flatMap(block => block.rows || []), scoreBlock = profiles.find(block => block.score !== undefined);
     const text = profiles.map(block => block.text).filter(Boolean).map(text=>text!.replace(/^Match Score:[^\n]*(?:\n)?/, '')).filter(Boolean).join('\n');
-    add({ id: 'profile-compatibility', title: t('Perfil, compatibilidade e critérios', 'Profile, compatibility and criteria', 'Perfil, compatibilidad y criterios'), kind: 'facts', rows, text: text || undefined, score: scoreBlock?.score }, 5);
+    add({ id: 'profile-compatibility', title: t('Perfil, compatibilidade e critérios', 'Profile, compatibility and criteria', 'Perfil, compatibilidad y criterios'), kind: 'facts', rows, text: text || undefined, score: scoreBlock?.score, comparison: profiles.flatMap(block => block.comparison || []) }, 5);
   }
   const notes = raw.find(block=>block.id==='property-notes');
-  if (notes?.text) add({ ...notes, id:'listing-description', title:t('Descrição do anúncio','Listing description','Descripción del anuncio'), textSize:8 },6);
+  if (notes?.text) add({ ...notes, id:'listing-description', title:t('Descrição do anúncio','Listing description','Descripción del anuncio'), textSize:8 },1);
   const sources = raw.find(block => block.id === 'report-sources');
   if (sources?.rows?.length) add(sources, 6);
   else add({ id: 'report-sources', title: t('Fontes', 'Sources', 'Fuentes'), kind: 'text', text: t('Fontes consultadas e respectivas datas não registradas.', 'Retrieved sources and dates were not recorded.', 'No se registraron fuentes consultadas y fechas.') }, 6);
   const disclaimer = raw.find(block => block.kind === 'disclaimer');
   if (disclaimer) add(disclaimer, 6);
-  const order = (block: ContentBlock) => block.id === 'listing-description' ? 0 : block.id === 'report-sources' ? 1 : block.id === 'property-overview' || block.id === 'profile-compatibility' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
+  const order = (block: ContentBlock) => block.id === 'listing-description' ? 2 : block.id === 'report-sources' ? 1 : block.id === 'property-overview' || block.id === 'profile-compatibility' ? 0 : block.id === 'executive-thesis' ? 1 : block.id === 'market-rent' ? 0 : /table|location/.test(block.id) ? 1 : /arv/.test(block.id) ? 2 : 3;
   return result.sort((a, b) => a.readingSection! - b.readingSection! || order(a) - order(b));
 }

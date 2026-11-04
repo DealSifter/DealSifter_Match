@@ -9,7 +9,7 @@ vi.mock('./reportIntegrityViewModel', () => ({ buildStrictReportViewModel: () =>
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe('report map preparation and PDF cache revisions', () => {
   it('retries failed maps on the same report and shares tiles across its sections', async () => {
-    const context = Object.fromEntries(['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'moveTo', 'lineTo', 'arc', 'fill', 'stroke', 'fillText'].map(name => [name, vi.fn()]));
+    const context = Object.fromEntries(['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'moveTo', 'lineTo', 'arc', 'closePath', 'fill', 'stroke', 'fillText'].map(name => [name, vi.fn()]));
     vi.stubGlobal('document', { createElement: () => ({ getContext: () => context, toDataURL: () => 'data:image/png;base64,bWFw' }) });
     const schema = {};
     loadReportMediaImage.mockResolvedValue(null);

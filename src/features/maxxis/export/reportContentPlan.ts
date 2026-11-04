@@ -26,6 +26,8 @@ export function reportReaderText(value: string, locale = 'en'): string {
     .replace(/\bnormalized\b/gi, pt ? 'organizados' : es ? 'organizados' : 'organized').replace(/…/g, '.');
 }
 export interface ContentBlock {
+  range?: { low: string; high: string; estimate: string; position: number };
+  comparison?: { label: string; value: number; text: string }[];
   hero?: { value: string; note?: string };
   readingSection?: ReadingSection; assertionIds?: string[]; afterText?: string; textSize?: number;
   id: string; title: string; kind: 'overview' | 'text' | 'facts' | 'table' | 'map' | 'photos' | 'disclaimer';
@@ -46,7 +48,7 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     texts.add(key); return cleaned;
   };
   const add = (block: ContentBlock) => {
-    const key = contentKey(JSON.stringify({ kind: block.kind, text: block.text, rows: block.rows?.map(({ label, value }) => ({ label, value })), columns: block.columns, table: block.table, photos: block.photos, map: block.map }));
+    const key = contentKey(JSON.stringify({ kind: block.kind, text: block.text, rows: block.rows?.map(({ label, value }) => ({ label, value })), columns: block.columns, table: block.table, photos: block.photos, map: block.map, range: block.range, comparison: block.comparison }));
     const existing = keys.get(key);
     if (existing) {
       if (block.table && existing.title !== clean(block.title)) existing.title += ` / ${clean(block.title)}`;
@@ -129,13 +131,22 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     const items = section.id === 'next-actions' ? (section.items || []).filter((item, index, all) => all.findIndex(other => contentKey(other.text.split('\n')[0]) === contentKey(item.text.split('\n')[0])) === index).slice(0, 3) : section.items || [];
     const paragraphs = [section.hero ? `${section.hero.value} · ${section.hero.label}\n${section.hero.qualification}` : '', section.text, ...items.map(item => item.text)].filter(Boolean).map(text => uniqueText(text!)).filter(Boolean);
     if (section.range && section.id === 'provider-reference') paragraphs.push(`${section.range.low} – ${section.range.high}`);
-    if (paragraphs.length) add({ id: section.id, title: section.title, kind: 'text', text: paragraphs.join('\n\n') });
+    if (paragraphs.length) add({ id: section.id, title: section.title, kind: 'text', text: paragraphs.join('\n\n'), range: section.range });
     if (section.rows?.length) rowGroup(`${section.id}-facts`, section.title, section.rows.filter(row => (!section.gauge || row.label !== 'Match Score') && !(section.id === 'market-rent' && /subject.*(?:bed|bath|area)|imóvel.*(?:quarto|banheiro|área)/i.test(row.label))).map(row=>section.id==='profile-criteria'&&row.source?{...row,value:`${row.value} · ${row.source}`}:row));
+    if (section.range && !paragraphs.length) {
+      const facts = blocks.find(block => block.id === `${section.id}-facts`);
+      if (facts) facts.range = section.range;
+      else add({ id: section.id, title: section.title, kind: 'text', range: section.range });
+    }
     if (section.gauge) {
       const text = `${clean(section.gauge.label)}: ${section.gauge.value}%\n${t('O resultado total pondera vários critérios; um critério isolado pode ter nota zero sem tornar o total zero.', 'The total weights several criteria; one criterion can score zero without making the total zero.', 'El total pondera varios criterios; un criterio puede tener cero sin que el total sea cero.')}`;
       add({ id: `${section.id}-score`, title: section.title, kind: 'text', text, score: section.gauge.value });
     }
-    if (section.comparison?.length && section.id!=='profile-criteria') rowGroup(`${section.id}-criteria`, section.title, section.comparison.map(item => ({ label: item.label, value: item.text, evidenceRefs: [] })));
+    if (section.comparison?.length) {
+      const existing = blocks.find(block => block.id === section.id || block.id === `${section.id}-facts`);
+      if (existing) existing.comparison = section.comparison;
+      else add({ id: `${section.id}-criteria`, title: section.title, kind: 'facts', comparison: section.comparison });
+    }
     if (section.table?.rows.length) add({ id: `${section.id}-table`, title: section.title, kind: 'table', columns: section.table.columns.map(clean), table: section.table.rows.map(row => row.map(clean)) });
   }
   const notes = vm.property.notes.map(uniqueText).filter(Boolean);
@@ -144,13 +155,14 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
   if (mapped || subject) {
     const comparablePoints = mapped?.map?.points.filter(p => p.id !== 'subject' && point(p)) || [];
     const completeCoordinates = !!mapped && comparablePoints.length === mapped.table!.rows.length;
-    const points = [...(subject ? [subject] : []), ...(completeCoordinates ? comparablePoints.map((p, index) => ({ ...p, marker: String(index + 1) })) : [])];
-    if (points.length) add({ id: 'report-location', title: t('Localização', 'Location', 'Ubicación'), kind: 'map', map: { points, sourceId: completeCoordinates ? mapped!.id : undefined,
+    const points = [...(subject ? [subject] : []), ...comparablePoints];
+    if (points.length) add({ id: 'report-location', title: t('Localização', 'Location', 'Ubicación'), kind: 'map', map: { points, sourceId: comparablePoints.length ? mapped!.id : undefined,
       caption: completeCoordinates ? t(`Marcadores 1–${comparablePoints.length}: mesmos imóveis e mesma ordem da tabela ${clean(mapped!.title)}.${subject ? ' S: imóvel principal.' : ''}`, `Markers 1–${comparablePoints.length}: the same properties and order as the ${clean(mapped!.title)} table.${subject ? ' S: subject property.' : ''}`, `Marcadores 1–${comparablePoints.length}: mismos inmuebles y orden de la tabla ${clean(mapped!.title)}.${subject ? ' S: inmueble principal.' : ''}`)
+        : comparablePoints.length ? t(`${comparablePoints.length} de ${mapped!.table!.rows.length} comparáveis com coordenadas. Os números correspondem às linhas da tabela; os demais não foram posicionados.`, `${comparablePoints.length} of ${mapped!.table!.rows.length} comparables have coordinates. Numbers match the table rows; the others are not plotted.`, `${comparablePoints.length} de ${mapped!.table!.rows.length} comparables con coordenadas. Los números corresponden a las filas; los demás no se ubican.`)
         : !mapped ? t('S: imóvel principal.', 'S: subject property.', 'S: inmueble principal.')
         : t('Somente o imóvel principal. Não há coordenadas completas para posicionar os comparáveis com segurança.', 'Subject property only. Complete coordinates are not available to safely place the comparables.', 'Solo el inmueble principal. No hay coordenadas completas para ubicar los comparables.') } });
   }
-  for (const block of blocks) if (block.map) block.map.caption += t(' Cores: azul escuro = imóvel principal; amarelo/roxo = vendas registradas; vermelho = à venda; verde = aluguel.', ' Colors: navy = subject; yellow/purple = recorded sales; red = for sale; green = rentals.', ' Colores: azul oscuro = inmueble principal; amarillo/morado = ventas registradas; rojo = en venta; verde = alquiler.');
+  for (const block of blocks) if (block.map?.points.some(point=>point.id!=='subject')) block.map.caption += t(' Cores: azul escuro = imóvel principal; amarelo/roxo = vendas registradas; vermelho = à venda; verde = aluguel.', ' Colors: navy = subject; yellow/purple = recorded sales; red = for sale; green = rentals.', ' Colores: azul oscuro = inmueble principal; amarillo/morado = ventas registradas; rojo = en venta; verde = alquiler.');
   const groupedPending = new Map<string, { labels: string[]; reason: string; action: string }>();
   for (const item of pending.values()) {
     const key = contentKey(`${item.reason}:${item.action}`), group = groupedPending.get(key) || { labels: [], reason: item.reason, action: item.action };

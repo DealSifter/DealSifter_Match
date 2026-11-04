@@ -52,6 +52,8 @@ const now = () => typeof performance !== 'undefined' ? performance.now() : Date.
 
 /** Drawing receives safe primitives only. There is no schema, domain entity or I/O access here. */
 export class StrictPdfFlow {
+  lineGap = 4;
+  lineHeight(size: number) { return size + this.lineGap; }
   readonly audit: StrictPdfAudit = { lines: [], sections: [], continuations: [], maps: [] };
   readonly pages: Array<{ page: number; code: string; title: string; sectionKeys: string[] }> = [];
   readonly perPageMs: number[] = [];
@@ -117,8 +119,20 @@ export class StrictPdfFlow {
     return this.drawLines(lines, x, y, width, sectionId, size, bold, color, maxBottom);
   }
 
+  /** Condensed display lettering used by the reference; the entire string remains selectable. */
+  drawDisplayLine(content: string, x: number, y: number, width: number, sectionId: string, size: number, bold = true, color: Color = INK, maxBottom = BOTTOM) {
+    this.doc.setFont('NotoSans', bold ? 'bold' : 'normal'); this.doc.setFontSize(size);
+    const scale = Math.min(1, width / Math.max(1, this.doc.getTextWidth(content)));
+    const actualWidth = this.doc.getTextWidth(content) * scale, height = this.lineHeight(size);
+    if (y + height > maxBottom || x < M || x + actualWidth > W - M + .05) throw Error('REPORT_DISPLAY_OUTSIDE_BOUNDS:' + sectionId);
+    this.doc.setTextColor(...color); this.doc.text(content, x, y + size * .86, { horizontalScale: scale });
+    const area = bounds(x, y, width, maxBottom - y);
+    this.audit.lines.push({page:this.doc.getCurrentPageInfo().pageNumber,sectionId,text:content,x,y,width:actualWidth,height,bottomY:y+height,fontSize:size,lineHeight:height,lineIndex:0,contentBounds:area,cardBounds:area,overflowX:0,overflowY:0,role:size<9?'caption':'body'});
+    return y + height;
+  }
+
   drawLines(lines: readonly string[], x: number, y: number, width: number, sectionId: string, size = 10.5, bold = false, color: Color = INK, maxBottom = BOTTOM): number {
-    const lineHeight = size + 4;
+    const lineHeight = this.lineHeight(size);
     this.doc.setFont('NotoSans', bold ? 'bold' : 'normal'); this.doc.setFontSize(size); this.doc.setTextColor(...color);
     const contentBounds = bounds(x, y, width, Math.max(0, maxBottom - y));
     for (const [lineIndex, line] of lines.entries()) {
@@ -130,7 +144,8 @@ export class StrictPdfFlow {
       if (overflowX > .05 || overflowY > .05) throw new Error(`REPORT_TEXT_OUTSIDE_BOUNDS:${sectionId}`);
       this.audit.lines.push({ page: this.doc.getCurrentPageInfo().pageNumber, sectionId, text: line, x, y: yy, width: lineWidth, height: lineHeight, bottomY,
         fontSize: size, lineHeight, lineIndex, contentBounds, cardBounds: contentBounds, overflowX, overflowY, role: size < 9 ? 'caption' : 'body' });
-      this.doc.text(line, x, yy + size * .86);
+      // PDF text scaling survives BT/ET. Reset it after every condensed display title.
+      this.doc.text(line, x, yy + size * .86, { horizontalScale: 1 });
     }
     return y + lines.length * lineHeight;
   }
@@ -161,24 +176,48 @@ export class StrictPdfFlow {
   drawMap(points: readonly SafePdfMapPoint[], x: number, y: number, width: number, height: number, sectionId: string, background?: string | null) {
     // Same framing as existing ARV/rental maps; this is an explicitly labeled coordinate diagram, not invented geography.
     const view = comparableMapViewport(points, 900, 330, 65);
-    if (background) this.mapImage(background, x, y, width, height);
+    const markers = comparableMapMarkers(view);
+    let picture = { x, y, width, height };
+    if (background) {
+      const props = this.doc.getImageProperties(background);
+      const coverScale = Math.max(width / props.width, height / props.height);
+      const cover = { x: x + (width - props.width * coverScale) / 2, y: y + (height - props.height * coverScale) / 2, width: props.width * coverScale, height: props.height * coverScale };
+      // Fill the reference panel only when every existing marker remains visible.
+      const fits = markers.every(marker => {
+        const px = cover.x + marker.x / view.width * cover.width, py = cover.y + marker.y / view.height * cover.height;
+        const radius = 31 * Math.min(cover.width / 900, cover.height / 330);
+        return px - radius >= x && px + radius <= x + width && py - radius >= y && py + radius <= y + height;
+      });
+      const scale = fits ? coverScale : Math.min(width / props.width, height / props.height);
+      picture = { x: x + (width - props.width * scale) / 2, y: y + (height - props.height * scale) / 2, width: props.width * scale, height: props.height * scale };
+      this.mapImage(background, x, y, width, height, fits ? 'cover' : 'contain');
+    }
     else { this.doc.setFillColor(241, 247, 248); this.doc.setDrawColor(...LINE); this.doc.roundedRect(x, y, width, height, 6, 6, 'FD'); }
     this.doc.setDrawColor(222, 232, 235); this.doc.setLineWidth(.5);
     if (!background) for (let i = 1; i < 5; i += 1) { this.doc.line(x + width * i / 5, y + 8, x + width * i / 5, y + height - 8); this.doc.line(x + 8, y + height * i / 5, x + width - 8, y + height * i / 5); }
     const plotted: AuditMap['points'] = [];
-    for (const { x: worldX, y: worldY, anchorX, anchorY, item } of comparableMapMarkers(view)) {
-      const px = x + worldX / view.width * width;
-      const py = y + worldY / view.height * height;
-      const radius = (item.marker === 'S' ? 18 : 15) * Math.min(width / 900, height / 330);
+    for (const { x: worldX, y: worldY, anchorX, anchorY, item } of markers) {
+      const px = picture.x + worldX / view.width * picture.width;
+      const py = picture.y + worldY / view.height * picture.height;
+      const scale = Math.min(picture.width / 900, picture.height / 330), radius = 31 * scale;
       if (px - radius < x || px + radius > x + width || py - radius < y || py + radius > y + height) throw new Error('REPORT_MAP_MARKER_OUTSIDE_BOUNDS');
       plotted.push({ id: item.id, marker: item.marker, x: px, y: py, radius });
       if (background) continue;
       this.doc.setDrawColor(...INK); this.doc.setLineWidth(.5); this.doc.line(x + anchorX / 900 * width, y + anchorY / 330 * height, px, py);
       const color: Color = item.marker === 'S' ? INK : item.markerTone === 'sold' ? [230, 164, 22] : item.markerTone === 'for-sale' ? [220, 53, 69] : item.markerTone === 'complementary' ? [139, 92, 246] : [13, 135, 111];
-      this.doc.setFillColor(...color); this.doc.setDrawColor(...WHITE); this.doc.setLineWidth(2); this.doc.circle(px, py, radius, 'FD');
+      const headY = py - 15 * scale, headRadius = (item.marker === 'S' ? 14 : 12) * scale;
+      this.doc.setFillColor(...color); this.doc.setDrawColor(...WHITE); this.doc.setLineWidth(1);
+      this.doc.triangle(px - headRadius * .81, headY + headRadius * .59, px + headRadius * .81, headY + headRadius * .59, px, py, 'FD');
+      this.doc.circle(px, headY, headRadius, 'FD');
+      if (item.marker === 'S') {
+        this.doc.setFillColor(...WHITE); this.doc.triangle(px, headY - headRadius * .65, px - headRadius * .65, headY, px + headRadius * .65, headY, 'F');
+        this.doc.rect(px - headRadius * .43, headY, headRadius * .86, headRadius * .6, 'F');
+        this.doc.setFillColor(...color); this.doc.rect(px - headRadius * .13, headY + headRadius * .15, headRadius * .26, headRadius * .45, 'F');
+        continue;
+      }
       this.doc.setFont('NotoSans', 'bold'); this.doc.setFontSize(8);
       const markerWidth = this.doc.getTextWidth(item.marker);
-      this.drawText(item.marker, px - markerWidth / 2, py - 5, radius * 2, sectionId, 8, true, WHITE, y + height);
+      this.drawText(item.marker, px - markerWidth / 2, headY - 5, headRadius * 2, sectionId, 8, true, WHITE, y + height);
     }
     this.audit.maps.push({ sectionId, page: this.doc.getCurrentPageInfo().pageNumber, bounds: bounds(x, y, width, height), points: plotted });
   }
@@ -195,12 +234,14 @@ export class StrictPdfFlow {
     } catch { return false; }
   }
 
-  mapImage(data: string, x: number, y: number, width: number, height: number) {
+  mapImage(data: string, x: number, y: number, width: number, height: number, fit: 'cover' | 'contain' = 'contain') {
     if (!/^data:image\/(?:png|jpeg|jpg|webp);base64,/i.test(data)) return false;
     try {
-      const properties = this.doc.getImageProperties(data), scale = Math.min(width / properties.width, height / properties.height);
+      const properties = this.doc.getImageProperties(data), scale = (fit === 'cover' ? Math.max : Math.min)(width / properties.width, height / properties.height);
       const w = properties.width * scale, h = properties.height * scale;
+      this.doc.saveGraphicsState(); this.doc.roundedRect(x, y, width, height, 6, 6, null); this.doc.clip(); this.doc.discardPath();
       this.doc.addImage(data, properties.fileType || 'PNG', x + (width - w) / 2, y + (height - h) / 2, w, h);
+      this.doc.restoreGraphicsState();
       return true;
     } catch { return false; }
   }

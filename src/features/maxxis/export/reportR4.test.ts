@@ -49,12 +49,13 @@ describe('R4 content and privacy contract', () => {
     expect(blocks.filter(b => b.map)).toHaveLength(1);
     expect(map.map!.points.map(p => p.marker)).toEqual(['S', '1', '2', '3']);
     vm.sections.find(s => s.map && s.table)!.map!.points.pop();
-    expect(composeReportContent(vm).find(b => b.map)!.map!.points.map(p => p.marker)).toEqual(['S']);
+    const availableMarkers=vm.sections.find(s=>s.map&&s.table)!.map!.points.map(p=>p.marker);
+    expect(composeReportContent(vm).find(b => b.map)!.map!.points.map(p => p.marker)).toEqual(availableMarkers);
   });
-  it('does not expose publisher details without an explicit authorized choice', () => {
+  it('includes authorized publisher details for the full report and respects explicit opt-out', () => {
     const schema = buildMaxxisReportSchema({ ...fixture('rich'), reportType: 'DEAL_INTELLIGENCE' });
     const visible = (includePublisher?: boolean) => JSON.stringify(composeReportContent(buildStrictReportViewModel({ schema, includePublisher })));
-    expect(visible()).not.toMatch(/Fictional Publisher|publisher@example.invalid/);
+    expect(visible()).toContain('publisher@example.invalid');
     setReportPublisherDisclosure(schema, true); expect(visible()).toContain('publisher@example.invalid');
     setReportPublisherDisclosure(schema, false); expect(visible()).not.toContain('publisher@example.invalid');
     const denied = buildMaxxisReportSchema({ ...fixture('rich'), property: { ...fixture('rich').property, owner: { name: 'Fictional Publisher', allowedContacts: [] } }, reportType: 'DEAL_INTELLIGENCE' });

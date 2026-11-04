@@ -1,6 +1,7 @@
 import { buildLandReportView } from './maxxisLandReportView';
 import { comparableMapViewport, comparableMapMarkers } from './comparableMapGeometry';
 import { loadReportMediaImage } from './reportMediaImage';
+import { drawReportMapPin } from './reportMapPin';
 
 // UI-only preparation, outside the PDF renderer. The geometry is shared by ARV and rentals.
 const array = value => Array.isArray(value) ? value : [];
@@ -54,11 +55,7 @@ export async function resolveComparableMap(schema,options={}) {
     comparableMapMarkers(view).forEach(({ x: px, y: py, anchorX, anchorY, item }) => {
       context.strokeStyle = '#15384f'; context.lineWidth = 2;
       context.beginPath(); context.moveTo(anchorX, anchorY); context.lineTo(px, py); context.stroke();
-      context.save(); context.shadowColor = 'rgba(15,32,49,.35)'; context.shadowBlur = 6; context.shadowOffsetY = 2;
-      context.fillStyle = item.markerTone; context.strokeStyle = '#fff'; context.lineWidth = 4;
-      context.beginPath(); context.arc(px, py, item.marker === 'S' ? 18 : 15, 0, Math.PI * 2); context.fill(); context.stroke();
-      context.restore(); context.fillStyle = '#fff'; context.font = '700 16px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
-      context.fillText(item.marker, px, py + 1);
+      drawReportMapPin(context, { x: px, y: py, marker: item.marker, color: item.markerTone });
     });
     return canvas.toDataURL('image/png');
   } catch { return null; }

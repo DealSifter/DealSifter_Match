@@ -8,5 +8,8 @@ export function setReportPublisherDisclosure(schema: object, include: boolean) {
   selections.set(schema, include === true && canIncludeReportPublisher(schema));
 }
 export function getReportPublisherDisclosure(schema: object, explicit?: boolean): boolean {
-  return canIncludeReportPublisher(schema) && (explicit === undefined ? selections.get(schema) === true : explicit === true);
+  if (!schema) return false;
+  const selected = selections.get(schema);
+  const completeReport = (schema as { reportType?: string }).reportType === 'DEAL_INTELLIGENCE';
+  return canIncludeReportPublisher(schema) && (explicit === undefined ? selected ?? completeReport : explicit === true);
 }

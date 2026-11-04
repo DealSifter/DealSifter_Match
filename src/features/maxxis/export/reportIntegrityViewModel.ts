@@ -125,7 +125,11 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   const factFor = (key: string): Input => {
     const path = FIELD_PATHS[key];
     const canonicalFact = path ? obj(obj(canonical[path[0]])[path[1]]) : {};
-    if (Object.keys(canonicalFact).length) return canonicalFact;
+    const appValue = property[key] ?? (key === 'lotSizeSqft' ? property.lot : undefined);
+    const canonicalState = scalar(canonicalFact.semanticState || canonicalFact.status);
+    const emptyPlaceholder = canonicalFact.value == null && ['UNKNOWN', 'UNAVAILABLE', 'NOT_EVALUATED'].includes(canonicalState)
+      && !canonicalFact.conflict && appValue != null && appValue !== '';
+    if (Object.keys(canonicalFact).length && !emptyPlaceholder) return canonicalFact;
     const lookup = [...list(evidence.verifiedRecords), ...list(evidence.userProvided)].map(obj)
       .find(item => item.field === key || key === 'beds' && item.field === 'bedrooms' || key === 'baths' && item.field === 'bathrooms' || key === 'sqft' && item.field === 'livingAreaSqft');
     const raw = property[key] ?? (key === 'lotSizeSqft' ? property.lot : undefined);

@@ -1,74 +1,119 @@
 {
-  "rendererFingerprint": "dcb7f6d9af4bb140bf1bcf7f6ff5910e550a15ad0352dafd05bb75d5e9057107",
+  "rendererFingerprint": "dd7ab6fa9e749fe14cf91ab60e4b2cdde1b9254656fe334e973b359a0676d664",
   "reports": {
     "PROPERTY_RELEASE": {
       "product": "property-release",
       "pageCount": 1,
-      "pdfSha256": "82cdefd063e4870156945dd36cde0c8d1607984ec7d792c21f24093e06859eec",
+      "pdfSha256": "e3ebb2db7e8510ca17b192a3f54c66c81b7c66e03a8e900c5943c1252ae6951a",
       "pages": [
         {
           "file": "property-release-page-1.png",
-          "sha256": "2a2c30f6ad5edb7a61d3ab87717c562c2149927f0120facfe6765c0538e67b29",
+          "sha256": "c4c56d84219b66435991d9e06bb88e483bc319e84906c29d5c3d45062229c2a5",
           "width": 1191,
           "height": 1684
         }
-      ]
+      ],
+      "coverage": {
+        "photos": 5,
+        "maps": 1,
+        "profileGauge": false,
+        "criteriaChart": false,
+        "valuationRange": false,
+        "rentRange": false,
+        "scenario": false,
+        "demonstrationOnly": true,
+        "unavailableFields": false
+      }
     },
     "MAXXIS_ANALYSIS": {
       "product": "maxxis-analysis",
       "pageCount": 3,
-      "pdfSha256": "a020b2d979aafd0c08e922ef7c13391dda35832c8e2a5b33dd7adc5a7432ac85",
+      "pdfSha256": "3d2c867dfce8c6b5c8a3109646329f9bb9d8d1cc3027b900f20961e4c0395be5",
       "pages": [
         {
           "file": "maxxis-analysis-page-1.png",
-          "sha256": "45ba4d5ef5ab445025a27aa7717e58cf3d9d3bd87acae56fbb5e5c0d4497caa4",
+          "sha256": "7bb2c1ae53ebb2e94031d91b50aa95d63c7e3229f8bf1d7f8274279ec3cab6d4",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "maxxis-analysis-page-2.png",
-          "sha256": "d54a79e584802eaba3aa1146499a28ce2fd3144722ff87a770c0ace1234c3f93",
+          "sha256": "0d349287402ad6519c6ae2b9429a9434815329f3905d660b5ca6d6edc2d9df3e",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "maxxis-analysis-page-3.png",
-          "sha256": "4ff747063ee16e8cbdb3b21379c7eef77afee91a1d69c52def31001308c5b39d",
+          "sha256": "213435da08e9bb9cf4dd8ea8740d8f8ecc7693864a98447fbab3c6bf5256729c",
           "width": 1191,
           "height": 1684
         }
-      ]
+      ],
+      "coverage": {
+        "photos": 5,
+        "maps": 1,
+        "profileGauge": true,
+        "criteriaChart": true,
+        "valuationRange": false,
+        "rentRange": false,
+        "scenario": true,
+        "demonstrationOnly": true,
+        "unavailableFields": false
+      }
     },
     "DEAL_INTELLIGENCE": {
       "product": "deal-intelligence",
-      "pageCount": 4,
-      "pdfSha256": "e877903e4ec1d9a355766cc2f76f2f2aede168d3f63a5384ce004432f4a251b8",
+      "pageCount": 6,
+      "pdfSha256": "a7e4521f69c954c074c178e2b7ffd4b74016f31c7524da3ae44fbcd315ae2066",
       "pages": [
         {
           "file": "deal-intelligence-page-1.png",
-          "sha256": "2fcd7c4079bbb4ef61bddb0f179f6a86a4d8568f0478d2f332a52515f6d4fc37",
+          "sha256": "6063df93f2558ef6b140d2d8da5a4ef986e454ffe74bc43abe87ba781ac0b7b6",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-2.png",
-          "sha256": "ff0e5ba0481fb0944ce6066264534738ff15e06b88a1ca07a64576d3867b99a3",
+          "sha256": "2be7debced957e39f59eaf77626b4c128cfa7748f610d1074f70fa40c683adb7",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-3.png",
-          "sha256": "2ea15a39c848137075b3e940d65db522e71f967c5f0c6d6b119205ffdbdcfec0",
+          "sha256": "64a63b4d81a2f8b2e283aae3d3ec189fd341e934589d6423ae3edfa47a112cd2",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-4.png",
-          "sha256": "36957ba62639066aa942043b2d3f2aed1138403f4729475898504a3879f20c07",
+          "sha256": "fa7ca929793a00601ed7e31430ab43918a31a8f51ce81f835af11badec5e2e81",
+          "width": 1191,
+          "height": 1684
+        },
+        {
+          "file": "deal-intelligence-page-5.png",
+          "sha256": "ba4553067aec9a1e810a4aac1b13ced735ab6abcded0b0f54c872e101059f31f",
+          "width": 1191,
+          "height": 1684
+        },
+        {
+          "file": "deal-intelligence-page-6.png",
+          "sha256": "e1210fb8fd77a8ff637965b2e881bf7bbf1e29edd4fa3099f41d16ec9614b3db",
           "width": 1191,
           "height": 1684
         }
-      ]
+      ],
+      "coverage": {
+        "photos": 5,
+        "maps": 3,
+        "profileGauge": true,
+        "criteriaChart": true,
+        "valuationRange": true,
+        "rentRange": true,
+        "scenario": true,
+        "demonstrationOnly": true,
+        "unavailableFields": false
+      }
     }
   }
 }

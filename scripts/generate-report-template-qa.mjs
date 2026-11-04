@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { resolve, sep } from 'node:path';
 import { build } from 'esbuild';
 import { sampleReportMap } from './sample-report-maps.mjs';
 
@@ -62,13 +63,14 @@ const analysis = Object.freeze({
   riskAwareness:[{category:'MARKET',explanation:'Future rent and resale prices may change.'},{category:'EXECUTION',explanation:'Inspect the actual property and validate contractor scope before reliance.'}],
   limitations:['Fictional demonstration, not an appraisal or a real provider response.','A complete data set does not guarantee investment performance.'],
   nextSteps:['Verify title and inspection.','Review the lease and operating statements.','Confirm contractor bids and exit assumptions.'],
+  evidenceReasons:{propertyRecord:null,valuation:'NOT_REQUESTED',recordedSales:'NOT_REQUESTED'},
   provenance:{property:'FICTIONAL_SAMPLE'},
 });
 const deal = Object.freeze({
   evidenceReasons:{propertyRecord:null,valuation:null,recordedSales:null},
   executiveDealOverview:analysis.executiveSummary,whyThisPropertyStandsOut:analysis.keyObservations.positives,
   investmentFit:profileAlignment,
-  propertyEvidence:{provider:'RentCast',retrievedAt:'2026-09-21T22:00:00Z',verifiedRecords:[],userProvided:[{field:'price',value:425000},{field:'capRate',value:5.36,source:'USER_PROVIDED',status:'CONFIRMED'}],unknown:[],conflicts:[]},
+  propertyEvidence:{provider:'RentCast',retrievedAt:'2026-09-21T22:00:00Z',verifiedRecords:[{field:'yearBuilt',value:2004,status:'ACCEPTED',source:'FICTIONAL_SAMPLE'},{field:'beds',value:4,status:'ACCEPTED',source:'FICTIONAL_SAMPLE'}],userProvided:[{field:'price',value:425000}],unknown:[],conflicts:[]},
   comparableEvidence:{provider:'RentCast',retrievedAt:'2026-09-21T22:00:00Z',used:sold,supporting:[],excluded:[]},
   valuationIntelligence:{status:'ARV_AVAILABLE',range:{low:535000,high:575000},centralReference:555000,confidence:'HIGH',compsUsed:5,
     methodology:'Fictional demonstration of the existing deterministic methodology.',warnings:['Scenario illustration; not an appraisal or confirmed resale value.'],
@@ -86,10 +88,13 @@ const structuredAnalysis = Object.freeze({type:'maxxis_structured_analysis',vers
   userFacingDisclaimers:['Fictional demonstration only. Not an appraisal or return guarantee.']});
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const out = fileURLToPath(new URL('../qa/report-template/', import.meta.url));
+const fixtureDirectory = fileURLToPath(new URL('../qa/report-template/', import.meta.url));
+const outputArgument = process.argv.find(argument => argument.startsWith('--output-dir='))?.slice('--output-dir='.length);
+const out = resolve(root, outputArgument || 'qa/report-template') + sep;
+if (!out.startsWith(resolve(root, 'qa') + sep)) throw new Error('QA_OUTPUT_MUST_STAY_INSIDE_WORKSPACE_QA');
 await mkdir(out, { recursive: true });
 const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
-const samplePhotos = [samplePhoto, ...await Promise.all([1, 2, 3, 4].map(async number => `data:image/jpeg;base64,${(await readFile(`${out}sample-photos/gallery-${number}.jpg`)).toString('base64')}`))];
+const samplePhotos = [samplePhoto, ...await Promise.all([1, 2, 3, 4].map(async number => `data:image/jpeg;base64,${(await readFile(`${fixtureDirectory}sample-photos/gallery-${number}.jpg`)).toString('base64')}`))];
 // Bundle the production renderer without starting the app/dev-server lifecycle.
 const runtime = new URL('../.tmp-codex/report-template-qa/runtime.mjs', import.meta.url);
 await mkdir(new URL('.', runtime), { recursive:true });
@@ -98,6 +103,7 @@ await build({
     "export {comparableMapViewport,comparableMapMarkers} from './src/features/maxxis/export/comparableMapGeometry.ts';",
     "export { calculateScenario } from './supabase/functions/_shared/maxxis/scenarioEngine.ts';",
     "export { buildStrictReportViewModel } from './src/features/maxxis/export/reportIntegrityViewModel.ts';",
+    "export { composeReportContent } from './src/features/maxxis/export/reportContentPlan.ts';",
     "export { buildMaxxisReportSchema } from './src/domain/maxxis/maxxisReportSchema.js';",
     "export { renderMaxxisReportPdf } from './src/features/maxxis/export/maxxisReportPdf.js';",
     "export { resolveReportExportEntitlement } from './src/features/maxxis/export/reportExportEntitlement.js';",
@@ -105,7 +111,7 @@ await build({
   outfile:fileURLToPath(runtime),bundle:true,platform:'node',format:'esm',packages:'external',
   define:{'import.meta.env':'{}'},loader:{'.png':'dataurl','.ttf':'dataurl'},
 });
-const {comparableMapViewport,comparableMapMarkers,calculateScenario,buildStrictReportViewModel,buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
+const {comparableMapViewport,comparableMapMarkers,calculateScenario,buildStrictReportViewModel,composeReportContent,buildMaxxisReportSchema,renderMaxxisReportPdf,resolveReportExportEntitlement}=await import(runtime.href);
 const assumptions={purchasePrice:425000,rent:3200,vacancyRate:5,propertyTax:5120,insurance:1800,HOA:75,managementPercent:8,maintenancePercent:5,otherOperatingExpenses:900,monthlyPI:1450,cashInvested:125000};
 const calculatedOutputs=calculateScenario('BUY_AND_HOLD',assumptions);
 const activeScenario={id:'SAMPLE-SCENARIO-ONLY',propertyId:property.id,confirmed:true,strategy:'BUY_AND_HOLD',status:'COMPLETE',assumptions,calculatedOutputs,unresolvedInputs:[],source:Object.fromEntries([...Object.keys(assumptions).map(key=>[key,'USER_PROVIDED']),...Object.keys(calculatedOutputs).map(key=>[key,'CALCULATED'])])};
@@ -115,17 +121,22 @@ for (const [reportType, plan, file] of [
   ['MAXXIS_ANALYSIS', 'pro', 'maxxis-analysis.pdf'],
   ['DEAL_INTELLIGENCE', 'enterprise', 'deal-intelligence.pdf'],
 ]) {
-  const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: samplePhotos }, maxxisAnalysis: {...analysis,activeScenario}, dealIntelligence: {...deal,activeScenario}, dealMetrics: sampleMetrics, structuredAnalysis });
+  const requestedType=process.argv.find(argument=>argument.startsWith('--report-type='))?.split('=')[1];
+  if(requestedType&&reportType!==requestedType)continue;
+  const sampleProperty={...property,images:samplePhotos,noi:calculatedOutputs.NOI,capRate:calculatedOutputs.capRate,fieldProvenance:{...property.fieldProvenance,noi:{source:'CALCULATED',status:'AVAILABLE'},capRate:{source:'CALCULATED',status:'AVAILABLE'}}};
+  const schema = buildMaxxisReportSchema({ reportType, property: sampleProperty, maxxisAnalysis: {...analysis,activeScenario}, dealIntelligence: {...deal,activeScenario}, dealMetrics: sampleMetrics, structuredAnalysis });
   const viewModel=buildStrictReportViewModel({schema,language:'en'});
+  await writeFile(`${out}${file}.plan.json`,JSON.stringify({blocks:composeReportContent(viewModel).map(block=>({id:block.id,kind:block.kind,rows:block.rows?.length,table:block.table?.length,chars:block.text?.length,map:block.map?.sourceId,section:block.readingSection})),maps:viewModel.sections.filter(section=>section.map).map(section=>({id:section.id,points:section.map.points.length}))},null,2));
   const sampleMap=await sampleReportMap([{...property,marker:'S'}],{comparableMapViewport,comparableMapMarkers});
   const mapImages=Object.fromEntries(await Promise.all(viewModel.sections.filter(section=>section.map?.points.length).map(async section=>[section.id,await sampleReportMap(section.map.points,{comparableMapViewport,comparableMapMarkers})])));
   const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
   const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap, mapImages }).catch(error=>{console.error(JSON.stringify(error.layoutPlans));throw error;});
   if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
   const text=result.document.layoutAudit.lines.map(line=>line.text).join('\n');
-  if (/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(text)) throw new Error(reportType+': incomplete demonstration content: '+JSON.stringify(result.document.layoutAudit.lines.filter(line=>/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram/i.test(line.text))));
+  if (/\bUnavailable\b|not configured|not yet been queried|Coordinate diagram|could not be obtained|try again later/i.test(text)) throw new Error(reportType+': incomplete demonstration content');
   sampleCoverage[reportType]={pageCount:result.document.pageCount,photos:viewModel.property.photos.length,maps:result.document.layoutAudit.maps.length,profileGauge:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-compatibility'),criteriaTable:result.document.layoutAudit.sections.some(section=>section.sectionId==='profile-compatibility'),valuationRange:!!viewModel.sections.find(section=>section.id==='arv-market')?.range,rentRange:!!viewModel.sections.find(section=>section.id==='market-rent')?.range,scenario:!!viewModel.sections.find(section=>section.id==='saved-scenario-results'),text};
   await writeFile(`${out}${file}`, result.document.binary);
+  await writeFile(`${out}${file}.layout.json`,JSON.stringify(result.document.layoutAudit,null,2));
   process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);
 }
 await writeFile(`${out}sample-coverage.json`,JSON.stringify(sampleCoverage,null,2)+'\n');

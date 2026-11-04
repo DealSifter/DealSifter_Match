@@ -1,2 +1,2 @@
-export { ContentReportComposition as ReferenceReportComposition } from './contentReportComposition';
+export { ReferenceCloneComposition as ReferenceReportComposition } from './referenceCloneComposition';
 export { reportCategoryAccent } from './reportBrandShell';

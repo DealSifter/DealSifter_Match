@@ -33,13 +33,17 @@ describe('Maxxis archived design references and active branding', () => {
     }
   });
 
-  it('uses official branding and keeps the footer logo-free', () => {
+  it('uses official branding and a dated footer without a logo in the active composition', () => {
     const source = readFileSync(new URL('src/features/maxxis/export/maxxisReportPdf.js', root), 'utf8');
     const drawing = readFileSync(new URL('src/features/maxxis/export/strictReportPdf.ts', root), 'utf8');
-    const footer = drawing.slice(drawing.indexOf('  finish() {'), drawing.indexOf('const COPY ='));
+    const composition = readFileSync(new URL('src/features/maxxis/export/referenceCloneComposition.ts', root), 'utf8');
+    const footerStart = composition.search(/const result\s*=\s*this.flow.finish\(\)/);
+    expect(footerStart).toBeGreaterThan(0);
+    const footer = composition.slice(footerStart);
     expect(source).toContain("report-official-logo.png?inline");
-    expect(footer).not.toContain('addImage');
-    expect(footer).toContain('this.meta.generatedAt');
-    expect(footer).toContain('total');
+    expect(footer).not.toMatch(/this\.brand\(|addImage/);
+    expect(footer).toContain('this.flow.meta.generatedAt');
+    expect(footer).toContain('result.pageCount');
+    expect(drawing).toContain('if (this.plan.referenceLayout) continue;');
   });
 });
