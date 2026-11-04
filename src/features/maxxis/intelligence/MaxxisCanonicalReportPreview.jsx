@@ -96,8 +96,10 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
         generatedAt: generatedAt || undefined,
         language,
       });
+      if (!active) return;
       if (rendered.state !== 'RENDERED') throw new Error('REPORT_PREVIEW_RENDER_FAILED');
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      if (!active) return;
       pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
       loadingTask = pdfjs.getDocument({ data: rendered.document.binary.slice() });
       loadedDocument = await loadingTask.promise;

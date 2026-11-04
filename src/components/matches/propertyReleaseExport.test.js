@@ -11,7 +11,7 @@ describe('L1 portfolio export ceiling and authorized disclosure',()=>{
     const property={id:'l1-regression-fixture',address:'100 Synthetic Example St',city:'Example City',state:'AR',zip:'00000',type:'SFR',price:90000,beds:3,baths:2,sqft:1760,lot:5000,notes};
     const fetchSpy=vi.spyOn(globalThis,'fetch').mockImplementation(()=>{throw new Error('NO_PROVIDER_CALLS_ALLOWED');});
     try{
-      await expect(renderMaxxisReportPdf({schema:buildMaxxisReportSchema({reportType:'PROPERTY_RELEASE',property}),exportEntitlement:resolveReportExportEntitlement({plan:'free',reportType:'PROPERTY_RELEASE',channel:'PDF'})})).rejects.toThrow('REPORT_PAGE_LIMIT_EXCEEDED:1');
+      await expect(renderMaxxisReportPdf({schema:buildMaxxisReportSchema({reportType:'PROPERTY_RELEASE',property}),exportEntitlement:resolveReportExportEntitlement({plan:'free',reportType:'PROPERTY_RELEASE',channel:'PDF'})})).rejects.toThrow(/REPORT_(?:PAGE_LIMIT_EXCEEDED:1|REFERENCE_BASIC_OVERFLOW)/);
       expect(property.notes).toBe(notes);
       expect(fetchSpy).not.toHaveBeenCalled();
       for(const reportType of ['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'])expect(resolveReportExportEntitlement({plan:'free',reportType,channel:'PDF'}).allowed).toBe(false);

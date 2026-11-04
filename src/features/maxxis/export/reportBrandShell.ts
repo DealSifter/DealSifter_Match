@@ -233,12 +233,14 @@ export class ReportBrandShell {
     d.restoreGraphicsState();
   }
   brand(x: number, centerY: number, width = REFERENCE_DESIGN.brand.width) {
-    const properties = this.brandImage ||= this.d.getImageProperties(this.flow.logo),
-      source = REFERENCE_DESIGN.brand.source,
+    const properties = this.brandImage ||= this.flow.images.properties(this.flow.logo),
+      original = REFERENCE_DESIGN.brand.source,
+      source = { x: original.x * properties.width / 4791, y: original.y * properties.height / 1193,
+        width: original.width * properties.width / 4791, height: original.height * properties.height / 1193 },
       scale = width / source.width,
       top = centerY - source.height * scale / 2;
-    // Embed the owner's unchanged PNG. Its transparent margins do not define alignment.
-    this.d.addImage(this.flow.logo, properties.fileType || 'PNG', x - source.x * scale, top - source.y * scale, properties.width * scale, properties.height * scale, 'official-dealsifter-logo');
+    // Preserve the original brand's visible crop and proportions at any raster density.
+    this.flow.images.add(this.flow.logo, x - source.x * scale, top - source.y * scale, properties.width * scale, properties.height * scale, 'official-dealsifter-logo');
   }
   page(title: string, subtitle: string, icon = 'home') {
     const f = this.flow;

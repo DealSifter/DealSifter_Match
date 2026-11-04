@@ -48,4 +48,10 @@ describe('chat previews the actual PDF lazily',()=>{
   const{container,unmount}=render(<MaxxisDealIntelligenceReportPreview {...props}/>);await open(container);unmount();
   await act(async()=>finish());expect(renderMaxxisReportPdfCached).not.toHaveBeenCalled();
  });
+ it('does not rasterize a finished background PDF after the preview has unmounted',async()=>{
+  let finish;renderMaxxisReportPdfCached.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+  const{container,unmount}=render(<MaxxisDealIntelligenceReportPreview {...props}/>);await open(container);
+  await waitFor(()=>expect(renderMaxxisReportPdfCached).toHaveBeenCalledTimes(1));unmount();
+  await act(async()=>finish({state:'RENDERED',document:{binary}}));expect(pdf.getDocument).not.toHaveBeenCalled();
+ });
 });

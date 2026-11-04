@@ -82,9 +82,9 @@ describe('canonical PDF template behavior', () => {
     expect(translate).toHaveBeenCalledTimes(1);
   }, 30000);
   it('preserves the original-color official logo in the masthead and keeps the footer logo-free', () => {
-    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
+    const source = readFileSync(new URL('./reportPdfCore.js', import.meta.url), 'utf8');
     const drawing = readFileSync(new URL('./strictReportPdf.ts', import.meta.url), 'utf8');
-    expect(source).toContain("import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline'");
+    expect(source).toContain("import officialDealSifterLogo from '../../../assets/maxxis/report-pdf-logo.png?inline'");
     expect(drawing).toContain("this.doc.addImage(this.logo");
     expect(`${source}${drawing}`).not.toMatch(/(?:recolor|tint|grayscale)\s*\(/i);
     const composition = readFileSync(new URL('./referenceCloneComposition.ts', import.meta.url), 'utf8');

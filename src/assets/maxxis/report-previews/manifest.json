@@ -1,14 +1,14 @@
 {
-  "rendererFingerprint": "dd7ab6fa9e749fe14cf91ab60e4b2cdde1b9254656fe334e973b359a0676d664",
+  "rendererFingerprint": "c55337bb68cf048db3e72b5c56aef99ea77201e065f43845ddd0e0ee043bebaf",
   "reports": {
     "PROPERTY_RELEASE": {
       "product": "property-release",
       "pageCount": 1,
-      "pdfSha256": "e3ebb2db7e8510ca17b192a3f54c66c81b7c66e03a8e900c5943c1252ae6951a",
+      "pdfSha256": "b02f651ab4c4831588f9a55f8a6065b45c94f0ba349da43106cef4d833d02c7d",
       "pages": [
         {
           "file": "property-release-page-1.png",
-          "sha256": "c4c56d84219b66435991d9e06bb88e483bc319e84906c29d5c3d45062229c2a5",
+          "sha256": "d19f247bb2c59b744b9009b54c6059fa48bd72cf1e6f172bc75ea0b3521091b4",
           "width": 1191,
           "height": 1684
         }
@@ -28,23 +28,23 @@
     "MAXXIS_ANALYSIS": {
       "product": "maxxis-analysis",
       "pageCount": 3,
-      "pdfSha256": "3d2c867dfce8c6b5c8a3109646329f9bb9d8d1cc3027b900f20961e4c0395be5",
+      "pdfSha256": "f69dca8e71cc64dc9939f994ebc31a073ca517f9e30b44bfc3558124a261542f",
       "pages": [
         {
           "file": "maxxis-analysis-page-1.png",
-          "sha256": "7bb2c1ae53ebb2e94031d91b50aa95d63c7e3229f8bf1d7f8274279ec3cab6d4",
+          "sha256": "b6cf6669a9d21186268900e2f9669b4fc537a30bfb24d1f8d7e6604ccc53a8f6",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "maxxis-analysis-page-2.png",
-          "sha256": "0d349287402ad6519c6ae2b9429a9434815329f3905d660b5ca6d6edc2d9df3e",
+          "sha256": "996cdc27a0fe66b12aea9a52e2c60de7dc46877908213c726723eca749af610e",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "maxxis-analysis-page-3.png",
-          "sha256": "213435da08e9bb9cf4dd8ea8740d8f8ecc7693864a98447fbab3c6bf5256729c",
+          "sha256": "1b9000164a89dec3cabd65bdb7e402b1710044a16317dec408883290fe2bc751",
           "width": 1191,
           "height": 1684
         }
@@ -64,41 +64,41 @@
     "DEAL_INTELLIGENCE": {
       "product": "deal-intelligence",
       "pageCount": 6,
-      "pdfSha256": "a7e4521f69c954c074c178e2b7ffd4b74016f31c7524da3ae44fbcd315ae2066",
+      "pdfSha256": "22a61433f28a46da077ba15efb63847ae7fbc7afb39be98781018ea3f7ad7690",
       "pages": [
         {
           "file": "deal-intelligence-page-1.png",
-          "sha256": "6063df93f2558ef6b140d2d8da5a4ef986e454ffe74bc43abe87ba781ac0b7b6",
+          "sha256": "9ca1bb912aa008a6ba7e8bf763df0741b1ee1c29c424b754479ec4238b3a2ba7",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-2.png",
-          "sha256": "2be7debced957e39f59eaf77626b4c128cfa7748f610d1074f70fa40c683adb7",
+          "sha256": "90c25645c4b7189ed6271a94f231bbbda64a83266d61e7a6f179f48405b5bd34",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-3.png",
-          "sha256": "64a63b4d81a2f8b2e283aae3d3ec189fd341e934589d6423ae3edfa47a112cd2",
+          "sha256": "e5060264857fc4f770478d32d696465f0f5099bcfd791cfc76ce8fdc921e0b39",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-4.png",
-          "sha256": "fa7ca929793a00601ed7e31430ab43918a31a8f51ce81f835af11badec5e2e81",
+          "sha256": "51b4e1fc12f221e4f46d1482ed8ad1e9e86f19258822432496ce62f846c5ad61",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-5.png",
-          "sha256": "ba4553067aec9a1e810a4aac1b13ced735ab6abcded0b0f54c872e101059f31f",
+          "sha256": "9bc4e2edb57e920186f3dd07de26d07d86dc98695404ad6a22c2b496a74599ac",
           "width": 1191,
           "height": 1684
         },
         {
           "file": "deal-intelligence-page-6.png",
-          "sha256": "e1210fb8fd77a8ff637965b2e881bf7bbf1e29edd4fa3099f41d16ec9614b3db",
+          "sha256": "c5fedbec7074b2237d74e3cd72cf44b1b1aafee0b9ff8b599927181a3f6b7333",
           "width": 1191,
           "height": 1684
         }

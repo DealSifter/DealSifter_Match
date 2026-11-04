@@ -2,6 +2,7 @@ import type { jsPDF } from 'jspdf';
 import { comparableMapViewport, comparableMapMarkers } from './comparableMapGeometry';
 import type { ReportViewModel, ReportSection } from './reportIntegrityTypes';
 import { ReferenceReportComposition, reportCategoryAccent } from './referenceReportPdf';
+import { ReportPdfImages } from './reportPdfImages';
 
 type Color = [number, number, number];
 type Tone = 'neutral' | 'positive' | 'warning' | 'accent';
@@ -52,6 +53,7 @@ const now = () => typeof performance !== 'undefined' ? performance.now() : Date.
 
 /** Drawing receives safe primitives only. There is no schema, domain entity or I/O access here. */
 export class StrictPdfFlow {
+  readonly images: ReportPdfImages;
   lineGap = 4;
   lineHeight(size: number) { return size + this.lineGap; }
   readonly audit: StrictPdfAudit = { lines: [], sections: [], continuations: [], maps: [] };
@@ -65,6 +67,7 @@ export class StrictPdfFlow {
 
   constructor(readonly doc: jsPDF, readonly meta: SafePdfMeta, readonly logo: string, private readonly plan: FlowPlan = {}) {
     this.accent = reportCategoryAccent(meta.reportType);
+    this.images = new ReportPdfImages(doc);
   }
 
   panel(x: number, y: number, width: number, height: number, tone: Tone = 'neutral') {
@@ -179,7 +182,7 @@ export class StrictPdfFlow {
     const markers = comparableMapMarkers(view);
     let picture = { x, y, width, height };
     if (background) {
-      const props = this.doc.getImageProperties(background);
+      const props = this.images.properties(background);
       const coverScale = Math.max(width / props.width, height / props.height);
       const cover = { x: x + (width - props.width * coverScale) / 2, y: y + (height - props.height * coverScale) / 2, width: props.width * coverScale, height: props.height * coverScale };
       // Fill the reference panel only when every existing marker remains visible.
@@ -225,11 +228,11 @@ export class StrictPdfFlow {
   image(data: string, x: number, y: number, width: number, height: number, fit: 'cover' | 'contain' = 'cover') {
     if (!/^data:image\/(?:png|jpeg|jpg|webp);base64,/i.test(data)) return false;
     try {
-      const properties = this.doc.getImageProperties(data);
+      const properties = this.images.properties(data);
       const scale = (fit === 'contain' ? Math.min : Math.max)(width / properties.width, height / properties.height);
       const imageWidth = properties.width * scale, imageHeight = properties.height * scale;
       this.doc.saveGraphicsState(); this.doc.roundedRect(x, y, width, height, 6, 6, null); this.doc.clip(); this.doc.discardPath();
-      this.doc.addImage(data, properties.fileType || 'JPEG', x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight); this.doc.restoreGraphicsState();
+      this.images.add(data, x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight); this.doc.restoreGraphicsState();
       return true;
     } catch { return false; }
   }
@@ -237,10 +240,10 @@ export class StrictPdfFlow {
   mapImage(data: string, x: number, y: number, width: number, height: number, fit: 'cover' | 'contain' = 'contain') {
     if (!/^data:image\/(?:png|jpeg|jpg|webp);base64,/i.test(data)) return false;
     try {
-      const properties = this.doc.getImageProperties(data), scale = (fit === 'cover' ? Math.max : Math.min)(width / properties.width, height / properties.height);
+      const properties = this.images.properties(data), scale = (fit === 'cover' ? Math.max : Math.min)(width / properties.width, height / properties.height);
       const w = properties.width * scale, h = properties.height * scale;
       this.doc.saveGraphicsState(); this.doc.roundedRect(x, y, width, height, 6, 6, null); this.doc.clip(); this.doc.discardPath();
-      this.doc.addImage(data, properties.fileType || 'PNG', x + (width - w) / 2, y + (height - h) / 2, w, h);
+      this.images.add(data, x + (width - w) / 2, y + (height - h) / 2, w, h);
       this.doc.restoreGraphicsState();
       return true;
     } catch { return false; }

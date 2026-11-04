@@ -1,11 +1,8 @@
 import { getReportPublisherDisclosure } from './reportPublisherDisclosure';
-import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline';
-import notoSansRegular from '../../../assets/maxxis/fonts/NotoSans-Regular.ttf?inline';
-import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
-import { buildStrictReportViewModel, validateReportViewModel, validateRenderedReportText } from './reportIntegrityViewModel.ts';
-import { drawStrictReportPdf } from './strictReportPdf.ts';
+import { buildStrictReportViewModel, validateReportViewModel } from './reportIntegrityViewModel.ts';
 import { getPreparedReportMaps } from './reportMapAssets';
+import { renderReportPdfInWorker } from './reportPdfWorkerClient';
 import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
 import { REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS } from './maxxisReportVisualPolicy';
 
@@ -84,46 +81,22 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const validation = validateReportViewModel(viewModel);
   if (!validation.valid) return Object.freeze({ state: 'VALIDATION_FAILED', document: null, validation });
   const preparationMs = roundedMs(performanceNow() - startedAt);
-  const moduleStartedAt = performanceNow();
-  const { jsPDF } = await import('jspdf');
-  const moduleMs = roundedMs(performanceNow() - moduleStartedAt);
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
-  if (schema.reportTrace) doc.setProperties({subject:`DealSifter report_id=${schema.reportTrace.reportId}; request_id=${schema.reportTrace.requestId}`});
-  doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular.split(',')[1]);
-  doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold.split(',')[1]);
-  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
   await yieldReportRendering();
-  const bodyStartedAt = performanceNow();
   emitReportStage('pdf_assets_ready', { durationMs: 0, networkCalls: 0 });
-  const rendered = await drawStrictReportPdf({ doc, viewModel, logo: officialDealSifterLogo,
-    generatedAt: prepared.document.cover.generatedAt,
+  const input = { preparedDocument: prepared.document, viewModel, reportTrace: schema.reportTrace,
     locationMapData: typeof mapImageData === 'string' && /^data:image\//i.test(mapImageData) ? mapImageData : getPreparedReportMaps(schema).location || null,
     preparedMaps: { ...getPreparedReportMaps(schema), ...Object.fromEntries(Object.entries(mapImages || {}).filter(([, image]) => typeof image === 'string' && /^data:image\//i.test(image))) },
-    yieldRendering: async () => {
-      await yieldReportRendering();
-    },
-  });
-  const pageRenderMs = roundedMs(performanceNow() - bodyStartedAt);
-  const outputValidation = validateRenderedReportText(rendered.layoutAudit.lines.map(line => line.text).join('\n'));
-  if (!outputValidation.valid) return Object.freeze({ state: 'VALIDATION_FAILED', document: null, validation: outputValidation });
-  const assemblyStartedAt = performanceNow();
+  };
+  // Browser PDF encoding must not occupy the UI thread. Offline QA and browsers
+  // without Workers use the exact same deterministic core, with task breaks.
+  const background = typeof window !== 'undefined' && typeof Worker === 'function';
+  const rendered = background ? await renderReportPdfInWorker(input)
+    : await (await import('./reportPdfCore')).renderPreparedReportPdf(input, yieldReportRendering);
+  if (rendered.state !== 'RENDERED') return rendered;
   await yieldReportRendering();
-  const binary = new Uint8Array(doc.output('arraybuffer'));
-  const assemblyMs = roundedMs(performanceNow() - assemblyStartedAt);
-  const timings = Object.freeze({ totalMs: roundedMs(performanceNow() - startedAt), preparationMs, moduleMs, assetsMs: 0,
-    pageRenderMs, assemblyMs, perPageMs: Object.freeze(rendered.perPageMs), networkCalls: 0 });
-  emitReportStage('pdf_assembly_complete', { durationMs: assemblyMs });
+  const timings = Object.freeze({ ...rendered.timings, totalMs: roundedMs(performanceNow() - startedAt), preparationMs,
+    perPageMs: Object.freeze(rendered.timings.perPageMs), background });
+  emitReportStage('pdf_assembly_complete', { durationMs: timings.assemblyMs });
   emitReportStage('pdf_generation_complete', timings);
-  return Object.freeze({ state: 'RENDERED', timings, document: Object.freeze({
-    ...prepared.document,
-    cover: Object.freeze({ ...prepared.document.cover, propertyAddress: viewModel.property.address, propertyType: viewModel.property.type,
-      strategy: viewModel.property.strategy, resolvedAnalysisStrategy: viewModel.property.strategy, heroImage: viewModel.property.photos[0] || null }),
-    pages: Object.freeze(rendered.pages), pageCount: rendered.pageCount, binary, mimeType: 'application/pdf',
-    strictViewModel: viewModel,
-    narrativeProjection: Object.freeze({ notes: Object.freeze(viewModel.property.notes.slice()) }),
-    layoutAudit: Object.freeze({ lines: Object.freeze(rendered.layoutAudit.lines), sections: Object.freeze(rendered.layoutAudit.sections), continuations: Object.freeze(rendered.layoutAudit.continuations), maps: Object.freeze(rendered.layoutAudit.maps) }),
-    outputValidation,
-    layoutPlan: Object.freeze(rendered.layoutPlan),
-  }) });
+  return Object.freeze({ ...rendered, timings, document: Object.freeze(rendered.document) });
 }
