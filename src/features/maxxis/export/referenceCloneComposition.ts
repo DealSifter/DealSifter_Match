@@ -142,6 +142,56 @@ export class ReferenceCloneComposition extends ReportBrandShell {
   private factsHeight(rows: ReportRow[], width: number, size = this.font, columns = 1) {
     return this.factRowsPlan(rows, width, size, columns).height;
   }
+  private basicBlockSize(block: ContentBlock) {
+    const width = W - 18,
+      heading = Math.max(12, this.h(block.title, width, 7.5, true));
+    let body = (block.rows?.length ? this.factsHeight(block.rows, width, 6.8, 2) : 0)
+      + (block.text ? this.h(block.text, width, 6.8) : 0);
+    if (block.table?.length) {
+      const widths = this.tableColumnWidths(block, width);
+      if (block.columns?.length) body += this.tableRowHeight(block.columns, widths, true);
+      body += block.table.reduce((sum, row) => sum + this.tableRowHeight(row, widths), 0);
+    }
+    if (block.afterText) body += 3 + this.h(block.afterText, width, 6.8);
+    return { heading, height: heading + body + 4 };
+  }
+  /** Measure every remaining block before drawing the bottom half of the one-page release. */
+  private basicLowerPlan(blocks: ContentBlock[], start: number, hasGallery: boolean, note: ContentBlock | undefined, showMap: boolean, mapId?: string) {
+    const sources = blocks.find(block => block.id === 'report-sources'),
+      noteWidth = (showMap ? W * (1 - DESIGN.overview.mapWidthRatio) - G : W) - 16,
+      previousGap = this.flow.lineGap;
+    for (const galleryHeight of hasGallery ? [DESIGN.gallery.heights.PROPERTY_RELEASE, 92, 74] : [0]) {
+      for (const lineGap of [2, 1]) {
+        this.flow.lineGap = lineGap;
+        const rowTop = start + (hasGallery ? galleryHeight + 9 : 0),
+          noteLines = note ? this.flow.lines(note.text || '', noteWidth, 7) : [],
+          sourceHeight = sources ? 14 + this.factsHeight(sources.rows || [], noteWidth, 6.5) + (sources.text ? this.h(sources.text, noteWidth, 6.5) : 0) : 0;
+        for (const inlineSources of note && sources ? [true, false] : [false]) {
+          const remaining = blocks.filter(block => !this.used.has(block.id)
+            && block.id !== note?.id && block.id !== mapId && block.id !== 'report-location'
+            && !(inlineSources && block.id === sources?.id)),
+            baseline = [...this.details, ...remaining],
+            baselineHeight = baseline.reduce((sum, block) => sum + this.basicBlockSize(block).height, 0),
+            naturalHeight = note ? 37 + noteLines.length * (7 + lineGap) + (inlineSources ? 5 + sourceHeight : 0) : 0,
+            height = showMap ? DESIGN.overview.mapHeight : note ? Math.max(42, Math.min(naturalHeight, BOTTOM - rowTop - baselineHeight - G)) : 0,
+            capacity = Math.max(0, Math.floor((height - 37 - (inlineSources ? 5 + sourceHeight : 0)) / (7 + lineGap)));
+          if (inlineSources && noteLines.length > capacity) continue;
+          const continued = note && noteLines.length > capacity ? {
+            ...note, id: note.id + '-continued', text: noteLines.slice(capacity).join(' ')
+          } : null;
+          const tail = [...this.details, ...(continued ? [continued] : []), ...remaining],
+            tailHeight = tail.reduce((sum, block) => sum + this.basicBlockSize(block).height, 0),
+            cursor = rowTop + height + (height && tail.length ? G : 0);
+          if (cursor + tailHeight <= BOTTOM + .01) {
+            this.flow.lineGap = previousGap;
+            return { galleryHeight, height, lineGap, inlineSources, capacity, cursor };
+          }
+        }
+      }
+    }
+    this.flow.lineGap = previousGap;
+    throw Error('REPORT_REFERENCE_BASIC_OVERFLOW');
+  }
   private range(range: NonNullable<ContentBlock['range']>, b: Box, id: string) {
     const y = b.y + 17;
     this.d.setFillColor(225, 233, 239);
@@ -620,9 +670,16 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     await yieldRendering();
     taxes.forEach(block => this.used.add(block.id));
     let next = factsTop + factHeight + DESIGN.gallery.gapBefore;
+    const note = blocks.find(block => block.id === 'listing-description'),
+      map = blocks.find(block => block.map && !block.map.sourceId) || (p.locationPoint ? {
+        id: 'overview-location', title: 'Location map', kind: 'map' as const,
+        map: { points: [p.locationPoint], caption: '' }
+      } : undefined),
+      showMap = !!map && !!this.location,
+      basicPlan = basic ? this.basicLowerPlan(blocks, next, p.photos.length > 1, note, showMap, map?.id) : undefined;
     const gallery = p.photos.slice(1, 5);
     if (gallery.length) {
-      const height = DESIGN.gallery.heights[this.vm.reportType],
+      const height = basicPlan?.galleryHeight ?? DESIGN.gallery.heights[this.vm.reportType],
         b = {
           x: X,
           y: next,
@@ -638,25 +695,14 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       this.audit('property-gallery', 'Property photos', 'photos', b, 1);
       next += height + 9;
     }
-    const note = blocks.find(block => block.id === 'listing-description'),
-      map = blocks.find(block => block.map && !block.map.sourceId) || (p.locationPoint ? {
-        id: 'overview-location',
-        title: 'Location map',
-        kind: 'map' as const,
-        map: {
-          points: [p.locationPoint],
-          caption: ''
-        }
-      } : undefined),
-      showMap = !!map && !!this.location;
+    if (basicPlan) this.flow.lineGap = basicPlan.lineGap;
     const mapWidth = W * DESIGN.overview.mapWidthRatio,
       sources = blocks.find(block => block.id === 'report-sources'),
       noteBodyWidth = (showMap ? W - mapWidth - G : W) - 16,
       sourceHeight = sources ? 14 + this.factsHeight(sources.rows || [], noteBodyWidth, 6.5) + (sources.text ? this.h(sources.text, noteBodyWidth, 6.5) : 0) : 0,
-      candidateHeight = Math.max(42, Math.min(showMap ? DESIGN.overview.mapHeight : Infinity, BOTTOM - next - (basic ? DESIGN.release.compactTailReserve : 0))),
-      inlineSources = this.small && !!note && !!sources && this.h(note.text || '', noteBodyWidth, basic ? 7 : 8.5) + 5 + sourceHeight <= candidateHeight - 37,
-      reserve = basic ? inlineSources ? DESIGN.release.compactTailReserve : DESIGN.release.tailReserve : 0,
-      notesHeight = Math.max(42, Math.min(showMap ? DESIGN.overview.mapHeight : Infinity, BOTTOM - next - reserve));
+      candidateHeight = Math.max(42, Math.min(showMap ? DESIGN.overview.mapHeight : Infinity, BOTTOM - next)),
+      inlineSources = basicPlan?.inlineSources ?? (this.small && !!note && !!sources && this.h(note.text || '', noteBodyWidth, basic ? 7 : 8.5) + 5 + sourceHeight <= candidateHeight - 37),
+      notesHeight = basicPlan?.height ?? candidateHeight;
     if (showMap) {
       const b = {
           x: X,
@@ -682,14 +728,14 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         body = this.frame(b, this.t('Notas', 'Notes', 'Notas'), 'document', note.id),
         noteSize = basic ? 7 : 8.5;
       const lines = this.flow.lines(note.text || '', body.w, noteSize),
-        capacity = Math.max(0, Math.floor(body.h / (noteSize + this.flow.lineGap)));
+        capacity = basicPlan?.capacity ?? Math.max(0, Math.floor(body.h / (noteSize + this.flow.lineGap)));
       const noteEnd = this.flow.drawLines(lines.slice(0, capacity), body.x, body.y, body.w, note.id, noteSize, false, BODY, b.y + b.h);
       if (lines.length > capacity) this.details.push({
         ...note,
         id: note.id + '-continued',
         text: lines.slice(capacity).join(' ')
       });
-      if (this.small && sources) {
+      if (this.small && sources && (!basicPlan || basicPlan.inlineSources)) {
         const need = 14 + this.factsHeight(sources.rows || [], body.w, 6.5) + (sources.text ? this.h(sources.text, body.w, 6.5) : 0);
         if (noteEnd + 5 + need <= b.y + b.h - 6) {
           const sy = this.write(sources.title, body.x, noteEnd + 5, body.w, sources.id, 7, true, INK, b.y + b.h);
@@ -706,7 +752,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       this.audit(note.id, note.title, 'text', b, 1);
       this.used.add(note.id);
     }
-    this.cursor = basic ? BOTTOM - reserve + 7 : note || showMap ? BOTTOM : next;
+    this.cursor = basicPlan?.cursor ?? (note || showMap ? BOTTOM : next);
   }
   private profile(block: ContentBlock, risk: ContentBlock | undefined) {
     const start = this.cursor,
@@ -1354,7 +1400,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     if (this.vm.reportType === 'PROPERTY_RELEASE') {
       const tail = [...this.details, ...blocks.filter(block => !this.used.has(block.id) && block.id !== 'report-location')];
       for (const block of tail) {
-        const needed = 16 + (block.rows ? this.factsHeight(block.rows, W - 18, 6.8, 2) : 0) + (block.text ? this.h(block.text, W - 18, 6.8) : 0);
+        const measured = this.basicBlockSize(block), needed = measured.height;
         if (this.cursor + needed > BOTTOM) throw Object.assign(Error('REPORT_REFERENCE_BASIC_OVERFLOW'), {
           layoutPlans: tail.map(item => ({
             id: item.id,
@@ -1366,7 +1412,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         });
         let y = this.cursor;
         this.write(block.title, X + 9, y, W - 18, block.id, 7.5, true, INK);
-        y += 12;
+        y += measured.heading;
         if (block.rows?.length) y = this.rows(block.rows, {
           x: X + 9,
           y,
@@ -1374,6 +1420,20 @@ export class ReferenceCloneComposition extends ReportBrandShell {
           h: BOTTOM - y
         }, block.id, 6.8, 2);
         if (block.text) y = this.write(block.text, X + 9, y, W - 18, block.id, 6.8, false, BODY);
+        if (block.table?.length) {
+          const widths = this.tableColumnWidths(block, W - 18),
+            rows = [...(block.columns?.length ? [block.columns] : []), ...block.table];
+          for (const [index, row] of rows.entries()) {
+            const heading = !!block.columns?.length && index === 0;
+            let x = X + 9;
+            row.forEach((text, column) => {
+              this.write(text, x + 4, y, widths[column] - 8, block.id, 7.5, heading, BODY);
+              x += widths[column];
+            });
+            y += this.tableRowHeight(row, widths, heading);
+          }
+        }
+        if (block.afterText) y = this.write(block.afterText, X + 9, y + 3, W - 18, block.id, 6.8, false, BODY);
         this.audit(block.id, block.title, block.kind, {
           x: X,
           y: this.cursor,
@@ -1383,6 +1443,7 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         this.cursor = y + 4;
         this.used.add(block.id);
       }
+      this.flow.lineGap = 2;
     } else {
       const market = blocks.filter(block => block.kind === 'table' && block.readingSection === 3).sort((a, b) => Number(!/sales|sold|landAcquisition/i.test(a.id)) - Number(!/sales|sold|landAcquisition/i.test(b.id)));
       if (market.length) {

@@ -19,5 +19,6 @@ describe('L1 real-renderer compatibility and safe failure details', () => {
     const message = propertyReleaseFailureMessage(new Error('REPORT_REFERENCE_BASIC_OVERFLOW'), language);
     expect(message).toContain('[REPORT_REFERENCE_BASIC_OVERFLOW]');
     expect(message).not.toContain('undefined');
+    expect(message).not.toMatch(/Review the property description|Revise a descrição|Revisa la descripción/);
   });
 });

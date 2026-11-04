@@ -21,7 +21,7 @@ export function propertyReleaseFailureMessage(error, language = 'en') {
   const code = reportPdfFailureCode(error), pt = /^pt/i.test(language), es = /^es/i.test(language);
   const overflow = ['REPORT_REFERENCE_BASIC_OVERFLOW', 'REPORT_PAGE_LIMIT_EXCEEDED', 'REPORT_REFERENCE_BLOCK_EXCEEDS_PAGE'].includes(code);
   const message = overflow
-    ? pt ? 'O conteúdo excede a página do relatório básico. Revise a descrição do imóvel.' : es ? 'El contenido supera la página del informe básico. Revisa la descripción de la propiedad.' : 'The content exceeds the basic report page. Review the property description.'
+    ? pt ? 'Não foi possível distribuir todo o conteúdo na página do relatório básico.' : es ? 'No se pudo distribuir todo el contenido en la página del informe básico.' : 'The basic report could not fit all of its content on one page.'
     : code === 'REPORT_TRACE_UNAVAILABLE'
       ? pt ? 'Abra o app em HTTPS ou em um navegador atualizado para gerar o relatório.' : es ? 'Abre la app en HTTPS o en un navegador actualizado para generar el informe.' : 'Open the app over HTTPS or in an updated browser to generate the report.'
       : code === 'REPORT_PROPERTY_IDENTITY_MISMATCH'

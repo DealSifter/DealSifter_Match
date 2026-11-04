@@ -9,7 +9,7 @@ export const REFERENCE_DESIGN = Object.freeze({
   overview: { cardY: 82, paddingBottom: 8, factsGap: 7, y: 144, height: 155, photoX: 291, photoWidth: 274, factsY: 314, minFactsHeight: 100, mapWidthRatio: .57, mapHeight: 194 },
   facts: { bottom: 841.89 / 2, minimumFontSize: 7, lineGap: 1, headerHeight: 29, bottomPadding: 5 },
   gallery: { gapBefore: 4, imageTop: 33, paddingBottom: 8, heights: { PROPERTY_RELEASE: 110, MAXXIS_ANALYSIS: 125, DEAL_INTELLIGENCE: 112 } },
-  release: { heroHeight: 134, tailReserve: 78, compactTailReserve: 42, recordsColumns: 2 },
+  release: { heroHeight: 134, recordsColumns: 2 },
   comparableMaps: { pairedHeight: 165, singleHeight: 190 },
   panel: { radius: 6, gap: 7, padding: 8, titleSize: 11, icon: 19, header: 29 },
   profile: { topHeight: 184, bottomHeight: 204, gaugeRadius: 52, gaugeWidth: 15 },
