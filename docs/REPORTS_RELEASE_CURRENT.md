@@ -1,6 +1,6 @@
 # Relatórios / Maxxis — referência da entrega
 
-Atualização: 5 de novembro de 2026. Publicação em produção autorizada pelo proprietário nesta data; em preparação até o recibo de verificação final.
+Atualização: 5 de novembro de 2026. **Correções de relatórios publicadas em produção**, conforme autorização do proprietário. R-3 conversacional continua sem aceite funcional.
 
 ## Escopo da publicação
 
@@ -19,6 +19,8 @@ Nenhuma mudança de pricing, Nuggets, Stripe, motores financeiros, provedores ou
 - Exemplos fictícios do aplicativo regenerados: 1/3/6 páginas, com imagens e mapas locais; nenhum dado ilustrativo é usado como evidência de imóvel real.
 - Resultados detalhados e limites de reprodução: [aceite POST-SMOKE](../POST_SMOKE_PDF_AND_R3_ACCEPTANCE.md).
 - Artefatos atuais e recibos: [índice QA](../qa/README.md).
+- Validação de entrega: 399/399 testes de exportação, previews, recuperação e CORS com mocks; TypeScript direcionado e build de produção PASS. O teste antigo que exigia uma promessa de chat foi atualizado para proibi-la enquanto R-3 não estiver homologado.
+- Worker compilado em navegador com CPU reduzida a 1/4: L1/L2/L3 renderizados em aproximadamente 2–3 segundos com interface responsiva e zero requisições externas. Tempos são das fixtures locais, não promessa para toda aquisição real.
 
 ## R-3: pendência explícita
 
@@ -37,6 +39,12 @@ Segredos, dados reais de contato, PDFs de QA, PNGs de QA e o arquivo histórico 
 
 ## Publicação e recuperação
 
-Target: projeto Vercel `prj_QPyhaESQ9dpLfgSfwzm4wxirLbs5`, produção `https://dealsiftermatch.vercel.app`; Supabase público `cyeipfskwwisbbayyaca`. A configuração pública foi lida da produção vigente e será mantida, alterando somente o identificador de release.
+Target: projeto Vercel `prj_QPyhaESQ9dpLfgSfwzm4wxirLbs5`, produção `https://dealsiftermatch.vercel.app`; Supabase público `cyeipfskwwisbbayyaca`. A configuração pública foi lida da produção vigente e mantida, alterando somente o identificador de release. A flag de Property Intelligence permanece `false`.
 
-Ponto de recuperação anterior: deployment `dpl_3kGPL8trni6aNi48PpMVVKsesrnr`, commit `26dc8ff58100af7b1ffa912bf5e7c46c7d427a93`. O stash protegido permanece intacto. Não haverá push Git nesta entrega; os commits são locais e o deploy usa o pacote isolado correspondente ao commit validado.
+Código publicado: `6048598b96c756c5eb7128513ea6bdf237e6633e`. Commit de limpeza/documentação: `69e10b6c525dacbd33ac9e29eae8aadddbd51c23`. Deployment: `dpl_7d6TWLVQT6ji4GtbnE9zaK6bhrCX`, READY, HTTP 200. Release stamp: `maxxis-post-smoke-6048598b96c7`.
+
+Os hashes do entrypoint, de sete módulos de runtime e das dez páginas de exemplo conferem com o pacote de 138 arquivos. PDFs reais, arquivos de QA, sourcemaps e segredos foram excluídos do pacote. O frontend publicado é o pacote isolado do commit de código; commits posteriores de documentação não alteram esse runtime.
+
+**Pós-deploy: PASS.** Abertura em desktop/mobile sem erros de runtime ou falhas de assets; L1/L2/L3 gerados pelo worker efetivamente servido em produção; download real do Basic validado com worker disponível e bloqueado, preservando a descrição completa e a responsividade. Fixtures fictícias, sem conta autenticada, sem débito e sem chamadas aos provedores. Não se trata de certificação do percurso autenticado R-3. Recibo consolidado: [release-verification.json](../qa/post-smoke-pdf-r3/release-verification.json).
+
+Ponto de recuperação anterior: deployment `dpl_3kGPL8trni6aNi48PpMVVKsesrnr`, commit `26dc8ff58100af7b1ffa912bf5e7c46c7d427a93`. O stash protegido permanece intacto. Não houve push Git nesta entrega; os commits são locais e o deploy usa o pacote isolado correspondente ao commit validado.

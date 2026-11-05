@@ -1,0 +1,142 @@
+{
+  "observedUtc": "2026-11-05T22:43:52.135Z",
+  "status": "PASS_TECHNICAL_REPORT_RELEASE",
+  "functionalR3": "NOT_ACCEPTED_NOT_ENABLED_BY_THIS_RELEASE",
+  "canonicalUrl": "https://dealsiftermatch.vercel.app",
+  "sourceCommit": "6048598b96c756c5eb7128513ea6bdf237e6633e",
+  "deploymentId": "dpl_7d6TWLVQT6ji4GtbnE9zaK6bhrCX",
+  "readyState": "READY",
+  "tests": {
+    "passed": 399,
+    "total": 399
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "packageFiles": 138,
+  "previewPagesHashVerified": 10,
+  "infoPreviewAssets": "HASH_VERIFIED",
+  "chatPreviewRuntime": "HASH_VERIFIED",
+  "browserSmoke": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "http": 200,
+      "rootChildren": 1,
+      "hasBrand": true,
+      "hasSignIn": true,
+      "runtimeErrors": 0,
+      "assetFailures": 0,
+      "providerRequests": 0
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "http": 200,
+      "rootChildren": 1,
+      "hasBrand": true,
+      "hasSignIn": false,
+      "runtimeErrors": 0,
+      "assetFailures": 0,
+      "providerRequests": 0
+    }
+  ],
+  "productionWorker": [
+    {
+      "type": "PROPERTY_RELEASE",
+      "state": "RENDERED",
+      "pages": 1,
+      "photos": 5,
+      "maps": 1,
+      "pdfHeader": "%PDF-",
+      "durationMs": 8875,
+      "uiTicks": 853
+    },
+    {
+      "type": "MAXXIS_ANALYSIS",
+      "state": "RENDERED",
+      "pages": 3,
+      "photos": 5,
+      "maps": 1,
+      "pdfHeader": "%PDF-",
+      "durationMs": 1563,
+      "uiTicks": 154
+    },
+    {
+      "type": "DEAL_INTELLIGENCE",
+      "state": "RENDERED",
+      "pages": 6,
+      "photos": 5,
+      "maps": 2,
+      "pdfHeader": "%PDF-",
+      "durationMs": 1425,
+      "uiTicks": 141
+    }
+  ],
+  "basicDownload": [
+    {
+      "mode": "worker",
+      "state": "RENDERED",
+      "pages": 1,
+      "photos": 5,
+      "maps": 1,
+      "pdfHeader": "%PDF-",
+      "bytes": 1355715,
+      "background": true,
+      "downloaded": true,
+      "uiTicks": 377,
+      "completeDescription": true,
+      "compactFooter": true,
+      "galleryHeight": 134.3,
+      "photoHeight": 93.30000000000001,
+      "durationMs": 4501,
+      "browserDownload": true,
+      "safeFilename": true
+    },
+    {
+      "mode": "worker-blocked",
+      "state": "RENDERED",
+      "pages": 1,
+      "photos": 5,
+      "maps": 1,
+      "pdfHeader": "%PDF-",
+      "bytes": 1355715,
+      "background": false,
+      "downloaded": true,
+      "uiTicks": 154,
+      "completeDescription": true,
+      "compactFooter": true,
+      "galleryHeight": 134.3,
+      "photoHeight": 93.30000000000001,
+      "durationMs": 2917,
+      "browserDownload": true,
+      "safeFilename": true
+    }
+  ],
+  "fixtureScope": "FICTIONAL_NO_AUTHENTICATED_ACCOUNT_WORKFLOW",
+  "providerCalls": 0,
+  "geminiCalls": 0,
+  "flagsChanged": false,
+  "propertyIntelligenceFlag": false,
+  "pricingChanged": false,
+  "backendDeployed": false,
+  "gitPushed": false,
+  "stashPreserved": true,
+  "cleanup": {
+    "date": "2026-11-05",
+    "archivedFiles": 539,
+    "archivedBytes": 224738523,
+    "trackedHistoricalFilesRemoved": 229,
+    "templateGeneratedRemovedFromIndex": 11,
+    "previousGeneratedReceiptsArchived": 18,
+    "archiveRoot": ".qa-archive/2026-11-05",
+    "goldenMasterPreserved": true,
+    "sampleInputsPreserved": true,
+    "currentPdfsPreserved": true,
+    "stashTouched": false,
+    "emptyDirectoriesRemoved": 3
+  }
+}

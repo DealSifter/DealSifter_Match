@@ -9,5 +9,6 @@
   "goldenMasterPreserved": true,
   "sampleInputsPreserved": true,
   "currentPdfsPreserved": true,
-  "stashTouched": false
+  "stashTouched": false,
+  "emptyDirectoriesRemoved": 3
 }

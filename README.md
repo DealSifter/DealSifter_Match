@@ -4,6 +4,8 @@ DealSifter is a real estate matching app for investors, wholesalers, FSBO owners
 
 This README is the starting point for running, testing, and operating the project.
 
+Current Maxxis/report release: [validated scope, deployment and remaining R-3 gaps](docs/REPORTS_RELEASE_CURRENT.md). Current PDF evidence: [QA index](qa/README.md).
+
 ## Stack
 
 - React 19
