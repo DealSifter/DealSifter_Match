@@ -92,7 +92,7 @@ function composeRawReportContent(vm: ReportViewModel): ContentBlock[] {
     const copy = reason === 'INTERNAL_ERROR' ? t('Ocorreu um problema temporário em nosso sistema.', 'A temporary issue occurred on our side.', 'Se produjo un problema temporal en nuestro sistema.') : reason === 'USER_INPUT_REQUIRED' ? t('Os dados necessários ainda precisam de confirmação.', 'Required inputs still need confirmation.', 'Los datos necesarios aún requieren confirmación.') : clean(evidenceAbsenceCopy(reason, vm.locale));
     const financial = ['noi', 'capRate', 'roi', 'cashFlow'].includes(key);
     const requiredAction = financial ? t('Confirme renda, despesas e a base de investimento do cenário.', 'Confirm income, expenses and the investment basis for the scenario.', 'Confirme ingresos, gastos y la base de inversión del escenario.')
-      : key === 'arv' ? t('Confirme a condição do imóvel e vendas comparáveis elegíveis.', 'Confirm the target condition of the property (Maxxis will ask in chat) so eligible sales can be evaluated.', 'Confirme la condición del inmueble y ventas comparables elegibles.')
+      : key === 'arv' ? t('Confirme a condição do imóvel e vendas comparáveis elegíveis.', 'Confirm the target condition of the property so eligible sales can be evaluated.', 'Confirme la condición del inmueble y ventas comparables elegibles.')
       : key === 'comparablesMap' ? t('Confirme as coordenadas dos imóveis comparáveis.', 'Confirm coordinates for the comparable properties.', 'Confirme las coordenadas de los inmuebles comparables.') : action;
     const actions = {
       IDENTITY_MISMATCH: t('Confirme cidade, estado e ZIP.', 'Confirm city, state and ZIP.', 'Confirme ciudad, estado y ZIP.'),

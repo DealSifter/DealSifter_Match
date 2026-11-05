@@ -31,6 +31,21 @@ describe('strict report display boundary', () => {
     const vm = project({ capRate: 8, fieldProvenance: { capRate: 'USER_PROVIDED' } });
     expect(vm.values.capRate.numericValue).toBe(8);
   });
+  it('reconciles a historical unknown-area risk with the accepted display facts without proving missing metrics', () => {
+    const schema = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property: { id: property.id, type: 'SFR', price: 90000, lotSizeSqft: 10995, lotSizeAcres: .2524, acresStatus: 'CALCULATED' },
+      maxxisAnalysis: { riskAwareness: [{ code: 'UNKNOWN_PROPERTY_FIELDS', explanation: 'Property evidence remains unknown for: lotSizeAcres, pricePerAcre, hoaFee.' }] } });
+    const vm = buildStrictReportViewModel({ schema, language: 'en' });
+    const risk = vm.sections.find(section => section.id === 'risk-considerations');
+    expect(vm.values.lotSizeAcres.numericValue).toBeCloseTo(.2524, 4);
+    expect(risk.items[0].text).not.toMatch(/lotSizeAcres|Parcel area in acres/);
+    expect(risk.items[0].text).toContain('Price per acre');
+    expect(vm.values.pricePerAcre).toBeUndefined();
+  });
+  it('does not accept a converted area whose source dimension is missing', () => {
+    const vm = project({ lotSizeAcres: .2524, lotSizeSqft: null, lot: null, acresStatus: 'CALCULATED' });
+    expect(vm.values.lotSizeAcres.state).toBe('UNAVAILABLE');
+    expect(vm.values.lotSizeAcres.numericValue).toBeNull();
+  });
   it('allows existing calculated cap rate only with valid NOI and an explicit matching value basis', () => {
     const schema = schemaFor({ noi: 0, canonicalPropertyFacts: { financial: { noi: { value: 0, userConfirmed: true, source: 'PUBLISHER_DECLARATION' } } } });
     const candidate = { ...schema, presentation: { ...schema.presentation, existingMetrics: { capRate: { value: 0, sourceType: 'CALCULATED', formulaId: 'NOI_DIVIDED_BY_VALUE', valueBasis: 90000 } } } };

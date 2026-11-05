@@ -28,7 +28,7 @@ const PROPERTY_KEYS = Object.freeze([
   'assessedValue', 'assessmentYear', 'annualPropertyTax', 'propertyTaxYear',
   'ownerOccupied', 'ownershipRecordPresent',
   'latestSalePrice', 'latestSaleDate',
-  'lotSizeSqft', 'lotSizeAcres', 'pricePerLotSqft', 'pricePerAcre',
+  'lotSizeSqft', 'lotSizeAcres', 'pricePerLotSqft', 'pricePerAcre', 'acresStatus', 'sqftStatus',
   'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision',
   'zoning', 'hoaFee', 'propertyFeatures', 'saleHistory',
   'propertyUserNotes', 'maxxisPropertySummary', 'maxxisAnalyticalCommentary',
@@ -215,6 +215,14 @@ export function buildPropertyOverviewModel(property) {
   if (isVacantLandType(data.type)) {
     ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete data[key]);
   }
+  // A converted dimension cannot serve as its own missing dependency by being
+  // converted back into the original unit. Retain the input's provenance flags.
+  const missingSqftBasis = data.acresStatus === 'CALCULATED'
+    && (data.sqftStatus === 'CALCULATED' || !(Number(data.lotSizeSqft ?? data.lot) > 0));
+  const missingAcresBasis = data.sqftStatus === 'CALCULATED'
+    && (data.acresStatus === 'CALCULATED' || !(Number(data.lotSizeAcres) > 0));
+  if (missingSqftBasis) delete data.lotSizeAcres;
+  if (missingAcresBasis) { delete data.lotSizeSqft; delete data.lot; }
   Object.assign(data, calculateLandUnitMetrics(data.price, data));
   if (Object.hasOwn(data, 'images')) {
     data.images = Object.freeze((Array.isArray(data.images) ? data.images : []).filter((item) => typeof item === 'string' && item.trim()));

@@ -211,7 +211,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       answer: FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en,
       unavailable: true,
       degraded: true,
-      degradedReason: 'GEMINI_NETWORK_ERROR',
+      degradedReason: 'MAXXIS_NETWORK_ERROR',
       fallbackLevel: 3,
       fallbackSource: 'client_network_guard',
       requestId: '',

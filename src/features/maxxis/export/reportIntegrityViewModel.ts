@@ -152,7 +152,12 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     const ref = `fact:${key}`, source = provenanceLabel(fact, locale);
     const conflict = semantic === 'CONFLICT' || semantic === 'CONFLICTED' || !!fact.conflict || conflictNames.includes(key)
       || areaConflict && ['lotSizeSqft', 'lotSizeAcres'].includes(key);
-    let state: ReportValue['state'] = conflict ? 'CONFLICTED' : EMPTY_STATES.has(semantic) || raw == null || raw === '' ? 'UNAVAILABLE' : 'VALUE';
+    const convertedArea = key === 'lotSizeAcres' && property.acresStatus === 'CALCULATED'
+      || key === 'lotSizeSqft' && property.sqftStatus === 'CALCULATED';
+    const areaBasis = convertedArea ? factFor(key === 'lotSizeAcres' ? 'lotSizeSqft' : 'lotSizeAcres') : null;
+    const invalidAreaBasis = areaBasis && (positive(areaBasis.value) === null || !!areaBasis.conflict
+      || EMPTY_STATES.has(scalar(areaBasis.semanticState || areaBasis.status)));
+    let state: ReportValue['state'] = conflict ? 'CONFLICTED' : invalidAreaBasis || EMPTY_STATES.has(semantic) || raw == null || raw === '' ? 'UNAVAILABLE' : 'VALUE';
     if (semantic === 'NOT_APPLICABLE') state = 'NOT_APPLICABLE';
     let text = unavailable;
     if (state === 'VALUE' && kind === 'text') { text = typeof raw === 'boolean' ? raw ? t('Sim', 'Yes', 'Sí') : t('Não', 'No', 'No') : reportNarrativeString(raw); if (!text) state = 'UNAVAILABLE'; }
@@ -511,7 +516,22 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
   if (level > 1) {
     const suppliedRisks = obj(sections.riskAssessment).available === true ? list(obj(sections.riskAssessment).data) : [];
     const riskItems = suppliedRisks.map((risk, index) => {
-      const text = reportNarrativeString(typeof risk === 'string' ? risk : obj(risk).explanation);
+      let text = reportNarrativeString(typeof risk === 'string' ? risk : obj(risk).explanation);
+      // Saved risk prose can predate the final, authorized property projection.
+      // Reconcile only the structured missing-field assertion; never infer a metric.
+      const missing = text.match(/^Property evidence remains unknown for:\s*(.+)\.$/);
+      if (missing) {
+        const aliases: Record<string, string> = { livingAreaSqft: 'sqft', bedrooms: 'beds', bathrooms: 'baths', askingPrice: 'price', zipCode: 'zip' };
+        const labels: Record<string, string> = {
+          pricePerLotSqft: t('Preço por sqft de terreno', 'Price per land sqft', 'Precio por sqft de terreno'),
+          pricePerAcre: t('Preço por acre', 'Price per acre', 'Precio por acre'),
+          hoaFee: t('Taxa de associação', 'HOA fee', 'Cuota de asociación'),
+        };
+        const unresolved = missing[1].split(',').map(field => field.trim()).filter(field => !known(aliases[field] || field));
+        const names = unresolved.map(field => reportFieldLabel(aliases[field] || field, locale) || labels[field]
+          || t('Outro dado do imóvel', 'Other property information', 'Otro dato del inmueble'));
+        text = names.length ? t(`Informações do imóvel ainda não disponíveis: ${names.join(', ')}.`, `Property information not yet available: ${names.join(', ')}.`, `Información del inmueble aún no disponible: ${names.join(', ')}.`) : '';
+      }
       return text ? claim(text, [register(`risk:supplied:${index}`, text)]) : null;
     }).filter((item): item is ReportClaim => item !== null);
     if (riskItems.length) push({ id: 'risk-considerations', title: t('Considerações de risco', 'Risk considerations', 'Consideraciones de riesgo'), kind: 'list', priority: 77, items: riskItems, evidenceRefs: riskItems.flatMap(item => item.evidenceRefs) });

@@ -21,7 +21,8 @@ describe('R4.4 presentation contract, offline',()=>{
   expect(pending.find(row=>row[0].includes('Comparable sales'))!.slice(1)).toEqual(['A temporary issue occurred on our side.','Regenerate later.']);
   model.indicatorReasons!.arv='USER_INPUT_REQUIRED';
   const arvPending=composeReportContent(model).find(b=>b.id==='report-pending')!.table!;
-  expect(arvPending.find(row=>row[0]==='ARV')![2]).toBe('Confirm the target condition of the property (Maxxis will ask in chat) so eligible sales can be evaluated.');
+  expect(arvPending.find(row=>row[0]==='ARV')![2]).toBe('Confirm the target condition of the property so eligible sales can be evaluated.');
+  expect(arvPending.flat().join(' ')).not.toContain('Maxxis will ask in chat');
  });
  it('separates coincident map markers deterministically without changing their anchors or numbering',()=>{
   const points=Array.from({length:9},(_,i)=>({latitude:27.95,longitude:-82.45,marker:i?String(i):'S'})),view=comparableMapViewport(points),markers=comparableMapMarkers(view);

@@ -19,6 +19,13 @@ export function createMaxxisReportFailureState(result = {}, propertyId = '', rep
 }
 
 export function composeMaxxisReportFailureExplanation(failure = {}, language = 'en') {
+  if (['MAXXIS_NETWORK_ERROR', 'GEMINI_NETWORK_ERROR'].includes(String(failure?.errorCode || ''))) {
+    return language === 'pt'
+      ? 'Não foi possível conectar o chat ao serviço de análise. A conversa e o imóvel selecionado foram preservados; nenhum relatório foi salvo. Verifique a conexão e tente novamente.'
+      : language === 'es'
+        ? 'No se pudo conectar el chat al servicio de análisis. Se conservaron la conversación y la propiedad; no se guardó ningún informe. Comprueba la conexión e inténtalo de nuevo.'
+        : 'The chat could not connect to the analysis service. Your conversation and selected property were preserved; no report was saved. Check the connection and try again.';
+  }
   const modelUnavailable = String(failure?.errorCode || '').includes('MODEL_UNAVAILABLE');
   if (language === 'pt') {
     const stage = modelUnavailable

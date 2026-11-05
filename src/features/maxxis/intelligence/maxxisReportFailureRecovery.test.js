@@ -6,6 +6,11 @@ import {
 } from './maxxisReportFailureRecovery';
 
 describe('Maxxis report failure recovery', () => {
+  it('does not describe a browser/network failure as a model interpretation failure',()=>{
+    const answer=composeMaxxisReportFailureExplanation({errorCode:'MAXXIS_NETWORK_ERROR'},'pt');
+    expect(answer).toContain('conectar o chat ao serviço de análise');
+    expect(answer).not.toContain('interpretação');
+  });
   it.each(['por qual motivo?', 'por que falhou?', 'why?', '¿por qué?'])(
     'recognizes a follow-up explanation request: %s',
     (message) => expect(isMaxxisReportFailureExplanationQuestion(message)).toBe(true),

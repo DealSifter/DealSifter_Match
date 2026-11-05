@@ -12,7 +12,7 @@ export const geminiModels = buildGeminiModelCandidates(configuredModel);
 export const geminiTimeoutMs = Math.max(1_000, Number(Deno.env.get('MAXXIS_GEMINI_TIMEOUT_MS') || 60_000));
 
 const allowedOrigins = parseAllowedOrigins(
-  Deno.env.get('MAXXIS_ALLOWED_ORIGINS') || '',
+  [Deno.env.get('MAXXIS_ALLOWED_ORIGINS'), Deno.env.get('MAXXIS_PREVIEW_ALLOWED_ORIGINS')].filter(Boolean).join(','),
   [Deno.env.get('APP_URL') || '', Deno.env.get('VITE_APP_URL') || ''],
 );
 

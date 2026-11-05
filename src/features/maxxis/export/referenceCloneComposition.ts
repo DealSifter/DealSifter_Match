@@ -40,6 +40,14 @@ export class ReferenceCloneComposition extends ReportBrandShell {
   private write(text: string, x: number, y: number, width: number, id: string, size = this.font, bold = false, color: Color = BODY, bottom = BOTTOM) {
     return this.flow.drawText(text, x, y, width, id, size, bold, color, bottom);
   }
+  private narrativeParts(text: string, width: number, size: number, capacity: number) {
+    const lines = this.flow.lines(text, width, size);
+    if (lines.length <= capacity) return { head: text, tail: '' };
+    const full = lines.join(' '), prefix = lines.slice(0, capacity).join(' ');
+    const boundaries = [...prefix.matchAll(/[.!?](?:[”"')])?(?=\s|$)/g)];
+    const last = boundaries.at(-1), end = last ? last.index! + last[0].length : 0;
+    return { head: full.slice(0, end).trim(), tail: full.slice(end).trim() };
+  }
   private audit(id: string, title: string, kind: string, b: Box, section?: number) {
     this.flow.audit.sections.push({
       sectionId: id,
@@ -193,7 +201,8 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       const noteLines = note ? this.flow.lines(note.text || '', noteWidth, 7) : [],
         height = showMap ? DESIGN.overview.mapHeight : note ? Math.max(42, Math.min(DESIGN.overview.mapHeight, 37 + noteLines.length * (7 + lineGap))) : 0,
         capacity = Math.max(0, Math.floor((height - 37) / (7 + lineGap))),
-        continued = note && noteLines.length > capacity ? { ...note, id: note.id + '-continued', text: noteLines.slice(capacity).join(' ') } : null,
+        narrative = note ? this.narrativeParts(note.text || '', noteWidth, 7, capacity) : null,
+        continued = note && narrative?.tail ? { ...note, id: note.id + '-continued', text: narrative.tail } : null,
         remaining = blocks.filter(block => !this.used.has(block.id) && block.id !== note?.id && block.id !== mapId && block.id !== 'report-location'),
         tail = this.basicTailLayout([...this.details, ...(continued ? [continued] : []), ...remaining]),
         rowGap = height && tail.height ? G : 0,
@@ -739,13 +748,13 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         },
         body = this.frame(b, this.t('Notas', 'Notes', 'Notas'), 'document', note.id),
         noteSize = basic ? 7 : 8.5;
-      const lines = this.flow.lines(note.text || '', body.w, noteSize),
-        capacity = basicPlan?.capacity ?? Math.max(0, Math.floor(body.h / (noteSize + this.flow.lineGap)));
-      const noteEnd = this.flow.drawLines(lines.slice(0, capacity), body.x, body.y, body.w, note.id, noteSize, false, BODY, b.y + b.h);
-      if (lines.length > capacity) this.details.push({
+      const capacity = basicPlan?.capacity ?? Math.max(0, Math.floor(body.h / (noteSize + this.flow.lineGap)));
+      const narrative = this.narrativeParts(note.text || '', body.w, noteSize, capacity);
+      const noteEnd = this.write(narrative.head, body.x, body.y, body.w, note.id, noteSize, false, BODY, b.y + b.h);
+      if (narrative.tail) this.details.push({
         ...note,
         id: note.id + '-continued',
-        text: lines.slice(capacity).join(' ')
+        text: narrative.tail
       });
       if (this.small && sources && (!basicPlan || basicPlan.inlineSources)) {
         const need = 14 + this.factsHeight(sources.rows || [], body.w, 6.5) + (sources.text ? this.h(sources.text, body.w, 6.5) : 0);
@@ -807,16 +816,16 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       const x = gauge.x + 132,
         width = gauge.w - 132,
         size = this.small ? 7.5 : 9;
-      const lines = this.flow.lines(block.text, width, size),
-        cap = Math.floor(gauge.h / (size + this.flow.lineGap));
-      this.flow.drawLines(lines.slice(0, cap), x, gauge.y, width, block.id, size, false, BODY, right.y + right.h);
-      if (lines.length > cap) this.details.push({
+      const cap = Math.floor(gauge.h / (size + this.flow.lineGap));
+      const narrative = this.narrativeParts(block.text, width, size, cap);
+      this.write(narrative.head, x, gauge.y, width, block.id, size, false, BODY, right.y + right.h);
+      if (narrative.tail) this.details.push({
         ...block,
         id: block.id + '-explanation',
         rows: undefined,
         score: undefined,
         comparison: undefined,
-        text: lines.slice(cap).join(' ')
+        text: narrative.tail
       });
     }
     const lowerY = start + topH + G,
@@ -864,15 +873,15 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     let riskEnd = riskBody.y;
     if (riskText) {
       const size = 8.5,
-        lines = this.flow.lines(riskText, riskBody.w - 21, size),
-        capacity = Math.floor(riskBody.h / (size + this.flow.lineGap));
+        capacity = Math.floor(riskBody.h / (size + this.flow.lineGap)),
+        narrative = this.narrativeParts(riskText, riskBody.w - 21, size, capacity);
       this.icon('warning', riskBody.x, riskBody.y + 2, 13, this.accent);
-      riskEnd = this.flow.drawLines(lines.slice(0, capacity), riskBody.x + 21, riskBody.y, riskBody.w - 21, risk?.id || block.id, size, false, BODY, riskBox.y + riskBox.h);
-      if (lines.length > capacity) this.details.push({
+      riskEnd = this.write(narrative.head, riskBody.x + 21, riskBody.y, riskBody.w - 21, risk?.id || block.id, size, false, BODY, riskBox.y + riskBox.h);
+      if (narrative.tail) this.details.push({
         id: (risk?.id || block.id) + '-continued',
         title: risk?.title || 'Criteria evidence',
         kind: 'text',
-        text: lines.slice(capacity).join('\n')
+        text: narrative.tail
       });
     }
     if (evidence.length) {
@@ -927,14 +936,14 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         const x = body.x + index * (width + 12);
         this.icon(part.icon, x, body.y, 15, index === 1 ? this.accent : DARK);
         this.flow.drawDisplayLine(part.title, x + 23, body.y + 1, width - 23, 'reference-profile-evidence', 9.5, true, INK, b.y + b.h);
-        const lines = this.flow.lines(part.text, width, 8),
-          cap = Math.max(0, Math.floor((body.h - 24) / 12));
-        this.flow.drawLines(lines.slice(0, cap), x, body.y + 24, width, 'reference-profile-evidence', 8, false, BODY, b.y + b.h);
-        if (lines.length > cap) this.details.push({
+        const cap = Math.max(0, Math.floor((body.h - 24) / 12)),
+          narrative = this.narrativeParts(part.text, width, 8, cap);
+        this.write(narrative.head, x, body.y + 24, width, 'reference-profile-evidence', 8, false, BODY, b.y + b.h);
+        if (narrative.tail) this.details.push({
           id: 'reference-profile-evidence-' + index,
           title: part.title,
           kind: 'text',
-          text: lines.slice(cap).join(' ')
+          text: narrative.tail
         });
       });
       this.audit('reference-profile-evidence', 'Evidence summary', 'reference-evidence-summary', b, 5);
@@ -945,12 +954,16 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     const rows = block.rows || [],
       columns = Math.min(4, rows.length);
     if (!columns) return;
+    const parts = (row: ReportRow) => {
+      const pieces = row.value.split(' · ');
+      return [pieces[0], pieces.slice(1).join(' · ') || row.source || ''];
+    };
     const width = (W - (columns - 1) * G) / columns,
       size = this.small ? 11 : 14,
       titleHeight = Math.max(...rows.map(row => this.h(row.label, width - 42, 9, true)));
     const heights = rows.map(row => {
-      const pieces = row.value.split(' · ');
-      return 21 + titleHeight + this.h(pieces[0], width - 22, size, true) + this.h(pieces.slice(1).join(' · '), width - 22, 8);
+      const pieces = parts(row);
+      return 24 + titleHeight + this.h(pieces[0], width - 22, size, true) + (pieces[1] ? this.h(pieces[1], width - 22, 8) : 0);
     });
     for (let i = 0; i < rows.length; i += columns) {
       const height = Math.max(...heights.slice(i, i + columns));
@@ -962,14 +975,14 @@ export class ReferenceCloneComposition extends ReportBrandShell {
             w: width,
             h: height
           },
-          pieces = row.value.split(' · ');
+          pieces = parts(row);
         this.d.setFillColor(251, 253, 254);
         this.d.setDrawColor(224, 234, 241);
         this.d.roundedRect(b.x, b.y, b.w, b.h, 7, 7, 'FD');
         this.icon(index % 2 ? 'pie' : 'chart', b.x + 8, b.y + 11, 18, DARK);
         this.write(row.label, b.x + 33, b.y + 10, b.w - 42, block.id, 9, true, INK, b.y + b.h);
         const y = this.write(pieces[0], b.x + 11, b.y + titleHeight + 17, b.w - 22, block.id, size, true, this.accent, b.y + b.h);
-        if (pieces.length > 1) this.write(pieces.slice(1).join(' · '), b.x + 11, y + 3, b.w - 22, block.id, 8, false, BODY, b.y + b.h);
+        if (pieces[1]) this.write(pieces[1], b.x + 11, y + 3, b.w - 22, block.id, 8, false, BODY, b.y + b.h);
         this.audit(block.id + '-kpi-' + (i + index), row.label, 'reference-kpi', b, 4);
       });
       this.cursor += height + G;
@@ -1001,16 +1014,17 @@ export class ReferenceCloneComposition extends ReportBrandShell {
     }
     visible.rows = shown.length ? shown : undefined;
     if (block.text) {
-      const lines = this.flow.lines(block.text, width, size),
-        count = Math.max(0, Math.floor((room - 5) / (size + this.flow.lineGap)));
-      visible.text = lines.slice(0, count).join('\n');
-      if (lines.length > count) tail.text = lines.slice(count).join('\n');
+      const count = Math.max(0, Math.floor((room - 5) / (size + this.flow.lineGap))),
+        narrative = this.narrativeParts(block.text, width, size, count);
+      visible.text = narrative.head || undefined;
+      tail.text = narrative.tail || undefined;
     }
     this.card(visible, b);
     if (tail.text || tail.rows?.length) this.details.push(tail);
   }
   private valuation(ranges: ContentBlock[], finance: ContentBlock[]) {
-    const main = ranges.find(block => /arv/.test(block.id) && block.range) || ranges.find(block => block.range),
+    const main = ranges.find(block => /arv/.test(block.id) && block.range)
+        || ranges.find(block => /^provider-reference/.test(block.id) && block.range) || ranges.find(block => block.range),
       inputs = finance.find(block => block.id === 'operating-evidence-facts') || finance.find(block => block.id !== 'financial-indicators' && block.rows?.length),
       indicators = finance.find(block => block.id === 'financial-indicators');
     if (!main) {
@@ -1035,9 +1049,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       w: half,
       h: height
     });
+    const rentalRange = /^market-rent/.test(main.id);
     const notes: ContentBlock = {
       id: main.id + '-notes',
-      title: this.t('Notas da avaliação', 'Valuation notes', 'Notas de valoración'),
+      title: rentalRange ? this.t('Notas do aluguel mensal', 'Monthly rental reference notes', 'Notas del alquiler mensual') : this.t('Notas da avaliação', 'Valuation notes', 'Notas de valoración'),
       kind: 'facts',
       text: main.text,
       rows: main.rows,
@@ -1071,7 +1086,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         primary = ranked.slice(0, 4),
         extra = ranked.slice(4);
       this.icon('calculator', X + 10, this.cursor, 24, DARK);
-      this.flow.drawDisplayLine('Investment Scenario Dashboard', X + 45, this.cursor + 3, W - 58, 'reference-dashboard', 12, true, INK, this.cursor + 30);
+      const calculated = ranked.some(row => row.evidenceRefs.some(ref => /calculation:|:output:/.test(ref)) || /calcul/i.test(row.source || ''));
+      const title = calculated ? this.t('Indicadores financeiros e origens', 'Financial indicators and sources', 'Indicadores financieros y fuentes')
+        : this.t('Indicadores declarados pelo publicador', 'Publisher-reported indicators', 'Indicadores declarados por el publicador');
+      this.flow.drawDisplayLine(title, X + 45, this.cursor + 3, W - 58, 'reference-dashboard', 12, true, INK, this.cursor + 30);
       this.cursor += 27;
       this.kpis({
         ...indicators,
@@ -1084,7 +1102,9 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       });
     }
     const other = ranges.find(block => block.id !== main.id),
-      third = (W - 2 * G) / 3,
+      extraNotes = !this.used.has(notes.id) && !!(notes.text || notes.rows?.length),
+      lowerColumns = 1 + Number(!!other) + Number(extraNotes),
+      third = (W - (lowerColumns - 1) * G) / lowerColumns,
       lowerH = Math.min(156, BOTTOM - this.cursor),
       lowerY = this.cursor;
     if (lowerH >= 145) {
@@ -1108,12 +1128,12 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         this.used.add(other.id);
       }
       const b = {
-          x: X + third + G,
+          x: X + (other ? third + G : 0),
           y: lowerY,
           w: third,
           h: lowerH
         },
-        body = this.frame(b, this.t('Referências de valor', 'Value range references', 'Referencias de valor'), 'pie', main.id + '-scenarios'),
+        body = this.frame(b, rentalRange ? this.t('Faixa de aluguel mensal', 'Monthly rent range', 'Rango de alquiler mensual') : this.t('Referências de valor', 'Value range references', 'Referencias de valor'), 'pie', main.id + '-scenarios'),
         cx = body.x + 43,
         cy = body.y + 54,
         r = 34;
@@ -1135,10 +1155,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         this.write(value, body.x + 96, body.y + 4 + index * 31, body.w - 96, main.id + '-scenarios', 8.5, true, INK, b.y + b.h);
       });
       this.write(this.t('Referências de faixa, não probabilidades.', 'Range references, not probabilities.', 'Referencias del rango, no probabilidades.'), body.x, body.y + 107, body.w, main.id + '-scenarios', 8, false, BODY, b.y + b.h);
-      this.audit(main.id + '-scenarios', 'Value range references', 'reference-range-chart', b, 3);
-      if (!this.used.has(notes.id) && (notes.text || notes.rows?.length)) {
+      this.audit(main.id + '-scenarios', rentalRange ? 'Monthly rent range' : 'Value range references', 'reference-range-chart', b, 3);
+      if (extraNotes) {
         this.boundedCard(notes, {
-          x: X + 2 * (third + G),
+          x: X + (lowerColumns - 1) * (third + G),
           y: lowerY,
           w: third,
           h: lowerH
@@ -1311,6 +1331,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         width = full ? W : (W - G) / 2;
       let height = this.measureCard(block, width);
       if (height > BOTTOM - 151) {
+        if (!full) {
+          this.flowCards([block], true);
+          continue;
+        }
         if (block.rows && block.rows.length > 1) {
           const half = Math.ceil(block.rows.length / 2);
           queue.unshift({
@@ -1328,15 +1352,16 @@ export class ReferenceCloneComposition extends ReportBrandShell {
         }
         if (block.text) {
           const lines = this.flow.lines(block.text, width - 22, this.font),
-            capacity = Math.floor((BOTTOM - 151 - 55) / (this.font + this.flow.lineGap));
+            capacity = Math.floor((BOTTOM - 151 - 55) / (this.font + this.flow.lineGap)),
+            narrative = this.narrativeParts(block.text, width - 22, this.font, capacity);
           if (lines.length > capacity) {
             queue.unshift({
               ...block,
-              text: lines.slice(0, capacity).join(' ')
+              text: narrative.head || lines.slice(0, capacity).join(' ')
             }, {
               ...block,
               id: block.id + '-part-next',
-              text: lines.slice(capacity).join(' '),
+              text: narrative.head ? narrative.tail : lines.slice(capacity).join(' '),
               rows: undefined,
               range: undefined,
               hero: undefined
@@ -1467,7 +1492,10 @@ export class ReferenceCloneComposition extends ReportBrandShell {
       const rangeBlocks = blocks.filter(block => block.readingSection === 3 && !this.used.has(block.id) && !block.map);
       const finance = blocks.filter(block => block.readingSection === 4);
       if (rangeBlocks.length || finance.length) {
-        if (this.enterprise || !this.flow.pages.length || this.cursor > BOTTOM - 180) this.chapter(this.t('Avaliação / ARV / Indicadores', 'Valuation Intelligence / ARV / KPIs', 'Valoración / ARV / Indicadores'), this.t('Análise de valor, métricas e potencial de retorno', 'Value analysis, metrics and return potential', 'Análisis de valor, métricas y rentabilidad'), 'chart', this.enterprise);
+        const rentalOnly = rangeBlocks.some(block => /^market-rent/.test(block.id)) && !rangeBlocks.some(block => /^(arv-market|provider-reference)/.test(block.id) && block.range);
+        if (this.enterprise || !this.flow.pages.length || this.cursor > BOTTOM - 180) this.chapter(
+          rentalOnly ? this.t('Aluguel de mercado / Indicadores', 'Monthly Rent / Financial Indicators', 'Alquiler mensual / Indicadores') : this.t('Avaliação / ARV / Indicadores', 'Valuation Intelligence / ARV / KPIs', 'Valoración / ARV / Indicadores'),
+          rentalOnly ? this.t('Referências mensais de locação e origem dos indicadores', 'Monthly rental references and indicator sources', 'Referencias de alquiler mensual y fuentes de indicadores') : this.t('Análise de valor, métricas e potencial de retorno', 'Value analysis, metrics and return potential', 'Análisis de valor, métricas y rentabilidad'), 'chart', this.enterprise);
         if (this.enterprise) {
           this.valuation(rangeBlocks, finance);
           this.flushDetails(block => !/^saved-scenario/.test(block.id));
