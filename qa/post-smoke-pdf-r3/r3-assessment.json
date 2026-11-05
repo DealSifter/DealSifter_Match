@@ -1,0 +1,39 @@
+{
+  "scope": "LOCAL_OFFLINE_DIAGNOSTIC_NOT_PREVIEW_E2E",
+  "providerCalls": 0,
+  "preview": "NOT_RUN_PREVIEW_URL_AND_COMMIT_NOT_IDENTIFIED",
+  "flag": "OFF_REPORTED_BY_OWNER_NOT_CHANGED",
+  "gateBefore": {
+    "status": "USER_INPUT_REQUIRED",
+    "gaps": [
+      "target_condition"
+    ]
+  },
+  "gateAfterConfirmedTarget": {
+    "status": "READY",
+    "gaps": []
+  },
+  "confirmedTargetAskedAgain": false,
+  "missingFinancialInputsGate": "FAIL_NO_FINANCIAL_RESIDUAL_GAPS_IN_THIS_GATE",
+  "financeTextReply": "NOT_SUPPORTED_BY_CURRENT_GAP_PARSER",
+  "aggregateOpex": {
+    "status": "NOT_IMPLEMENTED_FOR_PERCENT_TOTAL",
+    "dispositions": {
+      "operatingExpensePercent": {
+        "status": "REJECTED",
+        "reason": "NOT_AN_OPERATING_FINANCIAL_INPUT"
+      },
+      "operatingExpenses": {
+        "status": "REJECTED",
+        "reason": "NOT_AN_OPERATING_FINANCIAL_INPUT"
+      }
+    }
+  },
+  "explicitReportSkipsInlineGapInterception": true,
+  "persistentStore": "property_arv_review_contexts",
+  "userProvidedOrigin": true,
+  "snapshotRevisionInAudit": true,
+  "authenticatedPersistenceRoundTrip": "NOT_RUN",
+  "acceptance": "NOT_ACCEPTED_R3_FUNCTIONAL",
+  "billingChanged": false
+}

@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-05",
+  "archivedFiles": 539,
+  "archivedBytes": 224738523,
+  "trackedHistoricalFilesRemoved": 229,
+  "templateGeneratedRemovedFromIndex": 11,
+  "previousGeneratedReceiptsArchived": 18,
+  "archiveRoot": ".qa-archive/2026-11-05",
+  "goldenMasterPreserved": true,
+  "sampleInputsPreserved": true,
+  "currentPdfsPreserved": true,
+  "stashTouched": false
+}

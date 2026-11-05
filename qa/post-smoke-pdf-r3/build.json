@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "exitCode": 0,
+  "typescript": "PASS",
+  "baseCommit": "26dc8ff58100af7b1ffa912bf5e7c46c7d427a93",
+  "sources": [
+    {
+      "path": "src/domain/maxxis/maxxisReportSchema.js",
+      "sha256": "73507ba9ca0e075fa3363f3abc0de755a80d6c9cd0b1b6438ac4b58a051c88dd"
+    },
+    {
+      "path": "src/features/maxxis/export/reportIntegrityViewModel.ts",
+      "sha256": "3b68e1d129cb6a7ef665b3928066db95424139c03f2347580f237babdb97d610"
+    },
+    {
+      "path": "src/features/maxxis/export/referenceCloneComposition.ts",
+      "sha256": "3c90652b2a45f7f82b02352455b7019afaf484258a5c0b82c902e6e7ea2caf74"
+    },
+    {
+      "path": "src/features/maxxis/export/reportContentPlan.ts",
+      "sha256": "2d008e85e45ef4ea256e79a00a8c811a4f16c0784bc59e56da10bd501a48f1f1"
+    }
+  ],
+  "offline": true,
+  "deployed": false,
+  "environment": "LOCAL_PREVIEW_BUILD_CONFIGURATION_UNCHANGED"
+}

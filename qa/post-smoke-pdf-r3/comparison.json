@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "scope": "SAME_CACHED_REPLAY_SCHEMA_BEFORE_AFTER_NOT_AUTHENTICATED_E2E",
+  "results": [
+    {
+      "level": "L1",
+      "beforePages": 1,
+      "afterPages": 1,
+      "numericValuesChanged": [],
+      "notesPreserved": true,
+      "sourcesAndDatesPreserved": true,
+      "brokenContinuations": [],
+      "lastPageOccupancyPercent": 94.1,
+      "baselineLastPageOccupancyPercent": 94.1,
+      "providerCalls": 0
+    },
+    {
+      "level": "L2",
+      "beforePages": 3,
+      "afterPages": 3,
+      "numericValuesChanged": [],
+      "notesPreserved": true,
+      "sourcesAndDatesPreserved": true,
+      "brokenContinuations": [],
+      "lastPageOccupancyPercent": 59.6,
+      "baselineLastPageOccupancyPercent": 72.2,
+      "providerCalls": 0
+    },
+    {
+      "level": "L3",
+      "beforePages": 7,
+      "afterPages": 6,
+      "numericValuesChanged": [],
+      "notesPreserved": true,
+      "sourcesAndDatesPreserved": true,
+      "brokenContinuations": [],
+      "lastPageOccupancyPercent": 99.4,
+      "baselineLastPageOccupancyPercent": 17.4,
+      "providerCalls": 0
+    }
+  ]
+}

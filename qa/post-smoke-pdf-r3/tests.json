@@ -1,0 +1,95 @@
+{
+  "status": "PASS",
+  "exitCode": 0,
+  "total": 179,
+  "passed": 179,
+  "failed": 0,
+  "files": [
+    {
+      "file": "maxxisAnalysisInputsService.test.js",
+      "status": "passed",
+      "total": 6,
+      "failures": []
+    },
+    {
+      "file": "maxxisReportSchema.test.js",
+      "status": "passed",
+      "total": 15,
+      "failures": []
+    },
+    {
+      "file": "propertyReleaseEvidence.test.js",
+      "status": "passed",
+      "total": 5,
+      "failures": []
+    },
+    {
+      "file": "basicReleaseLayout.test.ts",
+      "status": "passed",
+      "total": 4,
+      "failures": []
+    },
+    {
+      "file": "postSmokePdf.test.ts",
+      "status": "passed",
+      "total": 2,
+      "failures": []
+    },
+    {
+      "file": "referenceCloneComposition.test.ts",
+      "status": "passed",
+      "total": 16,
+      "failures": []
+    },
+    {
+      "file": "reportIntegrityViewModel.test.js",
+      "status": "passed",
+      "total": 54,
+      "failures": []
+    },
+    {
+      "file": "reportSavedScenarioProjection.test.js",
+      "status": "passed",
+      "total": 23,
+      "failures": []
+    },
+    {
+      "file": "analysisGapAnswer.test.js",
+      "status": "passed",
+      "total": 6,
+      "failures": []
+    },
+    {
+      "file": "confirmParsedAnalysisInputs.test.js",
+      "status": "passed",
+      "total": 8,
+      "failures": []
+    },
+    {
+      "file": "MaxxisAnalysisGapResolution.interaction.test.jsx",
+      "status": "passed",
+      "total": 22,
+      "failures": []
+    },
+    {
+      "file": "maxxisGapSubmissionRegression.test.js",
+      "status": "passed",
+      "total": 3,
+      "failures": []
+    },
+    {
+      "file": "maxxisCanonicalParity.test.js",
+      "status": "passed",
+      "total": 8,
+      "failures": []
+    },
+    {
+      "file": "analysisGapResolver.test.ts",
+      "status": "passed",
+      "total": 7,
+      "failures": []
+    }
+  ],
+  "scope": "TARGETED_PDF_AND_OFFLINE_R3_CONTRACTS_NOT_PREVIEW_E2E",
+  "providerCalls": 0
+}

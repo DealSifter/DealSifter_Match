@@ -1,0 +1,43 @@
+{
+  "observedUtc": "2026-11-05T21:53:05.119Z",
+  "projectVerified": true,
+  "id": "dpl_4hwiUxZ2rG6fFpTphPW3VaseHX94",
+  "url": "https://dealsiftermatch-kuj9heeat-deal-sifter-match-s-projects.vercel.app",
+  "createdUtc": "2026-11-03T16:53:30.362Z",
+  "state": "READY",
+  "target": "preview",
+  "branch": "release/maxxis-report-v1",
+  "gitShaFromApi": null,
+  "sourceCommitFromLocalReceipt": "d5bca41775080dbac581eff4fe487bb9a24bcc16",
+  "sourceFingerprint": "fe9aff373fc4d2e315388ce5b6554a6c8b929206b23257519df4b05060592c74",
+  "httpStatus": 200,
+  "authenticatedProtectionAccess": true,
+  "expectedBuildStamp": "maxxis-reconciled-fe9aff373fc4d2e3",
+  "bundleStampMatches": true,
+  "bundles": [
+    {
+      "path": "/assets/polyfills-B-7h_X5q.js",
+      "sha256": "b897523a1f212737fddb672b8da001e9f7adf45f264a949a6622755dd6e1dde4",
+      "bytes": 146512
+    },
+    {
+      "path": "/assets/index-CKn1ii7k.js",
+      "sha256": "2f976a286b1a2550f3fa6d2236f74ec9054da1ee395e77f634b54e7bb1a4666a",
+      "bytes": 442048
+    },
+    {
+      "path": "/assets/polyfills-legacy-BUTIVCk_.js",
+      "sha256": "da6953ee3813f787d995533c05964c4dc3924809b46048fafa049cc038445dde",
+      "bytes": 150808
+    }
+  ],
+  "preflightMarkerFound": false,
+  "functionalE2E": "NOT_RUN",
+  "paidCalls": 0,
+  "mutations": 0,
+  "homologatedSmokeIdentity": "NOT_PROVEN",
+  "limitations": [
+    "Newest located Preview predates the supplied November 4 PDFs; owner smoke approval cannot be uniquely tied to it.",
+    "Bundle markers are deployment identity evidence, not an authenticated R-3 workflow test."
+  ]
+}

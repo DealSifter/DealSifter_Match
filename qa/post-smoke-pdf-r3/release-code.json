@@ -1,0 +1,59 @@
+{
+  "commit": "6048598b96c756c5eb7128513ea6bdf237e6633e",
+  "secretScan": "PASS",
+  "files": 15,
+  "sourceHashes": [
+    {
+      "path": "src/domain/maxxis/maxxisReportSchema.js",
+      "sha256": "73507ba9ca0e075fa3363f3abc0de755a80d6c9cd0b1b6438ac4b58a051c88dd"
+    },
+    {
+      "path": "src/features/maxxis/export/referenceCloneComposition.ts",
+      "sha256": "3c90652b2a45f7f82b02352455b7019afaf484258a5c0b82c902e6e7ea2caf74"
+    },
+    {
+      "path": "src/features/maxxis/export/reportContentPlan.ts",
+      "sha256": "2d008e85e45ef4ea256e79a00a8c811a4f16c0784bc59e56da10bd501a48f1f1"
+    },
+    {
+      "path": "src/features/maxxis/export/reportIntegrityViewModel.ts",
+      "sha256": "3b68e1d129cb6a7ef665b3928066db95424139c03f2347580f237babdb97d610"
+    },
+    {
+      "path": "src/features/maxxis/export/reportIntegrityViewModel.test.js",
+      "sha256": "9dd16e2edbd1434e2f8cbf99a5fdc3ac34a6b04023961c28fb3889f395b66711"
+    },
+    {
+      "path": "src/features/maxxis/export/postSmokePdf.test.ts",
+      "sha256": "fbd0cff3c67ecda5df8ede30648e76a69fc9dbbb5524c5420753e2d7ffc2d0f5"
+    },
+    {
+      "path": "src/features/maxxis/export/reportR44.test.ts",
+      "sha256": "88884c9f9438becd06e59e69b1b0ee83f04831dfcabf3ad0886f4f251c8056a7"
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportFailureRecovery.js",
+      "sha256": "224252b36e480dd4154ed45055d81372c688e549f5d5df3376849c22f3a17b72"
+    },
+    {
+      "path": "src/features/maxxis/intelligence/maxxisReportFailureRecovery.test.js",
+      "sha256": "f49d3b96feb7136fc5cf0c2a282de66aa527957eab49c2cf9ccd6af4a9480bca"
+    },
+    {
+      "path": "src/services/maxxisService.js",
+      "sha256": "4009f118f03fa2d3360223bc15500ab0c153bcb49d364ecbfd1fee5bba805c20"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/config.ts",
+      "sha256": "99dce9a757ec46e1363b425a0d076905867fe03dbc456fd3bb2d5ecb34bfe5b0"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/previewCors.test.ts",
+      "sha256": "5860a4ace57f592d8ad739bd54d6e834a276b48dfbf2cae26bd6701893186061"
+    },
+    {
+      "path": "src/assets/maxxis/report-previews/manifest.json",
+      "sha256": "f3a0c70a9015480d70d09abd65529b3e69033fd255bf570407225596c813c527"
+    }
+  ]
+}

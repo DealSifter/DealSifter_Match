@@ -62,3 +62,10 @@ qa/report-r44/**/*.png
 
 qa/report-*/
 .release-backup/
+
+# Local historical QA archive; never source or published application assets.
+/.qa-archive/
+/qa/post-smoke-pdf-r3/*.pdf
+/qa/post-smoke-pdf-r3/*.png
+/qa/post-smoke-pdf-r3/input-pdfs.json
+/qa/report-current-samples/
