@@ -963,6 +963,14 @@ export default function App() {
     persistPreferences: persistUserPreferences,
   });
   const featureFlagState=useFeatureFlagSnapshot(preferenceAccountKey,readMaxxisProactiveFlagOverrides);
+  useEffect(() => {
+    const retainReportRecipients = event => {
+      if (event.detail?.userId !== preferenceAccountKey) return;
+      setUserPreferences(current => normalizeUserPreferences({ ...current, reportEmailRecipients: event.detail.recipients }));
+    };
+    window.addEventListener('dealsifter.reportRecipientsSaved', retainReportRecipients);
+    return () => window.removeEventListener('dealsifter.reportRecipientsSaved', retainReportRecipients);
+  }, [preferenceAccountKey, setUserPreferences]);
   const maxxisProactiveFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'maxxis_proactive_insights');
   const maxxisDealMemoryFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'maxxis_deal_memory');
   const parcelFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'public_parcel_intelligence');
@@ -2010,7 +2018,8 @@ export default function App() {
       localStorage.removeItem('ds_payment_methods_mock');
       localStorage.removeItem('ds_billing_history_mock');
       localStorage.removeItem('ds_comm_prefs_mock');
-      localStorage.removeItem('ds_export_mail_defaults');
+      // Export recipients are real user preferences, not mock payment data.
+      // The account-scoped preference reader can recover an owned legacy value.
 
       localStorage.setItem(cleanupKey, '1');
     } catch (error) {

@@ -2,6 +2,7 @@ import {
   DEFAULT_MAXXIS_PREFERENCES,
   normalizeMaxxisPreferences,
 } from '../../features/maxxis/preferences/maxxisPreferences';
+import { normalizeReportEmailPreferences } from './reportEmailPreferences';
 
 export const DEFAULT_USER_PREFERENCES = {
   map: {
@@ -29,6 +30,7 @@ export const DEFAULT_USER_PREFERENCES = {
     messagePreview: true,
   },
   maxxis: DEFAULT_MAXXIS_PREFERENCES,
+  reportEmailRecipients: null,
 };
 
 export const normalizeUserPreferences = (value) => {
@@ -81,5 +83,6 @@ export const normalizeUserPreferences = (value) => {
       messagePreview: Boolean(privacy.messagePreview ?? DEFAULT_USER_PREFERENCES.privacy.messagePreview),
     },
     maxxis,
+    reportEmailRecipients: normalizeReportEmailPreferences(input.reportEmailRecipients),
   };
 };

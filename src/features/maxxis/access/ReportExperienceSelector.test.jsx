@@ -10,7 +10,7 @@ const css=readFileSync(new URL('./ReportExperienceSelector.css',import.meta.url)
 const modalSource=readFileSync(new URL('../../../components/ui/Modal.jsx',import.meta.url),'utf8');
 const portfolioSource=readFileSync(new URL('../../../components/matches/MatchesPortfolio.jsx',import.meta.url),'utf8');
 describe('Report Experience Selector',()=>{
-  it('starts with canonical stacked actions and no selection',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en"/>);expect(html.match(/PROPERTY RELEASE/g)).toHaveLength(4);expect(html).toContain('Download to device');expect(html).toContain('Send by email');expect(html).toContain('AI-powered property analysis');expect(html).not.toContain('is-selected')});
+  it('starts with canonical stacked actions and no selection',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en"/>);expect(html.match(/PROPERTY RELEASE/g)).toHaveLength(4);expect(html).toContain('Download to device');expect(html).toContain('Send with Gmail (PDF attached)');expect(html).toContain('AI-powered property analysis');expect(html).not.toContain('is-selected')});
   it('localizes report product names with the selected app language',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector language="pt"/>);expect(html).toContain('RELATÓRIO DO IMÓVEL');expect(html).toContain('RELATÓRIO DE ANÁLISE MAXXIS');expect(source).toContain("deal:'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO'");expect(html).not.toContain('MAXXIS ANALYSIS REPORT')});
   it('keeps info preview independent from actions',()=>{const action=vi.fn();renderToStaticMarkup(<ReportExperienceSelector onBasicDownload={action}/>);expect(source).toContain("onInfo={()=>setPreview('PROPERTY_RELEASE')}");expect(action).not.toHaveBeenCalled()});
   it('uses the favicon brand in the first Maxxis action and omits only its information button',()=>{
@@ -74,7 +74,7 @@ describe('Report Experience Selector',()=>{
   it('moves Cancel and Continue into the shared top action bar',()=>{
     expect(source).toContain('className="report-selector-actions"');
     expect(portfolioSource).toContain('onContinue={handleConfirmEmailExport}');
-    expect(portfolioSource).toContain('continueDisabled={!exportMode}');
+    expect(portfolioSource).toContain("continueDisabled={!exportMode || (exportMode === 'email' && (recipientLoading || !recipientAccount))}");
   });
   it('lays unlocked portfolio property facts out in two columns',()=>{
     const html=renderToStaticMarkup(<PortfolioPropertyFacts item={{type:'SFR',beds:3,baths:2}} language="en"/>);

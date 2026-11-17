@@ -75,3 +75,10 @@ verify_jwt = true
 
 [functions.property-fact-review]
 verify_jwt = true
+
+# Google callback uses single-use state/PKCE; protected routes validate JWT in code.
+[functions.report-mailbox-oauth]
+verify_jwt = false
+
+[functions.report-mail-delivery]
+verify_jwt = true

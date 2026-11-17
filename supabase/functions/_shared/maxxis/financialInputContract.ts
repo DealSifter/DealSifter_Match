@@ -3,6 +3,7 @@
 export const FINANCIAL_INPUT_FIELDS = Object.freeze({
   management: { key: 'managementPercent', unit: 'PERCENT', cadence: 'ANNUAL' },
   managementPercent: { key: 'managementPercent', unit: 'PERCENT', cadence: 'ANNUAL' },
+  managementAmount: { key: 'managementAmount', unit: 'USD', cadence: 'ANNUAL' },
   maintenance: { key: 'maintenanceAmount', unit: 'USD', cadence: 'ANNUAL' },
   maintenanceAmount: { key: 'maintenanceAmount', unit: 'USD', cadence: 'ANNUAL' },
   maintenancePercent: { key: 'maintenancePercent', unit: 'PERCENT', cadence: 'ANNUAL' },
@@ -14,6 +15,8 @@ export const FINANCIAL_INPUT_FIELDS = Object.freeze({
   insurance: { key: 'insurance', unit: 'USD', cadence: 'ANNUAL' },
   vacancyRate: { key: 'vacancyRate', unit: 'PERCENT', cadence: 'ANNUAL' },
   otherOperatingExpenses: { key: 'otherOperatingExpenses', unit: 'USD', cadence: 'ANNUAL' },
+  utilities: { key: 'utilities', unit: 'USD', cadence: 'ANNUAL' },
+  opexPercent: { key: 'opexPercent', unit: 'PERCENT', cadence: 'ANNUAL' },
 } as const);
 
 export type FinancialInputKey = keyof typeof FINANCIAL_INPUT_FIELDS;
@@ -45,11 +48,13 @@ export function normalizeFinancialInputs(input: Record<string, unknown>) {
       fields.forEach(field => { dispositions[field] = { status: 'REJECTED', reason: 'CONFLICTING_FINANCIAL_ALIASES' }; });
     }
   }
-  if (values.maintenanceAmount !== undefined && values.maintenancePercent !== undefined) {
-    for (const key of ['maintenanceAmount', 'maintenancePercent']) {
+  for (const alternatives of [['maintenanceAmount', 'maintenancePercent'], ['managementAmount', 'managementPercent']]) {
+   if (alternatives.every(key => values[key] !== undefined)) {
+    for (const key of alternatives) {
       delete values[key];
-      for (const field of sources[key] ?? []) dispositions[field] = { status: 'REJECTED', reason: 'MAINTENANCE_BASIS_REQUIRED' };
+      for (const field of sources[key] ?? []) dispositions[field] = { status: 'REJECTED', reason: alternatives[0].startsWith('maintenance') ? 'MAINTENANCE_BASIS_REQUIRED' : 'MANAGEMENT_BASIS_REQUIRED' };
     }
+   }
   }
   return { values, dispositions };
 }

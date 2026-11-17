@@ -1,5 +1,6 @@
 import {createProviderTrace,type ProviderTrace} from '../property-data/providerTrace.ts';
 import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
+import { buildReportPreflight } from './reportCompletion.ts';
 import { projectProviderListingReferences, projectSoldDelivery } from './reportMarketReferences.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
@@ -338,7 +339,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
   };
   const { data: analysisInputRow } = await queryClient.from('property_arv_review_contexts')
-    .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,evidence_status,deal_assumptions')
+    .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,evidence_status,deal_assumptions,analysis_revision')
     .eq('subject_property_id', validated.propertyId).eq('reviewer_user_id', userId).maybeSingle();
   const analysisInputs = {
     targetCondition: analysisInputRow?.target_condition ?? null,
@@ -678,6 +679,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceCompleteness,
     evidenceCompletenessGate,
     dealAssumptions: analysisInputs.dealAssumptions,
+    analysisRevision: Number(analysisInputRow?.analysis_revision || 0),
     developmentEvidence,
     landDevelopment,
     analysisApplicability,
@@ -688,6 +690,13 @@ export async function getDealInsightContextForAuthenticatedUser(
     ...intelligenceSnapshotBase,
     dealDecisionContext,
   } as const;
+  if (analysisInputs.dealAssumptions.r3Completion) {
+    const completion = buildReportPreflight({ reportType: requestedReportType || 'DEAL_INTELLIGENCE',
+      property: intelligenceSnapshot.propertyFacts || {}, dealAssumptions: analysisInputs.dealAssumptions,
+      targetCondition: analysisInputs.targetCondition, propertyId: validated.propertyId, userId,
+      revision: intelligenceSnapshot.analysisRevision, evidence: intelligenceSnapshot, language: languageInput });
+    analysisInputs.dealAssumptions.activeScenario = completion.scenario;
+  }
   const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);
   return { ...result, dealIntelligence: enrichedDealIntelligence, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness,
     evidenceCompletenessGate, runtimeTrace };

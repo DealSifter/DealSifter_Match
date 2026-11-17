@@ -2443,6 +2443,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   {selectedPortfolioItem ? (
                     (selectedPortfolioItem.address) ? (
                       <PortfolioDetail
+                        viewerUserId={currentUserId}
                         item={selectedPortfolioItem}
                         owner={activeOwner}
                         ownerContact={activeOwner?.canonicalContact || null}
@@ -2624,6 +2625,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
             {mobileCardSheet.address ? (
               <>
                 <PortfolioDetail
+                  viewerUserId={currentUserId}
                   item={mobileCardSheet}
                   owner={activeOwner}
                   ownerContact={activeOwner?.canonicalContact || null}

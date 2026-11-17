@@ -2,6 +2,8 @@ import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxx
 import { FINANCIAL_INPUT_FIELDS } from '../../../../supabase/functions/_shared/maxxis/financialInputContract.ts';
 import React, { useMemo, useState } from 'react';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
+import { COMPLETION_FIELDS, completionLabel } from '../../../../supabase/functions/_shared/maxxis/reportCompletion.ts';
+import { ASSISTED_PARAMETERS, assistedEstimateCopy, assistedParameterValue } from '../../../../supabase/functions/_shared/maxxis/unknownInputResolution.ts';
 
 export const MAXXIS_TARGET_CONDITIONS = Object.freeze([
   'AS_IS', 'LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION',
@@ -33,7 +35,92 @@ function ChoiceButton({ active, disabled, children, onClick }) {
   return <button type="button" className="maxxis-inline-link maxxis-gap-choice" aria-pressed={active} disabled={disabled} onClick={onClick}>{children}</button>;
 }
 
+function CompletionQuestions({ message, language, onResolve, onDecline, busy }) {
+  const data = message.data, preflight = data.reportPreflight;
+  const [manual, setManual] = useState(false);
+  const [parameterMode, setParameterMode] = useState(false);
+  const [reviewEstimate, setReviewEstimate] = useState(false);
+  const unknown = !manual && (data.unknownChoice || preflight?.gaps?.some(g => preflight?.unknownResolution?.unknown?.[g.id]));
+  const missingCostGaps = (preflight?.gaps || []).filter(g => ['holdingCosts', 'financingCosts', 'sellingCosts'].includes(g.id));
+  const estimates = missingCostGaps.map(g => preflight?.unknownResolution?.candidates?.[g.id]).filter(Boolean);
+  const parameters = [...new Set(missingCostGaps.flatMap(g => preflight?.unknownResolution?.unavailable?.[g.id]?.missing || []))]
+    .filter(id => COMPLETION_FIELDS[id] && !preflight?.fields?.[id]?.confirmed).slice(0, 3);
+  const questions = parameterMode ? parameters.map(id => ({ id })) : data.completionCandidates
+    ? Object.keys(data.completionCandidates.values).filter(key => key !== 'opexMethod').map(id => ({ id }))
+    : preflight?.questions || [];
+  const [values, setValues] = useState(() => ({ ...Object.fromEntries(questions.filter(q => q.candidate).map(q => [q.id, q.candidate.value])), ...(data.completionCandidates?.values || {}),
+    ...Object.fromEntries(questions.filter(q => q.id === 'opexPercent').map(q => [q.id, 30])) }));
+  const isPt = language === 'pt', isEs = language === 'es';
+  const partial = preflight?.status === 'PARTIAL_ALLOWED';
+  const options = { financingMode: ['CASH', 'FINANCED'], financingScope: ['NO_FINANCING_CHARGES', 'CHARGES_APPLY'],
+    holdingExpenseScope: ['ITEMIZED_EXCLUDES_REHAB_AND_FINANCING'], financingInterestMethod: ['INTEREST_ONLY'], financingCostScope: ASSISTED_PARAMETERS.financingCostScope.options };
+  const optionLabel = value => Object.values(options).some(items => items.includes(value)) ? assistedParameterValue(value, language) : localizeMaxxisValue(value, language);
+  const metrics = preflight?.scenario?.calculatedOutputs || {};
+  const metricSummary = ['NOI','capRate','ROI','DSCR'].filter(key=>typeof metrics[key]==='number'&&Number.isFinite(metrics[key]))
+    .map(key=>`${key}: ${new Intl.NumberFormat(isPt?'pt-BR':isEs?'es-US':'en-US',{maximumFractionDigits:2}).format(metrics[key])}${key==='capRate'||key==='ROI'?'%':key==='NOI'?' USD / year':''}`).join(' · ');
+  const valid = questions.every(({ id }) => id === 'target_condition' ? MAXXIS_TARGET_CONDITIONS.includes(values[id])
+    : id === 'opexMethod' ? ['ITEMIZED', 'AGGREGATE_EGI'].includes(values[id])
+      : options[id] ? options[id].includes(values[id])
+      : id === 'scenarioStrategy' ? Boolean(values[id])
+        : values[id] !== '' && values[id] !== undefined && Number.isFinite(Number(values[id])) && Number(values[id]) >= 0
+          && Number(values[id]) <= (COMPLETION_FIELDS[id]?.unit === 'PERCENT' ? 100 : 1e9));
+  const submit = () => {
+    if (!valid || busy) return;
+    const inputs = { ...values }, condition = inputs.target_condition; delete inputs.target_condition;
+    onResolve(message, { ...(condition ? { targetCondition: condition } : {}),
+      ...(Object.keys(inputs).length ? { completionInputs: Object.fromEntries(Object.entries(inputs).map(([k, v]) =>
+        [k, ['opexMethod', 'scenarioStrategy'].includes(k) || options[k] ? v : Number(v)])) } : {}) });
+  };
+  return <section className="maxxis-gap-inline" data-testid="maxxis-analysis-gap-resolution" aria-label={isPt ? 'Completar análise' : 'Complete analysis'}>
+    <div className="maxxis-gap-resolution">
+      <p>{data.completionCandidates
+        ? (isPt ? 'Confira os valores entendidos. Só serão usados no cenário privado após sua confirmação.' : isEs ? 'Revisa los valores interpretados. Solo se usarán en el escenario privado tras confirmar.' : 'Review the understood values. They enter your private scenario only after confirmation.')
+        : (isPt ? 'Consultei o cadastro, o contexto confirmado e o cache disponível. Preciso apenas dos dados abaixo para continuar.' : isEs ? 'Consulté el registro, el contexto confirmado y la caché disponible. Solo faltan los datos siguientes.' : 'I checked the property record, confirmed context and available cache. Only the inputs below remain.')} </p>
+      {preflight?.scenario?.calculatedOutputs?.operatingReadiness === 'BLOCKED_CONFLICT' ? <><p role="alert">{isPt ? 'As despesas conhecidas ultrapassam o orçamento OPEX total. Revise a porcentagem ou escolha despesas específicas.' : 'Known expenses exceed the total OPEX budget. Revise the percentage or select itemized expenses.'}</p>
+        <button type="button" className="maxxis-inline-link" disabled={busy} onClick={()=>onResolve(message,{completionInputs:{opexMethod:'ITEMIZED'}})}>{isPt?'Usar despesas específicas':'Use itemized expenses'}</button></> : null}
+      {unknown ? <>
+        <p>{isPt ? 'Você não precisa conhecer todos esses valores. Posso usar estimativas ilustrativas quando houver base confirmada ou continuar com um relatório parcial, indicando o que ainda não é calculável.' : isEs ? 'Puedes usar estimaciones ilustrativas con base confirmada o continuar con un informe parcial que indique lo que aún no se puede calcular.' : 'You do not need to know every value. I can use illustrative estimates with a confirmed basis, or continue with a partial report showing what cannot yet be calculated.'}</p>
+        {missingCostGaps.filter(g => !preflight?.unknownResolution?.candidates?.[g.id]).map(g => <p key={g.id}><strong>{completionLabel(g.id, language)}</strong>: {isPt ? 'Para estimar, confirme: ' : isEs ? 'Para estimar, confirma: ' : 'To estimate, confirm: '}{(preflight?.unknownResolution?.unavailable?.[g.id]?.missing || []).map(id => completionLabel(id, language)).join(', ')}.</p>)}
+        {estimates.length ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => setReviewEstimate(true)}>{isPt ? 'Estimar e continuar' : isEs ? 'Estimar y continuar' : 'Estimate and continue'}</button> : null}
+        {reviewEstimate ? <>
+          {estimates.map(estimate => <div key={estimate.field}><strong>{completionLabel(estimate.field, language)}: {currency(estimate.value, language)}</strong>
+            <p>{isPt ? 'Premissa ilustrativa do sistema, ainda não adotada. Total para o período confirmado.' : isEs ? 'Supuesto ilustrativo del sistema, todavía no adoptado. Total del período confirmado.' : 'Illustrative system assumption, not yet adopted. Total for the confirmed period.'}</p>
+            <p>{assistedEstimateCopy(estimate, language).formula}</p>
+            <p>{Object.entries(estimate.basis).map(([key, item]) => `${completionLabel(key, language)}: ${typeof item.value === 'number' ? item.value : optionLabel(item.value)}`).join(' · ')}</p>
+            <p>{assistedEstimateCopy(estimate, language).limitations}</p>
+          </div>)}
+          <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onResolve(message, { acceptEstimateFields: estimates.map(e => e.field) })}>{isPt ? 'Confirmar estimativas apresentadas e continuar' : isEs ? 'Confirmar estimaciones y continuar' : 'Confirm displayed estimates and continue'}</button>
+        </> : null}
+        {preflight?.partialAvailable ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onResolve(message, { completionPartialAccepted: true })}>{isPt ? 'Continuar com dados parciais' : isEs ? 'Continuar con datos parciales' : 'Continue with partial data'}</button> : null}
+        <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => { setManual(true); setParameterMode(false); setValues({}); }}>{isPt ? 'Informar valores manualmente' : isEs ? 'Introducir valores manualmente' : 'Enter values manually'}</button>
+        {parameters.length ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => { setParameterMode(true); setValues({}); }}>{isPt ? 'Informar parâmetros para estimar' : isEs ? 'Introducir parámetros para estimar' : 'Provide estimation parameters'}</button> : null}
+      </> : null}
+      {(!unknown || parameterMode) && questions.map(({ id }) => <label className="maxxis-gap-field" key={id}>{completionLabel(id, language)}
+        {id === 'target_condition' || id === 'opexMethod' || id === 'scenarioStrategy' || options[id] ? <select value={values[id] || ''} disabled={busy} onChange={e => setValues(v => ({ ...v, [id]: e.target.value }))}>
+          <option value="">—</option>
+          {(options[id] || (id === 'target_condition' ? MAXXIS_TARGET_CONDITIONS : id === 'opexMethod' ? ['ITEMIZED', 'AGGREGATE_EGI'] : ['BUY_AND_HOLD', 'FLIP', 'SUB_TO', 'WHOLESALE', 'SELLER_FINANCING', 'LAND'])).map(value => <option key={value} value={value}>{value === 'AGGREGATE_EGI' ? (isPt ? 'OPEX total presumido (% da receita efetiva)' : 'Assumed total OPEX (% of effective income)') : value === 'ITEMIZED' ? (isPt ? 'Despesas específicas' : 'Itemized expenses') : optionLabel(value)}</option>)}
+        </select> : <input type="number" min="0" step="0.01" max={COMPLETION_FIELDS[id]?.unit === 'PERCENT' ? 100 : 1e9} value={values[id] ?? ''} disabled={busy} onChange={e => setValues(v => ({ ...v, [id]: e.target.value }))} />}
+        {COMPLETION_FIELDS[id] && !options[id] ? <small>{COMPLETION_FIELDS[id].unit === 'PERCENT' ? '%' : COMPLETION_FIELDS[id].unit === 'MONTHS' ? (isPt ? 'Meses' : isEs ? 'Meses' : 'Months') : 'US$'}{COMPLETION_FIELDS[id].cadence === 'MONTHLY' ? (isPt ? ' por mês' : ' per month') : COMPLETION_FIELDS[id].cadence === 'ANNUAL' ? (isPt ? ' por ano' : ' per year') : (isPt ? ' · total da operação' : ' · operation total')}{id === 'rent' ? (isPt ? ' · Premissa de aluguel; não comprova renda contratual.' : ' · Rental assumption; not proof of contract income.') : ''}</small> : null}
+        {id === 'opexPercent' ? <small>{isPt ? '30% é apenas uma sugestão ilustrativa editável. Inclui as despesas conhecidas e exclui vacância e dívida. Só será usada ao confirmar.' : '30% is an editable illustration only. Includes known expenses; excludes vacancy and debt. Applied only when confirmed.'}</small> : null}
+      </label>)}
+      {partial ? <p>{isPt ? 'O cenário disponível será identificado como projeção. Há limitações de evidência ou métricas opcionais; deseja gerar com essas limitações?' : 'Available scenario results will be labeled projections. Evidence or optional metrics remain incomplete; generate with these limitations?'}</p> : null}
+      {partial && metricSummary ? <p><strong>{isPt?'Projeções do cenário confirmado':'Confirmed scenario projections'}</strong><br/>{metricSummary}</p> : null}
+      {data.error ? <p className="maxxis-gap-error" role="alert">{data.error}</p> : null}
+      <div className="maxxis-gap-actions">
+        {questions.length && (!unknown || parameterMode) ? <button type="button" className="maxxis-inline-link" disabled={busy || !valid} onClick={submit}>{busy ? (isPt ? 'Salvando…' : 'Saving…') : (isPt ? 'Confirmar os valores acima' : 'Confirm the values above')}</button> : null}
+        {partial ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onResolve(message, { completionPartialAccepted: true })}>{isPt ? 'Gerar com limitações explícitas' : 'Generate with explicit limitations'}</button> : null}
+        {questions.length && !unknown ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onDecline(message, questions.map(q => q.id))}>{isPt ? 'Não sei' : isEs ? 'No sé' : "I don't know"}</button> : null}
+      </div>
+    </div>
+  </section>;
+}
+
 export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolve, onDecline, busy = false }) {
+  if (message?.data?.reportPreflight || message?.data?.completionCandidates) return <CompletionQuestions key={`${message.id}:${message.data.expectedRevision || 0}`} {...{ message, language, onResolve, onDecline, busy }} />;
+  return <ExistingAnalysisGapResolution {...{ message, language, onResolve, onDecline, busy }} />;
+}
+
+function ExistingAnalysisGapResolution({ message, language = 'en', onResolve, onDecline, busy = false }) {
   const data = message?.data || {};
   const missing = Array.isArray(data.missingUserInputs) ? data.missingUserInputs : [];
   const assumptions = data.assumptions || {};

@@ -1,0 +1,20 @@
+.report-delivery { color:var(--t1, #172033); font-size:14px; line-height:1.45; display:grid; gap:16px; }
+.report-delivery *, .report-delivery *::before, .report-delivery *::after { box-sizing:border-box; }
+.report-delivery .report-delivery-heading { font-size:19px; font-weight:800; margin:0; }
+.report-delivery .report-delivery-summary { padding:14px 16px; background:var(--bg, #f3fafb); border:1px solid var(--border, #d8e3e9); border-radius:14px; display:grid; gap:4px; }
+.report-delivery .report-delivery-property { font-size:16px; font-weight:700; overflow-wrap:anywhere; }
+.report-delivery .report-delivery-caption { font-size:12px; color:var(--t2, #526279); margin:0; }
+.report-delivery .report-delivery-recipients { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.report-delivery .report-delivery-recipients label:first-child { grid-column:1/-1; }
+.report-delivery label { display:grid; gap:5px; font-size:12px; font-weight:600; }
+.report-delivery input[type=text] { font:inherit; font-size:14px; width:100%; min-width:0; border:1px solid var(--border, #cdd7e2); background:var(--card, #fff); color:inherit; border-radius:10px; padding:10px 12px; }
+.report-delivery .report-delivery-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding-top:12px; border-top:1px solid var(--border, #d8e3e9); }
+.report-delivery button { font:inherit; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--border, #ccd7e1); background:var(--card, #fff); color:inherit; border-radius:10px; min-height:38px; padding:8px 13px; }
+.report-delivery button.report-delivery-primary { background:#2ec4c8; border-color:#2ec4c8; color:#fff; }
+.report-delivery button:disabled { cursor:default; opacity:.5; }
+.report-delivery .report-delivery-alert { padding:10px 12px; border-radius:10px; background:#fff6e9; color:#704b14; font-size:12px; overflow-wrap:anywhere; }
+.report-delivery .report-delivery-body { white-space:pre-wrap; overflow-wrap:anywhere; max-height:220px; overflow:auto; padding:12px; border:1px solid var(--border, #d8e3e9); border-radius:10px; font-size:12px; line-height:1.5; margin:0; }
+.report-delivery [data-testid=gmail-connection] { padding:12px; border:1px solid var(--border, #d8e3e9); border-radius:12px; }
+.report-delivery [data-testid=gmail-connection] label { display:block; font-weight:400; }
+.report-delivery .report-delivery-choice { display:flex; align-items:center; gap:8px; font-size:12px; }
+@media(max-width:520px) { .report-delivery { gap:12px; } .report-delivery .report-delivery-recipients { grid-template-columns:1fr; gap:10px; } .report-delivery .report-delivery-actions button { flex:1 1 45%; } }

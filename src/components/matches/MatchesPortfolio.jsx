@@ -1,5 +1,9 @@
 /* eslint-disable react-refresh/only-export-components -- portfolio capability module exports renderers and stable chat/domain helpers */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ReportDeliveryModal } from '../../features/maxxis/reports/ReportDeliveryModal';
+import {readPropertyReleaseMailSource,createPropertyReleaseDelivery} from '../../services/propertyReleaseMailService';
+import {releaseMailProperty} from '../../../supabase/functions/_shared/mailbox/propertyReleaseMail.ts';
+import { loadReportRecipientPreferences, saveReportRecipientPreferences } from '../../services/reportRecipientPreferences';
 import { C } from '../../theme/colors';
 import { getLang, translations, useT } from '../../i18n/translations';
 import { PROPERTIES as _MOCK_PROPERTIES, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../../data/mockData';
@@ -31,7 +35,7 @@ import { buildMaxxisReportSchema } from '../../domain/maxxis/maxxisReportSchema'
 import { mergePropertyReleaseEvidence } from '../../domain/maxxis/propertyReleaseEvidence';
 import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
-import { propertyReleaseFailureMessage } from '../../features/maxxis/export/reportPdfFailures';
+import {propertyReleaseFailureMessage,propertyReleaseDeliveryFailureMessage} from '../../features/maxxis/export/reportPdfFailures';
 import { createReportRequestTrace } from '../../features/maxxis/export/reportRequestTrace';
 import {
   INTELLIGENCE_REPORT_TYPES,
@@ -40,8 +44,8 @@ import {
 export const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 export const SERVICE_PORTFOLIO = import.meta.env.DEV ? (_MOCK_SERVICE_PORTFOLIO || []) : [];
 
-export function normalizeReportEmailRecipients(saved, fallbackTo = '') {
-  const to = String(saved?.to || fallbackTo || '').trim();
+export function normalizeReportEmailRecipients(saved) {
+  const to = String(saved?.to || '').trim();
   const ccCandidate = String(saved?.cc || '').trim();
   const bccCandidate = String(saved?.bcc || '').trim();
   const normalizedTo = to.toLocaleLowerCase();
@@ -395,7 +399,7 @@ export function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
   );
 }
 
-export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
+export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
   const scopedReportEntitlements = useMemo(() => reportEntitlements.filter((entitlement) => (
     !entitlement?.propertyId || String(entitlement.propertyId) === String(item?.id || '')
   )), [item?.id, reportEntitlements]);
@@ -405,27 +409,12 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   const [imgIdx, setImgIdx] = useState(0);
   const imgs = item?.images?.length ? item.images : [item?.image].filter(Boolean);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 767;
-  const getProfileEmailFallback = () => {
-    try {
-      const personalRaw = localStorage.getItem('personalProfile');
-      const professionalRaw = localStorage.getItem('professionalProfile');
-      const userRaw = localStorage.getItem('userProfile');
-      const personal = personalRaw ? JSON.parse(personalRaw) : null;
-      const professional = professionalRaw ? JSON.parse(professionalRaw) : null;
-      const user = userRaw ? JSON.parse(userRaw) : null;
-      return String(personal?.email || professional?.email || user?.email || '').trim();
-    } catch (e) { void e; return ''; }
-  };
   const [emailComposeOpen, setEmailComposeOpen] = useState(false);
+  const [propertyReleaseDelivery, setPropertyReleaseDelivery] = useState(null);
   const [includeReleasePublisher, setIncludeReleasePublisher] = useState(false);
   useEffect(() => setIncludeReleasePublisher(false), [item?.id]);
   const [activeEmailRecipient, setActiveEmailRecipient] = useState('');
-  const [emailRecipients, setEmailRecipients] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      return normalizeReportEmailRecipients(saved, getProfileEmailFallback());
-    } catch (e) { void e; return normalizeReportEmailRecipients(null, getProfileEmailFallback()); }
-  });
+  const [emailRecipients, setEmailRecipients] = useState(() => normalizeReportEmailRecipients(null));
   const { to: emailTo, cc: emailCc, bcc: emailBcc } = emailRecipients;
   const setEmailRecipient = (field, value) => {
     setEmailRecipients((current) => updateReportEmailRecipient(
@@ -460,7 +449,21 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   });
   const [exportMode, setExportMode] = useState('');
   const [isPreparingExport, setIsPreparingExport] = useState(false);
+  const exportActionLock = useRef(false);
   const [exportError, setExportError] = useState('');
+  const [recipientAccount, setRecipientAccount] = useState(null), [recipientLoading, setRecipientLoading] = useState(false);
+  useEffect(() => {
+    if (!emailComposeOpen || exportMode !== 'email') return;
+    let cancelled = false;
+    setRecipientLoading(true); setRecipientAccount(null); setEmailRecipients(normalizeReportEmailRecipients(null));
+    loadReportRecipientPreferences(viewerUserId).then(account => {
+      if (cancelled) return;
+      setRecipientAccount(account);
+      setEmailRecipients(normalizeReportEmailRecipients(account.recipients));
+    }).catch(() => { if (!cancelled) setExportError(getLang() === 'pt' ? 'Não foi possível recuperar os destinatários salvos. Feche e tente novamente.' : 'Saved recipients could not be recovered. Close and retry.'); })
+      .finally(() => { if (!cancelled) setRecipientLoading(false); });
+    return () => { cancelled = true; };
+  }, [emailComposeOpen, exportMode, viewerUserId]);
   const [reportParcelEvidence, setReportParcelEvidence] = useState(null);
   useEffect(()=>{
     let current=true;
@@ -476,7 +479,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     const openRequestedReport = (event) => {
       const requestedPropertyId = String(event?.detail?.propertyId || '').trim();
       if (requestedPropertyId && requestedPropertyId !== String(item?.id || '')) return;
-      if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
       setExportMode('');
       setActiveEmailRecipient('');
       setEmailComposeOpen(true);
@@ -489,20 +491,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     // Reset image index when item changes; defer to next tick to avoid
     // triggering a cascading render within the effect body.
     const t = setTimeout(() => setImgIdx(0), 0);
-    return () => clearTimeout(t);
-  }, [item?.id]);
-
-  useEffect(() => {
-    // Reset email fields when the selected item changes, restoring saved defaults.
-    const t = setTimeout(() => {
-      try {
-        const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-        setEmailRecipients(normalizeReportEmailRecipients(saved, getProfileEmailFallback()));
-      } catch (e) {
-        void e;
-        setEmailRecipients(normalizeReportEmailRecipients(null, getProfileEmailFallback()));
-      }
-    }, 0);
     return () => clearTimeout(t);
   }, [item?.id]);
 
@@ -794,26 +782,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     return fileName;
   };
 
-  const handleExportToEmail = (toValue, ccValue, bccValue, bodySuffix = '') => {
-    const { title, cardsDescription } = buildExportPayload();
-
-    const subject = `[DealSifter] Trello Export - ${title}`;
-    const to = String(toValue || '').trim();
-    const cc = String(ccValue || '').trim();
-    const bcc = String(bccValue || '').trim();
-    const query = [
-      `subject=${encodeURIComponent(subject)}`,
-      `body=${encodeURIComponent(`${cardsDescription}${bodySuffix || ''}`)}`,
-      ...(cc ? [`cc=${encodeURIComponent(cc)}`] : []),
-      ...(bcc ? [`bcc=${encodeURIComponent(bcc)}`] : []),
-    ].join('&');
-    const mailtoUrl = `mailto:${to}?${query}`;
-    window.location.href = mailtoUrl;
-  };
-
   const handleOpenEmailCompose = () => {
     setExportError('');
-    if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
     setExportMode('');
     setActiveEmailRecipient('');
     setEmailComposeOpen(true);
@@ -844,14 +814,14 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       reportType: accessDecision.reportType,
       accessDecision,
       propertyAnalysisContext,
+      reportOptions: { includePublisher: isOwnerUnlocked && includeReleasePublisher },
       // Kept client-side: this is the same already-authorized property surface used by
       // Property Release and fills app-only report fields after the server analysis.
       reportProperty: buildCurrentReportProperty(),
       // The chat exports the authorized structured MaxxisReportSchema, never a Basic PDF with analysis text appended.
       onExportPdf: async () => { throw new Error('MAXXIS_REPORT_SCHEMA_REQUIRED'); },
-      onEmail: () => {
-        setExportMode('email'); setExportPdfWithEmail(true); setActiveEmailRecipient(''); setEmailComposeOpen(true);
-      },
+      // Prepared analysis delivery is handled by Maxxis with its saved artifact,
+      // never by reopening this generic L1 selector.
     });
     setActiveEmailRecipient('');
     setEmailComposeOpen(false);
@@ -877,8 +847,21 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   };
 
   const handleConfirmEmailExport = async () => {
-    if (isPreparingExport) return;
+    if (isPreparingExport || exportActionLock.current) return;
     setExportError('');
+    if (exportMode === 'email') {
+      exportActionLock.current = true; setIsPreparingExport(true);
+      try {
+        await saveReportRecipientPreferences(viewerUserId, {to:emailTo,cc:emailCc,bcc:emailBcc});
+        const source = await readPropertyReleaseMailSource(viewerUserId, item.id);
+        const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE,
+          property: {...buildCurrentReportProperty({ images: source.images.slice(0, 5) }), ...releaseMailProperty(source.row,source.images.slice(0,5))} });
+        const prepared = await createPropertyReleaseDelivery(viewerUserId, schema, source, getSafeLang(getLang()));
+        setPropertyReleaseDelivery({...prepared, includePublisher:isOwnerUnlocked && includeReleasePublisher}); setEmailComposeOpen(false);
+      } catch (error) { setExportError(propertyReleaseDeliveryFailureMessage(error, getLang())); }
+      finally { exportActionLock.current = false; setIsPreparingExport(false); }
+      return;
+    }
     const payload = {
       to: String(emailTo || '').trim(),
       cc: String(emailCc || '').trim(),
@@ -889,60 +872,48 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       exportPdfWithEmail: exportMode === 'email' ? Boolean(exportPdfWithEmail) : false,
       exportPhotosWithEmail: exportMode === 'email' ? Boolean(exportPhotosWithEmail) : false,
     };
-    try { localStorage.setItem('ds_export_mail_defaults', JSON.stringify(payload)); } catch (e) { void e; }
 
     const imageUrls = getExportImageUrls();
 
+    exportActionLock.current = true;
     setIsPreparingExport(true);
-    let bodySuffix = '';
-    const shouldSendEmail = payload.exportPdfWithEmail || payload.exportPhotosWithEmail;
+
     try {
-      let pdfFileName = null;
+      try { localStorage.setItem('ds_export_mail_defaults', JSON.stringify({ ...payload, userId: viewerUserId || recipientAccount?.userId })); } catch { /* Account settings remain authoritative. */ }
+
       if (payload.exportPdfLocal || payload.exportPdfWithEmail) {
         const source = buildExportPayload();
-        pdfFileName = await generateReleasePdf({
+        await generateReleasePdf({
           title: source.title,
           cardsDescription: source.cardsDescription,
           imageUrls,
         });
       }
 
-      let downloadedPhotos = 0;
+
       if (payload.exportPhotosLocal || payload.exportPhotosWithEmail) {
         for (let i = 0; i < imageUrls.length; i += 1) {
           const url = imageUrls[i];
           if (!url) continue;
           const ext = String(url).toLowerCase().includes('.png') ? 'png' : 'jpg';
           const photoName = `property_photo_${i + 1}.${ext}`;
-          const blob = await downloadUrlToFile(url, photoName);
-          if (blob) downloadedPhotos += 1;
+          await downloadUrlToFile(url, photoName);
         }
       }
 
-      const emailAttachmentNotes = [];
-      if (payload.exportPdfWithEmail) {
-        emailAttachmentNotes.push(`- PDF prepared locally: ${pdfFileName || 'portfolio_release.pdf'}`);
-      }
-      if (payload.exportPhotosWithEmail) {
-        emailAttachmentNotes.push(`- Photos prepared locally: ${downloadedPhotos}`);
-      }
-      if (emailAttachmentNotes.length) {
-        bodySuffix = `\n\nATTACHMENTS READY TO INCLUDE IN EMAIL (manual attach):\n${emailAttachmentNotes.join('\n')}`;
-      }
     } catch (error) {
       // Keep the selected delivery options open for retry, rather than leaving
       // a rejected event-handler promise and no explanation for the user.
       setExportError(propertyReleaseFailureMessage(error, getLang()));
       return;
     } finally {
+      exportActionLock.current = false;
       setIsPreparingExport(false);
     }
 
     setActiveEmailRecipient('');
     setEmailComposeOpen(false);
-    if (shouldSendEmail) {
-      handleExportToEmail(payload.to, payload.cc, payload.bcc, bodySuffix);
-    }
+
   };
 
 
@@ -1089,6 +1060,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         </div>
       </div>
 
+      {propertyReleaseDelivery ? <ReportDeliveryModal reference={propertyReleaseDelivery.reference} propertyRelease={propertyReleaseDelivery} userId={viewerUserId} onClose={() => setPropertyReleaseDelivery(null)} /> : null}
       {emailComposeOpen ? (
         <Modal
           onClose={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}
@@ -1108,10 +1080,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 onSelect={handleAnalysisSelection}
                 onCancel={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}
                 onContinue={handleConfirmEmailExport}
-                continueDisabled={!exportMode}
+                continueDisabled={!exportMode || (exportMode === 'email' && (recipientLoading || !recipientAccount))}
                 isPreparing={isPreparingExport}
                 cancelLabel={modalsT.cancel || 'Cancel'}
-                continueLabel={matchesT.exportContinue || 'Continue'}
+                continueLabel={exportMode === 'email' ? (getSafeLang(getLang()) === 'pt' ? 'Revisar envio pelo Gmail' : getSafeLang(getLang()) === 'es' ? 'Revisar envío por Gmail' : 'Review Gmail delivery') : matchesT.exportContinue || 'Continue'}
                 preparingLabel={matchesT.exportPreparing || 'Preparing...'}
                 onBasicDownload={() => {
                   setExportError('');
@@ -1120,9 +1092,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 }}
                 onBasicEmail={() => {
                   setExportError('');
-                  setExportMode('email'); setExportPdfWithEmail(true); setExportPdfLocal(false);
-                  if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
-                }}
+                  setExportMode('email'); setExportPdfWithEmail(false); setExportPhotosWithEmail(false); setExportPdfLocal(false);
+                            }}
               />
 
               {isOwnerUnlocked && exportMode ? <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:C.t1}}><input type="checkbox" checked={includeReleasePublisher} onChange={event=>setIncludeReleasePublisher(event.target.checked)} />{getSafeLang(getLang())==='pt'?'Incluir publicador e contatos autorizados no PDF':getSafeLang(getLang())==='es'?'Incluir publicador y contactos autorizados en el PDF':'Include publisher and authorized contacts in the PDF'}</label> : null}
@@ -1139,21 +1110,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                     {matchesT.exportDownloadPhotos || 'Download property photos separately to device'}
                   </label>
                 </>
-              ) : exportMode === 'email' ? (
-                <>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                    <input type="checkbox" checked={exportPdfWithEmail} onChange={(e) => setExportPdfWithEmail(e.target.checked)} />
-                    {matchesT.exportEmailPdf || 'Prepare PDF to include with email'}
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                    <input type="checkbox" checked={exportPhotosWithEmail} onChange={(e) => setExportPhotosWithEmail(e.target.checked)} />
-                    {matchesT.exportEmailPhotos || 'Prepare separate photos to include with email'}
-                  </label>
-                  <div style={{ fontSize: 10, color: C.t3 }}>
-                    {matchesT.exportAttachmentHint || 'Email attachments are prepared locally and can be attached manually in your email client.'}
-                  </div>
-                </>
-              ) : null}
+              ) : exportMode === 'email' ? <p style={{fontSize:12,color:C.t2}}>{getSafeLang(getLang()) === 'pt' ? 'Revise destinatários e anexos na próxima etapa. O PDF é anexado automaticamente; fotos são opcionais. O envio exige conectar seu Gmail e confirmar.' : 'Review recipients and attachments in the next step. The PDF is attached automatically; photos are optional. Connect your Gmail and confirm before sending.'}</p> : null}
             </div>
 
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: exportMode === 'email' ? 'grid' : 'none', gap: 8 }}>
@@ -1175,7 +1132,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   value={emailTo}
                   onFocus={() => setActiveEmailRecipient('to')}
                   onChange={(e) => setEmailRecipient('to', e.target.value)}
-                  disabled={exportMode !== 'email'}
+                  disabled={exportMode !== 'email' || recipientLoading}
                   placeholder={matchesT.exportRecipientPlaceholder || 'recipient@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
                 />
@@ -1197,7 +1154,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   value={emailCc}
                   onFocus={() => setActiveEmailRecipient('cc')}
                   onChange={(e) => setEmailRecipient('cc', e.target.value)}
-                  disabled={exportMode !== 'email'}
+                  disabled={exportMode !== 'email' || recipientLoading}
                   placeholder={matchesT.exportCcPlaceholder || 'copy@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
                 />
@@ -1219,7 +1176,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   value={emailBcc}
                   onFocus={() => setActiveEmailRecipient('bcc')}
                   onChange={(e) => setEmailRecipient('bcc', e.target.value)}
-                  disabled={exportMode !== 'email'}
+                  disabled={exportMode !== 'email' || recipientLoading}
                   placeholder={matchesT.exportBccPlaceholder || 'hidden@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
                 />

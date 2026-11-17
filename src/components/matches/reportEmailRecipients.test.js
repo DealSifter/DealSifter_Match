@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { normalizeReportEmailRecipients, updateReportEmailRecipient } from './MatchesPortfolio';
 
 describe('report email recipient isolation', () => {
-  it('keeps the profile fallback exclusively in To', () => {
+  it('does not turn the profile sender into a recipient', () => {
     expect(normalizeReportEmailRecipients(null, 'owner@example.com')).toEqual({
-      to: 'owner@example.com',
+      to: '',
       cc: '',
       bcc: '',
     });

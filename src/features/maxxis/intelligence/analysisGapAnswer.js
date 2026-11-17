@@ -24,6 +24,17 @@ export function parseAnalysisGapAnswer(message, answer) {
   const missing = Array.isArray(message?.data?.missingUserInputs) ? message.data.missingUserInputs : [];
   const clean = String(answer || '').trim();
   if (!missing.length || !clean) return null;
+  if (message?.data?.reportPreflight && missing.length === 1 && missing[0] !== 'target_condition') {
+    const field = missing[0];
+    if (field === 'opexMethod') {
+      if (/itemized|espec[ií]fic|discriminad/i.test(clean)) return { action: 'resolve', values: { completionInputs: { opexMethod: 'ITEMIZED' } } };
+      if (/aggregate|agregado|presumid|estimated expenses/i.test(clean)) return { action: 'resolve', values: { completionInputs: { opexMethod: 'AGGREGATE_EGI' } } };
+    }
+    if (/^\s*(?:(?:US\$|USD|\$)\s*)?\d[\d.,]*\s*%?\s*$/.test(clean)) {
+      const amount = numericBudget(clean);
+      return amount === null ? null : { action: 'resolve', values: { completionInputs: { [field]: amount } } };
+    }
+  }
   if (/\b(continue anyway|continue with limitations|skip|pular|continuar com limita[cç][oõ]es|seguir sem|omitir|continuar con limitaciones)\b/i.test(clean)) {
     return { action: 'decline', fields: missing };
   }

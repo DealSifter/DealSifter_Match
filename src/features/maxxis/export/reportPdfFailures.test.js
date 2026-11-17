@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRenderBasicWithoutWorker, propertyReleaseFailureMessage, reportPdfFailureCode } from './reportPdfFailures';
+import { canRenderBasicWithoutWorker, propertyReleaseFailureMessage, propertyReleaseDeliveryFailureMessage, reportPdfFailureCode } from './reportPdfFailures';
 
 describe('L1 real-renderer compatibility and safe failure details', () => {
   it.each(['REPORT_PDF_WORKER_UNAVAILABLE', 'REPORT_PDF_WORKER_FAILED'])('permits the same L1 renderer after %s', code => {
@@ -21,4 +21,11 @@ describe('L1 real-renderer compatibility and safe failure details', () => {
     expect(message).not.toContain('undefined');
     expect(message).not.toMatch(/Review the property description|Revise a descrição|Revisa la descripción/);
   });
+});
+
+it('distinguishes email access/preference errors from PDF rendering and does not expose arbitrary details',()=>{
+ expect(propertyReleaseDeliveryFailureMessage(new Error('REPORT_DELIVERY_UNAUTHORIZED'),'pt-BR')).toContain('acesso');
+ expect(propertyReleaseDeliveryFailureMessage(new Error('REPORT_RECIPIENT_SAVE_FAILED'),'pt')).toContain('destinatários');
+ expect(propertyReleaseDeliveryFailureMessage(new Error('REPORT_DELIVERY_STALE'),'pt')).toContain('mudaram');
+ const message=propertyReleaseDeliveryFailureMessage(new Error('private@example.invalid'),'pt');expect(message).not.toContain('private@');expect(message).not.toContain('PDF');expect(message).not.toContain('RENDER');
 });

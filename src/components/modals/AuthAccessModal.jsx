@@ -4,6 +4,7 @@ import { useT } from '../../i18n/translations';
 import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import './AuthAccessModal.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const REMEMBER_LOGIN_KEY = 'ds_remember_login_email';
@@ -18,6 +19,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
     catch { return ''; }
   });
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberLogin, setRememberLogin] = useState(() => {
     try { return Boolean(localStorage.getItem(REMEMBER_LOGIN_KEY)); }
     catch { return false; }
@@ -89,7 +91,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
         <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
           <button
             data-testid="auth-tab-signup"
-            onClick={() => setTab('signup')}
+            onClick={() => { setTab('signup'); setPasswordVisible(false); }}
             style={{
               flex: 1,
               border: `1px solid ${tab === 'signup' ? C.accent : C.border}`,
@@ -106,7 +108,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
           </button>
           <button
             data-testid="auth-tab-login"
-            onClick={() => setTab('login')}
+            onClick={() => { setTab('login'); setPasswordVisible(false); }}
             style={{
               flex: 1,
               border: `1px solid ${tab === 'login' ? C.accent : C.border}`,
@@ -147,17 +149,32 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
           />
         </label>
 
-        <label style={{ display: 'grid', gap: 7 }}>
-          <span style={{ fontSize: 12, color: C.t2, fontWeight: 700, letterSpacing: '0.01em' }}>{t.password || 'Password'}</span>
-          <input
-            data-testid="auth-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.passwordPlaceholder || 'Enter your password'}
-            type="password"
-            style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 13px', background: C.bg, color: C.t1, fontSize: 14, outline: 'none' }}
-          />
-        </label>
+        <div style={{ display: 'grid', gap: 7 }}>
+          <label htmlFor="auth-password" style={{ fontSize: 12, color: C.t2, fontWeight: 700, letterSpacing: '0.01em' }}>{t.password || 'Password'}</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="auth-password"
+              className="auth-password-input"
+              data-testid="auth-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t.passwordPlaceholder || 'Enter your password'}
+              type={passwordVisible ? 'text' : 'password'}
+              style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 46px 11px 13px', background: C.bg, color: C.t1, fontSize: 14, outline: 'none' }}
+            />
+            <button
+              type="button"
+              aria-label={passwordVisible ? (t.hidePassword || 'Hide password') : (t.showPassword || 'Show password')}
+              title={passwordVisible ? (t.hidePassword || 'Hide password') : (t.showPassword || 'Show password')}
+              aria-pressed={passwordVisible}
+              aria-controls="auth-password"
+              onClick={() => setPasswordVisible(visible => !visible)}
+              style={{ position: 'absolute', top: 0, bottom: 0, right: 2, width: 40, border: 'none', borderRadius: 8, background: 'transparent', color: C.t3, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name={passwordVisible ? 'eye' : 'eyeOff'} size={18} />
+            </button>
+          </div>
+        </div>
 
         {error ? <div data-testid="auth-inline-error" style={{ color: C.danger, fontSize: 12, fontWeight: 600 }}>{error}</div> : null}
 

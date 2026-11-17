@@ -317,7 +317,12 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     if (financialRows.length) push({ id: 'operating-evidence', title: t('Renda e despesas: evidências e premissas', 'Income and expenses: evidence and assumptions', 'Ingresos y gastos: evidencia y supuestos'), kind: 'facts', priority: 65, rows: financialRows, evidenceRefs: financialRows.flatMap(row => row.evidenceRefs) });
     const actual = obj(financialInputs.currentContractRent);
     if (number(actual.value) === null || !['ACTUAL', 'USER_PROVIDED_ACTUAL', 'PUBLIC_RECORD'].includes(scalar(actual.sourceClass))) addBlocker('current-rent', t('O aluguel contratual atual não foi confirmado. Aluguel de mercado não comprova renda efetiva nem libera o NOI atual.', 'Current contract rent is not confirmed. Market rent does not establish actual income or current NOI.', 'El alquiler contractual actual no está confirmado. El alquiler de mercado no prueba ingresos efectivos ni habilita el NOI actual.'), t('Confirme o contrato e a renda efetivamente recebida para distinguir o resultado atual do cenário de mercado.', 'Confirm the lease and income actually received to distinguish current performance from a market scenario.', 'Confirme el contrato y los ingresos recibidos para distinguir el resultado actual del escenario de mercado.'), ['property:identity'], 96);
-    const unresolvedExpense = ['insurance', 'propertyTax', 'hoa', 'maintenance'].find(key => number(obj(financialInputs[key]).value) === null);
+    const privateScenario = obj(presentation.activeScenario), privateInputs = obj(privateScenario.inputMetadata);
+    const privateBudget = obj(privateScenario.assumptions).opexMethod === 'AGGREGATE_EGI'
+      && obj(privateScenario.calculatedOutputs).operatingReadiness === 'READY_ASSUMPTION_HEAVY';
+    const privateKeys: Record<string, string[]> = { insurance: ['insurance'], propertyTax: ['propertyTax'], hoa: ['HOA'], maintenance: ['maintenanceAmount', 'maintenancePercent'] };
+    const unresolvedExpense = ['insurance', 'propertyTax', 'hoa', 'maintenance'].find(key => number(obj(financialInputs[key]).value) === null
+      && !privateBudget && !privateKeys[key].some(k => { const input = obj(privateInputs[k]); return input.confirmed === true && input.status !== 'STALE' && number(input.value) !== null; }));
     if (unresolvedExpense) { const label = reportFieldLabel(unresolvedExpense, locale) || unavailable;
       addBlocker(`expense-${unresolvedExpense}`, t(`${label}: aplicabilidade e valor não confirmados; os custos operacionais permanecem incompletos.`, `${label}: applicability and amount are unconfirmed; operating costs remain incomplete.`, `${label}: aplicabilidad e importe no confirmados; los gastos operativos siguen incompletos.`), t(`Confirme se ${label.toLowerCase()} se aplica e documente o valor ou uma premissa explícita; não será presumido zero.`, `Confirm whether ${label.toLowerCase()} applies and document its amount or an explicit assumption; zero will not be presumed.`, `Confirme si ${label.toLowerCase()} se aplica y documente el importe o un supuesto explícito; no se presumirá cero.`), ['property:identity'], 70); }
   }
@@ -675,6 +680,12 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     const readiness = scalar(obj(obj(obj(presentation.financialReadiness).metrics).NOI).readinessLevel);
     const readinessSection = resultSections.find(s => s.id === 'financial-readiness');
     if (readinessSection && readiness.startsWith('READY_')) readinessSection.status = 'available';
+    if (readinessSection && Object.entries(values).some(([key, value]) => key.endsWith(':output:NOI') && value.numericValue !== null)) {
+      readinessSection.status = 'available';
+      readinessSection.text = t('O NOI projetado está disponível no cenário privado confirmado, com as entradas mostradas. Isso não comprova renda contratual nem desempenho operacional atual.',
+        'Projected NOI is available in the confirmed private scenario using the inputs shown. This does not establish contract income or current operating performance.',
+        'El NOI proyectado está disponible en el escenario privado confirmado con las entradas mostradas. No acredita ingreso contractual ni desempeño operativo actual.');
+    }
     const fit = resultSections.find(s => s.id === 'profile-fit');
     if (!opportunities.length) {
       const text = t('Os dados atuais não comprovam desconto, margem ou retorno. Preço e atributos informados são pontos de partida, não sinais confirmados de oportunidade.', 'Current data does not establish discount, margin or return. Reported price and attributes are starting points, not confirmed opportunity signals.', 'Los datos actuales no prueban descuento, margen ni rentabilidad. Precio y atributos son puntos de partida, no señales confirmadas de oportunidad.');
@@ -746,6 +757,9 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     : indicatorReasons.recordedSales || (list(comps.supporting).map(obj).some(comp=>positive(comp.salePrice)!==null&&scalar(comp.saleDate))
       ? 'USER_INPUT_REQUIRED' : selectedSold.length < ARV_ELIGIBILITY_POLICY.minimumPreliminarySales ? 'NO_COVERAGE' : 'USER_INPUT_REQUIRED');
   const savedRows = resultSections.find(section => section.id === 'saved-scenario-results')?.rows || [];
+  for (const [key, outputKey] of [['noi', 'NOI'], ['capRate', 'capRate'], ['cashFlow', 'annualCashFlow']]) {
+    if (Object.entries(values).some(([id, value]) => id.endsWith(`:output:${outputKey}`) && value.numericValue !== null)) indicatorReasons[key] = null;
+  }
   indicatorReasons.roi = level === 1 ? 'NOT_REQUESTED'
     : savedRows.some(row => /\bROI\b/i.test(row.label) && row.value !== unavailable && row.value !== '—') ? null : 'USER_INPUT_REQUIRED';
   indicatorReasons.landInformation = ['assessorId', 'zoning', 'county', 'legalDescription', 'lotSizeSqft'].some(known)
@@ -818,6 +832,7 @@ export function buildStrictReportViewModel({ schema, language = 'en', includePub
     const scopedReady = cardReady && profileReady && !conflictCount && (land || rentAmount !== null && matrixReady);
     model.completion = scopedReady ? 'COMPLETE' : identityReady ? 'PARTIAL' : 'PRELIMINARY';
   }
+  if (level === 3 && activeScenario.partialDelivery === true && model.completion === 'COMPLETE') model.completion = 'PARTIAL';
   const hasParcel = ['assessorId', 'zoning', 'legalDescription'].some(known);
   if (!hasParcel) model.disclaimer = model.disclaimer.split(/ Registros GIS| GIS records| Los registros GIS/)[0];
   if (!disclosePublisher) {

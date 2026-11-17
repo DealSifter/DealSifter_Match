@@ -1,0 +1,107 @@
+// @vitest-environment jsdom
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ReportDeliveryModal } from './ReportDeliveryModal';
+const mocks = vi.hoisted(() => ({ resolve: vi.fn(), draft: vi.fn(), render: vi.fn(), download: vi.fn(), prepare: vi.fn(), loadRecipients: vi.fn(), saveRecipients: vi.fn(), send: vi.fn(), photos: vi.fn(), release: vi.fn() }));
+vi.mock('../../../services/propertyReleaseMailService', () => ({resolvePropertyReleaseDelivery:mocks.release}));
+vi.mock('./reportDelivery', () => ({ resolveReportDelivery: mocks.resolve, reportEmailDraft: mocks.draft }));
+vi.mock('../presentation/reportNarrativePresentation', () => ({ prepareReportNarrativePresentation: mocks.prepare }));
+vi.mock('../export/maxxisReportPdf', () => ({ renderMaxxisReportPdfCached: mocks.render, downloadMaxxisReportPdf: mocks.download }));
+vi.mock('../../../services/reportRecipientPreferences', () => ({ loadReportRecipientPreferences: mocks.loadRecipients, saveReportRecipientPreferences: mocks.saveRecipients }));
+vi.mock('../../../services/reportMailboxService', () => ({ sendPreparedReportEmail: mocks.send }));
+vi.mock('../export/reportPreparedAssets.ts', () => ({ prepareReportAssets: mocks.photos }));
+vi.mock('../export/reportMapAssets', () => ({ prepareReportMaps: vi.fn(async () => undefined) }));
+vi.mock('./GmailConnectionPanel', () => ({ GmailConnectionPanel: ({ onConnectionChange }) => <button onClick={() => onConnectionChange({ status: 'CONNECTED', mailbox_email: 'synthetic@gmail.com' })}>Connect test mailbox</button> }));
+const reference = { userId: 'a', propertyId: 'property-a', reportId: 'report-a', reportType: 'DEAL_INTELLIGENCE', language: 'en' };
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.resolve.mockResolvedValue({ schema: { reportType: 'DEAL_INTELLIGENCE', sections: { propertySummary: { data: { address: '1200 Fictional QA Avenue' } } } }, report: { createdAt: '2026-11-16' }, entitlements: { PDF: { allowed: true } } });
+  mocks.draft.mockReturnValue('#draft-requested'); mocks.render.mockResolvedValue({ state: 'RENDERED', document: { pageCount: 4, binary: new TextEncoder().encode('%PDF-1.7\nfixture content\n%%EOF') } }); mocks.download.mockReturnValue(true);
+  mocks.send.mockResolvedValue({ state: 'ACCEPTED' }); mocks.photos.mockResolvedValue([]);
+  mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'qa-a@example.invalid', recipients: null }); mocks.saveRecipients.mockResolvedValue({ to: 'qa@example.invalid', cc: '', bcc: '' });
+});
+afterEach(cleanup);
+describe('R3.2 contextual delivery controls', () => {
+  it('T1/T2/T3/T7/T8/T10: confirmed Gmail send attaches the original PDF without download or mailto; duplicate click is ignored', async () => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: null });
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect test mailbox' }));
+    const button = await screen.findByRole('button', { name: 'Prepare Gmail email' });
+    await waitFor(() => expect(button.disabled).toBe(false));
+    fireEvent.change(screen.getByTestId('report-delivery-to'), { target: { value: 'qa@example.invalid' } });
+    fireEvent.click(button); fireEvent.click(button);
+    const confirm = await screen.findByRole('button', { name: 'Confirm Gmail send' });
+    expect(mocks.send).not.toHaveBeenCalled();
+    fireEvent.click(confirm); fireEvent.click(confirm);
+    await screen.findByText(/Gmail accepted the message/);
+    expect(screen.getByRole('button',{name:'Sent through Gmail'}).disabled).toBe(true);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send.mock.calls[0][1]).toMatchObject({ reference, confirmSend: true, pdfBase64: btoa('%PDF-1.7\nfixture content\n%%EOF') });
+    expect(mocks.saveRecipients).toHaveBeenCalledExactlyOnceWith('a', { to: 'qa@example.invalid', cc: '', bcc: '' });
+    expect(mocks.download).not.toHaveBeenCalled(); expect(mocks.draft).not.toHaveBeenCalled();
+    expect(mocks.prepare).not.toHaveBeenCalled(); // No translation/AI acquisition for email delivery.
+    expect(screen.queryByText('Choose the report type')).toBeNull();
+  });
+  it('recovers registered recipients first and shows the login email as the expected sender', async () => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'qa-a@example.invalid', recipients: { to: 'board@boards.trello.example.invalid', cc: 'copy@example.invalid', bcc: '' } });
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('report-delivery-to').value).toBe('board@boards.trello.example.invalid'));
+    expect(screen.getByTestId('report-delivery-cc').value).toBe('copy@example.invalid');
+    expect(screen.getByText('qa-a@example.invalid')).toBeTruthy(); expect(mocks.draft).not.toHaveBeenCalled();
+  });
+  it('T4: cancelling does not render, download or destroy the saved report', async () => {
+    const close = vi.fn(); render(<ReportDeliveryModal reference={reference} userId="a" onClose={close} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    expect(close).toHaveBeenCalledTimes(1); expect(mocks.download).not.toHaveBeenCalled(); expect(mocks.render).not.toHaveBeenCalled();
+  });
+  it('T9/T10: explicit download uses original snapshot, language and grant once', async () => {
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Download this PDF' });
+    await waitFor(() => expect(button.disabled).toBe(false)); fireEvent.click(button); fireEvent.click(button);
+    await screen.findByText('PDF download requested.');
+    expect(mocks.render).toHaveBeenCalledTimes(1); expect(mocks.render.mock.calls[0][0].schema.reportType).toBe('DEAL_INTELLIGENCE');
+    expect(mocks.download).toHaveBeenCalledExactlyOnceWith({ pageCount: 4, binary: new TextEncoder().encode('%PDF-1.7\nfixture content\n%%EOF') }, 'maxxis-deal_intelligence-report-a.pdf');
+  });
+  it('T11: revalidation failure prevents disclosure even after the modal opened', async () => {
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Download this PDF' }); await waitFor(() => expect(button.disabled).toBe(false));
+    mocks.resolve.mockRejectedValue(new Error('REPORT_DELIVERY_STALE')); fireEvent.click(button);
+    await screen.findByRole('alert'); expect(mocks.draft).not.toHaveBeenCalled(); expect(mocks.download).not.toHaveBeenCalled();
+  });
+  it('blocks QA accounts instead of opening Outlook with an unrelated sender', async () => {
+    const open = vi.spyOn(window, 'open');
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    await screen.findByText(/QA .invalid accounts/);
+    expect(screen.getByRole('button', { name: 'Prepare Gmail email' }).disabled).toBe(true);
+    expect(open).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled(); expect(mocks.draft).not.toHaveBeenCalled();
+    open.mockRestore();
+  });
+  it('refuses silently missing photos before presenting a send confirmation', async () => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: { to: 'qa@example.invalid', cc: '', bcc: '' } });
+    mocks.resolve.mockResolvedValue({ schema: { reportType: 'DEAL_INTELLIGENCE', sections: { propertySummary: { data: { images: ['https://images.example.invalid/photo.jpg'] } } } }, report: {}, entitlements: { PDF: {} } });
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect test mailbox' }));
+    const button = screen.getByRole('button', { name: 'Prepare Gmail email' });
+    await waitFor(() => expect(button.disabled).toBe(false)); fireEvent.click(button);
+    await screen.findByRole('alert'); expect(screen.queryByRole('button', { name: 'Confirm Gmail send' })).toBeNull();
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+});
+
+ it('Property Release attaches PDF and photos after explicit confirmation without Outlook or local download', async () => {
+  mocks.loadRecipients.mockResolvedValue({userId:'a',senderEmail:'synthetic@gmail.com',recipients:{to:'board@example.invalid',cc:'',bcc:''}});
+  const ref={...reference,reportType:'PROPERTY_RELEASE'},prepared={schema:{reportType:'PROPERTY_RELEASE',sections:{propertySummary:{available:true,data:{id:'property-a',images:['https://example.invalid/a.jpg']}}}},report:{},sourceFingerprint:'source-fingerprint',entitlements:{PDF:{allowed:true}},includePublisher:false};
+  mocks.release.mockResolvedValue(prepared);mocks.photos.mockResolvedValue(['data:image/jpeg;base64,'+btoa('\xff\xd8\xffsynthetic')]);
+  render(<ReportDeliveryModal reference={ref} userId="a" propertyRelease={prepared} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button',{name:'Connect test mailbox'}));const button=screen.getByRole('button',{name:'Prepare Gmail email'});await waitFor(()=>expect(button.disabled).toBe(false));fireEvent.click(button);
+  const confirm=await screen.findByRole('button',{name:'Confirm Gmail send'});expect(mocks.send).not.toHaveBeenCalled();fireEvent.click(confirm);
+  await screen.findByText(/Gmail accepted the message/);expect(mocks.send.mock.calls[0][1]).toMatchObject({reference:ref,releaseSchema:prepared.schema,releaseSourceFingerprint:'source-fingerprint',confirmSend:true,photos:[{type:'image/jpeg',base64:btoa('\xff\xd8\xffsynthetic')}]});expect(mocks.download).not.toHaveBeenCalled();expect(mocks.draft).not.toHaveBeenCalled();expect(mocks.prepare).not.toHaveBeenCalled();
+ });
+
+it.each(['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'])('prepares and confirms the saved %s email without changing its level; accepted state is terminal',async reportType=>{
+ mocks.loadRecipients.mockResolvedValue({userId:'a',senderEmail:'synthetic@gmail.com',recipients:{to:'board@example.invalid',cc:'',bcc:''}});
+ mocks.resolve.mockResolvedValue({schema:{reportType,sections:{propertySummary:{available:true,data:{id:'property-a',images:[]}}}},report:{createdAt:'2026-11-17'},entitlements:{PDF:{allowed:true}}});
+ const ref={...reference,reportType};render(<ReportDeliveryModal reference={ref} userId="a" onClose={vi.fn()}/>);
+ fireEvent.click(await screen.findByRole('button',{name:'Connect test mailbox'}));const prepare=screen.getByRole('button',{name:'Prepare Gmail email'});await waitFor(()=>expect(prepare.disabled).toBe(false));fireEvent.click(prepare);const confirm=await screen.findByRole('button',{name:'Confirm Gmail send'});expect(mocks.send).not.toHaveBeenCalled();fireEvent.click(confirm);const completed=await screen.findByRole('button',{name:'Sent through Gmail'});expect(completed.disabled).toBe(true);expect(mocks.send.mock.calls[0][1].reference.reportType).toBe(reportType);expect(mocks.draft).not.toHaveBeenCalled();expect(mocks.render.mock.calls[0][0].schema.reportType).toBe(reportType);
+});

@@ -1,5 +1,21 @@
 import { supabase } from '../lib/supabaseClient';
 
+// Delivery never invokes an unlock/generation RPC. RLS checks artifact ownership;
+// the existing access RPC checks the property's continued existence and access.
+export async function readMaxxisReportForDelivery(reportId, expectedUserId) {
+  if (!supabase || !reportId || !expectedUserId) throw new Error('REPORT_DELIVERY_UNAVAILABLE');
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || auth?.user?.id !== expectedUserId) throw new Error('REPORT_DELIVERY_UNAUTHORIZED');
+  const { data: row, error } = await supabase.from('maxxis_reports')
+    .select('id,user_id,property_id,capability,access_source,report_version,report_payload,created_at')
+    .eq('id', reportId).eq('user_id', expectedUserId).is('deleted_at', null).maybeSingle();
+  if (error || !row) throw new Error('REPORT_DELIVERY_UNAVAILABLE');
+  const { data: access, error: accessError } = await supabase.rpc('ds_has_maxxis_analysis_context_access', { p_property_id: row.property_id });
+  if (accessError || access !== true) throw new Error('REPORT_DELIVERY_UNAUTHORIZED');
+  return { id: row.id, userId: row.user_id, propertyId: row.property_id, capability: row.capability,
+    accessSource: row.access_source, reportVersion: row.report_version, reportPayload: row.report_payload, createdAt: row.created_at };
+}
+
 export async function listMaxxisReportEntitlements(userId) {
   if (!supabase || !userId) return [];
   const { data, error } = await supabase.from('maxxis_report_entitlements')

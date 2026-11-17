@@ -29,3 +29,13 @@ export function propertyReleaseFailureMessage(error, language = 'en') {
       : pt ? 'Não foi possível concluir o relatório. Recarregue a página e tente novamente.' : es ? 'No se pudo completar el informe. Recarga la página e inténtalo de nuevo.' : 'The report could not be completed. Reload the page and try again.';
   return `${message} [${code}]`;
 }
+
+/** Delivery preparation can fail before the renderer is reached. Never mislabel an access/save error as a PDF failure. */
+export function propertyReleaseDeliveryFailureMessage(error, language = 'en') {
+  const pt=/^pt/i.test(language),es=/^es/i.test(language);
+  const code=String(error?.message||'');
+  if(code==='REPORT_DELIVERY_UNAUTHORIZED') return pt?'Não foi possível confirmar o acesso a este imóvel. Reabra o Portfólio pelo contato desbloqueado.':es?'No se pudo confirmar el acceso. Vuelva a abrir la propiedad desde el contacto desbloqueado.':'Property access could not be confirmed. Reopen its portfolio from the unlocked contact.';
+  if(['REPORT_RECIPIENT_SAVE_FAILED','REPORT_RECIPIENT_PREFERENCES_UNAVAILABLE'].includes(code)) return pt?'Não foi possível salvar os destinatários. Confira os endereços e tente novamente.':es?'No se pudieron guardar los destinatarios. Revise las direcciones e inténtelo de nuevo.':'Recipients could not be saved. Check the addresses and try again.';
+  if(code==='REPORT_DELIVERY_STALE'||code==='REPORT_DELIVERY_CONTEXT_MISMATCH') return pt?'Os dados do imóvel mudaram. Reabra o imóvel para preparar o envio atualizado.':es?'Los datos cambiaron. Vuelva a abrir la propiedad para preparar el envío actualizado.':'Property data changed. Reopen the property to prepare an updated delivery.';
+  return pt?'Não foi possível preparar o envio. Feche este painel e tente novamente. Nenhum email foi enviado.':es?'No se pudo preparar el envío. Cierre este panel e inténtelo de nuevo. No se envió ningún email.':'Email preparation failed. Close this panel and try again. No email was sent.';
+}

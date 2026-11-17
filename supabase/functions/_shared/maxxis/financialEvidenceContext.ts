@@ -60,14 +60,24 @@ export function buildFinancialEvidenceFromAuthorizedContext(context:{propertyId:
   }
   // Existing authenticated private BUY_AND_HOLD scenario contract. Never read arbitrary public property keys as actual rent.
   const privateInputs=context.privateAssumptions??{},active=privateInputs.activeScenario;
-  const baseContract=normalizeFinancialInputs(privateInputs);
+  const r3=privateInputs.r3Completion;
+  const confirmedInputs=r3?.propertyId===propertyId?Object.fromEntries(Object.entries(r3.inputs??{})
+    .filter(([,v]:[string,any])=>v?.confirmed===true&&v?.status!=='STALE').map(([key,v]:[string,any])=>[key,v.value])):{};
+  const baseContract=normalizeFinancialInputs({...privateInputs,...confirmedInputs});
   const scenarioContract=normalizeFinancialInputs(active?.propertyId===propertyId&&active?.strategy==='BUY_AND_HOLD'?active.assumptions??{}:{});
-  const inputs={...baseContract.values,...scenarioContract.values};
+  // A newly confirmed field supersedes only this user's older private scenario value.
+  const confirmedContract=normalizeFinancialInputs(confirmedInputs);
+  const inputs={...baseContract.values,...scenarioContract.values,...confirmedContract.values};
+  for(const[a,b]of [['managementAmount','managementPercent'],['maintenanceAmount','maintenancePercent']]){
+    if(confirmedContract.values[a]!==undefined)delete inputs[b];
+    else if(confirmedContract.values[b]!==undefined)delete inputs[a];
+  }
   const aliases:Array<[FinancialDomain,string,FinancialCadence,'USD'|'PERCENT']>=[
     ['investorRentAssumption','rent','MONTHLY','USD'],['investorRentAssumption','expectedRent','MONTHLY','USD'],
     ['propertyTax','propertyTax','ANNUAL','USD'],['insurance','insurance','ANNUAL','USD'],['hoa','HOA','MONTHLY','USD'],
     ['propertyManagement','managementPercent','ANNUAL','PERCENT'],['vacancy','vacancyRate','ANNUAL','PERCENT'],
     ['maintenance','maintenanceAmount','ANNUAL','USD'],['maintenance','maintenancePercent','ANNUAL','PERCENT'],
+    ['utilities','utilities','ANNUAL','USD'],['propertyManagement','managementAmount','ANNUAL','USD'],
     ['otherOperatingExpenses','otherOperatingExpenses','ANNUAL','USD']];
   for(const[domain,key,frequency,unit]of aliases){
     if(number(inputs[key])===null||candidates.some(c=>c.domain===domain&&c.evidenceClass==='INVESTOR_ASSUMPTION'))continue;
@@ -79,5 +89,7 @@ export function buildFinancialEvidenceFromAuthorizedContext(context:{propertyId:
     &&(effective.value!==projection?.value||effective.unit!==projection?.unit);
   const result=buildFinancialEvidenceStack({propertyId,candidates,decisions,conflicts:projection?.analyticalUsability==='CONFLICTED'||effective?.state==='CONFLICTED'||publicChoiceDisagreement?['propertyTax']:[]});
   if(context.taxReviewUnavailable)result.inputs.propertyTax={...result.inputs.propertyTax,value:null,annualizedValue:null,source:null,sourceClass:'UNAVAILABLE',analyticalUsability:'UNAVAILABLE',reasonCode:'REVIEW_STATE_UNAVAILABLE',conflictPreserved:false};
-  return { ...result, inputContract: { privateInputs: baseContract.dispositions, scenarioInputs: scenarioContract.dispositions } };
+  // A budget percentage is an engine parameter, not an independently sourced expense.
+  const scenarioParameters = inputs.opexPercent === undefined ? {} : { opexPercent: { value: inputs.opexPercent, source: 'USER_PROVIDED', consumer: 'ScenarioEngine', percentageBasis: 'EFFECTIVE_GROSS_INCOME' } };
+  return { ...result, scenarioParameters, inputContract: { privateInputs: baseContract.dispositions, scenarioInputs: scenarioContract.dispositions } };
 }

@@ -1,4 +1,5 @@
 import type { ReportLocale, ReportRow, ReportSection, ReportValue } from './reportIntegrityTypes';
+import { ASSISTED_PARAMETERS, assistedEstimateCopy, assistedParameterValue } from '../../../../supabase/functions/_shared/maxxis/unknownInputResolution';
 
 type RecordValue = Record<string, unknown>;
 type Labels = readonly [string, string, string];
@@ -34,6 +35,9 @@ const INPUT: Record<string, Field> = {
   maintenancePercent: field(['Premissa de manutenção', 'Maintenance assumption', 'Supuesto de mantenimiento'], 'percent'),
   maintenanceAmount: field(['Premissa de manutenção anual', 'Annual maintenance assumption', 'Supuesto de mantenimiento anual']),
   otherOperatingExpenses: field(['Outras despesas anuais assumidas', 'Other assumed annual expenses', 'Otros gastos anuales supuestos']),
+  utilities: field(['Serviços anuais pagos pelo proprietário', 'Annual owner-paid utilities', 'Servicios anuales pagados por el propietario']),
+  managementAmount: field(['Administração anual assumida', 'Annual management assumption', 'Supuesto anual de administración']),
+  opexPercent: field(['OPEX total presumido da receita efetiva', 'Assumed total OPEX of effective income', 'OPEX total supuesto del ingreso efectivo'], 'percent'),
   monthlyPI: field(['Premissa de principal e juros mensais', 'Monthly principal and interest assumption', 'Supuesto mensual de principal e interés']),
   cashInvested: field(['Caixa investido no cenário', 'Cash invested in the scenario', 'Efectivo invertido en el escenario']),
   exitValue: field(['Premissa de valor de saída', 'Exit-value assumption', 'Supuesto de valor de salida']), rehab: field(['Premissa de reforma', 'Rehabilitation assumption', 'Supuesto de reforma']),
@@ -48,6 +52,9 @@ const INPUT: Record<string, Field> = {
   estimatedBuyerPrice: field(['Premissa de preço ao comprador', 'Buyer-price assumption', 'Supuesto de precio al comprador']), assignmentFee: field(['Taxa de cessão assumida', 'Assumed assignment fee', 'Tarifa de cesión supuesta']),
 };
 const OUTPUT: Record<string, Field> = {
+  aggregateOpexBudget: field(['Orçamento operacional agregado', 'Aggregate operating budget', 'Presupuesto operativo agregado']),
+  knownOperatingExpenses: field(['Despesas conhecidas incluídas', 'Known expenses included', 'Gastos conocidos incluidos']),
+  unallocatedOperatingReserve: field(['Reserva operacional não discriminada', 'Unallocated operating reserve', 'Reserva operativa no desglosada']),
   monthlyPI: field(['Parcela mensal de principal e juros', 'Monthly principal and interest', 'Pago mensual de principal e interés']),
   balloonBalance: field(['Saldo no balloon', 'Balloon balance', 'Saldo balloon']), financedPrincipal: field(['Principal financiado', 'Financed principal', 'Principal financiado']),
   cashToEntry: field(['Caixa inicial completo do cenário', 'Complete scenario cash to entry', 'Efectivo inicial completo del escenario']),
@@ -80,7 +87,7 @@ const OUTPUT: Record<string, Field> = {
 };
 const FIELDS: Record<string, { inputs: string[]; outputs: string[]; label: Labels }> = {
   SELLER_FINANCING: { label: ['Financiamento pelo vendedor', 'Seller financing', 'Financiación del vendedor'], inputs: ['purchasePrice', 'downPaymentAmount', 'downPaymentPercent', 'annualInterestRate', 'amortizationMonths', 'amortizationYears', 'balloonMonth', 'balloonYears', 'closingCosts', 'otherCashToSeller'], outputs: ['monthlyPI', 'balloonBalance', 'financedPrincipal', 'cashToEntry', 'knownCashToEntry', 'principalPaidToBalloon', 'interestPaidToBalloon', 'totalScheduledPIToBalloon'] },
-  BUY_AND_HOLD: { label: ['Comprar e alugar', 'Buy and hold', 'Comprar y alquilar'], inputs: ['purchasePrice', 'rent', 'vacancyRate', 'propertyTax', 'insurance', 'HOA', 'managementPercent', 'maintenanceAmount', 'maintenancePercent', 'otherOperatingExpenses', 'monthlyPI', 'cashInvested'], outputs: ['grossScheduledRent', 'effectiveGrossIncome', 'operatingExpenses', 'NOI', 'capRate', 'annualCashFlow', 'monthlyOperatingCashFlow', 'cashOnCashReturn', 'DSCR'] },
+  BUY_AND_HOLD: { label: ['Comprar e alugar', 'Buy and hold', 'Comprar y alquilar'], inputs: ['purchasePrice', 'rent', 'vacancyRate', 'opexPercent', 'propertyTax', 'insurance', 'HOA', 'managementPercent', 'managementAmount', 'maintenanceAmount', 'maintenancePercent', 'utilities', 'otherOperatingExpenses', 'monthlyPI', 'cashInvested'], outputs: ['grossScheduledRent', 'effectiveGrossIncome', 'aggregateOpexBudget', 'knownOperatingExpenses', 'unallocatedOperatingReserve', 'operatingExpenses', 'NOI', 'capRate', 'annualCashFlow', 'monthlyOperatingCashFlow', 'cashOnCashReturn', 'DSCR'] },
   FLIP: { label: ['Reformar e vender', 'Fix and flip', 'Reformar y vender'], inputs: ['purchasePrice', 'offerPrice', 'exitValue', 'rehab', 'acquisitionCosts', 'closingCosts', 'holdingCosts', 'financingCosts', 'sellingCosts', 'sellingCostPercent'], outputs: ['acquisitionBasis', 'allInCost', 'projectedProfit', 'ROI', 'profitMargin', 'grossSpread'] },
   SUB_TO: { label: ['Aquisição sujeita ao financiamento', 'Subject-to acquisition', 'Compra sujeta a financiación'], inputs: ['existingLoanBalance', 'monthlyPI', 'reinstatement', 'arrears', 'cashToSeller', 'closingCosts', 'propertyTax', 'insurance', 'HOA', 'expectedRent'], outputs: ['knownCashToEntry', 'debtAssumed', 'monthlyDebtService', 'knownMonthlyCarry', 'estimatedMonthlyCashFlow', 'DSCR'] },
   WHOLESALE: { label: ['Cessão de contrato', 'Wholesale', 'Cesión de contrato'], inputs: ['contractPrice', 'estimatedBuyerPrice', 'assignmentFee', 'closingCosts'], outputs: ['grossAssignmentSpread', 'estimatedNetAssignmentSpread', 'buyerBasis'] },
@@ -123,10 +130,26 @@ export function projectSavedReportScenario({ scenario: input, locale, propertyId
   const rows: ReportRow[] = [];
   for (const key of policy.inputs) {
     const amount = known(key); if (amount === null) { if (present(key)) result.diagnostics.push(`SAVED_SCENARIO_INPUT_UNUSABLE:${key}`); continue; }
-    const spec = INPUT[key], label = select(locale, spec.label), value = formatted(amount, spec), ref = `${rootRef}:input:${key}`;
+    const spec = INPUT[key], label = key === 'purchasePrice' && sources[key] === 'CANONICAL_PROPERTY_FACT'
+      ? t('Preço pedido usado como base de referência', 'Asking price used as reference basis', 'Precio solicitado usado como referencia')
+      : select(locale, spec.label), value = formatted(amount, spec), ref = `${rootRef}:input:${key}`;
     register(ref, label, value, [amount]);
-    result.values[ref] = { state: amount === 0 ? 'EXPLICIT_ZERO' : 'VALUE', text: value, numericValue: amount, source: privateSource, evidenceRefs: [ref] };
-    rows.push({ label, value, source: privateSource, evidenceRefs: [ref], state: amount === 0 ? 'EXPLICIT_ZERO' : 'VALUE' });
+    const metadata = object(object(scenario.inputMetadata)[key]);
+    const estimate = object(metadata.estimate);
+    const sourceLabel = sources[key] === 'CANONICAL_PROPERTY_FACT'
+      ? t('Valor do cadastro usado como referência do cenário; não confirma preço de aquisição.', 'Property record used as scenario reference; not confirmation of a purchase price.', 'Registro usado como referencia del escenario; no confirma precio de compra.')
+      : metadata.origin === 'SYSTEM_ASSUMPTION' && estimate.confirmed === true
+        ? `${t('Estimativa ilustrativa do sistema confirmada pelo usuário; total da operação', 'User-confirmed illustrative system estimate; operation total', 'Estimación ilustrativa del sistema confirmada; total de la operación')}. ${assistedEstimateCopy(estimate, locale).formula}. ${Object.entries(object(estimate.basis)).map(([parameter, basis]) => `${INPUT[parameter] ? select(locale, INPUT[parameter].label) : ASSISTED_PARAMETERS[parameter]?.[locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'label'] || parameter.replace(/([a-z])([A-Z])/g, '$1 $2')}: ${assistedParameterValue(object(basis).value, locale)}`).join('; ')}. ${assistedEstimateCopy(estimate, locale).limitations}. ${privateSource}`
+      : metadata.origin === 'USER_DECLARED' ? `${t('Informado pelo usuário', 'User declared', 'Declarado por el usuario')}. ${privateSource}`
+      : metadata.origin === 'ASSUMPTION' ? `${t('Premissa confirmada', 'Confirmed assumption', 'Supuesto confirmado')}. ${privateSource}` : privateSource;
+    result.values[ref] = { state: amount === 0 ? 'EXPLICIT_ZERO' : 'VALUE', text: value, numericValue: amount, source: sourceLabel, evidenceRefs: [ref] };
+    rows.push({ label, value, source: sourceLabel, evidenceRefs: [ref], state: amount === 0 ? 'EXPLICIT_ZERO' : 'VALUE' });
+    if (metadata.origin === 'SYSTEM_ASSUMPTION' && estimate.confirmed === true) {
+      const methodRef = `${ref}:methodology`;
+      register(methodRef, label, sourceLabel, []);
+      result.sections.push({ id: `saved-scenario-estimate-${key}`, title: `${label} · ${t('estimativa ilustrativa', 'illustrative estimate', 'estimación ilustrativa')}`,
+        kind: 'narrative', priority: 64, text: `${value}. ${sourceLabel}`, evidenceRefs: [ref, methodRef], continuationPolicy: 'SAME_SECTION' });
+    }
   }
   if (rows.length) result.sections.push({ id: 'saved-scenario-assumptions', title: t('Premissas privadas do cenário confirmado', 'Private assumptions of the confirmed scenario', 'Supuestos privados del escenario confirmado'), kind: 'facts', priority: 64, rows, evidenceRefs: rows.flatMap(row => row.evidenceRefs), continuationPolicy: 'SAME_SECTION' });
   const purchaseKnown = known(first('purchasePrice', 'offerPrice') || 'purchasePrice', true) !== null;
@@ -147,8 +170,14 @@ export function projectSavedReportScenario({ scenario: input, locale, propertyId
   })();
   const complete = scenario.status === 'COMPLETE' && outputs.calculationStatus === 'COMPLETE'
     && Array.isArray(scenario.unresolvedInputs) && scenario.unresolvedInputs.length === 0;
-  const holdBasis = purchaseKnown && known('rent', true) !== null && known('vacancyRate') !== null && Number(known('vacancyRate')) <= 100 && all(['vacancyRate', 'propertyTax', 'insurance', 'HOA', 'managementPercent', 'otherOperatingExpenses', 'monthlyPI'])
-    && knownEither('maintenanceAmount', 'maintenancePercent');
+  const aggregateBasis = assumptions.opexMethod === 'AGGREGATE_EGI' && sources.opexMethod === 'USER_PROVIDED'
+    && known('opexPercent') !== null && Number(known('opexPercent')) <= 100 && outputs.operatingReadiness === 'READY_ASSUMPTION_HEAVY';
+  const itemizedBasis = all(['propertyTax', 'insurance', 'HOA', 'otherOperatingExpenses'])
+    && knownEither('managementAmount', 'managementPercent') && knownEither('maintenanceAmount', 'maintenancePercent')
+    && (assumptions.opexMethod !== 'ITEMIZED' || known('utilities') !== null);
+  const holdOperatingBasis = purchaseKnown && known('rent', true) !== null && known('vacancyRate') !== null
+    && Number(known('vacancyRate')) <= 100 && (assumptions.opexMethod === 'AGGREGATE_EGI' ? aggregateBasis : itemizedBasis);
+  const holdBasis = holdOperatingBasis && known('monthlyPI') !== null;
   const flipBasis = purchaseKnown && known('exitValue', true) !== null && all(['rehab', 'holdingCosts', 'financingCosts']) && knownEither('acquisitionCosts', 'closingCosts') && knownEither('sellingCosts', 'sellingCostPercent');
   const subBasis = known('existingLoanBalance', true) !== null && known('monthlyPI', true) !== null && knownEither('reinstatement', 'arrears') && all(['cashToSeller', 'closingCosts', 'propertyTax', 'insurance', 'HOA', 'expectedRent']);
   const wholesaleBasis = known('contractPrice', true) !== null && known('estimatedBuyerPrice', true) !== null && all(['assignmentFee', 'closingCosts']);
@@ -158,6 +187,9 @@ export function projectSavedReportScenario({ scenario: input, locale, propertyId
     const amount = finite(outputs[key]), spec = OUTPUT[key];
     if (amount === null || !spec.signed && amount < 0) continue;
     let usable = fullBasis;
+    if (strategy === 'BUY_AND_HOLD' && scenario.version !== undefined) {
+      usable = holdOperatingBasis && (!['annualCashFlow', 'cashOnCashReturn', 'DSCR'].includes(key) || known('monthlyPI') !== null);
+    }
     if (strategy === 'SELLER_FINANCING') usable = loanKnown && (key === 'cashToEntry' ? outputs.cashToEntryStatus === 'KNOWN' && all(['closingCosts', 'otherCashToSeller']) : true);
     if (strategy === 'SUB_TO' && ['debtAssumed', 'monthlyDebtService'].includes(key)) usable = known('existingLoanBalance', true) !== null && known('monthlyPI', true) !== null;
     if (key === 'cashOnCashReturn') usable = usable && known('cashInvested', true) !== null;
@@ -175,7 +207,9 @@ export function projectSavedReportScenario({ scenario: input, locale, propertyId
   if (outputRows.length) result.sections.push({ id: 'saved-scenario-results', title: `${t('Cenário confirmado', 'Confirmed scenario', 'Escenario confirmado')} · ${select(locale, policy.label)}`, kind: 'facts', priority: 63, rows: outputRows, evidenceRefs: outputRows.flatMap(row => row.evidenceRefs), continuationPolicy: 'SAME_SECTION' });
   const omitted = policy.outputs.some(key => finite(outputs[key]) !== null && !outputRows.some(row => row.evidenceRefs[0].endsWith(`:output:${key}`)));
   if ((strategy === 'SELLER_FINANCING' ? !loanKnown || outputs.cashToEntryStatus !== 'KNOWN' : !fullBasis) || omitted) {
-    const explanation = t('As premissas privadas conhecidas foram preservadas. A base do cenário permanece incompleta; resultados sem todos os insumos necessários foram omitidos, sem presumir custos ausentes como zero.', 'Known private assumptions are preserved. The scenario basis remains incomplete; results without every required input are omitted, without assuming missing costs are zero.', 'Se conservan los supuestos privados conocidos. La base del escenario sigue incompleta; se omiten resultados sin todos los datos requeridos, sin presumir costos ausentes como cero.');
+    const missing = Array.isArray(scenario.missingInputLabels) ? scenario.missingInputLabels.map(text).filter(Boolean) : [];
+    const explanation = t('As premissas privadas conhecidas foram preservadas. A base do cenário permanece incompleta; resultados sem todos os insumos necessários foram omitidos, sem presumir custos ausentes como zero.', 'Known private assumptions are preserved. The scenario basis remains incomplete; results without every required input are omitted, without assuming missing costs are zero.', 'Se conservan los supuestos privados conocidos. La base del escenario sigue incompleta; se omiten resultados sin todos los datos requeridos, sin presumir costos ausentes como cero.')
+      + (missing.length ? ` ${t('Ainda faltam', 'Still missing', 'Aún faltan')}: ${missing.join('; ')}.` : '');
     const ref = `${rootRef}:status:incomplete`; register(ref, t('Base incompleta', 'Incomplete basis', 'Base incompleta'), explanation, []);
     result.sections.push({ id: 'saved-scenario-limitations', title: t('Limites do cenário privado', 'Private-scenario limitations', 'Límites del escenario privado'), kind: 'narrative', priority: 62, text: explanation, evidenceRefs: [ref], continuationPolicy: 'SAME_SECTION' });
   }

@@ -6,10 +6,19 @@ import { refreshReportFinancialEvidence } from './refreshReportFinancialEvidence
 import { buildDealDecisionContext } from './dealDecisionContext.ts';
 
 describe('G1 shared financial input contract', () => {
+  it('newly confirmed private inputs supersede the older private scenario without obsolete alternatives',()=>{
+    const result=buildFinancialEvidenceFromAuthorizedContext({propertyId:'p',privateAssumptions:{
+      activeScenario:{propertyId:'p',strategy:'BUY_AND_HOLD',assumptions:{insurance:1200,managementPercent:8}},
+      r3Completion:{propertyId:'p',inputs:{insurance:{value:1600,confirmed:true},managementAmount:{value:500,confirmed:true}}},
+    }});
+    expect(result.inputs.insurance.value).toBe(1600);
+    expect(result.inputs.propertyManagement).toMatchObject({value:500,unit:'USD'});
+  });
   it.each(Object.keys(FINANCIAL_INPUT_FIELDS))('consumes saved financial key %s', field => {
     const result = buildFinancialEvidenceFromAuthorizedContext({ propertyId: 'p', privateAssumptions: { [field]: 5 } });
     expect(result.inputContract.privateInputs[field].status).toBe('CONSUMED');
-    expect(Object.values(result.inputs).some(input => input.source?.id === `private-${FINANCIAL_INPUT_FIELDS[field as keyof typeof FINANCIAL_INPUT_FIELDS].key}`)).toBe(true);
+    if (field === 'opexPercent') expect(result.scenarioParameters.opexPercent).toMatchObject({ value: 5, consumer: 'ScenarioEngine', percentageBasis: 'EFFECTIVE_GROSS_INCOME' });
+    else expect(Object.values(result.inputs).some(input => input.source?.id === `private-${FINANCIAL_INPUT_FIELDS[field as keyof typeof FINANCIAL_INPUT_FIELDS].key}`)).toBe(true);
   });
   it('maps form units without turning zero into absence', () => {
     const result = buildFinancialEvidenceFromAuthorizedContext({ propertyId: 'p', privateAssumptions: { management: 8, maintenance: 1200, hoa: 0 } });

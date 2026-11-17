@@ -6,11 +6,22 @@ import { normalizeTargetCondition } from '../_shared/maxxis/analysisApplicabilit
 import { createRequestId, logOperationalEvent } from '../_shared/observability.ts';
 
 import { FINANCIAL_INPUT_FIELDS, isFinancialInputKey, normalizeFinancialInputs } from '../_shared/maxxis/financialInputContract.ts';
+import { buildReportPreflight, mergeConfirmedCompletion, COMPLETION_FIELDS } from '../_shared/maxxis/reportCompletion.ts';
+import { applyUnknownChoice, costResolutionPlan, confirmedCostEstimate } from '../_shared/maxxis/unknownInputResolution.ts';
+import { guardMaxxisRuntimeEntitlement, loadMaxxisRuntimeAccessContext } from '../_shared/maxxis/runtimeEntitlement.ts';
+import { executeMaxxisTool } from '../_shared/maxxis/toolRegistry.ts';
+import { calculateScenario, type ScenarioStrategy } from '../_shared/maxxis/scenarioEngine.ts';
+
+async function loadCompletionSnapshot(input: unknown, auth: string, _client: unknown, userId: string,
+  propertyId: string, plan: string, language: string, _cacheOnly: boolean): Promise<any> {
+  return executeMaxxisTool('getDealInsightContext', input, auth, { userId, propertyId, plan, language,
+    cacheOnly: true, financialEvidence: true, marketRentAcquisition: false });
+}
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const allowedOrigins = parseAllowedOrigins(
-  Deno.env.get('PROPERTY_INTELLIGENCE_ALLOWED_ORIGINS') || '',
+  [Deno.env.get('PROPERTY_INTELLIGENCE_ALLOWED_ORIGINS'), Deno.env.get('MAXXIS_PREVIEW_ALLOWED_ORIGINS')].filter(Boolean).join(','),
   [Deno.env.get('APP_URL') || '', Deno.env.get('VITE_APP_URL') || ''],
 );
 const ALLOWED_FIELDS = new Set(['rehab_budget', 'target_condition', 'renovation_scope']);
@@ -112,11 +123,14 @@ function publicErrorCode(code: string) {
     return 'GAP_RESOLUTION_VALIDATION_ERROR';
   }
   if (code === 'NOT_ENTITLED') return 'GAP_RESOLUTION_ACCESS_DENIED';
+  if (code === 'ANALYSIS_REVISION_CONFLICT') return code;
   if (/READ_FAILED|WRITE_FAILED/.test(code)) return 'GAP_RESOLUTION_PERSISTENCE_ERROR';
   return 'GAP_RECOMPUTE_ERROR';
 }
 
-export async function handleMaxxisAnalysisInputsRequest(req: Request) {
+export async function handleMaxxisAnalysisInputsRequest(req: Request, dependencies = {
+  createClient, loadAccess: loadMaxxisRuntimeAccessContext, loadSnapshot: loadCompletionSnapshot,
+}) {
   const startedAt = Date.now();
   const requestId = createRequestId(req);
   let userId = '';
@@ -130,7 +144,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
   const authHeader = req.headers.get('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token || !supabaseUrl || !supabaseAnonKey) return response(origin, { success: false, error: 'AUTH_REQUIRED' }, 401);
-  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  const client = dependencies.createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error: authError } = await client.auth.getUser(token);
   if (authError || !user) return response(origin, { success: false, error: 'AUTH_REQUIRED' }, 401);
   userId = user.id;
@@ -139,18 +153,46 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
     propertyId = validatePropertyId(String(body?.propertyId || '').trim());
     action = String(body?.action || '').trim().toUpperCase();
     requestedCapability = capability(body?.capability);
-    if (!['READ', 'UPSERT', 'DECLINE'].includes(action)) throw new Error('INVALID_ACTION');
+    if (!['READ', 'UPSERT', 'DECLINE', 'PREFLIGHT'].includes(action)) throw new Error('INVALID_ACTION');
     const { data: entitled, error: entitlementError } = await client.rpc('ds_has_maxxis_analysis_context_access', {
       p_property_id: propertyId,
     });
     if (entitlementError || entitled !== true) throw new Error('NOT_ENTITLED');
+    let effectivePlan = 'FREE';
+    if (requestedCapability || action === 'PREFLIGHT' || body.completionInputs || body.unknownFields || body.acceptEstimateFields) {
+      const access = await dependencies.loadAccess(userId, client, propertyId);
+      if (!access.ok || !guardMaxxisRuntimeEntitlement({ ...access.context, requestedCapability: requestedCapability || 'MAXXIS_ANALYSIS' }).allowed) throw new Error('NOT_ENTITLED');
+      effectivePlan = String(access.context.plan).toUpperCase();
+    }
     const { data: property } = await client.from('properties').select('type').eq('id', propertyId).maybeSingle();
     propertyType = String(property?.type || '');
     const { data: existing, error: readError } = await client.from('property_arv_review_contexts')
-      .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,deal_assumptions')
+      .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,deal_assumptions,analysis_revision,updated_at')
       .eq('subject_property_id', propertyId).eq('reviewer_user_id', user.id).maybeSingle();
     if (readError) throw new Error('ANALYSIS_INPUT_READ_FAILED');
     if (action === 'READ') return response(origin, { success: true, data: existing || null, requestId });
+    const revision = Number(existing?.analysis_revision || 0);
+    if (action === 'PREFLIGHT') {
+      const reportType = requestedCapability;
+      if (!reportType) throw new Error('INVALID_CAPABILITY');
+      // No Gemini and no provider acquisition. Missing paid evidence remains explicit.
+      const result = await dependencies.loadSnapshot({ propertyId, reportType }, authHeader, client, userId,
+        propertyId, effectivePlan, String(body.language || 'en'), true);
+      if (result.state !== 'available') throw new Error('ANALYSIS_CONTEXT_UNAVAILABLE');
+      const preflight = buildReportPreflight({ reportType, property: result.property || {},
+        dealAssumptions: existing?.deal_assumptions || {}, targetCondition: existing?.target_condition,
+        revision, userId, propertyId, evidence: { ...result, ...result.intelligenceSnapshot },
+        language: String(body.language || 'en'), partialAccepted: body.partialAccepted === true });
+      const snapshot = { ...result.intelligenceSnapshot, analysisRevision: revision,
+        reportPreflight: preflight, dealAssumptions: { ...(existing?.deal_assumptions || {}), activeScenario: preflight.scenario } };
+      const data = { ...result, intelligenceSnapshot: snapshot, reportPreflight: preflight };
+      return response(origin, { success: true, data: { preflight, result: { type: 'deal_insight', data,
+        answer: result.structuredAnalysis?.executiveSummary || '', actions: [], requestId,
+        runtime: { provider: 'deterministic', acquisition: 'CACHE_ONLY' } } }, requestId });
+    }
+    const expectedRevision = body.expectedRevision === undefined ? revision : Number(body.expectedRevision);
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new Error('INVALID_ANALYSIS_REVISION');
+    if (expectedRevision !== revision) throw new Error('ANALYSIS_REVISION_CONFLICT');
     const declined = new Set(Array.isArray(existing?.declined_inputs) ? existing.declined_inputs : []);
     const row: Record<string, unknown> = {
       subject_property_id: propertyId,
@@ -202,6 +244,45 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       if (body.dealAssumptions !== undefined) {
         row.deal_assumptions = { ...(row.deal_assumptions as Record<string, unknown>),
           ...dealAssumptions(body.dealAssumptions) };
+        const scenario = body.dealAssumptions.activeScenario;
+        if (scenario) {
+          if (scenario.propertyId && scenario.propertyId !== propertyId || scenario.userId && scenario.userId !== userId) throw new Error('INVALID_SCENARIO_IDENTITY');
+          const outputs: Record<string, unknown> = calculateScenario(scenario.strategy as ScenarioStrategy, scenario.assumptions);
+          (row.deal_assumptions as Record<string, unknown>).activeScenario = { ...scenario, propertyId, userId,
+            version: revision + 1, confirmedAt: new Date().toISOString(), calculatedOutputs: outputs,
+            status: outputs.calculationStatus === 'COMPLETE' ? 'COMPLETE' : 'PARTIAL',
+            unresolvedInputs: Array.isArray(outputs.unresolvedInputs) ? outputs.unresolvedInputs : [],
+            source: { ...Object.fromEntries(Object.keys(scenario.assumptions).map(key => [key, 'USER_PROVIDED'])),
+              ...Object.fromEntries(Object.keys(outputs).map(key => [key, 'CALCULATED'])) } };
+        }
+      }
+      if (body.completionInputs !== undefined) {
+        if (body.confirmed !== true || !body.completionInputs || typeof body.completionInputs !== 'object'
+          || Array.isArray(body.completionInputs) || Object.keys(body.completionInputs).length > 30) throw new Error('INVALID_UNCONFIRMED_COMPLETION');
+        row.deal_assumptions = mergeConfirmedCompletion({ existing: row.deal_assumptions as Record<string, unknown>,
+          patch: body.completionInputs, propertyId, userId, now: new Date().toISOString(), revision: revision + 1,
+          interactionId: String(body.interactionId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100) });
+      }
+      if (body.unknownFields !== undefined) {
+        if (!Array.isArray(body.unknownFields) || body.unknownFields.some((f: unknown) => typeof f !== 'string' || !Object.hasOwn(COMPLETION_FIELDS, f) && !['target_condition', 'opexMethod', 'scenarioStrategy'].includes(f))) throw Error('INVALID_UNKNOWN_FIELDS');
+        row.deal_assumptions = applyUnknownChoice(row.deal_assumptions as Record<string, unknown>, body.unknownFields,
+          new Date().toISOString(), revision + 1);
+      }
+      if (body.acceptEstimateFields !== undefined) {
+        if (body.confirmed !== true || !Array.isArray(body.acceptEstimateFields) || !body.acceptEstimateFields.length || body.acceptEstimateFields.length > 3) throw Error('INVALID_UNCONFIRMED_ESTIMATE');
+        const assumptions = row.deal_assumptions as Record<string, any>;
+        const plan = costResolutionPlan(assumptions, propertyId, revision);
+        const selected: Record<string, any> = {};
+        for (const key of body.acceptEstimateFields) {
+          const candidate = plan.candidates[key];
+          if (!candidate || assumptions.r3Completion?.inputs?.[key]?.confirmed && assumptions.r3Completion?.inputs?.[key]?.status !== 'STALE' && !assumptions.r3Completion?.inputs?.[key]?.estimate) throw Error('ESTIMATE_UNAVAILABLE');
+          selected[key] = candidate;
+        }
+        const merged = mergeConfirmedCompletion({ existing: assumptions, patch: Object.fromEntries(Object.entries(selected).map(([k,v]) => [k,v.value])),
+          propertyId, userId, now: new Date().toISOString(), revision: revision + 1 });
+        for (const [key, candidate] of Object.entries(selected)) merged.r3Completion.inputs[key] = { ...merged.r3Completion.inputs[key],
+          origin: 'SYSTEM_ASSUMPTION', estimate: confirmedCostEstimate(candidate, merged.r3Completion.inputs[key].confirmedAt, revision + 1) };
+        row.deal_assumptions = merged;
       }
     } else {
       const fields = Array.isArray(body.fields) ? body.fields.map((field: unknown) => String(field || '')) : [];
@@ -209,10 +290,11 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       fields.forEach((field: string) => declined.add(field));
     }
     row.declined_inputs = [...declined];
-    const { error: writeError } = await client.from('property_arv_review_contexts').upsert(row, {
-      onConflict: 'subject_property_id,reviewer_user_id',
+    const { data: saved, error: writeError } = await client.rpc('ds_save_analysis_context_cas', {
+      p_property_id: propertyId, p_expected_revision: expectedRevision, p_context: row,
     });
-    if (writeError) throw new Error('ANALYSIS_INPUT_WRITE_FAILED');
+    if (writeError) throw new Error(writeError.code === '40001' || String(writeError.message).includes('ANALYSIS_REVISION_CONFLICT')
+      ? 'ANALYSIS_REVISION_CONFLICT' : 'ANALYSIS_INPUT_WRITE_FAILED');
     logOperationalEvent({
       functionName: 'maxxis-analysis-inputs', operation: 'persist_gap_resolution', requestId, userId,
       durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'supabase',
@@ -231,12 +313,14 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       dealAssumptions: row.deal_assumptions,
       rehabSource: row.rehab_source,
       declinedInputs: row.declined_inputs,
+      revision: saved?.analysis_revision,
+      confirmedAt: saved?.updated_at,
       provenance: row.rehab_source === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'ESTIMATED' : 'USER_PROVIDED',
     } });
   } catch (error) {
     const code = String(error instanceof Error ? error.message : 'ANALYSIS_INPUTS_UNAVAILABLE');
     const status = /^INVALID_|BENCHMARK_NOT_AVAILABLE/.test(code) ? 400
-      : code === 'STORED_REHAB_TAKES_PRIORITY' ? 409 : code === 'NOT_ENTITLED' ? 403 : 500;
+      : code === 'STORED_REHAB_TAKES_PRIORITY' || code === 'ANALYSIS_REVISION_CONFLICT' || code === 'ESTIMATE_UNAVAILABLE' ? 409 : code === 'NOT_ENTITLED' ? 403 : 500;
     const stableCode = publicErrorCode(code);
     logOperationalEvent({
       functionName: 'maxxis-analysis-inputs', operation: 'persist_gap_resolution', requestId, userId,
@@ -250,4 +334,4 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
   }
 }
 
-Deno.serve(handleMaxxisAnalysisInputsRequest);
+Deno.serve((req) => handleMaxxisAnalysisInputsRequest(req));

@@ -570,7 +570,9 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
         longitude: finiteCoordinate(property?.longitude),
       }),
       kpiScenarios: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
-        ? scenarioKpis(property, sections.valuationEvidence.data) : null,
+        ? activeScenario?.inputMetadata
+          ? Object.freeze({ available: false, reason: 'VERSIONED_PRIVATE_SCENARIO', potentialSpread: null, projectedRoi: null })
+          : scenarioKpis(property, sections.valuationEvidence.data) : null,
       existingMetrics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? existingMetrics(dealMetrics, property) : null,
       comparableStatistics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? comparableStatistics(sections.comparableEvidence.data, property) : null,

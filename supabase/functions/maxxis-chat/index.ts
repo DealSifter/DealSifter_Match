@@ -20,6 +20,7 @@ import { buildAreaAnalyticalAnswer, detectAreaAnalyticalQuestion } from '../_sha
 import { buildFinancialEvidenceAnswer, detectFinancialEvidenceQuestion, marketRentActionCopy } from '../_shared/maxxis/financialEvidenceAnswer.ts';
 import { formatConsensusFactAnswer } from '../_shared/maxxis/consensusFactAnswer.ts';
 import { detectsDealScenario, formatDealScenarioAnswer, resolveDealScenario } from '../_shared/maxxis/scenarioEngine.ts';
+import { confirmedScenarioMetric, confirmedScenarioMetricAnswer } from '../_shared/maxxis/reportCompletion.ts';
 import { detectMarketReferenceIntent } from '../_shared/maxxis/marketReferenceIntent.ts';
 import { buildMarketReferenceAnswer } from '../_shared/maxxis/marketReferenceAnswer.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
@@ -819,6 +820,23 @@ Deno.serve(async (req) => {
       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
     }
     const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
+    const completionMetric = propertyContextId && !body.requestedCapability && !body.requestedReportLevel && !bodyContext.propertyAnalysis
+      ? confirmedScenarioMetric(message) : null;
+    if (completionMetric) {
+      const capability = ['DEAL_INTELLIGENCE', 'MAXXIS_ANALYSIS'].find(requestedCapability => guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability }).allowed);
+      if (capability) {
+        const stored = await userClient.from('property_arv_review_contexts').select('deal_assumptions')
+          .eq('subject_property_id', propertyContextId).eq('reviewer_user_id', userId).maybeSingle();
+        if (!stored.error && stored.data?.deal_assumptions?.r3Completion) {
+          const current = await executeMaxxisTool('getDealInsightContext', { propertyId: propertyContextId, reportType: capability }, req.headers.get('Authorization') || '',
+            { propertyId: propertyContextId, userId, plan: runtimeAccess.plan, language, cacheOnly: true, marketRentAcquisition: false });
+          if (current.type === 'deal_insight' && 'intelligenceSnapshot' in current && current.intelligenceSnapshot) {
+            const answer = confirmedScenarioMetricAnswer(current.intelligenceSnapshot, completionMetric, language);
+            if (answer) return response({ message: answer, answer, type: 'text', data: { type: 'deal_insight', propertyId: propertyContextId, state: 'available', intelligenceSnapshot: current.intelligenceSnapshot }, actions: [], language, runtime: { provider: 'deterministic', toolName: 'getDealInsightContext', providerCalls: 0, secondPass: false } }, 200, origin, requestId);
+          }
+        }
+      }
+    }
     const financialQuestion=propertyContextId&&!body.requestedCapability&&!body.requestedReportLevel&&!bodyContext.propertyAnalysis?detectFinancialEvidenceQuestion(message):null;
     if(financialQuestion){
       const evidence=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',

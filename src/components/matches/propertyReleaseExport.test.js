@@ -29,7 +29,7 @@ describe('L1 portfolio export ceiling and authorized disclosure',()=>{
   });
   it('keeps the export dialog available for retry after a handled failure',()=>{
     const handler=source.split('const handleConfirmEmailExport =')[1].split('const metaChips')[0];
-    expect(handler).toContain('if (isPreparingExport) return');
+    expect(handler).toContain('if (isPreparingExport || exportActionLock.current) return');
     expect(handler).toContain('setExportError(propertyReleaseFailureMessage');
     expect(handler).toMatch(/catch[\s\S]*?return;[\s\S]*?finally/);
     expect(source).toContain('role="alert"');

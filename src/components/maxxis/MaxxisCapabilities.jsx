@@ -1702,6 +1702,7 @@ export function MessageBubble({
   smartActions,
   onSmartAction,
   onExportAnalysisPdf,
+  onEmailAnalysisReport,
   exportAnalysisLabel,
   exportingAnalysisLabel,
   isExportingAnalysis,
@@ -2191,7 +2192,7 @@ export function MessageBubble({
           <button
             type="button"
             className="maxxis-action-link maxxis-analysis-export"
-            disabled={isExportingAnalysis}
+            disabled={isExportingAnalysis || !message.data?.reportId}
             onClick={() => onExportAnalysisPdf?.(
               message.analysisExport,
               message.data?.analysis ? formatDealAdvisorExport(message.data.analysis, language) : message.content,
@@ -2201,12 +2202,13 @@ export function MessageBubble({
             <span>{isExportingAnalysis ? exportingAnalysisLabel : exportAnalysisLabel}</span>
             <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
           </button>
-          {message.analysisExport.onEmail ? <button
+          {onEmailAnalysisReport ? <button
             type="button"
             className="maxxis-action-link maxxis-analysis-email"
-            onClick={() => message.analysisExport.onEmail()}
+            disabled={!message.data?.reportId}
+            onClick={() => onEmailAnalysisReport(message)}
           >
-            <span>{language === 'pt' ? 'Enviar por email' : language === 'es' ? 'Enviar por email' : 'Send by Email'}</span>
+            <span>{language === 'pt' ? 'Preparar email' : language === 'es' ? 'Preparar email' : 'Prepare email'}</span>
             <Icon name="mail" size={13} color="currentColor" strokeWidth={2.1} />
           </button> : null}
         </div>

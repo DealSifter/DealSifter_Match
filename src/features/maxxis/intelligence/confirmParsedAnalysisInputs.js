@@ -1,4 +1,5 @@
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
+import { completionEcho } from './conversationalCompletion';
 
 /** Parsing proposes a value; only the user's explicit confirmation permits a write. */
 export function confirmParsedAnalysisInputs(values, language = 'en', confirm = globalThis.window?.confirm?.bind(globalThis.window)) {
@@ -7,8 +8,9 @@ export function confirmParsedAnalysisInputs(values, language = 'en', confirm = g
       : ['I understood these values:', 'Confirm saving this information?'];
   const labels = { targetCondition: language === 'pt' ? 'Condição-alvo' : language === 'es' ? 'Condición objetivo' : 'Target condition',
     rehabBudget: language === 'pt' ? 'Orçamento de reforma (USD)' : language === 'es' ? 'Rehabilitación (USD)' : 'Rehab budget (USD)' };
-  const flat = { ...values, ...values?.dealAssumptions }; delete flat.dealAssumptions;
-  const echo = Object.entries(flat).map(([key, value]) => `${labels[key] || key.replace(/([a-z])([A-Z])/g, '$1 $2')}: ${typeof value === 'string' ? localizeMaxxisValue(value, language) : JSON.stringify(value)}`).join('\n');
+  const flat = { ...values, ...values?.dealAssumptions }; delete flat.dealAssumptions; delete flat.completionInputs;
+  const echo = [Object.entries(flat).map(([key, value]) => `${labels[key] || key.replace(/([a-z])([A-Z])/g, '$1 $2')}: ${typeof value === 'string' ? localizeMaxxisValue(value, language) : JSON.stringify(value)}`).join('\n'),
+    values?.completionInputs ? completionEcho(values.completionInputs, language) : ''].filter(Boolean).join('\n');
   return Boolean(echo && typeof confirm === 'function' && confirm(`${copy[0]}\n\n${echo}\n\n${copy[1]}`) === true);
 }
 

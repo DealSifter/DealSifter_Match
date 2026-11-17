@@ -46,23 +46,39 @@ export function calculateBuyAndHoldScenario(input: Values) {
   const grossScheduledRent = round(rent * 12);
   const effectiveGrossIncome = vacancy === null ? null : round(grossScheduledRent * (1 - vacancy / 100));
   const managementPercent = nonNegativeKnown(input.managementPercent, 'management_percent');
-  const management = effectiveGrossIncome !== null && managementPercent !== null ? round(effectiveGrossIncome * managementPercent / 100) : null;
+  const management = finite(input.managementAmount) !== null ? nonNegativeKnown(input.managementAmount, 'management_amount')
+    : effectiveGrossIncome !== null && managementPercent !== null ? round(effectiveGrossIncome * managementPercent / 100) : null;
   const maintenancePercent = nonNegativeKnown(input.maintenancePercent, 'maintenance_percent');
   const maintenance = finite(input.maintenanceAmount) !== null ? nonNegativeKnown(input.maintenanceAmount, 'maintenance_amount')
     : effectiveGrossIncome !== null && maintenancePercent !== null ? round(effectiveGrossIncome * maintenancePercent / 100) : null;
   const hoa = nonNegativeKnown(input.HOA, 'hoa');
-  const operatingExpenses = sumKnown([nonNegativeKnown(input.propertyTax, 'property_tax'), nonNegativeKnown(input.insurance, 'insurance'),
-    hoa === null ? null : hoa * 12, management, maintenance, nonNegativeKnown(input.otherOperatingExpenses, 'other_operating_expenses')]);
+  const expenseItems = [nonNegativeKnown(input.propertyTax, 'property_tax'), nonNegativeKnown(input.insurance, 'insurance'),
+    hoa === null ? null : hoa * 12, management, maintenance, nonNegativeKnown(input.otherOperatingExpenses, 'other_operating_expenses'),
+    ...(input.opexMethod ? [nonNegativeKnown(input.utilities, 'utilities')] : [])];
+  const aggregate = input.opexMethod === 'AGGREGATE_EGI';
+  const opexPercent = nonNegativeKnown(input.opexPercent, 'opex_percent');
+  if (opexPercent !== null && opexPercent > 100) throw new Error('SCENARIO_OPEX_PERCENT_INVALID');
+  const aggregateBudget = aggregate && effectiveGrossIncome !== null && opexPercent !== null
+    ? round(effectiveGrossIncome * opexPercent / 100) : null;
+  const knownOperatingExpenses = round(expenseItems.filter((n): n is number => n !== null).reduce((sum, n) => sum + n, 0));
+  const opexConflict = aggregateBudget !== null && knownOperatingExpenses > aggregateBudget;
+  const operatingExpenses = aggregate ? opexConflict ? null : aggregateBudget : sumKnown(expenseItems);
   const NOI = effectiveGrossIncome !== null && operatingExpenses !== null ? round(effectiveGrossIncome - operatingExpenses) : null;
   const payment = nonNegativeKnown(input.monthlyPI, 'monthly_pi'); const annualDebtService = payment === null ? null : round(payment * 12);
   const annualCashFlow = NOI !== null && annualDebtService !== null ? round(NOI - annualDebtService) : null;
   const cashInvested = finite(input.cashInvested);
+  const readiness = completeness(input, ['vacancyRate', ...(aggregate ? ['opexPercent'] : ['propertyTax', 'insurance', 'HOA',
+    finite(input.managementAmount) !== null ? 'managementAmount' : 'managementPercent',
+    finite(input.maintenanceAmount) !== null ? 'maintenanceAmount' : 'maintenancePercent', 'otherOperatingExpenses',
+    ...(input.opexMethod ? ['utilities'] : [])]), 'monthlyPI']);
   return Object.freeze({ grossScheduledRent, effectiveGrossIncome, operatingExpenses, NOI, capRate: pct(NOI, purchasePrice),
+    ...(input.opexMethod ? { opexMethod: input.opexMethod, knownOperatingExpenses,
+      aggregateOpexBudget: aggregateBudget, unallocatedOperatingReserve: aggregateBudget === null || opexConflict ? null : round(aggregateBudget - knownOperatingExpenses),
+      operatingReadiness: opexConflict ? 'BLOCKED_CONFLICT' : operatingExpenses === null || effectiveGrossIncome === null ? 'INCOMPLETE' : aggregate ? 'READY_ASSUMPTION_HEAVY' : 'READY_MIXED' } : {}),
     monthlyOperatingCashFlow: NOI === null ? null : round(NOI / 12), annualCashFlow, debtService: annualDebtService,
     cashFlowAfterDebt: annualCashFlow, cashOnCashReturn: pct(annualCashFlow, cashInvested),
     DSCR: NOI !== null && annualDebtService !== null && annualDebtService > 0 ? round(NOI / annualDebtService, 4) : null,
-    ...completeness(input, ['vacancyRate', 'propertyTax', 'insurance', 'HOA', 'managementPercent',
-      finite(input.maintenanceAmount) !== null ? 'maintenanceAmount' : 'maintenancePercent', 'otherOperatingExpenses', 'monthlyPI']) });
+    ...readiness, ...(opexConflict ? { calculationStatus: 'PARTIAL', unresolvedInputs: ['SCENARIO_OPEX_BUDGET_CONFLICT'] } : {}) });
 }
 
 export function calculateFlipScenario(input: Values) {

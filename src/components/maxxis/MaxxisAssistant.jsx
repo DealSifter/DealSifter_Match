@@ -156,10 +156,14 @@ import {
   resolveIntelligenceReportAccess,
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
-import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
+import { resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
 import { persistConfirmedAnalysisInputs } from '../../features/maxxis/intelligence/confirmParsedAnalysisInputs';
 import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
+import { prepareMaxxisReportCompletion, saveConfirmedCompletionInputs, resolveUnknownCompletionInputs } from '../../services/maxxisAnalysisInputsService';
+import { parseConversationalCompletion } from '../../features/maxxis/intelligence/conversationalCompletion';
+import { saveReportCompletionRequest, readReportCompletionRequest, clearReportCompletionRequest } from '../../features/maxxis/intelligence/reportCompletionRequest';
+import { createReportRequestTrace } from '../../features/maxxis/export/reportRequestTrace';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
 import {
@@ -169,6 +173,8 @@ import {
 } from '../../features/maxxis/intelligence/maxxisReportFailureRecovery';
 import { finishMaxxisBrowserTrace, markMaxxisBrowserStage, startMaxxisBrowserTrace } from '../../features/maxxis/performance/maxxisBrowserPerformance';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
+import { ReportDeliveryModal } from '../../features/maxxis/reports/ReportDeliveryModal';
+import { createReportDeliveryReference, resolveReportDelivery, savePendingReportDelivery, readPendingReportDelivery, clearPendingReportDelivery } from '../../features/maxxis/reports/reportDelivery';
 import { resolveSavedReportAccessDecision } from '../../features/maxxis/reports/savedReportAccess';
 import './MaxxisAssistant.css';
 
@@ -244,6 +250,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [deliveryReference, setDeliveryReference] = useState(null);
+  const deliveryLock = useRef(false);
+  useEffect(() => { setDeliveryReference(readPendingReportDelivery(String(sessionKey))); }, [sessionKey]);
   const [propertyAnalysisMode, setPropertyAnalysisMode] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -298,6 +307,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const continuitySessionRef = useRef(createMaxxisContinuitySession(String(sessionKey || '')));
   const continuityAuthorityRef = useRef({ accountKey: String(sessionKey || ''), propertyId: String(propertyContextId || '') });
   const submitMessageRef = useRef(null);
+  const reportCompletionLocksRef = useRef(new Set());
+  const completedReportRequestsRef = useRef(new Set());
   const activeAnalysisGapRef = useRef('');
   const lastReportFailureRef = useRef(null);
   const conversationIntentRef = useRef(MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION);
@@ -877,6 +888,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setContinuityRevision((revision) => revision + 1);
     sessionKeyRef.current = nextSessionKey;
     handledAnalysisRequestsRef.current.clear();
+    reportCompletionLocksRef.current.clear();
+    completedReportRequestsRef.current.clear();
+    activeAnalysisGapRef.current = '';
+    setActiveAnalysisGapId('');
+    setLoading(false);
     detectedProactiveSignalsRef.current.clear();
     suppressedProactiveSignalsRef.current.clear();
     attentionAnalyticsRef.current.clear();
@@ -1189,6 +1205,30 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       explicitReportType: meta.reportType,
       hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),
     });
+    const completionCandidate = !inferredReportType && UUID_PATTERN.test(resolvedSubmitPropertyId)
+      ? parseConversationalCompletion(cleanMessage) : null;
+    if (completionCandidate) {
+      setLoading(true); setInput('');
+      try {
+        const stored = await readMaxxisAnalysisInputs(resolvedSubmitPropertyId);
+        if (sessionKeyRef.current !== String(sessionKey)) return;
+        const pendingCompletion = [...messages].reverse().find(item => item.type === 'analysis_gap_resolution'
+          && item.data?.reportPreflight && item.data.propertyId === resolvedSubmitPropertyId);
+        const confirmed = stored?.deal_assumptions?.r3Completion?.inputs || {};
+        const changed = Object.fromEntries(Object.entries(completionCandidate.values).filter(([key, value]) => confirmed[key]?.confirmed !== true || confirmed[key]?.value !== value));
+        setMessages(prev => [...prev, { id: `maxxis-user-${Date.now()}`, role: 'user', content: cleanMessage, createdAt: new Date() },
+          { id: `maxxis-input-candidates-${Date.now()}`, role: 'assistant', createdAt: new Date(),
+            type: Object.keys(changed).length ? 'analysis_gap_resolution' : 'text',
+            content: Object.keys(changed).length ? (language === 'pt' ? 'Confirme os dados para o cenário privado.' : 'Confirm the inputs for your private scenario.')
+              : (language === 'pt' ? 'Esses valores já estão confirmados no seu cenário e serão reutilizados.' : 'These values are already confirmed in your scenario and will be reused.'),
+            data: { ...(pendingCompletion?.data || {}), propertyId: resolvedSubmitPropertyId, expectedRevision: stored?.analysis_revision || 0,
+              completionCandidates: { ...completionCandidate, values: changed }, missingUserInputs: Object.keys(changed) } }]);
+      } catch (error) {
+        captureAppException(error, { area: 'maxxis_completion_capture' });
+        setMessages(prev => [...prev, { id: `maxxis-input-read-error-${Date.now()}`, role: 'assistant', createdAt: new Date(), error: true, content: t.unavailable }]);
+      } finally { if (sessionKeyRef.current === String(sessionKey)) setLoading(false); }
+      return;
+    }
     const pendingGap = !meta.skipGapResolutionParse && !areaAnalyticalIntent ? pendingGapForContext(messages, {
       propertyId: resolvedSubmitPropertyId, analysisStrategy: runtimeStrategy(developmentProperty),
       stateVersion: [...messages].reverse().find(item => String(item.data?.propertyId || '') === resolvedSubmitPropertyId && item.data?.stateVersion)?.data?.stateVersion,
@@ -1384,10 +1424,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setInput('');
     setLoading(true);
 
+    let reportCompletionLock = '';
+    let reportCompletionRequestId = '';
     try {
       let authorizedReportAccess = null;
       const requestedReportType = inferredReportType;
       if (requestedReportType) {
+        const lock = `${String(sessionKey)}:${resolvedSubmitPropertyId}:${requestedReportType}`;
+        if (reportCompletionLocksRef.current.has(lock)) return;
+        reportCompletionLock = lock; reportCompletionLocksRef.current.add(lock);
+        const pending = readReportCompletionRequest(String(sessionKey), undefined, { propertyId: resolvedSubmitPropertyId, reportType: requestedReportType });
+        reportCompletionRequestId = String(meta.analysisExport?.requestId || (pending?.propertyId === resolvedSubmitPropertyId && pending.reportType === requestedReportType ? pending.id : '') || createReportRequestTrace().requestId);
+        if (completedReportRequestsRef.current.has(reportCompletionRequestId)) return;
         const accessDecision = resolveIntelligenceReportAccess({
           plan: currentPlan,
           reportType: requestedReportType,
@@ -1561,7 +1609,31 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? referenceResolution.entity.id
         : '';
       const analysisStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const result = await sendMaxxisMessage({
+      // This request is already running in this mounted chat. Only a new mount
+      // should restore it; otherwise loading=false triggers a duplicate preflight.
+      if (requestedReportType) handledAnalysisRequestsRef.current.add(reportCompletionRequestId);
+      if (requestedReportType) saveReportCompletionRequest(String(sessionKey), { id: reportCompletionRequestId,
+        propertyId: resolvedSubmitPropertyId, reportType: requestedReportType, language, status: 'PREPARING',
+        partialAccepted: meta.completionPartialAccepted === true, options: meta.analysisExport?.options || {} });
+      const completionPreparation = requestedReportType ? await prepareMaxxisReportCompletion(resolvedPropertyId || resolvedSubmitPropertyId,
+        requestedReportType, { language, partialAccepted: meta.completionPartialAccepted === true }) : null;
+      if (completionPreparation && sessionKeyRef.current !== String(sessionKey)) return;
+      if (completionPreparation && !completionPreparation.preflight.canGenerate) {
+        const preflight = completionPreparation.preflight;
+        const request = { id: reportCompletionRequestId, propertyId: resolvedSubmitPropertyId, reportType: requestedReportType,
+          expectedRevision: preflight.revision, language, status: preflight.status, pending: preflight.missingUserInputs,
+          options: meta.analysisExport?.options || {} };
+        saveReportCompletionRequest(String(sessionKey), request);
+        setMessages(prev => [...prev, { id: `maxxis-report-completion-${Date.now()}`, role: 'assistant', createdAt: new Date(),
+          type: 'analysis_gap_resolution', content: language === 'pt' ? 'Vamos completar os dados necessários ao relatório escolhido.' : 'Let’s complete the inputs required by your selected report.',
+          data: { ...preflight, reportPreflight: preflight, expectedRevision: preflight.revision,
+            propertyId: resolvedSubmitPropertyId, reportType: requestedReportType, originalRequest: cleanMessage,
+            reportProperty: meta.reportProperty || null, reportAccessDecision: authorizedReportAccess,
+            analysisExport: { ...(meta.analysisExport || {}), requestId: reportCompletionRequestId },
+          } }]);
+        return;
+      }
+      const result = completionPreparation?.result || await sendMaxxisMessage({
         message: cleanMessage,
         history: historyForRequest,
         page,
@@ -1639,6 +1711,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
       if (projectedReport?.data?.maxxisReport) await prepareReportNarrativePresentation(projectedReport.data.maxxisReport, language, { media: false, timeoutMs: 1500 });
+      if (requestedReportType && sessionKeyRef.current !== String(sessionKey)) return;
       if (reportGenerationFailed) {
         lastReportFailureRef.current = createMaxxisReportFailureState(
           result,
@@ -1723,15 +1796,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         requestId: result.requestId || '',
         type: reportGenerationFailed ? 'report_generation_error' : dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
         actions: result.actions || [],
-        data: projectedReport ? { ...projectedReport.data, proactiveContext: projectMaxxisProactiveSnapshot(result.data?.intelligenceSnapshot), reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: null, runtimeTrace } : (intelligence.data || result.data),
+        data: projectedReport ? { ...projectedReport.data, analysisRequest: { id: reportCompletionRequestId, propertyId: resolvedSubmitPropertyId,
+          reportType: projectedReportType, scenarioVersion: result.data?.intelligenceSnapshot?.analysisRevision, language },
+          proactiveContext: projectMaxxisProactiveSnapshot(result.data?.intelligenceSnapshot), reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: null, runtimeTrace } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
-        analysisExport: projectedReportType ? (meta.analysisExport || null) : null,
+        analysisExport: projectedReportType ? (meta.analysisExport || { requestId: reportCompletionRequestId }) : null,
         compositionMode: dealIntelligence || maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
       if (projectedReport) {
         markMaxxisBrowserStage(browserTraceId, 'T3_inline_report_committed');
+        completedReportRequestsRef.current.add(reportCompletionRequestId);
+        clearReportCompletionRequest(String(sessionKey), reportCompletionRequestId);
       }
       if (meta.proactiveAccepted && !result?.error && result?.type !== 'error') markAvatarActionSuccess('completed');
       if (projectedReport && typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
@@ -1761,7 +1838,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               reportPayload: {
                 content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
                 type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-                data: { ...projectedReport.data, reportAccessDecision: grantedReportAccess, reportExportEntitlements },
+                data: { ...projectedReport.data, analysisRequest: { id: reportCompletionRequestId, propertyId: resolvedSubmitPropertyId,
+                  reportType: projectedReportType, scenarioVersion: result.data?.intelligenceSnapshot?.analysisRevision, language },
+                  reportAccessDecision: grantedReportAccess, reportExportEntitlements },
               },
             });
             const persistenceMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - persistenceStartedAt;
@@ -1790,7 +1869,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         error: true,
       }]);
     } finally {
-      setLoading(false);
+      if (reportCompletionLock) reportCompletionLocksRef.current.delete(reportCompletionLock);
+      if (sessionKeyRef.current === String(sessionKey)) setLoading(false);
       markMaxxisBrowserStage(browserTraceId, 'final_ui_unlock');
       if (!browserTraceFinishesAfterPaint) finishMaxxisBrowserTrace(browserTraceId);
     }
@@ -1907,6 +1987,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       analysisExport: data.analysisExport,
       skipGapResolutionParse: true,
       analysisRecomputeMode: 'GAP_UPDATE_CACHE_ONLY',
+      completionPartialAccepted: data.completionPartialAccepted === true,
+      propertyContextOverride: data.propertyId,
       propertyAnalysisContext: data.reportType ? {
         mode: 'PROPERTY_ANALYSIS_MODE',
         property_id: data.propertyId,
@@ -1919,35 +2001,64 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const messageId = String(message?.id || '');
     const propertyId = String(message?.data?.propertyId || '');
     if (!messageId || !propertyId || activeAnalysisGapRef.current) return;
+    const resolutionAccount = String(sessionKey);
     activeAnalysisGapRef.current = messageId;
     setActiveAnalysisGapId(messageId);
     try {
-      await saveMaxxisAnalysisInputs(propertyId, values, null, {
+      if (message?.data?.reportPreflight || message?.data?.completionCandidates) {
+        if (values.completionPartialAccepted) {
+          continueGatedAnalysis({ ...message, data: { ...message.data, completionPartialAccepted: true } },
+            language === 'pt' ? 'Gerar com limitações explícitas.' : 'Generate with explicit limitations.');
+          return;
+        }
+        let revision = Number(message.data.expectedRevision || 0);
+        if (values.acceptEstimateFields) {
+          const saved = await resolveUnknownCompletionInputs(propertyId, { acceptEstimateFields: values.acceptEstimateFields, confirmed: true }, {
+            expectedRevision: revision, capability: message.data.reportType || 'MAXXIS_ANALYSIS', interactionId: messageId });
+          revision = Number(saved.revision);
+          if (sessionKeyRef.current !== resolutionAccount) return;
+        }
+        if (values.completionInputs && Object.keys(values.completionInputs).length) {
+          const saved = await saveConfirmedCompletionInputs(propertyId, values.completionInputs, {
+            expectedRevision: revision, capability: message.data.reportType || 'MAXXIS_ANALYSIS', interactionId: messageId });
+          revision = Number(saved.revision);
+          if (sessionKeyRef.current !== resolutionAccount) return;
+        }
+        if (values.targetCondition) {
+          await saveMaxxisAnalysisInputs(propertyId, { targetCondition: values.targetCondition }, null, {
+            capability: message.data.reportType || 'MAXXIS_ANALYSIS', expectedRevision: revision });
+        }
+      } else await saveMaxxisAnalysisInputs(propertyId, values, null, {
         capability: message?.data?.reportType || undefined,
         pendingGaps: message?.data?.missingUserInputs || [],
         snapshotRevision: message?.data?.snapshotRevision || undefined,
       });
+      if (sessionKeyRef.current !== resolutionAccount) return;
       setMessages((prev) => prev.map((item) => item.id === messageId
         ? { ...item, type: 'analysis_gap_resolved', data: {
             ...item.data,
             assumptions: { ...(item.data?.assumptions || {}), ...values },
             resolution: { status: 'resolved', values, declinedFields: [] },
             error: null,
-          }, content: language === 'pt'
+          }, content: values.acceptEstimateFields ? (language === 'pt' ? 'Estimativas ilustrativas confirmadas no cenário privado. Reavaliando as métricas e retomando o mesmo relatório.' : language === 'es' ? 'Estimaciones ilustrativas confirmadas en el escenario privado. Reanudando el mismo informe.' : 'Illustrative estimates confirmed in the private scenario. Rechecking metrics and resuming the same report.') : language === 'pt'
           ? 'Informações registradas como fornecidas pelo usuário. Recalculando somente as partes afetadas.'
           : language === 'es' ? 'Información registrada como aportada por el usuario. Recalculando solo las partes afectadas.'
             : 'Inputs saved as user-provided evidence. Recalculating only the affected analysis.' }
         : item));
+      if (message.data.completionCandidates && !message.data.reportType) return;
       continueGatedAnalysis(message, typedAnswer || (language === 'pt' ? 'Continuar análise com as informações fornecidas.'
         : language === 'es' ? 'Continuar el análisis con la información proporcionada.' : 'Continue analysis with the supplied inputs.'));
     } catch (error) {
       captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId,
         errorCode: error instanceof Error ? error.message : 'GAP_RECOMPUTE_ERROR', requestId: error?.requestId || '' });
       setMessages((prev) => prev.map((item) => item.id === messageId
-        ? { ...item, data: { ...item.data, error: t.unavailable } } : item));
+        ? { ...item, data: { ...item.data, error: error?.code === 'ANALYSIS_REVISION_CONFLICT'
+          ? (language === 'pt' ? 'Outra sessão alterou o cenário. Recarregue o contexto antes de confirmar novamente.' : 'Another session changed the scenario. Reload its context before confirming again.') : t.unavailable } } : item));
     } finally {
-      activeAnalysisGapRef.current = '';
-      setActiveAnalysisGapId('');
+      if (sessionKeyRef.current === resolutionAccount) {
+        activeAnalysisGapRef.current = '';
+        setActiveAnalysisGapId('');
+      }
     }
   };
 
@@ -1955,6 +2066,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const messageId = String(message?.id || '');
     const propertyId = String(message?.data?.propertyId || '');
     if (!messageId || !propertyId || activeAnalysisGapRef.current) return;
+    if (message?.data?.reportPreflight || message?.data?.completionCandidates) {
+      const account = String(sessionKey);
+      activeAnalysisGapRef.current = messageId;
+      setActiveAnalysisGapId(messageId);
+      try {
+        await resolveUnknownCompletionInputs(propertyId, { unknownFields: fields }, {
+          expectedRevision: Number(message.data.expectedRevision || 0), capability: message.data.reportType || 'MAXXIS_ANALYSIS', interactionId: messageId });
+        if (sessionKeyRef.current !== account) return;
+        const prepared = await prepareMaxxisReportCompletion(propertyId, message.data.reportType || 'MAXXIS_ANALYSIS', { language });
+        if (sessionKeyRef.current !== account) return;
+        setMessages(prev => prev.map(item => item.id === messageId ? { ...item, data: { ...item.data,
+          reportPreflight: prepared.preflight, expectedRevision: prepared.preflight.revision, unknownChoice: true, error: null } } : item));
+      } catch (error) {
+        if (sessionKeyRef.current === account) setMessages(prev => prev.map(item => item.id === messageId ? { ...item, data: { ...item.data,
+          error: error?.code === 'ANALYSIS_REVISION_CONFLICT' ? (language === 'pt' ? 'O cenário mudou em outra sessão. Recarregue antes de continuar.' : 'The scenario changed in another session. Reload before continuing.') : t.unavailable } } : item));
+      } finally {
+        if (sessionKeyRef.current === account) { activeAnalysisGapRef.current = ''; setActiveAnalysisGapId(''); }
+      }
+      return;
+    }
     activeAnalysisGapRef.current = messageId;
     setActiveAnalysisGapId(messageId);
     try {
@@ -2431,23 +2562,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   const handleExportAnalysisPdf = async (analysisExport, analysisText, messageId) => {
-    if (!analysisExport?.onExportPdf || !onExportAnalysisPdf || exportingAnalysisId) return;
+    // The structured report supplies its export callback below. A restored
+    // request has no serializable handoff callback, but keeps its report schema.
+    if (!analysisExport || !onExportAnalysisPdf || exportingAnalysisId || deliveryLock.current) return;
+    deliveryLock.current = true;
     const pdfTraceId = startMaxxisBrowserTrace(`maxxis-pdf-${messageId || Date.now()}`, { intent: 'pdf_export' });
     setExportingAnalysisId(messageId || analysisExport.requestId || 'active');
     try {
       const reportMessage = messages.find((entry) => entry.id === messageId);
-      const schema = reportMessage?.data?.maxxisReport;
-      const entitlement = reportMessage?.data?.reportExportEntitlements?.PDF || (schema ? resolveReportExportEntitlement({
-        plan: currentPlan, entitlements: reportEntitlements, reportType: schema.reportType, channel: 'PDF',
-      }) : null);
       await onExportAnalysisPdf({
         ...analysisExport,
         onExportPdf: async () => {
-          if (!schema || !entitlement?.allowed) throw new Error('MAXXIS_REPORT_SCHEMA_OR_ACCESS_UNAVAILABLE');
-          await prepareReportNarrativePresentation(schema, language);
-          const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
+          const reference = await messageDeliveryReference(reportMessage);
+          const { schema, entitlements, report } = await resolveReportDelivery(reference, String(sessionKey));
+          const entitlement = entitlements.PDF;
+          await prepareReportNarrativePresentation(schema, reference.language);
+          const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: report.createdAt, language: reference.language });
           markMaxxisBrowserStage(pdfTraceId, 'pdf_artifact_ready', { pageCount: rendered.document?.pageCount || 0 });
           if (rendered.state !== 'RENDERED') throw new Error(`MAXXIS_REPORT_${rendered.state}`);
+          await resolveReportDelivery(reference, String(sessionKey));
+          if (sessionKeyRef.current !== String(sessionKey)) return;
           if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${schema.reportType.toLowerCase().replaceAll('_', '-')}.pdf`)) {
             throw new Error('MAXXIS_REPORT_DOWNLOAD_FAILED');
           }
@@ -2455,6 +2589,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         },
       }, analysisText);
     } finally {
+      deliveryLock.current = false;
       setExportingAnalysisId(null);
       finishMaxxisBrowserTrace(pdfTraceId, { intent: 'pdf_export' });
     }
@@ -3216,6 +3351,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           : 'Generate report for the selected property with Maxxis Deal AI'),
       analysisExport: {
         requestId,
+        options: request?.reportOptions || {},
         title: request?.title || '',
         onExportPdf: request?.onExportPdf || null,
         onEmail: request?.onEmail || null,
@@ -3229,6 +3365,22 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       controlledIntent: 'generate_report',
     });
   }, [language, propertyAnalysisRequest?.id]);
+
+  useEffect(() => {
+    const pending = readReportCompletionRequest(String(sessionKey), undefined, { propertyId: propertyContextId || undefined });
+    if (!enabled || !sessionKey || loading || !pending || handledAnalysisRequestsRef.current.has(pending.id)) return;
+    // A restored session can precede plan/entitlement hydration. Keep the request
+    // pending until access is confirmed, rather than consuming its resume marker.
+    if (!resolveIntelligenceReportAccess({ plan: currentPlan, reportType: pending.reportType, entitlements: reportEntitlements }).allowed) return;
+    handledAnalysisRequestsRef.current.add(pending.id);
+    setOpen(true);
+    void submitMessageRef.current?.(pending.reportType, { reportType: pending.reportType,
+      analysisExport: { requestId: pending.id, options: pending.options },
+      completionPartialAccepted: pending.partialAccepted === true,
+      propertyContextOverride: pending.propertyId, skipGapResolutionParse: true,
+      propertyAnalysisContext: { mode: 'PROPERTY_ANALYSIS_MODE', property_id: pending.propertyId, report_type: pending.reportType },
+      controlledIntent: 'generate_report' });
+  }, [enabled, sessionKey, propertyContextId, currentPlan, reportEntitlements, loading]);
 
   const savedReportExportEntitlements = (report) => {
     const reportType = String(report?.capability || report?.reportPayload?.data?.maxxisReport?.reportType || '');
@@ -3247,25 +3399,47 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (!payload?.data?.maxxisReport || !savedAccessDecision) return false;
     const reportExportEntitlements = savedReportExportEntitlements(report);
     setReportsOpen(false); setOpen(true);
-    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}-${Date.now()}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data ? { ...payload.data, reportAccessDecision: savedAccessDecision, reportExportEntitlements, reportId: report?.id || null } : null }]);
+    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}-${Date.now()}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', analysisExport: { requestId: payload.data?.analysisRequest?.id }, data:payload.data ? { ...payload.data, reportAccessDecision: savedAccessDecision, reportExportEntitlements, reportId: report?.id || null } : null }]);
     return true;
   };
   const downloadSavedReport = async (report) => {
-    const schema = report?.reportPayload?.data?.maxxisReport;
-    const entitlement = savedReportExportEntitlements(report).PDF;
-    if (!schema || !entitlement?.allowed) return false;
-    await prepareReportNarrativePresentation(schema, language);
-    const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: report.createdAt, language });
-    if (rendered.state !== 'RENDERED') return false;
-    return downloadMaxxisReportPdf(rendered.document, `maxxis-${report?.id || schema.reportType.toLowerCase()}.pdf`);
+    if (deliveryLock.current) return false;
+    deliveryLock.current = true;
+    try {
+      const reference = await createReportDeliveryReference(report, String(sessionKey), language);
+      const value = await resolveReportDelivery(reference, String(sessionKey));
+      await prepareReportNarrativePresentation(value.schema, reference.language);
+      const rendered = await renderMaxxisReportPdfCached({ schema: value.schema, exportEntitlement: value.entitlements.PDF, generatedAt: value.report.createdAt, language: reference.language });
+      await resolveReportDelivery(reference, String(sessionKey));
+      if (rendered.state !== 'RENDERED' || sessionKeyRef.current !== String(sessionKey)) return false;
+      return downloadMaxxisReportPdf(rendered.document, `maxxis-${report.id}.pdf`);
+    } catch {
+      if (sessionKeyRef.current === String(sessionKey)) {
+        setReportsOpen(false); setOpen(true);
+        setMessages(prev => [...prev, { id: `saved-delivery-error-${Date.now()}`, role: 'assistant', createdAt: new Date(),
+          content: language === 'pt' ? 'Não foi possível baixar esta versão salva. O relatório pode ter mudado ou o acesso foi interrompido. Reabra a versão atual em Meus Relatórios; nenhuma nova análise foi iniciada.' : language === 'es' ? 'No se pudo descargar esta versión guardada. El informe puede haber cambiado o el acceso terminó. Abra la versión actual en Mis informes; no se inició otro análisis.' : 'This saved version could not be downloaded. The report may have changed or access is no longer available. Reopen the current version in My Reports; no new analysis was started.' }]);
+      }
+      return false;
+    } finally { deliveryLock.current = false; }
+  };
+  const messageDeliveryReference = (message) => createReportDeliveryReference({ id: message?.data?.reportId,
+    propertyId: message?.data?.maxxisReport?.sections?.propertySummary?.data?.id,
+    capability: message?.data?.maxxisReport?.reportType, reportVersion: '1',
+    reportPayload: { data: message?.data } }, String(sessionKey), language);
+  const openReportDelivery = async (buildReference) => {
+    if (deliveryLock.current) return;
+    deliveryLock.current = true;
+    try {
+      const reference = await buildReference();
+      if (sessionKeyRef.current !== reference.userId) return;
+      savePendingReportDelivery(reference); setDeliveryReference(reference);
+    } catch {
+      setMessages(prev => [...prev, { id: `delivery-unavailable-${Date.now()}`, role: 'assistant', createdAt: new Date(),
+        content: language === 'pt' ? 'O relatório ainda não está salvo. Aguarde a confirmação ou abra Meus Relatórios. Nenhuma nova análise foi iniciada.' : language === 'es' ? 'El informe aún no está guardado. Espere la confirmación o abra Mis informes. No se inició otro análisis.' : 'The report is not saved yet. Wait for confirmation or open My Reports. No new analysis was started.' }]);
+    } finally { deliveryLock.current = false; }
   };
   const emailSavedReport = async (report) => {
-    const downloaded = await downloadSavedReport(report);
-    if (!downloaded) return false;
-    const subject=encodeURIComponent(`DealSifter · ${String(report?.capability || '').replaceAll('_',' ')}`);
-    const body=encodeURIComponent(String(report?.reportPayload?.content || ''));
-    window.location.href=`mailto:?subject=${subject}&body=${body}`;
-    return true;
+    return openReportDelivery(() => createReportDeliveryReference(report, String(sessionKey), language));
   };
 
   if (!enabled) return null;
@@ -3285,6 +3459,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-mode={propertyAnalysisMode?.mode || 'GENERAL_CHAT_MODE'}
       data-maxxis-preferences-hydrated={userPreferencesHydrated ? 'true' : 'false'}
     >
+      {deliveryReference?.userId === String(sessionKey) ? <ReportDeliveryModal key={`${sessionKey}:${deliveryReference.reportId}:${deliveryReference.fingerprint}`} reference={deliveryReference} userId={String(sessionKey)} onClose={() => { clearPendingReportDelivery(String(sessionKey)); setDeliveryReference(null); }} /> : null}
       {open ? (
         <section
           ref={panelRef}
@@ -3416,6 +3591,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   smartActions={smartActions}
                   onSmartAction={handleSmartAction}
                   onExportAnalysisPdf={handleExportAnalysisPdf}
+                  onEmailAnalysisReport={message => openReportDelivery(() => messageDeliveryReference(message))}
                   exportAnalysisLabel={t.exportAnalysisPdf}
                   exportingAnalysisLabel={t.exportingAnalysisPdf}
                   isExportingAnalysis={exportingAnalysisId === message.id}
@@ -3433,7 +3609,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onResolveAnalysisGaps={handleResolveAnalysisGaps}
                   onDeclineAnalysisGaps={handleDeclineAnalysisGaps}
                   onEditAnalysisGaps={handleEditAnalysisGaps}
-                  activeAnalysisGapId={activeAnalysisGapId}
+                  activeAnalysisGapId={loading && message.type === 'analysis_gap_resolution' ? message.id : activeAnalysisGapId}
                 />
                 {message.role==='assistant'&&typeof message.data?.reviewField==='string'&&factReview?.ownedProperties.has(String(message.data.propertyId))?<button type="button" className="maxxis-smart-action-chip" onClick={()=>factReview.open(message.data.propertyId,message.data.reviewField)}>{factCopy(language).review}</button>:null}
                 {message.role==='assistant'&&message.data?.inputsToPersist?.zoning?<PublisherZoningConfirmation propertyId={message.data.propertyId} value={message.data.inputsToPersist.zoning} language={language}/>:null}
