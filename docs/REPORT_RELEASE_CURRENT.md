@@ -1,5 +1,21 @@
 # Maxxis — entrega de relatórios R-3.2
 
+## Publicação vigente — Production
+
+Publicado em 17 de novembro de 2026 em https://dealsiftermatch.vercel.app. Deployment `dpl_uVn4AptSQcWupw5JZtiA1sQP1tUe`, READY, associado ao commit de código `af26946b296358158b5e852e821077b0020cccf4`. O proprietário confirmou ter acrescentado o callback de Production no Google antes da promoção.
+
+- As duas migrations abaixo passaram por dry-run transacional com ROLLBACK verificado, foram aplicadas e registradas no histórico de Production. As policies existentes do contexto permaneceram idênticas. Nenhuma conta, fixture ou conexão de staging foi copiada.
+- As quatro funções foram publicadas. JWT obrigatório no gateway das funções de análise/entrega; callback OAuth sem JWT no gateway e rotas protegidas com validação interna. Origem Gmail limitada ao domínio canônico de Production; demais origens/configurações existentes não foram modificadas.
+- Build offline e contrato TypeScript PASS; lint PASS. Deno das quatro entradas mantém os 36 diagnósticos preexistentes do grafo compartilhado, sem novos erros. Regressão ampliada: 803 casos; 799 passaram inicialmente, quatro contratos antigos foram atualizados e as quatro suítes passaram na reexecução, 29/29. Não houve correção de runtime para mascarar essas falhas. A assinatura das amostras foi regenerada pelo renderer real; todas as dez imagens publicadas correspondem aos hashes aprovados.
+- Oito probes negativos e quatro verificações CORS em Production PASS. Sem gravações de caixa/entrega ou chamadas Google nesses probes. A primeira execução do roteiro OAuth usava GET, recebeu corretamente 405 e foi corrigida para POST; nenhuma mudança de produto foi necessária.
+- Smoke público desktop/mobile: HTTP 200, zero erros de JavaScript ou falhas de assets. Dezesseis assets críticos publicados, incluindo as dez amostras, conferidos por hash.
+- Worker real servido por Production, com fixtures fictícias locais: L1 1 página/5 fotos/1 mapa; L2 3 páginas/5 fotos/1 mapa; L3 6 páginas/5 fotos/2 mapas. Todos com PDF válido e interface responsiva. Sem provedores, gravação de relatórios, cobranças ou envios reais pelo agente.
+- Stash preservado. Sem push. Configuração pública de Production preservada; alterações privadas restritas às quatro configurações Gmail descritas abaixo, com chave de criptografia exclusiva de Production.
+
+Limite da validação: consentimento e envio reais foram confirmados pelo proprietário no staging. Em Production o usuário precisa conectar seu Gmail novamente; os tokens não são transferidos. Não foi alegada homologação autenticada humana em Production nem alterada a audiência/verificação do aplicativo OAuth Google.
+
+Rollback do frontend: deployment anterior `dpl_7d6TWLVQT6ji4GtbnE9zaK6bhrCX`. Backups privados das duas funções anteriores e recibos de schema/deploy/probes permanecem em `.tmp-codex/r32-production/`. As migrations são aditivas e não devem ser removidas por rollback destrutivo automático. PDFs/PNGs de QA e recibos não entram no Git. Os dois recibos de QA rastreados alterados pela regressão foram guardados no diretório privado e seus arquivos rastreados restaurados ao conteúdo anterior, sem exclusão de arquivos.
+
 ## Candidato aprovado
 
 O proprietário confirmou no staging a autorização da caixa Gmail, o envio da mensagem e a criação do card no Trello após configurar o destinatário exclusivo correto. A aceitação pela API Gmail continua distinta da confirmação de recebimento no destino. O agente não executa envios reais de teste.
