@@ -1,17 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { authorizeReportMailbox, disconnectReportMailbox, readReportMailbox } from '../../../services/reportMailboxService';
 
 export function GmailConnectionPanel({ userId, language = 'en', onConnectionChange }) {
   const text = useCallback((en, pt, es = en) => language === 'pt' ? pt : language === 'es' ? es : en, [language]);
   const [connection, setConnection] = useState(null), [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const alive = useRef(false), lock = useRef(false), popup = useRef(null);
   const refresh = useCallback(async () => {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError('');
     try {
       const value = await readReportMailbox(userId);
-      if (alive.current) { setConnection(value); onConnectionChange?.(value); }
+      if (alive.current) { setConnection(value); if (value?.status === 'CONNECTED') setExpanded(false); onConnectionChange?.(value); }
     } catch {
       if (alive.current) {
         setConnection(null); onConnectionChange?.(null);
@@ -53,7 +55,13 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
   };
   const connected = connection?.status === 'CONNECTED';
   return <div data-testid="gmail-connection" style={{ display: 'grid', gap: 8, fontSize: 12 }}>
-    <strong>{text('Connect your Gmail', 'Conectar seu Gmail', 'Conectar su Gmail')}</strong>
+    {connected ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <strong role="status">{text('Gmail connected', 'Gmail conectado', 'Gmail conectado')}</strong>
+      <button type="button" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpanded(value => !value)}>
+        {expanded ? text('Hide details', 'Ocultar detalhes', 'Ocultar detalles') : text('Manage connection', 'Gerenciar conexão', 'Administrar conexión')}
+      </button>
+    </div> : <strong>{text('Connect your Gmail', 'Conectar seu Gmail', 'Conectar su Gmail')}</strong>}
+    {!connected || expanded ? <div id={detailsId} style={{ display: 'grid', gap: 8 }}>
     <span>{text('Connecting is separate from login and sends no message. Email requires a separate review and confirmation.', 'Conectar é separado do login e não envia mensagens. O email exige revisão e confirmação próprias.', 'Conectar es independiente del acceso y no envía mensajes. El email requiere revisión y confirmación propias.')}</span>
     {connected ? <span role="status">{text('Connected mailbox', 'Caixa conectada', 'Buzón conectado')}: {connection.mailbox_email}</span>
       : <span role="status">{busy ? text('Checking…', 'Conferindo…', 'Comprobando…') : connection ? text('Mailbox not connected or authorization expired.', 'Caixa não conectada ou autorização expirada.', 'Buzón no conectado o autorización vencida.') : text('Connection not confirmed.', 'Conexão não confirmada.', 'Conexión no confirmada.')}</span>}
@@ -66,5 +74,6 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
     </div>
     {connected ? <span>{text('Disconnect removes DealSifter access. You can also remove the grant in your Google Account permissions.', 'Desconectar remove o acesso pelo DealSifter. Você também pode revogar a autorização nas permissões da sua Conta Google.', 'Desconectar elimina el acceso de DealSifter. También puede revocar el permiso en su Cuenta Google.')}</span> : null}
     {error ? <span role="alert">{error}</span> : null}
+    </div> : null}
   </div>;
 }

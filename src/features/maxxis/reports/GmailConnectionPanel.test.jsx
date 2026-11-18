@@ -32,13 +32,34 @@ it('opens only after consent and does not claim connection before the server con
   expect(popup.opener).toBeNull();
   expect(screen.queryByText(/Connected mailbox:/)).toBeNull();
 });
-it('shows a connected mailbox only from server metadata and can disconnect', async () => {
+it('collapses confirmed connection details and exposes management only when requested', async () => {
   api.read.mockResolvedValue({ status: 'CONNECTED', mailbox_email: 'synthetic@gmail.com' });
   render(<GmailConnectionPanel userId="qa-a" />);
-  await screen.findByText('Connected mailbox: synthetic@gmail.com');
+  await screen.findByText('Gmail connected');
+  expect(screen.queryByText('Connected mailbox: synthetic@gmail.com')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Disconnect' })).toBeNull();
+  const manage = screen.getByRole('button', { name: 'Manage connection' });
+  expect(manage.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(manage);
+  expect(screen.getByText('Connected mailbox: synthetic@gmail.com')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Hide details' }).getAttribute('aria-expanded')).toBe('true');
+  expect(api.read).toHaveBeenCalledTimes(1);
+  expect(api.authorize).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
   await waitFor(() => expect(api.disconnect).toHaveBeenCalledExactlyOnceWith('qa-a'));
   await waitFor(() => expect(screen.queryByText(/Connected mailbox:/)).toBeNull());
+});
+it('shows reconnection controls when a connection check reports expiry', async () => {
+  api.read.mockResolvedValueOnce({ status: 'CONNECTED', mailbox_email: 'synthetic@gmail.com' })
+    .mockResolvedValueOnce({ status: 'EXPIRED' });
+  render(<GmailConnectionPanel userId="qa-a" />);
+  await screen.findByText('Gmail connected');
+  fireEvent.click(screen.getByRole('button', { name: 'Manage connection' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Check connection' }));
+  await screen.findByText('Mailbox not connected or authorization expired.');
+  expect(screen.getByRole('checkbox')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Authorize Gmail' }).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Manage connection' })).toBeNull();
 });
 it('does not authorize if status cannot be verified', async () => {
   api.read.mockRejectedValue(new Error('endpoint unavailable'));
