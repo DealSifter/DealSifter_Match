@@ -77,6 +77,16 @@ describe('R3.2 contextual delivery controls', () => {
     expect(open).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled(); expect(mocks.draft).not.toHaveBeenCalled();
     open.mockRestore();
   });
+  it.each(['synthetic@hotmail.com', 'synthetic@outlook.com'])('explains provider support without labelling the real account %s as QA', async senderEmail => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail, recipients: null });
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    await screen.findByText(/This account uses another email provider/);
+    expect(screen.queryByText(/QA .invalid accounts/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Connect test mailbox' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Prepare Gmail email' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Download this PDF' }).disabled).toBe(false);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it('refuses silently missing photos before presenting a send confirmation', async () => {
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: { to: 'qa@example.invalid', cc: '', bcc: '' } });
     mocks.resolve.mockResolvedValue({ schema: { reportType: 'DEAL_INTELLIGENCE', sections: { propertySummary: { data: { images: ['https://images.example.invalid/photo.jpg'] } } } }, report: {}, entitlements: { PDF: {} } });

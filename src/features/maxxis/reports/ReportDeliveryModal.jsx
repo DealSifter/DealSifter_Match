@@ -40,6 +40,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
   }, [reference, userId, text, resolveDelivery]);
   const property = prepared?.schema?.sections?.propertySummary?.data;
   const gmailAccount = /@(gmail|googlemail)\.com$/i.test(account?.senderEmail || '');
+  const qaAccount = /\.invalid$/i.test((account?.senderEmail || '').trim());
   const connected = mailbox?.status === 'CONNECTED' && mailbox.mailbox_email?.toLowerCase() === account?.senderEmail?.toLowerCase();
   const photoCount = Math.min(5, property?.images?.length || 0);
   const level = reference.reportType === 'PROPERTY_RELEASE' ? 'L1' : reference.reportType === 'DEAL_INTELLIGENCE' ? 'L3' : 'L2';
@@ -101,7 +102,9 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
         <span className="report-delivery-caption" role="status">{prepared ? propertyRelease ? text('Property Release · current authorized property', 'Relatório básico · imóvel autorizado atual') : text('Saved report · same level and confirmed scenario', 'Relatório salvo · mesmo nível e cenário confirmado') : text('Checking report…', 'Conferindo relatório…')}</span></div>
       {recipientLoading ? <span role="status" className="report-delivery-caption">{text('Recovering saved recipients…', 'Recuperando destinatários salvos…')}</span> : null}
       {gmailAccount ? <GmailConnectionPanel key={userId} userId={userId} language={reference.language} onConnectionChange={setMailbox} />
-        : account ? <div className="report-delivery-alert">{text('QA .invalid accounts have no mailbox and cannot send email. Sign in with your confirmed Gmail account. You can still download this PDF.', 'Contas QA .invalid não têm caixa e não podem enviar email. Entre com sua conta Gmail confirmada. Você ainda pode baixar este PDF.')}</div> : null}
+        : account ? <div className="report-delivery-alert">{qaAccount
+          ? text('QA .invalid accounts have no mailbox and cannot send email. Sign in with your confirmed Gmail account. You can still download this PDF.', 'Contas QA .invalid não têm caixa e não podem enviar email. Entre com sua conta Gmail confirmada. Você ainda pode baixar este PDF.')
+          : text('Automatic sending currently requires a DealSifter account with a confirmed Gmail address. This account uses another email provider, which is not integrated yet. You can still download this PDF.', 'O envio automático atual exige uma conta DealSifter com email Gmail confirmado. Esta conta usa outro provedor de email, ainda não integrado. Você pode baixar este PDF normalmente.', 'El envío automático actual requiere una cuenta DealSifter con un correo Gmail confirmado. Esta cuenta usa otro proveedor de correo, aún no integrado. Puede descargar este PDF.')}</div> : null}
       {account?.senderEmail ? <p className="report-delivery-caption">{text('Account sender', 'Remetente da conta')}: <strong>{account.senderEmail}</strong></p> : null}
       <div className="report-delivery-recipients">{['to', 'cc', 'bcc'].map(field => <label key={field}><span>{field === 'to' ? text('To', 'Para') : field === 'cc' ? 'Cc' : text('Bcc', 'Cco')}</span>
         <input data-testid={`report-delivery-${field}`} type="text" inputMode="email" autoComplete="off" value={recipients[field]} disabled={busy || recipientLoading || Boolean(envelope) || Boolean(outcome)}
