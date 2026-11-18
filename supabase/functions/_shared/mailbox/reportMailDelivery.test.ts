@@ -15,7 +15,7 @@ const pdf=btoa('%PDF-1.7\nfixture content only\n%%EOF');
 let ports:MailDeliveryPorts, input:any, ledger:Map<string,any>;
 beforeEach(async()=>{
   ledger=new Map();
-  ports={encryptionKey:key,transport:vi.fn(async()=>new Response(JSON.stringify({id:'provider-fixture-id'}))),
+  ports={readSenderProfile:vi.fn(async()=>({scope:'personal',email:user.email})),encryptionKey:key,transport:vi.fn(async()=>new Response(JSON.stringify({id:'provider-fixture-id'}))),
     readReport:vi.fn(async()=>report),
     readMailbox:vi.fn(async()=>({user_id:user.id,provider:'google',mailbox_email:user.email,granted_scopes:['https://www.googleapis.com/auth/gmail.send'],
       expires_at:new Date(now+3600000).toISOString(),token_encrypted:await seal('private-token',key,`mailbox:${user.id}:google`)})),
@@ -29,7 +29,20 @@ beforeEach(async()=>{
 });
 function canonical(v:any):any {return Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;}
 describe('report email delivery, offline',()=>{
-  it('uses the logged-in authorized Gmail, attaches PDF and never opens an external client',async()=>{
+  it('uses profile Gmail as From even when authentication uses Hotmail',async()=>{
+    const actor={...user,email:'login-only@hotmail.com'};
+    const result=await deliverReportEmail(actor,input,ports,now);
+    expect(result.state).toBe('ACCEPTED');
+    const mime=Buffer.from(JSON.parse(String(vi.mocked(ports.transport).mock.calls[0][1]?.body)).raw,'base64url').toString('utf8');
+    expect(mime).toContain(`From: ${user.email}`);
+    expect(mime).not.toContain('login-only@hotmail.com');
+  });
+  it('rejects a changed profile before reserving or sending',async()=>{
+    vi.mocked(ports.readSenderProfile).mockResolvedValueOnce({scope:'personal',email:user.email}).mockResolvedValueOnce({scope:'personal',email:'changed@gmail.com'});
+    await expect(deliverReportEmail(user,input,ports,now)).rejects.toThrow('MAILBOX_EMAIL_MISMATCH');
+    expect(ports.reserve).not.toHaveBeenCalled();expect(ports.transport).not.toHaveBeenCalled();
+  });
+  it('uses the authorized profile Gmail, attaches PDF and never opens an external client',async()=>{
     const result=await deliverReportEmail(user,input,ports,now);
     expect(result.state).toBe('ACCEPTED');
     expect(ports.transport).toHaveBeenCalledTimes(1);
@@ -62,7 +75,8 @@ describe('report email delivery, offline',()=>{
     expect(ports.readReport).not.toHaveBeenCalled();expect(ports.transport).not.toHaveBeenCalled();
   });
   it('blocks the .invalid account instead of using the desktop Outlook sender',async()=>{
-    await expect(deliverReportEmail({...user,email:'qa@example.invalid'},input,ports,now)).rejects.toThrow('GMAIL_ACCOUNT_REQUIRED');
+    vi.mocked(ports.readSenderProfile).mockResolvedValue({scope:'personal',email:'qa@example.invalid'});
+    await expect(deliverReportEmail(user,input,ports,now)).rejects.toThrow('GMAIL_PROFILE_REQUIRED');
     expect(ports.transport).not.toHaveBeenCalled();
   });
   it.each(['fingerprint','reportType','propertyId','scenarioVersion'])('rejects changed %s',async field=>{

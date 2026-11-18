@@ -18,7 +18,7 @@ function base64(bytes) {
   for (let i = 0; i < data.length; i += 8192) value += String.fromCharCode(...data.subarray(i, i + 8192));
   return btoa(value);
 }
-export function ReportDeliveryModal({ reference, userId, onClose, propertyRelease = null, onOpenProfileRegistration = null }) {
+export function ReportDeliveryModal({ reference, userId, onClose, propertyRelease = null, onOpenProfileRegistration = null, profileScope = 'personal' }) {
   const resolveDelivery = useCallback((ref, actor) => propertyRelease ? resolvePropertyReleaseDelivery(propertyRelease, ref, actor) : resolveReportDelivery(ref, actor), [propertyRelease]);
   const text = useCallback((en, pt, es = en) => reference.language === 'pt' ? pt : reference.language === 'es' ? es : en, [reference.language]);
   const [prepared, setPrepared] = useState(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
@@ -29,7 +29,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
   const lock = useRef(false), alive = useRef(true);
   useEffect(() => {
     alive.current = true;
-    loadReportRecipientPreferences(userId).then(value => {
+    loadReportRecipientPreferences(userId, profileScope).then(value => {
       if (!alive.current) return;
       setAccount(value); if (value.recipients) setRecipients(value.recipients);
     }).catch(() => { if (alive.current) setError(text('Saved recipients could not be recovered. Close and retry.', 'Não foi possível recuperar os destinatários salvos. Feche e tente novamente.')); })
@@ -37,7 +37,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
     resolveDelivery(reference, userId).then(value => { if (alive.current) setPrepared(value); })
       .catch(() => { if (alive.current) setError(text('The saved report is unavailable or has changed. Reopen it in My Reports.', 'O relatório salvo está indisponível ou mudou. Reabra em Meus Relatórios.')); });
     return () => { alive.current = false; };
-  }, [reference, userId, text, resolveDelivery]);
+  }, [reference, userId, profileScope, text, resolveDelivery]);
   const property = prepared?.schema?.sections?.propertySummary?.data;
   const gmailAccount = /@(gmail|googlemail)\.com$/i.test(account?.senderEmail || '');
   const qaAccount = /\.invalid$/i.test((account?.senderEmail || '').trim());
@@ -77,7 +77,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
           if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${reference.reportType.toLowerCase()}-${reference.reportId}.pdf`)) throw new Error('REPORT_DELIVERY_PDF_FAILED');
           setDownloaded(true);
         } else {
-          const nextEnvelope = { reference, ...(propertyRelease ? { releaseSchema: value.schema, releaseSourceFingerprint: value.sourceFingerprint } : {}), recipients: { ...recipients }, pdfBase64: base64(rendered.document.binary),
+          const nextEnvelope = { reference, profileScope, ...(propertyRelease ? { releaseSchema: value.schema, releaseSourceFingerprint: value.sourceFingerprint } : {}), recipients: { ...recipients }, pdfBase64: base64(rendered.document.binary),
             photos: photos.map(data => ({ type: data.slice(5, data.indexOf(';')).replace('image/jpg', 'image/jpeg'), base64: data.slice(data.indexOf(',') + 1) })) };
           validateMailAttachments(nextEnvelope, value.schema);
           await saveReportRecipientPreferences(userId, recipients);
@@ -89,7 +89,8 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       const messages = {
         INVALID_RECIPIENTS: text('Enter valid recipients (up to 10), without line breaks.', 'Informe destinatários válidos (até 10), sem quebras de linha.'),
         PROPERTY_PHOTOS_UNAVAILABLE: text('Some photos could not be prepared. Retry or deselect photos to send only the PDF.', 'Algumas fotos não puderam ser preparadas. Tente novamente ou desmarque as fotos para enviar somente o PDF.'),
-        GMAIL_RECONNECT_REQUIRED: text('Connect the Gmail matching your confirmed account before sending.', 'Conecte o Gmail igual ao email confirmado da sua conta antes de enviar.'),
+        GMAIL_RECONNECT_REQUIRED: text('Connect the Gmail registered in your active profile before sending.', 'Conecte o Gmail cadastrado no perfil ativo antes de enviar.'),
+        MAILBOX_EMAIL_MISMATCH: text('The profile email changed or differs from the authorized Gmail. Reopen delivery and reconnect the Gmail registered in the profile.', 'O email do perfil mudou ou difere do Gmail autorizado. Reabra o envio e conecte o Gmail cadastrado no perfil.'),
         ATTACHMENTS_TOO_LARGE: text('Attachments exceed the email limit. Deselect photos and prepare again.', 'Os anexos excedem o limite de email. Desmarque as fotos e prepare novamente.'),
       };
       if (alive.current) setError(messages[failure.message] || text('The action could not be confirmed. Check the report and connection before retrying. No new analysis was started.', 'Não foi possível confirmar a ação. Confira o relatório e a conexão antes de repetir. Nenhuma nova análise foi iniciada.'));
@@ -101,15 +102,15 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       <div className="report-delivery-summary"><span className="report-delivery-property">{property?.address || property?.title || reference.propertyId}</span>
         <span className="report-delivery-caption" role="status">{prepared ? propertyRelease ? text('Property Release · current authorized property', 'Relatório básico · imóvel autorizado atual') : text('Saved report · same level and confirmed scenario', 'Relatório salvo · mesmo nível e cenário confirmado') : text('Checking report…', 'Conferindo relatório…')}</span></div>
       {recipientLoading ? <span role="status" className="report-delivery-caption">{text('Recovering saved recipients…', 'Recuperando destinatários salvos…')}</span> : null}
-      {gmailAccount ? <GmailConnectionPanel key={userId} userId={userId} language={reference.language} onConnectionChange={setMailbox} />
+      {gmailAccount ? <GmailConnectionPanel key={`${userId}:${profileScope}`} userId={userId} profileScope={profileScope} language={reference.language} onConnectionChange={setMailbox} />
         : account ? <div className="report-delivery-alert">{qaAccount
-          ? text('QA .invalid accounts have no mailbox and cannot send email. Sign in with your confirmed Gmail account. You can still download this PDF.', 'Contas QA .invalid não têm caixa e não podem enviar email. Entre com sua conta Gmail confirmada. Você ainda pode baixar este PDF.')
+          ? text('QA .invalid profile addresses have no mailbox. Save a real Gmail in the active profile and authorize that mailbox to send. You can still download this PDF.', 'Emails de perfil QA .invalid não têm caixa postal. Cadastre um Gmail real no perfil ativo e autorize essa caixa para enviar. Você ainda pode baixar este PDF.')
           : <>
-            {text('Email delivery is available only for Google Gmail accounts. To use it, update the primary email in your active profile registration to a Gmail address and confirm that address. You can still download this PDF.', 'O envio por email está disponível somente para contas Google (Gmail). Para utilizar, altere o email principal do perfil ativo para um Gmail no cadastro e confirme esse endereço. Você pode baixar este PDF normalmente.', 'El envío por correo está disponible solo para cuentas Google (Gmail). Para utilizarlo, cambie el correo principal del perfil activo por un Gmail en el registro y confirme esa dirección. Puede descargar este PDF.')}
+            {text('Email delivery is available only for Google Gmail accounts. To use it, update the primary email in your active profile registration to a Gmail address, save the registration and authorize that mailbox. You can still download this PDF.', 'O envio por email está disponível somente para contas Google (Gmail). Para utilizar, altere o email principal do perfil ativo para um Gmail, salve o cadastro e autorize essa caixa. Você pode baixar este PDF normalmente.', 'El envío por correo está disponible solo para cuentas Google (Gmail). Para utilizarlo, cambie el correo principal del perfil activo por un Gmail, guarde el registro y autorice ese buzón. Puede descargar este PDF.')}
             {onOpenProfileRegistration ? <p style={{ margin: '8px 0' }}><a href="#onboarding" onClick={event => { event.preventDefault(); onClose(); onOpenProfileRegistration(); }}>{text('Edit email in active profile registration', 'Editar email no cadastro do perfil ativo', 'Editar correo en el registro del perfil activo')}</a></p> : null}
-            <p className="report-delivery-caption" style={{ margin: '8px 0 0' }}>{text('The connected Gmail must also match your confirmed DealSifter sign-in email. Editing a profile contact does not change your sign-in email.', 'O Gmail conectado também deve ser o email confirmado de acesso ao DealSifter. Editar o contato do perfil não altera o email de acesso.', 'El Gmail conectado también debe coincidir con el correo confirmado de acceso a DealSifter. Editar el contacto del perfil no cambia el correo de acceso.')}</p>
+            <p className="report-delivery-caption" style={{ margin: '8px 0 0' }}>{text('Your sign-in email stays unchanged. Authorize the Gmail registered in this profile to confirm mailbox ownership and enable sending.', 'Seu email de login permanece inalterado. Autorize o Gmail cadastrado neste perfil para confirmar a titularidade da caixa e permitir o envio.', 'Su correo de acceso permanece sin cambios. Autorice el Gmail registrado en este perfil para confirmar la titularidad del buzón y permitir el envío.')}</p>
           </>}</div> : null}
-      {account?.senderEmail ? <p className="report-delivery-caption">{text('Account sender', 'Remetente da conta')}: <strong>{account.senderEmail}</strong></p> : null}
+      {account?.senderEmail ? <p className="report-delivery-caption">{text('Active profile sender', 'Remetente do perfil ativo', 'Remitente del perfil activo')}: <strong>{account.senderEmail}</strong></p> : null}
       <div className="report-delivery-recipients">{['to', 'cc', 'bcc'].map(field => <label key={field}><span>{field === 'to' ? text('To', 'Para') : field === 'cc' ? 'Cc' : text('Bcc', 'Cco')}</span>
         <input data-testid={`report-delivery-${field}`} type="text" inputMode="email" autoComplete="off" value={recipients[field]} disabled={busy || recipientLoading || Boolean(envelope) || Boolean(outcome)}
           onChange={event => setRecipients(current => ({ ...current, [field]: event.target.value }))} /></label>)}</div>

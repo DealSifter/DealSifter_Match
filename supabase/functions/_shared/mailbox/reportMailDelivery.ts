@@ -1,5 +1,6 @@
 import { buildReportEmailContent } from './reportEmailContent.ts';
 import { MailboxError, requireVerifiedUser, unseal, type MailboxUser } from './connectionSecurity.ts';
+import { requireGmailProfile, senderProfileScope, type SenderProfile } from './senderProfile.ts';
 type Data = Record<string, any>;
 export const MAX_MAIL_ATTACHMENT_BYTES = 6 * 1024 * 1024;
 const canonical = (v: any): any => Array.isArray(v) ? v.map(canonical) : v && typeof v === 'object'
@@ -70,6 +71,7 @@ export function gmailMime(from:string, recipients:Record<string,string[]>, conte
   return utf8(lines.join('\r\n')).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 export interface MailDeliveryPorts {
+  readSenderProfile(userId:string,scope:string):Promise<SenderProfile>;
   readReport(reportId:string,userId:string):Promise<Data|null>;
   readMailbox(userId:string):Promise<Data|null>;
   reserve(row:Data,retryFailed:boolean):Promise<{created:boolean;row:Data}>;
@@ -80,8 +82,9 @@ export interface MailDeliveryPorts {
 }
 export async function deliverReportEmail(userInput:MailboxUser,input:Data,ports:MailDeliveryPorts,now=Date.now()) {
   const user=requireVerifiedUser(userInput),ref=input.reference;
-  if(!/^[^\s@]+@(gmail|googlemail)\.com$/i.test(user.email))throw new MailboxError('GMAIL_ACCOUNT_REQUIRED');
   if(!ref||ref.userId!==user.id||typeof ref.reportId!=='string')throw new MailboxError('REPORT_ACCESS_DENIED');
+  const profileScope=senderProfileScope(input.profileScope ?? 'personal');
+  const profile=requireGmailProfile({...user,senderProfile:await ports.readSenderProfile(user.id,profileScope)});
   const report=await ports.readReport(ref.reportId,user.id);
   const schema=report?.reportPayload?.data?.maxxisReport,request=report?.reportPayload?.data?.analysisRequest||null;
   if(!report||report.userId!==user.id||!schema||!(['SUBSCRIPTION_INCLUDED','ONE_TIME_UNLOCK'].includes(report.accessSource) || (report.capability==='PROPERTY_RELEASE' && ref.reportType==='PROPERTY_RELEASE' && report.accessSource==='PROPERTY_RELEASE_ACCESS')))throw new MailboxError('REPORT_ACCESS_DENIED');
@@ -97,14 +100,19 @@ export async function deliverReportEmail(userInput:MailboxUser,input:Data,ports:
   const recipients=mailRecipients(input.recipients||{}),attachments=validateMailAttachments(input,schema);
   if(!await ports.inspectPdf(attachments[0].bytes))throw new MailboxError('INVALID_REPORT_PDF');
   const mailbox=await ports.readMailbox(user.id);
-  if(!mailbox||mailbox.user_id!==user.id||mailbox.provider!=='google'||mailbox.mailbox_email!==user.email.toLowerCase()||
+  if(!mailbox||mailbox.user_id!==user.id||mailbox.provider!=='google'||mailbox.mailbox_email!==profile.email||
     !Number.isFinite(Date.parse(mailbox.expires_at))||Date.parse(mailbox.expires_at)<=now||!mailbox.granted_scopes?.includes('https://www.googleapis.com/auth/gmail.send'))throw new MailboxError('GMAIL_RECONNECT_REQUIRED');
   const token=await unseal(mailbox.token_encrypted,ports.encryptionKey,`mailbox:${user.id}:google`);
   const content=buildReportEmailContent(report.emailSchema || schema,ref);
   const recipientHash=await jsonHash(recipients);
   // Stable across double clicks, reload, regenerated PDF bytes and a new browser tab.
   // Re-sending an identical report to identical recipients requires a future explicit resend flow.
-  const key=await jsonHash({userId:user.id,reportId:ref.reportId,...(ref.reportType==='PROPERTY_RELEASE'?{reportType:ref.reportType}:{}),fingerprint:ref.reportType==='PROPERTY_RELEASE'?input.releaseSourceFingerprint:ref.fingerprint,...(ref.reportType==='PROPERTY_RELEASE'?{language:ref.language}:{}),recipientHash,photos:attachments.length-1});
+  // Preserve existing receipt keys for the historical same-email personal flow.
+  // Other sender identities must not receive another profile's accepted receipt.
+  const senderKey=profileScope==='personal'&&profile.email===user.email.trim().toLowerCase()?{}:{senderEmail:profile.email,profileScope};
+  const key=await jsonHash({userId:user.id,reportId:ref.reportId,...senderKey,...(ref.reportType==='PROPERTY_RELEASE'?{reportType:ref.reportType}:{}),fingerprint:ref.reportType==='PROPERTY_RELEASE'?input.releaseSourceFingerprint:ref.fingerprint,...(ref.reportType==='PROPERTY_RELEASE'?{language:ref.language}:{}),recipientHash,photos:attachments.length-1});
+  const currentProfile=await ports.readSenderProfile(user.id,profileScope);
+  if(currentProfile.scope!==profileScope||currentProfile.email!==profile.email)throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
   const artifactHashes=await Promise.all(attachments.map(async a=>({name:a.name,sha256:await mailHash(a.bytes),bytes:a.bytes.length})));
   const reserved=await ports.reserve({delivery_key:key,user_id:user.id,report_id:report.capability==='PROPERTY_RELEASE'?null:ref.reportId,
     artifact_type:report.capability==='PROPERTY_RELEASE'?'PROPERTY_RELEASE':'SAVED_REPORT',

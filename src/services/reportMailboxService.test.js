@@ -37,11 +37,11 @@ it('returns only a valid Google PKCE URL after consent', async () => {
   const authorizationUrl = 'https://accounts.google.com/o/oauth2/v2/auth?code_challenge_method=S256';
   client.functions.invoke.mockResolvedValue({ data: { authorizationUrl } });
   expect(await authorizeReportMailbox('qa-a', true)).toEqual({ authorizationUrl });
-  expect(client.functions.invoke).toHaveBeenCalledWith('report-mailbox-oauth/start', { body: { consent: true } });
+  expect(client.functions.invoke).toHaveBeenCalledWith('report-mailbox-oauth/start', { body: { consent: true, profileScope: 'personal' } });
 });
 it('disconnects through the authenticated endpoint without changing app login', async () => {
   expect(await disconnectReportMailbox('qa-a')).toEqual({ status: 'DISCONNECTED' });
-  expect(client.functions.invoke).toHaveBeenCalledWith('report-mailbox-oauth/disconnect', { body: {} });
+  expect(client.functions.invoke).toHaveBeenCalledWith('report-mailbox-oauth/disconnect', { body: { profileScope: 'personal' } });
 });
 it('requires explicit send confirmation and matching report ownership', async () => {
   await expect(sendPreparedReportEmail('qa-a', { reference: { userId: 'qa-b' }, confirmSend: true })).rejects.toThrow('EXPLICIT_SEND_CONFIRMATION_REQUIRED');

@@ -15,7 +15,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 it('does not authorize automatically and requires explicit consent', async () => {
   render(<GmailConnectionPanel userId="qa-a" />);
   const button = await screen.findByRole('button', { name: 'Authorize Gmail' });
-  await waitFor(() => expect(api.read).toHaveBeenCalledWith('qa-a'));
+  await waitFor(() => expect(api.read).toHaveBeenCalledWith('qa-a', 'personal'));
   expect(button.disabled).toBe(true);
   expect(api.authorize).not.toHaveBeenCalled();
 });
@@ -28,7 +28,7 @@ it('opens only after consent and does not claim connection before the server con
   const button = screen.getByRole('button', { name: 'Authorize Gmail' });
   fireEvent.click(button); fireEvent.click(button);
   await waitFor(() => expect(popup.location.href).toContain('accounts.google.com'));
-  expect(api.authorize).toHaveBeenCalledExactlyOnceWith('qa-a', true);
+  expect(api.authorize).toHaveBeenCalledExactlyOnceWith('qa-a', true, 'personal');
   expect(popup.opener).toBeNull();
   expect(screen.queryByText(/Connected mailbox:/)).toBeNull();
 });
@@ -46,7 +46,7 @@ it('collapses confirmed connection details and exposes management only when requ
   expect(api.read).toHaveBeenCalledTimes(1);
   expect(api.authorize).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
-  await waitFor(() => expect(api.disconnect).toHaveBeenCalledExactlyOnceWith('qa-a'));
+  await waitFor(() => expect(api.disconnect).toHaveBeenCalledExactlyOnceWith('qa-a', 'personal'));
   await waitFor(() => expect(screen.queryByText(/Connected mailbox:/)).toBeNull());
 });
 it('shows reconnection controls when a connection check reports expiry', async () => {

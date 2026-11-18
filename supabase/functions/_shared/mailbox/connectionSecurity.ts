@@ -2,13 +2,13 @@
 export class MailboxError extends Error {
   constructor(public code: string) { super(code); }
 }
-export type MailboxUser = { id: string; email?: string; email_confirmed_at?: string };
+export type MailboxUser = { id: string; email?: string; email_confirmed_at?: string; senderProfile?: { scope: 'personal' | 'professional' | 'fsbo'; email: string } };
 export type ConnectionConfig = { clientId: string; clientSecret: string; callback: string; encryptionKey: string };
 export type ConsentState = { user_id: string; verifier_encrypted: string; expires_at: string };
 export interface MailboxStore {
   putState(hash: string, state: ConsentState): Promise<void>;
   consumeState(hash: string): Promise<ConsentState | null>;
-  getUser(id: string): Promise<MailboxUser | null>;
+  getUser(id: string, profileScope?: string): Promise<MailboxUser | null>;
   saveConnection(hash: string, connection: Record<string, unknown>): Promise<void>;
 }
 const encoder = new TextEncoder();

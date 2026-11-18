@@ -241,7 +241,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenReportSelector = null, onOpenProfileRegistration = null, onOpenProvider = null, onOpenFeedCard = null, onSelectPropertyContext = null, propertyCandidates = [], propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenReportSelector = null, onOpenProfileRegistration = null, reportProfileScope = 'personal', onOpenProvider = null, onOpenFeedCard = null, onSelectPropertyContext = null, propertyCandidates = [], propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
   const factReview=usePropertyFactReview();
   const factNoticeSeen=useRef(new Set());
   const language = getSafeLang(useLang());
@@ -3459,7 +3459,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-mode={propertyAnalysisMode?.mode || 'GENERAL_CHAT_MODE'}
       data-maxxis-preferences-hydrated={userPreferencesHydrated ? 'true' : 'false'}
     >
-      {deliveryReference?.userId === String(sessionKey) ? <ReportDeliveryModal key={`${sessionKey}:${deliveryReference.reportId}:${deliveryReference.fingerprint}`} reference={deliveryReference} onOpenProfileRegistration={onOpenProfileRegistration ? () => { setOpen(false); onOpenProfileRegistration(); } : null} userId={String(sessionKey)} onClose={() => { clearPendingReportDelivery(String(sessionKey)); setDeliveryReference(null); }} /> : null}
+      {deliveryReference?.userId === String(sessionKey) ? <ReportDeliveryModal key={`${sessionKey}:${deliveryReference.reportId}:${deliveryReference.fingerprint}:${reportProfileScope}`} reference={deliveryReference} profileScope={reportProfileScope} onOpenProfileRegistration={onOpenProfileRegistration ? () => { setOpen(false); onOpenProfileRegistration(); } : null} userId={String(sessionKey)} onClose={() => { clearPendingReportDelivery(String(sessionKey)); setDeliveryReference(null); }} /> : null}
       {open ? (
         <section
           ref={panelRef}

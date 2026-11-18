@@ -30,7 +30,7 @@ describe('Property Release Gmail authorization',()=>{
  it('attaches real envelope PDF and photo using Gmail; duplicate preparation does not resend',async()=>{
  const {input,read}=await fixture(),key='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',now=Date.parse('2026-11-17T12:00:00Z');
  const connection={user_id:'actor',provider:'google',mailbox_email:'fixture@gmail.com',granted_scopes:['https://www.googleapis.com/auth/gmail.send'],expires_at:new Date(now+3600000).toISOString(),token_encrypted:await seal('offline-token',key,'mailbox:actor:google')};
- const rows=new Map(),ports:any={encryptionKey:key,readReport:()=>readReleaseMailReport(input,'actor',read),readMailbox:async()=>connection,inspectPdf:async()=>true,
+ const rows=new Map(),ports:any={readSenderProfile:async()=>({scope:'personal',email:'fixture@gmail.com'}),encryptionKey:key,readReport:()=>readReleaseMailReport(input,'actor',read),readMailbox:async()=>connection,inspectPdf:async()=>true,
  reserve:vi.fn(async(row:any)=>{if(rows.has(row.delivery_key))return {created:false,row:rows.get(row.delivery_key)};rows.set(row.delivery_key,row);return {created:true,row};}),finish:async(k:string,u:string,outcome:any)=>rows.set(k,outcome),transport:vi.fn(async()=>new Response(JSON.stringify({id:'fixture-message'})))};
  const user={id:'actor',email:'fixture@gmail.com',email_confirmed_at:'2026-11-17'};
  expect((await deliverReportEmail(user,input,ports,now)).state).toBe('ACCEPTED');

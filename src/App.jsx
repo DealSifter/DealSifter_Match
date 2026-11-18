@@ -4134,11 +4134,11 @@ export default function App() {
     setPage('onboarding');
   }, [setPage]);
 
+  const reportProfileScope = accountType === 'fsbo_owner' ? 'fsbo'
+    : ['professional', 'operation'].includes(onboardingInitialTab) ? 'professional' : 'personal';
   const openReportProfileRegistration = useCallback(() => {
-    const tab = accountType === 'fsbo_owner' ? 'fsbo'
-      : ['professional', 'operation'].includes(onboardingInitialTab) ? 'professional' : 'personal';
-    openOnboardingTab(tab);
-  }, [accountType, onboardingInitialTab, openOnboardingTab]);
+    openOnboardingTab(reportProfileScope);
+  }, [reportProfileScope, openOnboardingTab]);
 
   const handleMaxxisNavigateAction = useCallback((actionId) => {
     const action = String(actionId || '').trim().toLowerCase().replace(/_/g, '-');
@@ -5675,7 +5675,7 @@ export default function App() {
             unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
-            onOpenProfileRegistration={openReportProfileRegistration}
+            reportProfileScope={reportProfileScope} onOpenProfileRegistration={openReportProfileRegistration}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
             onMaxxisContextChange={handleMaxxisSurfaceContextChange}
             isActive={page === 'matches'}
@@ -5743,6 +5743,7 @@ export default function App() {
           <Onboarding
             setPage={setPage}
             initialProfileTab={onboardingInitialTab}
+            onProfileTabChange={setOnboardingInitialTab}
             authSession={authSession}
             profileSyncStatus={profileSyncStatus}
             portfolioSyncStatus={portfolioSyncStatus}
@@ -6017,7 +6018,7 @@ export default function App() {
                 enabled={Boolean(authSession)}
                 onOpenSupport={() => openSettingsTab('communication', 'support')}
                 onNavigateAction={handleMaxxisNavigateAction}
-                onOpenProfileRegistration={openReportProfileRegistration}
+                reportProfileScope={reportProfileScope} onOpenProfileRegistration={openReportProfileRegistration}
                 onOpenReportSelector={openReportSelectorFromMaxxis}
                 onOpenProvider={handleMaxxisOpenProvider}
                 onOpenFeedCard={openFeedCardFromMaxxis}

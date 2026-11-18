@@ -72,7 +72,7 @@ describe('R3.2 contextual delivery controls', () => {
   it('blocks QA accounts instead of opening Outlook with an unrelated sender', async () => {
     const open = vi.spyOn(window, 'open');
     render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
-    await screen.findByText(/QA .invalid accounts/);
+    await screen.findByText(/QA .invalid profile addresses/);
     expect(screen.getByRole('button', { name: 'Prepare Gmail email' }).disabled).toBe(true);
     expect(open).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled(); expect(mocks.draft).not.toHaveBeenCalled();
     open.mockRestore();
@@ -81,7 +81,7 @@ describe('R3.2 contextual delivery controls', () => {
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail, recipients: null });
     render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
     await screen.findByText(/Email delivery is available only for Google Gmail accounts/);
-    expect(screen.queryByText(/QA .invalid accounts/)).toBeNull();
+    expect(screen.queryByText(/QA .invalid profile addresses/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Connect test mailbox' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Prepare Gmail email' }).disabled).toBe(true);
     expect(screen.getByRole('button', { name: 'Download this PDF' }).disabled).toBe(false);
@@ -94,7 +94,7 @@ describe('R3.2 contextual delivery controls', () => {
     const link = await screen.findByRole('link', { name: 'Editar email no cadastro do perfil ativo' });
     expect(link.getAttribute('href')).toBe('#onboarding');
     expect(openRegistration).not.toHaveBeenCalled();
-    expect(screen.getByText(/Editar o contato do perfil não altera o email de acesso/)).toBeTruthy();
+    expect(screen.getByText(/Seu email de login permanece inalterado/)).toBeTruthy();
     fireEvent.click(link);
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(openRegistration).toHaveBeenCalledTimes(1);

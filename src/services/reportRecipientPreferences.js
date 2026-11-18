@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { normalizeReportEmailPreferences } from '../domain/profile/reportEmailPreferences';
+import { readSenderProfile } from '../../supabase/functions/_shared/mailbox/senderProfile.ts';
 
 async function accountSettings(expectedUserId) {
   if (!supabase) throw new Error('REPORT_RECIPIENT_PREFERENCES_UNAVAILABLE');
@@ -22,11 +23,14 @@ function ownedLegacyRecipients(userId) {
   } catch { return null; }
 }
 
-export async function loadReportRecipientPreferences(expectedUserId) {
+export async function loadReportRecipientPreferences(expectedUserId, profileScope = 'personal') {
   const { user, settings } = await accountSettings(expectedUserId);
+  const sender = await readSenderProfile(supabase, user.id, profileScope);
+  const current = await supabase.auth.getUser();
+  if (current.error || current.data?.user?.id !== user.id) throw new Error('REPORT_DELIVERY_UNAUTHORIZED');
   const saved = normalizeReportEmailPreferences(settings.userPreferences?.reportEmailRecipients);
   const legacy = saved ? null : ownedLegacyRecipients(user.id);
-  return { userId: user.id, senderEmail: user.email || '', recipients: saved || legacy,
+  return { userId: user.id, senderEmail: sender.email, profileScope: sender.scope, recipients: saved || legacy,
     source: saved ? 'ACCOUNT' : legacy ? 'OWNED_BROWSER_LEGACY' : 'NONE' };
 }
 

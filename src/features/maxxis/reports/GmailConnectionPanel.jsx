@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { authorizeReportMailbox, disconnectReportMailbox, readReportMailbox } from '../../../services/reportMailboxService';
 
-export function GmailConnectionPanel({ userId, language = 'en', onConnectionChange }) {
+export function GmailConnectionPanel({ userId, profileScope = 'personal', language = 'en', onConnectionChange }) {
   const text = useCallback((en, pt, es = en) => language === 'pt' ? pt : language === 'es' ? es : en, [language]);
   const [connection, setConnection] = useState(null), [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -12,7 +12,7 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
     if (lock.current) return;
     lock.current = true; setBusy(true); setError('');
     try {
-      const value = await readReportMailbox(userId);
+      const value = await readReportMailbox(userId, profileScope);
       if (alive.current) { setConnection(value); if (value?.status === 'CONNECTED') setExpanded(false); onConnectionChange?.(value); }
     } catch {
       if (alive.current) {
@@ -20,7 +20,7 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
         setError(text('Gmail connection is unavailable. Try checking again.', 'A conexão Gmail está indisponível. Tente conferir novamente.', 'La conexión Gmail no está disponible. Vuelva a comprobar.'));
       }
     } finally { lock.current = false; if (alive.current) setBusy(false); }
-  }, [userId, text, onConnectionChange]);
+  }, [userId, profileScope, text, onConnectionChange]);
   useEffect(() => {
     alive.current = true;
     void refresh();
@@ -40,12 +40,12 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
     lock.current = true; setBusy(true); setError('');
     try {
       if (action === 'connect') {
-        const result = await authorizeReportMailbox(userId, true);
+        const result = await authorizeReportMailbox(userId, true, profileScope);
         if (!alive.current) { popup.current?.close(); return; }
         popup.current.location.href = result.authorizationUrl;
         // No optimistic CONNECTED state. The owner returns and checks server metadata.
       } else {
-        const result = await disconnectReportMailbox(userId);
+        const result = await disconnectReportMailbox(userId, profileScope);
         if (alive.current) { setConnection(result); onConnectionChange?.(result); setConsent(false); }
       }
     } catch {
@@ -65,7 +65,7 @@ export function GmailConnectionPanel({ userId, language = 'en', onConnectionChan
     <span>{text('Connecting is separate from login and sends no message. Email requires a separate review and confirmation.', 'Conectar é separado do login e não envia mensagens. O email exige revisão e confirmação próprias.', 'Conectar es independiente del acceso y no envía mensajes. El email requiere revisión y confirmación propias.')}</span>
     {connected ? <span role="status">{text('Connected mailbox', 'Caixa conectada', 'Buzón conectado')}: {connection.mailbox_email}</span>
       : <span role="status">{busy ? text('Checking…', 'Conferindo…', 'Comprobando…') : connection ? text('Mailbox not connected or authorization expired.', 'Caixa não conectada ou autorização expirada.', 'Buzón no conectado o autorización vencida.') : text('Connection not confirmed.', 'Conexão não confirmada.', 'Conexión no confirmada.')}</span>}
-    {!connected ? <label><input type="checkbox" checked={consent} disabled={busy} onChange={event => setConsent(event.target.checked)} /> {text('I authorize connecting the Gmail matching my confirmed account email, with permission to send email.', 'Autorizo conectar o Gmail igual ao email confirmado da minha conta, com permissão para enviar email.', 'Autorizo conectar el Gmail de mi cuenta confirmada, con permiso para enviar email.')}</label> : null}
+    {!connected ? <label><input type="checkbox" checked={consent} disabled={busy} onChange={event => setConsent(event.target.checked)} /> {text('I authorize connecting the Gmail registered in my active profile, with permission to send email.', 'Autorizo conectar o Gmail cadastrado no meu perfil ativo, com permissão para enviar email.', 'Autorizo conectar el Gmail registrado en mi perfil activo, con permiso para enviar email.')}</label> : null}
     <span>{text('After authorizing in Google, return here and check the connection. Reconnect when authorization expires.', 'Após autorizar no Google, volte aqui e confira a conexão. Reconecte quando a autorização expirar.', 'Después de autorizar en Google, vuelva y compruebe la conexión. Reconecte cuando venza.')}</span>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {!connected ? <button type="button" disabled={busy || !consent || !connection} onClick={() => act('connect')}>{text('Authorize Gmail', 'Autorizar Gmail', 'Autorizar Gmail')}</button> : null}

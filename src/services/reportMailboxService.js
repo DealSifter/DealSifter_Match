@@ -11,8 +11,8 @@ async function mailboxAction(userId, action, body = {}) {
   if (current.error || current.data?.user?.id !== userId) throw new Error('MAILBOX_AUTHENTICATION_REQUIRED');
   return result.data;
 }
-export const readReportMailbox = userId => mailboxAction(userId, 'status');
-export const disconnectReportMailbox = userId => mailboxAction(userId, 'disconnect');
+export const readReportMailbox = (userId, profileScope = 'personal') => mailboxAction(userId, 'status', { profileScope });
+export const disconnectReportMailbox = (userId, profileScope = 'personal') => mailboxAction(userId, 'disconnect', { profileScope });
 export async function sendPreparedReportEmail(userId, payload) {
   if (!supabase || payload?.reference?.userId !== userId || payload.confirmSend !== true) throw new Error('EXPLICIT_SEND_CONFIRMATION_REQUIRED');
   const { data, error } = await supabase.auth.getUser();
@@ -23,9 +23,9 @@ export async function sendPreparedReportEmail(userId, payload) {
   if (current.error || current.data?.user?.id !== userId) throw new Error('MAILBOX_AUTHENTICATION_REQUIRED');
   return result.data;
 }
-export async function authorizeReportMailbox(userId, consent) {
+export async function authorizeReportMailbox(userId, consent, profileScope = 'personal') {
   if (consent !== true) throw new Error('EXPLICIT_CONSENT_REQUIRED');
-  const result = await mailboxAction(userId, 'start', { consent: true });
+  const result = await mailboxAction(userId, 'start', { consent: true, profileScope });
   const url = new URL(result.authorizationUrl);
   if (url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/v2/auth' ||
     url.searchParams.get('code_challenge_method') !== 'S256') throw new Error('MAILBOX_AUTHORIZATION_URL_INVALID');

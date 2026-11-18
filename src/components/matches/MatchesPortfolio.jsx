@@ -399,7 +399,7 @@ export function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
   );
 }
 
-export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, onOpenProfileRegistration = null }) {
+export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, onOpenProfileRegistration = null, reportProfileScope = 'personal' }) {
   const scopedReportEntitlements = useMemo(() => reportEntitlements.filter((entitlement) => (
     !entitlement?.propertyId || String(entitlement.propertyId) === String(item?.id || '')
   )), [item?.id, reportEntitlements]);
@@ -456,14 +456,14 @@ export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact
     if (!emailComposeOpen || exportMode !== 'email') return;
     let cancelled = false;
     setRecipientLoading(true); setRecipientAccount(null); setEmailRecipients(normalizeReportEmailRecipients(null));
-    loadReportRecipientPreferences(viewerUserId).then(account => {
+    loadReportRecipientPreferences(viewerUserId, reportProfileScope).then(account => {
       if (cancelled) return;
       setRecipientAccount(account);
       setEmailRecipients(normalizeReportEmailRecipients(account.recipients));
     }).catch(() => { if (!cancelled) setExportError(getLang() === 'pt' ? 'Não foi possível recuperar os destinatários salvos. Feche e tente novamente.' : 'Saved recipients could not be recovered. Close and retry.'); })
       .finally(() => { if (!cancelled) setRecipientLoading(false); });
     return () => { cancelled = true; };
-  }, [emailComposeOpen, exportMode, viewerUserId]);
+  }, [emailComposeOpen, exportMode, viewerUserId, reportProfileScope]);
   const [reportParcelEvidence, setReportParcelEvidence] = useState(null);
   useEffect(()=>{
     let current=true;
@@ -1060,7 +1060,7 @@ export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact
         </div>
       </div>
 
-      {propertyReleaseDelivery ? <ReportDeliveryModal reference={propertyReleaseDelivery.reference} propertyRelease={propertyReleaseDelivery} onOpenProfileRegistration={onOpenProfileRegistration} userId={viewerUserId} onClose={() => setPropertyReleaseDelivery(null)} /> : null}
+      {propertyReleaseDelivery ? <ReportDeliveryModal reference={propertyReleaseDelivery.reference} key={reportProfileScope} propertyRelease={propertyReleaseDelivery} profileScope={reportProfileScope} onOpenProfileRegistration={onOpenProfileRegistration} userId={viewerUserId} onClose={() => setPropertyReleaseDelivery(null)} /> : null}
       {emailComposeOpen ? (
         <Modal
           onClose={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}

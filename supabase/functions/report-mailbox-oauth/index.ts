@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { beginConnection, finishConnection, MailboxError, type MailboxStore } from '../_shared/mailbox/googleConnection.ts';
 import { buildCorsHeaders, parseAllowedOrigins } from '../_shared/maxxis/corsPolicy.ts';
+import { readSenderProfile, senderProfileScope } from '../_shared/mailbox/senderProfile.ts';
 
 // Gmail-only candidate. Gateway verify_jwt=false is required for Google's callback;
 // every other route performs getUser(JWT) itself. Do not deploy before schema/config review.
@@ -27,10 +28,10 @@ const store: MailboxStore = {
     if (error) throw new MailboxError('MAILBOX_STORAGE_UNAVAILABLE');
     return data;
   },
-  async getUser(id) {
+  async getUser(id, scope = 'personal') {
     const { data, error } = await admin.auth.admin.getUserById(id);
     if (error) throw new MailboxError('ACCOUNT_UNAVAILABLE');
-    return data.user;
+    return data.user ? { ...data.user, senderProfile: await readSenderProfile(admin, id, scope) } : null;
   },
   async saveConnection(hash, connection) {
     const { error } = await admin.rpc('ds_complete_mailbox_connection', { p_state_hash: hash, p_connection: connection });
@@ -38,8 +39,9 @@ const store: MailboxStore = {
   },
 };
 const messages: Record<string, string> = {
-  GMAIL_ACCOUNT_REQUIRED: 'Use uma conta DealSifter com email Gmail confirmado para conectar a caixa.',
-  MAILBOX_EMAIL_MISMATCH: 'A caixa autorizada deve ter o mesmo email confirmado da sua conta DealSifter. Reconecte usando essa caixa.',
+  GMAIL_PROFILE_REQUIRED: 'Cadastre um Gmail como email principal do perfil ativo para conectar a caixa.',
+  PROFILE_EMAIL_REQUIRED: 'Informe e salve o email principal do perfil ativo antes de conectar a caixa.',
+  MAILBOX_EMAIL_MISMATCH: 'A caixa autorizada deve corresponder ao email principal salvo no perfil selecionado. Reconecte usando essa caixa.',
   CONFIRM_ACCOUNT_EMAIL: 'Confirme o email da sua conta DealSifter antes de conectar a caixa.',
   INVALID_OR_EXPIRED_CONSENT: 'Esta autorização expirou ou já foi utilizada. Inicie uma nova conexão no DealSifter.',
   CONSENT_NOT_GRANTED: 'A conexão não foi autorizada. Nenhuma mensagem foi enviada.',
@@ -77,19 +79,22 @@ Deno.serve(async request => {
   const { data: auth, error: authError } = await admin.auth.getUser(bearer.slice(7));
   if (authError || !auth.user) return json({ code: 'AUTHENTICATION_REQUIRED' }, 401);
   try {
+    const input = await request.json();
+    const scope = senderProfileScope(input.profileScope ?? 'personal');
     if (path.pathname.endsWith('/start')) {
-      const input = await request.json();
       if (input.consent !== true) return json({ code: 'EXPLICIT_CONSENT_REQUIRED' }, 400);
       // Clear expired states and replace previous pending authorizations only for this account.
       const { error } = await admin.from('report_mailbox_oauth_states').delete().eq('user_id', auth.user.id);
       if (error) throw new MailboxError('MAILBOX_STORAGE_UNAVAILABLE');
-      return json(await beginConnection(auth.user, config, store));
+      const senderProfile = await readSenderProfile(admin, auth.user.id, scope);
+      return json(await beginConnection({ ...auth.user, senderProfile }, config, store));
     }
     if (path.pathname.endsWith('/status')) {
       const { data, error } = await admin.from('report_mailbox_connections')
         .select('provider,mailbox_email,connected_at,expires_at').eq('user_id', auth.user.id).eq('provider', 'google').maybeSingle();
       if (error) throw new MailboxError('MAILBOX_STORAGE_UNAVAILABLE');
-      if (data && (!auth.user.email_confirmed_at || data.mailbox_email !== auth.user.email?.trim().toLowerCase())) {
+      const profile = await readSenderProfile(admin, auth.user.id, scope);
+      if (data && (!auth.user.email_confirmed_at || data.mailbox_email !== profile.email)) {
         return json({ status: 'RECONNECT_REQUIRED' });
       }
       return json(data ? { ...data, status: Date.parse(data.expires_at) > Date.now() ? 'CONNECTED' : 'EXPIRED' } : { status: 'DISCONNECTED' });

@@ -9,12 +9,12 @@ beforeEach(() => {
   m.auth.mockResolvedValue({ data: { user: { id: 'a', email: 'qa-a@example.invalid' } } });
   const chain = { select: m.select, eq: m.eq, maybeSingle: m.maybeSingle, update: m.update };
   for (const fn of [m.from, m.select, m.eq, m.update]) fn.mockReturnValue(chain);
-  m.maybeSingle.mockResolvedValue({ data: { settings_payload: { userPreferences: { reportEmailRecipients: { to: 'board@trello.example.invalid', cc: '', bcc: '' } } } } });
+  m.maybeSingle.mockResolvedValue({ data: { profile_payload: { resolved: { personal: { email: 'profile-sender@gmail.com' } } }, settings_payload: { userPreferences: { reportEmailRecipients: { to: 'board@trello.example.invalid', cc: '', bcc: '' } } } } });
 });
 describe('registered report email recipients, not the sender account', () => {
-  it('loads existing account recipients before requesting another and gets sender from auth', async () => {
+  it('loads existing account recipients before requesting another and gets sender from the saved active profile, not auth', async () => {
     const account = await loadReportRecipientPreferences('a');
-    expect(account.recipients.to).toBe('board@trello.example.invalid'); expect(account.senderEmail).toBe('qa-a@example.invalid');
+    expect(account.recipients.to).toBe('board@trello.example.invalid'); expect(account.senderEmail).toBe('profile-sender@gmail.com');
     expect(m.eq).toHaveBeenCalledWith('id', 'a');
   });
   it('rejects account mismatch without reading preferences', async () => {

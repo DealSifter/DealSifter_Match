@@ -85,6 +85,7 @@ export function Onboarding({
   onDeletePropertyRecord,
   onDeleteServiceRecord,
   initialProfileTab = 'personal',
+  onProfileTabChange = null,
 }) {
   const t = useT('onboarding').onboarding;
   const propertyFacts=usePropertyFactReview();
@@ -261,6 +262,10 @@ export function Onboarding({
   const [propertyImageIndex, setPropertyImageIndex] = useState({});
 
   const [profileTab, setProfileTab] = useState(initialProfileTab || 'personal');
+  const selectProfileTab = useCallback(tab => {
+    setProfileTab(tab);
+    onProfileTabChange?.(tab);
+  }, [onProfileTabChange]);
   const activePersonal = profileTab === 'personal';
   const activeSkills = profileTab === 'skills';
   const activeProfessional = profileTab === 'professional';
@@ -1425,7 +1430,7 @@ export function Onboarding({
     const timer = window.setTimeout(() => {
       const draft = readOnboardingDraft(draftUserId, accountType);
       if (draft) {
-        if (typeof draft.profileTab === 'string') setProfileTab(draft.profileTab);
+        if (typeof draft.profileTab === 'string') selectProfileTab(draft.profileTab);
         if (typeof draft.name === 'string') setName(draft.name);
         if (typeof draft.loc === 'string') setLoc(draft.loc);
         if ('zipLocation' in draft) updateZipLocation(draft.zipLocation);
@@ -1491,7 +1496,7 @@ export function Onboarding({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [accountType, draftUserId, updateZipLocation, updateZipLocationB]);
+  }, [accountType, draftUserId, updateZipLocation, updateZipLocationB, selectProfileTab]);
 
   useEffect(() => {
     const draftKey = `${draftUserId}:${accountType || 'professional'}`;
@@ -2268,7 +2273,7 @@ export function Onboarding({
       setBasicRequiredMsg(message);
       const invalidA = zipLocation?.zip && !getProfileZipLocation(zipLocation);
       showInlineValidationHint(invalidA ? 'profile-a-zip' : 'profile-b-zip', message);
-      if (accountType === 'professional') setProfileTab(invalidA ? 'personal' : 'professional');
+      if (accountType === 'professional') selectProfileTab(invalidA ? 'personal' : 'professional');
       return { valid: false, message };
     }
     const result = evaluateMinimumProfileCompletion({
@@ -3452,22 +3457,22 @@ export function Onboarding({
               {accountType === 'professional' ? (
                 <div style={{ display: 'flex', gap: 4, marginBottom: 10, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <div>
-                    <button ref={personalTabRef} onClick={() => { clearInlineValidationHint(); setProfileTab('personal'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activePersonal ? C.border : 'transparent'}`, borderBottom: activePersonal ? `1px solid ${C.card}` : `1px solid transparent`, background: activePersonal ? C.card : C.alpha(C.t1, 0.04), color: activePersonal ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activePersonal ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
+                    <button ref={personalTabRef} onClick={() => { clearInlineValidationHint(); selectProfileTab('personal'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activePersonal ? C.border : 'transparent'}`, borderBottom: activePersonal ? `1px solid ${C.card}` : `1px solid transparent`, background: activePersonal ? C.card : C.alpha(C.t1, 0.04), color: activePersonal ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activePersonal ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
                       {t.tabBasic}
                     </button>
                   </div>
                   <div>
-                    <button ref={skillsTabRef} onClick={() => { clearInlineValidationHint(); setProfileTab('skills'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeSkills ? C.border : 'transparent'}`, borderBottom: activeSkills ? `1px solid ${C.card}` : `1px solid transparent`, background: activeSkills ? C.card : C.alpha(C.t1, 0.04), color: activeSkills ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeSkills ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
+                    <button ref={skillsTabRef} onClick={() => { clearInlineValidationHint(); selectProfileTab('skills'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeSkills ? C.border : 'transparent'}`, borderBottom: activeSkills ? `1px solid ${C.card}` : `1px solid transparent`, background: activeSkills ? C.card : C.alpha(C.t1, 0.04), color: activeSkills ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeSkills ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
                       Skills{requiresSkillsTab ? ' *' : ''}
                     </button>
                   </div>
                   <div>
-                    <button ref={businessTabRef} onClick={() => { clearInlineValidationHint(); setProfileTab('professional'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeProfessional ? C.border : 'transparent'}`, borderBottom: activeProfessional ? `1px solid ${C.card}` : `1px solid transparent`, background: activeProfessional ? C.card : C.alpha(C.t1, 0.04), color: activeProfessional ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeProfessional ? `inset 0 2px 0 #4280ba` : 'none' }}>
+                    <button ref={businessTabRef} onClick={() => { clearInlineValidationHint(); selectProfileTab('professional'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeProfessional ? C.border : 'transparent'}`, borderBottom: activeProfessional ? `1px solid ${C.card}` : `1px solid transparent`, background: activeProfessional ? C.card : C.alpha(C.t1, 0.04), color: activeProfessional ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeProfessional ? `inset 0 2px 0 #4280ba` : 'none' }}>
                       Business{requiresProfessionalTab ? ' *' : ''}
                     </button>
                   </div>
                   <div>
-                    <button ref={operationTabRef} onClick={() => { clearInlineValidationHint(); setProfileTab('operation'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeOperation ? C.border : 'transparent'}`, borderBottom: activeOperation ? `1px solid ${C.card}` : `1px solid transparent`, background: activeOperation ? C.card : C.alpha(C.t1, 0.04), color: activeOperation ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeOperation ? `inset 0 2px 0 #4280ba` : 'none' }}>
+                    <button ref={operationTabRef} onClick={() => { clearInlineValidationHint(); selectProfileTab('operation'); }} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${activeOperation ? C.border : 'transparent'}`, borderBottom: activeOperation ? `1px solid ${C.card}` : `1px solid transparent`, background: activeOperation ? C.card : C.alpha(C.t1, 0.04), color: activeOperation ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: activeOperation ? `inset 0 2px 0 #4280ba` : 'none' }}>
                       Operations{requiresOperationsTab ? ' *' : ''}
                     </button>
                   </div>

@@ -4,6 +4,7 @@ import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 import { deliverReportEmail } from '../_shared/mailbox/reportMailDelivery.ts';
 import { MailboxError } from '../_shared/mailbox/connectionSecurity.ts';
 import { buildCorsHeaders,parseAllowedOrigins } from '../_shared/maxxis/corsPolicy.ts';
+import { readSenderProfile } from '../_shared/mailbox/senderProfile.ts';
 const url=Deno.env.get('SUPABASE_URL')||'';
 const admin=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=parseAllowedOrigins(Deno.env.get('MAILBOX_ALLOWED_ORIGINS')||'');
@@ -27,6 +28,7 @@ Deno.serve(async request=>{
     const caller=createClient(url,Deno.env.get('SUPABASE_ANON_KEY')||'',{global:{headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
     const result=await deliverReportEmail(auth.user,input,{
       encryptionKey:Deno.env.get('MAIL_TOKEN_ENCRYPTION_KEY')||'',transport:fetch,
+      readSenderProfile:(userId,scope)=>readSenderProfile(caller,userId,scope),
       async readReport(id,userId){
         if(input.reference?.reportType==='PROPERTY_RELEASE') return readReleaseMailReport(input,userId,propertyId=>readAuthorizedReleaseSource(caller,userId,propertyId));
         const {data:row,error}=await caller.from('maxxis_reports').select('id,user_id,property_id,capability,access_source,report_version,report_payload')

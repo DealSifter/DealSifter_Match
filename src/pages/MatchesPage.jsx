@@ -88,7 +88,7 @@ import {
   mergeContactForDisplay,
 } from '../components/matches/MatchesPortfolio';
 
-export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, currentPlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, onOpenProfileRegistration = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, onMaxxisContextChange = null, isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, currentPlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, onOpenProfileRegistration = null, reportProfileScope = 'personal', setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, onMaxxisContextChange = null, isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -2456,7 +2456,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                         exclusiveStatus={getPropertyExclusiveStatus(selectedPortfolioItem)}
                         onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
-                        onOpenProfileRegistration={onOpenProfileRegistration}
+                        reportProfileScope={reportProfileScope} onOpenProfileRegistration={onOpenProfileRegistration}
                         intelligencePlan={currentPlan}
                         reportEntitlements={reportEntitlements}
                         onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
@@ -2639,7 +2639,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                   exclusiveStatus={getPropertyExclusiveStatus(mobileCardSheet)}
                   onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
-                  onOpenProfileRegistration={onOpenProfileRegistration}
+                  reportProfileScope={reportProfileScope} onOpenProfileRegistration={onOpenProfileRegistration}
                   intelligencePlan={currentPlan}
                   reportEntitlements={reportEntitlements}
                   onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}

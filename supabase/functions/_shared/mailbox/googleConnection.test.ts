@@ -4,7 +4,7 @@ import { beginConnection, finishConnection, seal, unseal, digest, type ConsentSt
 
 const config = { clientId: 'fixture-app', clientSecret: 'fixture-secret', callback: 'https://staging.example.invalid/callback',
   encryptionKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' };
-const user = { id: 'fixture-user-a', email: 'dealsifter-qa-0000000000000000@gmail.com', email_confirmed_at: '2026-11-16T00:00:00Z' };
+const user = { id: 'fixture-user-a', email: 'dealsifter-qa-0000000000000000@gmail.com', email_confirmed_at: '2026-11-16T00:00:00Z', senderProfile: { scope: 'personal' as const, email: 'dealsifter-qa-0000000000000000@gmail.com' } };
 const now = Date.parse('2026-11-16T12:00:00Z');
 function fixture() {
   const states = new Map<string, ConsentState>();
@@ -34,9 +34,25 @@ function fixture() {
   return { store, states, start, finish, fetchMock, connection: () => connection };
 }
 describe('Gmail mailbox consent, offline security contract', () => {
-  it('requires a Gmail account and does not substitute Hotmail or another sender', async () => {
+  it('authorizes the saved profile Gmail while keeping a different Hotmail login unchanged', async () => {
+    const f = fixture(), actor = { ...user, email: 'login-only@hotmail.com' };
+    vi.mocked(f.store.getUser).mockResolvedValue(actor);
+    const started = await beginConnection(actor, config, f.store, now);
+    const state = new URL(started.authorizationUrl).searchParams.get('state')!;
+    await f.finish(state);
+    expect(f.connection()?.mailbox_email).toBe(user.senderProfile.email);
+    expect(actor.email).toBe('login-only@hotmail.com');
+    expect(f.store.getUser).toHaveBeenCalledWith(user.id, 'personal');
+  });
+  it('rejects a callback identity from another user before contacting Google', async () => {
+    const f=fixture(), state=await f.start();
+    vi.mocked(f.store.getUser).mockResolvedValue({...user,id:'another-user'});
+    await expect(f.finish(state)).rejects.toThrow('INVALID_OR_EXPIRED_CONSENT');
+    expect(f.fetchMock).not.toHaveBeenCalled();
+  });
+  it('requires Gmail on the selected profile and does not substitute another sender', async () => {
     const f = fixture();
-    await expect(beginConnection({ ...user, email: 'fixture@hotmail.com' }, config, f.store)).rejects.toThrow('GMAIL_ACCOUNT_REQUIRED');
+    await expect(beginConnection({ ...user, senderProfile: { scope: 'personal', email: 'fixture@hotmail.com' } }, config, f.store)).rejects.toThrow('GMAIL_PROFILE_REQUIRED');
     expect(f.states.size).toBe(0);
     expect(f.fetchMock).not.toHaveBeenCalled();
   });
@@ -72,7 +88,9 @@ describe('Gmail mailbox consent, offline security contract', () => {
     const state = f.states.get(await digest(a.searchParams.get('state')!))!;
     expect(Date.parse(state.expires_at) - now).toBe(600_000);
     expect(state.verifier_encrypted).toMatch(/^v1\./);
-    const verifier = await unseal(state.verifier_encrypted, config.encryptionKey, `state:google:${user.id}:${await digest(a.searchParams.get('state')!)}`);
+    const binding = JSON.parse(await unseal(state.verifier_encrypted, config.encryptionKey, `state:google:${user.id}:${await digest(a.searchParams.get('state')!)}`));
+    const verifier = binding.verifier;
+    expect(binding).toMatchObject({ profileScope: 'personal', senderEmail: user.senderProfile.email });
     expect(a.searchParams.get('code_challenge')).toBe(await digest(verifier));
   });
   it('encrypts with authenticated user context and rejects tampering/cross-account decryption', async () => {
@@ -120,9 +138,9 @@ describe('Gmail mailbox consent, offline security contract', () => {
     await expect(f.finish(state)).rejects.toThrow('MAILBOX_EMAIL_MISMATCH');
     expect(f.store.saveConnection).not.toHaveBeenCalled();
   });
-  it('rejects changed account email before persisting', async () => {
+  it('rejects a changed profile email before persisting', async () => {
     const f = fixture(); const state = await f.start();
-    vi.mocked(f.store.getUser).mockResolvedValueOnce(user).mockResolvedValueOnce({ ...user, email: 'changed@example.invalid' });
+    vi.mocked(f.store.getUser).mockResolvedValueOnce(user).mockResolvedValueOnce({ ...user, senderProfile: { scope: 'personal', email: 'changed@gmail.com' } });
     await expect(f.finish(state)).rejects.toThrow('MAILBOX_EMAIL_MISMATCH');
     expect(f.store.saveConnection).not.toHaveBeenCalled();
   });

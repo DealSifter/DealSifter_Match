@@ -1,17 +1,18 @@
 import { MailboxError, digest, b64, requireVerifiedUser, checkConfig, seal, unseal, type MailboxUser, type ConnectionConfig, type MailboxStore } from './connectionSecurity.ts';
+import { requireGmailProfile, senderProfileScope } from './senderProfile.ts';
 export { MailboxError, digest, seal, unseal } from './connectionSecurity.ts';
 export type { MailboxUser, ConnectionConfig, ConsentState, MailboxStore } from './connectionSecurity.ts';
 const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/gmail.send'];
 export async function beginConnection(user: MailboxUser, config: ConnectionConfig, store: MailboxStore, now = Date.now()) {
   const verified = requireVerifiedUser(user);
-  if (!/@(gmail|googlemail)\.com$/i.test(verified.email.trim())) throw new MailboxError('GMAIL_ACCOUNT_REQUIRED');
+  const profile = requireGmailProfile(verified);
   checkConfig(config);
   const state = b64(crypto.getRandomValues(new Uint8Array(32)));
   const verifier = b64(crypto.getRandomValues(new Uint8Array(32)));
   const stateHash = await digest(state);
   await store.putState(stateHash, {
     user_id: user.id, expires_at: new Date(now + 10 * 60_000).toISOString(),
-    verifier_encrypted: await seal(verifier, config.encryptionKey, `state:google:${user.id}:${stateHash}`),
+    verifier_encrypted: await seal(JSON.stringify({ version: 2, verifier, profileScope: profile.scope, senderEmail: profile.email }), config.encryptionKey, `state:google:${user.id}:${stateHash}`),
   });
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.search = new URLSearchParams({ client_id: config.clientId, redirect_uri: config.callback,
@@ -31,8 +32,16 @@ export async function finishConnection(input: { state: string; code?: string; er
   }
   if (input.error) throw new MailboxError('CONSENT_NOT_GRANTED');
   if (!input.code || input.code.length > 8192) throw new MailboxError('INVALID_AUTHORIZATION_CODE');
-  const user = requireVerifiedUser(await store.getUser(state.user_id));
-  const verifier = await unseal(state.verifier_encrypted, config.encryptionKey, `state:google:${user.id}:${stateHash}`);
+  let binding: { version: number; verifier: string; profileScope: string; senderEmail: string };
+  try { binding = JSON.parse(await unseal(state.verifier_encrypted, config.encryptionKey, `state:google:${state.user_id}:${stateHash}`)); }
+  catch { throw new MailboxError('INVALID_OR_EXPIRED_CONSENT'); }
+  if (binding?.version !== 2 || !/^[A-Za-z0-9_-]{43}$/.test(binding.verifier || '')) throw new MailboxError('INVALID_OR_EXPIRED_CONSENT');
+  const scope = senderProfileScope(binding.profileScope);
+  const user = requireVerifiedUser(await store.getUser(state.user_id, scope));
+  if (user.id !== state.user_id) throw new MailboxError('INVALID_OR_EXPIRED_CONSENT');
+  const profile = requireGmailProfile(user);
+  if (profile.scope !== scope || profile.email !== binding.senderEmail) throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
+  const verifier = binding.verifier;
   const response = await transport('https://oauth2.googleapis.com/token', {
     method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: config.clientId, client_secret: config.clientSecret, code: input.code,
@@ -52,9 +61,9 @@ export async function finishConnection(input: { state: string; code?: string; er
   if (!identityResponse.ok) throw new MailboxError('MAILBOX_IDENTITY_UNAVAILABLE');
   const identity = await identityResponse.json();
   const mailbox = String(identity.email || '').trim().toLowerCase();
-  if (!identity.sub || identity.email_verified !== true || !/@(gmail|googlemail)\.com$/.test(mailbox) || mailbox !== user.email.trim().toLowerCase()) throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
-  const currentUser = requireVerifiedUser(await store.getUser(user.id));
-  if (currentUser.email.trim().toLowerCase() !== mailbox) throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
+  if (!identity.sub || identity.email_verified !== true || !/@(gmail|googlemail)\.com$/.test(mailbox) || mailbox !== profile.email) throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
+  const currentProfile = requireGmailProfile(requireVerifiedUser(await store.getUser(user.id, scope)));
+  if (currentProfile.scope !== scope || currentProfile.email !== mailbox) throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
   // Online consent only, no refresh-token persistence. Reconnect when this grant expires.
   const expiresAt = new Date(now + Math.min(token.expires_in, 86400) * 1000).toISOString();
   await store.saveConnection(stateHash, { user_id: user.id, provider: 'google', mailbox_email: mailbox,
