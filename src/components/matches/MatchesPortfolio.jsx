@@ -399,7 +399,7 @@ export function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
   );
 }
 
-export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
+export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, onOpenProfileRegistration = null }) {
   const scopedReportEntitlements = useMemo(() => reportEntitlements.filter((entitlement) => (
     !entitlement?.propertyId || String(entitlement.propertyId) === String(item?.id || '')
   )), [item?.id, reportEntitlements]);
@@ -1060,7 +1060,7 @@ export function PortfolioDetail({ item, owner, viewerUserId = null, ownerContact
         </div>
       </div>
 
-      {propertyReleaseDelivery ? <ReportDeliveryModal reference={propertyReleaseDelivery.reference} propertyRelease={propertyReleaseDelivery} userId={viewerUserId} onClose={() => setPropertyReleaseDelivery(null)} /> : null}
+      {propertyReleaseDelivery ? <ReportDeliveryModal reference={propertyReleaseDelivery.reference} propertyRelease={propertyReleaseDelivery} onOpenProfileRegistration={onOpenProfileRegistration} userId={viewerUserId} onClose={() => setPropertyReleaseDelivery(null)} /> : null}
       {emailComposeOpen ? (
         <Modal
           onClose={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}

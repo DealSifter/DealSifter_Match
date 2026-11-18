@@ -18,7 +18,7 @@ function base64(bytes) {
   for (let i = 0; i < data.length; i += 8192) value += String.fromCharCode(...data.subarray(i, i + 8192));
   return btoa(value);
 }
-export function ReportDeliveryModal({ reference, userId, onClose, propertyRelease = null }) {
+export function ReportDeliveryModal({ reference, userId, onClose, propertyRelease = null, onOpenProfileRegistration = null }) {
   const resolveDelivery = useCallback((ref, actor) => propertyRelease ? resolvePropertyReleaseDelivery(propertyRelease, ref, actor) : resolveReportDelivery(ref, actor), [propertyRelease]);
   const text = useCallback((en, pt, es = en) => reference.language === 'pt' ? pt : reference.language === 'es' ? es : en, [reference.language]);
   const [prepared, setPrepared] = useState(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
@@ -104,7 +104,11 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       {gmailAccount ? <GmailConnectionPanel key={userId} userId={userId} language={reference.language} onConnectionChange={setMailbox} />
         : account ? <div className="report-delivery-alert">{qaAccount
           ? text('QA .invalid accounts have no mailbox and cannot send email. Sign in with your confirmed Gmail account. You can still download this PDF.', 'Contas QA .invalid não têm caixa e não podem enviar email. Entre com sua conta Gmail confirmada. Você ainda pode baixar este PDF.')
-          : text('Automatic sending currently requires a DealSifter account with a confirmed Gmail address. This account uses another email provider, which is not integrated yet. You can still download this PDF.', 'O envio automático atual exige uma conta DealSifter com email Gmail confirmado. Esta conta usa outro provedor de email, ainda não integrado. Você pode baixar este PDF normalmente.', 'El envío automático actual requiere una cuenta DealSifter con un correo Gmail confirmado. Esta cuenta usa otro proveedor de correo, aún no integrado. Puede descargar este PDF.')}</div> : null}
+          : <>
+            {text('Email delivery is available only for Google Gmail accounts. To use it, update the primary email in your active profile registration to a Gmail address and confirm that address. You can still download this PDF.', 'O envio por email está disponível somente para contas Google (Gmail). Para utilizar, altere o email principal do perfil ativo para um Gmail no cadastro e confirme esse endereço. Você pode baixar este PDF normalmente.', 'El envío por correo está disponible solo para cuentas Google (Gmail). Para utilizarlo, cambie el correo principal del perfil activo por un Gmail en el registro y confirme esa dirección. Puede descargar este PDF.')}
+            {onOpenProfileRegistration ? <p style={{ margin: '8px 0' }}><a href="#onboarding" onClick={event => { event.preventDefault(); onClose(); onOpenProfileRegistration(); }}>{text('Edit email in active profile registration', 'Editar email no cadastro do perfil ativo', 'Editar correo en el registro del perfil activo')}</a></p> : null}
+            <p className="report-delivery-caption" style={{ margin: '8px 0 0' }}>{text('The connected Gmail must also match your confirmed DealSifter sign-in email. Editing a profile contact does not change your sign-in email.', 'O Gmail conectado também deve ser o email confirmado de acesso ao DealSifter. Editar o contato do perfil não altera o email de acesso.', 'El Gmail conectado también debe coincidir con el correo confirmado de acceso a DealSifter. Editar el contacto del perfil no cambia el correo de acceso.')}</p>
+          </>}</div> : null}
       {account?.senderEmail ? <p className="report-delivery-caption">{text('Account sender', 'Remetente da conta')}: <strong>{account.senderEmail}</strong></p> : null}
       <div className="report-delivery-recipients">{['to', 'cc', 'bcc'].map(field => <label key={field}><span>{field === 'to' ? text('To', 'Para') : field === 'cc' ? 'Cc' : text('Bcc', 'Cco')}</span>
         <input data-testid={`report-delivery-${field}`} type="text" inputMode="email" autoComplete="off" value={recipients[field]} disabled={busy || recipientLoading || Boolean(envelope) || Boolean(outcome)}

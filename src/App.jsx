@@ -4134,6 +4134,12 @@ export default function App() {
     setPage('onboarding');
   }, [setPage]);
 
+  const openReportProfileRegistration = useCallback(() => {
+    const tab = accountType === 'fsbo_owner' ? 'fsbo'
+      : ['professional', 'operation'].includes(onboardingInitialTab) ? 'professional' : 'personal';
+    openOnboardingTab(tab);
+  }, [accountType, onboardingInitialTab, openOnboardingTab]);
+
   const handleMaxxisNavigateAction = useCallback((actionId) => {
     const action = String(actionId || '').trim().toLowerCase().replace(/_/g, '-');
     switch (action) {
@@ -5669,6 +5675,7 @@ export default function App() {
             unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
+            onOpenProfileRegistration={openReportProfileRegistration}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
             onMaxxisContextChange={handleMaxxisSurfaceContextChange}
             isActive={page === 'matches'}
@@ -6010,6 +6017,7 @@ export default function App() {
                 enabled={Boolean(authSession)}
                 onOpenSupport={() => openSettingsTab('communication', 'support')}
                 onNavigateAction={handleMaxxisNavigateAction}
+                onOpenProfileRegistration={openReportProfileRegistration}
                 onOpenReportSelector={openReportSelectorFromMaxxis}
                 onOpenProvider={handleMaxxisOpenProvider}
                 onOpenFeedCard={openFeedCardFromMaxxis}

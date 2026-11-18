@@ -80,12 +80,26 @@ describe('R3.2 contextual delivery controls', () => {
   it.each(['synthetic@hotmail.com', 'synthetic@outlook.com'])('explains provider support without labelling the real account %s as QA', async senderEmail => {
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail, recipients: null });
     render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
-    await screen.findByText(/This account uses another email provider/);
+    await screen.findByText(/Email delivery is available only for Google Gmail accounts/);
     expect(screen.queryByText(/QA .invalid accounts/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Connect test mailbox' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Prepare Gmail email' }).disabled).toBe(true);
     expect(screen.getByRole('button', { name: 'Download this PDF' }).disabled).toBe(false);
     expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it('opens active-profile registration explicitly without changing email or sending a message', async () => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@hotmail.com', recipients: null });
+    const onClose = vi.fn(), openRegistration = vi.fn();
+    render(<ReportDeliveryModal reference={{ ...reference, language: 'pt' }} userId="a" onClose={onClose} onOpenProfileRegistration={openRegistration} />);
+    const link = await screen.findByRole('link', { name: 'Editar email no cadastro do perfil ativo' });
+    expect(link.getAttribute('href')).toBe('#onboarding');
+    expect(openRegistration).not.toHaveBeenCalled();
+    expect(screen.getByText(/Editar o contato do perfil não altera o email de acesso/)).toBeTruthy();
+    fireEvent.click(link);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(openRegistration).toHaveBeenCalledTimes(1);
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.saveRecipients).not.toHaveBeenCalled();
   });
   it('refuses silently missing photos before presenting a send confirmation', async () => {
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: { to: 'qa@example.invalid', cc: '', bcc: '' } });
