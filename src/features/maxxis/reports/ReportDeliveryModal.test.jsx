@@ -23,6 +23,33 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('R3.2 contextual delivery controls', () => {
+  it('sends the edited subject and body, keeps them on review, and locks the confirmed message', async () => {
+    mocks.loadRecipients.mockResolvedValue({userId:'a',senderEmail:'synthetic@gmail.com',recipients:{to:'board@example.invalid',cc:'',bcc:''}});
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button',{name:'Connect test mailbox'}));
+    fireEvent.click(screen.getByText('Message content'));
+    fireEvent.change(screen.getByLabelText('Subject'),{target:{value:'Opportunity for my Trello board'}});
+    fireEvent.change(screen.getByLabelText('Message'),{target:{value:'My notes\nPlease review the attached property report.'}});
+    const prepare=screen.getByRole('button',{name:'Prepare Gmail email'});
+    await waitFor(()=>expect(prepare.disabled).toBe(false));fireEvent.click(prepare);
+    await screen.findByRole('button',{name:'Confirm Gmail send'});
+    expect(screen.getByLabelText('Message').disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button',{name:'Edit recipients and message'}));
+    expect(screen.getByLabelText('Message').value).toContain('My notes');
+    fireEvent.change(screen.getByLabelText('Message'),{target:{value:'Final edited message'}});
+    fireEvent.click(screen.getByRole('button',{name:'Prepare Gmail email'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Confirm Gmail send'}));
+    await screen.findByText(/Gmail accepted/);
+    expect(mocks.send.mock.calls[0][1].message).toEqual({subject:'Opportunity for my Trello board',body:'Final edited message'});
+    expect(screen.getByLabelText('Message').disabled).toBe(true);
+  });
+  it.each([['PROPERTY_RELEASE','Basic'],['MAXXIS_ANALYSIS','PRO'],['DEAL_INTELLIGENCE','Enterprise']])('shows the public name for %s',async(reportType,name)=>{
+    render(<ReportDeliveryModal reference={{...reference,reportType}} userId="a" onClose={vi.fn()} />);
+    await screen.findByText('Message content');
+    expect(screen.getByRole('heading').textContent).toBe(`Deliver prepared report · ${name}`);
+    expect(screen.getByLabelText('Subject').value).toContain(`DealSifter · ${name}`);
+    expect(screen.getByLabelText('Message').value).not.toMatch(/\bL[123]\b/);
+  });
   it('T1/T2/T3/T7/T8/T10: confirmed Gmail send attaches the original PDF without download or mailto; duplicate click is ignored', async () => {
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: null });
     render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);

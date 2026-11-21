@@ -1,4 +1,15 @@
 type Data = Record<string, any>;
+export const reportDisplayName = (reportType: unknown) => reportType === 'DEAL_INTELLIGENCE' ? 'Enterprise' : reportType === 'MAXXIS_ANALYSIS' ? 'PRO' : 'Basic';
+
+// User edits affect only the accompanying email, never the saved report or PDF.
+export function resolveReportEmailMessage(defaults: {subject: string; body: string}, message?: unknown) {
+  if (message === undefined) return defaults;
+  const draft = message as {subject?: unknown; body?: unknown} | null;
+  if (!draft || typeof draft.subject !== 'string' || !draft.subject.trim() || draft.subject.length > 240 ||
+    /[\r\n\u0000-\u001f\u007f]/.test(draft.subject) || typeof draft.body !== 'string' || !draft.body.trim() ||
+    draft.body.length > 60000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(draft.body)) throw new Error('INVALID_EMAIL_MESSAGE');
+  return {subject: draft.subject.trim(), body: draft.body.replace(/\r\n|\r|\n/g, '\r\n')};
+}
 const text = (value: unknown) => typeof value === 'string' ? value.trim() : typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 const factPaths:Record<string,[string,string]>={
   address:['identity','address'],city:['identity','city'],state:['identity','state'],zip:['identity','zip'],
@@ -45,7 +56,7 @@ export function buildReportEmailContent(schema: Data, reference: Data) {
       .find((value:Data)=>value&&typeof value==='object'&&(value.field===key||Boolean(aliases[key]&&value.field===aliases[key])));
     return text(verified?.value??raw);
   };
-  const level = reference.reportType === 'DEAL_INTELLIGENCE' ? 'L3' : reference.reportType === 'MAXXIS_ANALYSIS' ? 'L2' : 'L1';
+  const level = reportDisplayName(reference.reportType);
   const address = (fieldValue('address')||text(property.title)).replace(/[\r\n]+/g,' ').slice(0,180);
   const lines = [`DealSifter · ${level}`, address, '', label('DADOS DO IMÓVEL','PROPERTY DETAILS','DATOS DEL INMUEBLE')];
   for (const [key,br,en] of propertyFields) {

@@ -1,6 +1,7 @@
 import { readMaxxisReportForDelivery } from '../../../services/maxxisReportService';
 import { resolveSavedReportAccessDecision } from './savedReportAccess';
 import { resolveReportExportEntitlements } from '../export/reportExportEntitlement';
+import { reportDisplayName } from '../../../../supabase/functions/_shared/mailbox/reportEmailContent.ts';
 
 const canonical = value => {
   if (Array.isArray(value)) return value.map(canonical);
@@ -53,7 +54,7 @@ export function reportEmailDraft({ to = '', cc = '', bcc = '', reportType, repor
     fields[key] = addresses.join(','); count += addresses.length;
   }
   if (!fields.to || count > 10) throw new Error('REPORT_DELIVERY_INVALID_RECIPIENT');
-  const level = reportType === 'DEAL_INTELLIGENCE' ? 'L3' : reportType === 'MAXXIS_ANALYSIS' ? 'L2' : 'L1';
+  const level = reportDisplayName(reportType);
   const body = language === 'pt' ? `Relatório ${level} · ${reportId}\r\nAnexe manualmente o PDF baixado no DealSifter antes de enviar.`
     : language === 'es' ? `Informe ${level} · ${reportId}\r\nAdjunte manualmente el PDF descargado en DealSifter antes de enviar.`
       : `Report ${level} · ${reportId}\r\nManually attach the PDF downloaded from DealSifter before sending.`;

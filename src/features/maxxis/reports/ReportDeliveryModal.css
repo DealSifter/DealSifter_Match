@@ -13,7 +13,9 @@
 .report-delivery button.report-delivery-primary { background:#2ec4c8; border-color:#2ec4c8; color:#fff; }
 .report-delivery button:disabled { cursor:default; opacity:.5; }
 .report-delivery .report-delivery-alert { padding:10px 12px; border-radius:10px; background:#fff6e9; color:#704b14; font-size:12px; overflow-wrap:anywhere; }
-.report-delivery .report-delivery-body { white-space:pre-wrap; overflow-wrap:anywhere; max-height:220px; overflow:auto; padding:12px; border:1px solid var(--border, #d8e3e9); border-radius:10px; font-size:12px; line-height:1.5; margin:0; }
+.report-delivery .report-delivery-body { width:100%; min-height:180px; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; overflow:auto; padding:12px; border:1px solid var(--border, #d8e3e9); background:var(--card, #fff); color:inherit; border-radius:10px; font:inherit; font-size:12px; line-height:1.5; margin:0; }
+.report-delivery details { display:grid; gap:8px; }
+.report-delivery details label { margin:8px 0; }
 .report-delivery [data-testid=gmail-connection] { padding:12px; border:1px solid var(--border, #d8e3e9); border-radius:12px; }
 .report-delivery [data-testid=gmail-connection] label { display:block; font-weight:400; }
 .report-delivery .report-delivery-choice { display:flex; align-items:center; gap:8px; font-size:12px; }

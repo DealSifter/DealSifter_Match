@@ -1,4 +1,4 @@
-import { buildReportEmailContent } from './reportEmailContent.ts';
+import { buildReportEmailContent, resolveReportEmailMessage } from './reportEmailContent.ts';
 import { MailboxError, requireVerifiedUser, unseal, type MailboxUser } from './connectionSecurity.ts';
 import { requireGmailProfile, senderProfileScope, type SenderProfile } from './senderProfile.ts';
 type Data = Record<string, any>;
@@ -103,14 +103,17 @@ export async function deliverReportEmail(userInput:MailboxUser,input:Data,ports:
   if(!mailbox||mailbox.user_id!==user.id||mailbox.provider!=='google'||mailbox.mailbox_email!==profile.email||
     !Number.isFinite(Date.parse(mailbox.expires_at))||Date.parse(mailbox.expires_at)<=now||!mailbox.granted_scopes?.includes('https://www.googleapis.com/auth/gmail.send'))throw new MailboxError('GMAIL_RECONNECT_REQUIRED');
   const token=await unseal(mailbox.token_encrypted,ports.encryptionKey,`mailbox:${user.id}:google`);
-  const content=buildReportEmailContent(report.emailSchema || schema,ref);
+  const defaults=buildReportEmailContent(report.emailSchema || schema,ref);
+  let content:typeof defaults;
+  try { content=resolveReportEmailMessage(defaults,input.message); } catch { throw new MailboxError('INVALID_EMAIL_MESSAGE'); }
+  const messageKey=content.subject===defaults.subject&&content.body===defaults.body?{}:{messageHash:await jsonHash(content)};
   const recipientHash=await jsonHash(recipients);
-  // Stable across double clicks, reload, regenerated PDF bytes and a new browser tab.
-  // Re-sending an identical report to identical recipients requires a future explicit resend flow.
+  // Stable across double clicks, reload and regenerated PDF bytes for the same reviewed message.
+  // Editing the message creates a distinct delivery only after explicit send confirmation.
   // Preserve existing receipt keys for the historical same-email personal flow.
   // Other sender identities must not receive another profile's accepted receipt.
   const senderKey=profileScope==='personal'&&profile.email===user.email.trim().toLowerCase()?{}:{senderEmail:profile.email,profileScope};
-  const key=await jsonHash({userId:user.id,reportId:ref.reportId,...senderKey,...(ref.reportType==='PROPERTY_RELEASE'?{reportType:ref.reportType}:{}),fingerprint:ref.reportType==='PROPERTY_RELEASE'?input.releaseSourceFingerprint:ref.fingerprint,...(ref.reportType==='PROPERTY_RELEASE'?{language:ref.language}:{}),recipientHash,photos:attachments.length-1});
+  const key=await jsonHash({userId:user.id,reportId:ref.reportId,...senderKey,...messageKey,...(ref.reportType==='PROPERTY_RELEASE'?{reportType:ref.reportType}:{}),fingerprint:ref.reportType==='PROPERTY_RELEASE'?input.releaseSourceFingerprint:ref.fingerprint,...(ref.reportType==='PROPERTY_RELEASE'?{language:ref.language}:{}),recipientHash,photos:attachments.length-1});
   const currentProfile=await ports.readSenderProfile(user.id,profileScope);
   if(currentProfile.scope!==profileScope||currentProfile.email!==profile.email)throw new MailboxError('MAILBOX_EMAIL_MISMATCH');
   const artifactHashes=await Promise.all(attachments.map(async a=>({name:a.name,sha256:await mailHash(a.bytes),bytes:a.bytes.length})));

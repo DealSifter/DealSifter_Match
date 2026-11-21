@@ -7,7 +7,7 @@ import { prepareReportNarrativePresentation } from '../presentation/reportNarrat
 import { prepareReportAssets } from '../export/reportPreparedAssets.ts';
 import { prepareReportMaps } from '../export/reportMapAssets';
 import { renderMaxxisReportPdfCached, downloadMaxxisReportPdf } from '../export/maxxisReportPdf';
-import { buildReportEmailContent } from '../../../../supabase/functions/_shared/mailbox/reportEmailContent.ts';
+import { buildReportEmailContent, reportDisplayName, resolveReportEmailMessage } from '../../../../supabase/functions/_shared/mailbox/reportEmailContent.ts';
 import { mailRecipients, validateMailAttachments } from '../../../../supabase/functions/_shared/mailbox/reportMailDelivery.ts';
 import { GmailConnectionPanel } from './GmailConnectionPanel';
 import {resolvePropertyReleaseDelivery} from '../../../services/propertyReleaseMailService';
@@ -26,6 +26,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
   const [account, setAccount] = useState(null), [recipientLoading, setRecipientLoading] = useState(true);
   const [mailbox, setMailbox] = useState(null), [includePhotos, setIncludePhotos] = useState(true);
   const [envelope, setEnvelope] = useState(null), [outcome, setOutcome] = useState(null), [downloaded, setDownloaded] = useState(false);
+  const [message, setMessage] = useState(null);
   const lock = useRef(false), alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -43,8 +44,8 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
   const qaAccount = /\.invalid$/i.test((account?.senderEmail || '').trim());
   const connected = mailbox?.status === 'CONNECTED' && mailbox.mailbox_email?.toLowerCase() === account?.senderEmail?.toLowerCase();
   const photoCount = Math.min(5, property?.images?.length || 0);
-  const level = reference.reportType === 'PROPERTY_RELEASE' ? 'L1' : reference.reportType === 'DEAL_INTELLIGENCE' ? 'L3' : 'L2';
-  const content = prepared ? buildReportEmailContent(prepared.schema, reference) : null;
+  const level = reportDisplayName(reference.reportType);
+  const content = prepared ? message || buildReportEmailContent(prepared.schema, reference) : null;
   const act = async action => {
     if (lock.current || !prepared) return;
     lock.current = true; setBusy(true); setError('');
@@ -59,6 +60,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
         if (action === 'prepare') {
           if (!connected || account?.userId !== userId) throw new Error('GMAIL_RECONNECT_REQUIRED');
           mailRecipients(recipients);
+          resolveReportEmailMessage(buildReportEmailContent(value.schema, reference), content);
         }
         let photos = [];
         if (action === 'download') await prepareReportNarrativePresentation(value.schema, reference.language);
@@ -77,7 +79,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
           if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${reference.reportType.toLowerCase()}-${reference.reportId}.pdf`)) throw new Error('REPORT_DELIVERY_PDF_FAILED');
           setDownloaded(true);
         } else {
-          const nextEnvelope = { reference, profileScope, ...(propertyRelease ? { releaseSchema: value.schema, releaseSourceFingerprint: value.sourceFingerprint } : {}), recipients: { ...recipients }, pdfBase64: base64(rendered.document.binary),
+          const nextEnvelope = { reference, profileScope, message: resolveReportEmailMessage(buildReportEmailContent(value.schema, reference), content), ...(propertyRelease ? { releaseSchema: value.schema, releaseSourceFingerprint: value.sourceFingerprint } : {}), recipients: { ...recipients }, pdfBase64: base64(rendered.document.binary),
             photos: photos.map(data => ({ type: data.slice(5, data.indexOf(';')).replace('image/jpg', 'image/jpeg'), base64: data.slice(data.indexOf(',') + 1) })) };
           validateMailAttachments(nextEnvelope, value.schema);
           await saveReportRecipientPreferences(userId, recipients);
@@ -87,6 +89,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       }
     } catch (failure) {
       const messages = {
+        INVALID_EMAIL_MESSAGE: text('Enter a subject (up to 240 characters, one line) and message (up to 60,000 characters).', 'Informe um assunto (até 240 caracteres, uma linha) e uma mensagem (até 60.000 caracteres).'),
         INVALID_RECIPIENTS: text('Enter valid recipients (up to 10), without line breaks.', 'Informe destinatários válidos (até 10), sem quebras de linha.'),
         PROPERTY_PHOTOS_UNAVAILABLE: text('Some photos could not be prepared. Retry or deselect photos to send only the PDF.', 'Algumas fotos não puderam ser preparadas. Tente novamente ou desmarque as fotos para enviar somente o PDF.'),
         GMAIL_RECONNECT_REQUIRED: text('Connect the Gmail registered in your active profile before sending.', 'Conecte o Gmail cadastrado no perfil ativo antes de enviar.'),
@@ -117,7 +120,13 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       {!envelope && photoCount > 0 ? <label className="report-delivery-choice"><input type="checkbox" checked={includePhotos} disabled={busy} onChange={event => setIncludePhotos(event.target.checked)} />{text(`Attach property photos (up to ${photoCount})`, `Anexar fotos do imóvel (até ${photoCount})`)}</label> : null}
       {prepared && !photoCount ? <p className="report-delivery-caption">{text('This report version contains no property photos to attach.', 'Esta versão do relatório não contém fotos do imóvel para anexar.')}</p> : null}
       <p className="report-delivery-caption">{text('The PDF is attached automatically. The message includes property details, notes and photo links for your CRM. Review before confirming.', 'O PDF será anexado automaticamente. A mensagem inclui dados do imóvel, notas e links das fotos para seu CRM. Revise antes de confirmar.')}</p>
-      {content ? <details open={Boolean(envelope)}><summary>{text('Message content', 'Conteúdo da mensagem')}</summary><p className="report-delivery-caption"><strong>{content.subject}</strong></p><div className="report-delivery-body">{content.body}</div></details> : null}
+      {content ? <details open={Boolean(envelope)}><summary>{text('Message content', 'Conteúdo da mensagem', 'Contenido del mensaje')}</summary>
+        <label>{text('Subject', 'Assunto', 'Asunto')}<input type="text" value={content.subject} maxLength={240} disabled={busy || Boolean(envelope) || Boolean(outcome)}
+          onChange={event => setMessage({ ...content, subject: event.target.value })} /></label>
+        <label>{text('Message', 'Mensagem', 'Mensaje')}<textarea className="report-delivery-body" value={content.body} maxLength={60000} rows={9} disabled={busy || Boolean(envelope) || Boolean(outcome)}
+          onChange={event => setMessage({ ...content, body: event.target.value })} /></label>
+        <p className="report-delivery-caption">{text('Edits apply only to this email. The attached PDF stays unchanged.', 'As edições valem somente para este email. O PDF anexado permanece inalterado.', 'Los cambios se aplican solo a este correo. El PDF adjunto no cambia.')}</p>
+      </details> : null}
       {envelope ? <div className="report-delivery-caption" role="status">{text('Attachments ready', 'Anexos preparados')}: PDF{envelope.photos.length ? ` + ${envelope.photos.length} ${text('photos', 'fotos')}` : ''}</div> : null}
       {outcome ? <div role="status" className="report-delivery-alert">{outcome.state === 'ACCEPTED'
         ? text('Gmail accepted the message with attachments. Recipient delivery is not confirmed.', 'O Gmail aceitou a mensagem com os anexos. A entrega ao destinatário não está confirmada.')
@@ -126,7 +135,7 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       {downloaded ? <span role="status" className="report-delivery-caption">{text('PDF download requested.', 'Download do PDF solicitado.')}</span> : null}
       {error ? <div role="alert" className="report-delivery-alert">{error}</div> : null}
       <div className="report-delivery-actions"><button type="button" disabled={!prepared || busy} onClick={() => act('download')}>{text('Download this PDF', 'Baixar este PDF')}</button>
-        {envelope && !outcome ? <button type="button" disabled={busy} onClick={() => setEnvelope(null)}>{text('Review recipients', 'Revisar destinatários')}</button> : null}
+        {envelope && !outcome ? <button type="button" disabled={busy} onClick={() => setEnvelope(null)}>{text('Edit recipients and message', 'Editar destinatários e mensagem', 'Editar destinatarios y mensaje')}</button> : null}
         <button className="report-delivery-primary" type="button" disabled={!prepared || busy || recipientLoading || !connected || Boolean(outcome && outcome.state !== 'FAILED')} onClick={() => act(outcome?.state === 'FAILED' ? 'retry' : envelope ? 'send' : 'prepare')}>{outcome?.state === 'ACCEPTED' ? text('Sent through Gmail', 'Enviado pelo Gmail') : outcome && outcome.state !== 'FAILED' ? text('Send pending verification', 'Envio pendente de verificação') : busy ? text('Preparing…', 'Preparando…') : outcome?.state === 'FAILED' ? text('Confirm retry', 'Confirmar nova tentativa') : envelope ? text('Confirm Gmail send', 'Confirmar envio pelo Gmail') : text('Prepare Gmail email', 'Preparar email Gmail')}</button>
         <button type="button" onClick={onClose}>{text('Close', 'Fechar')}</button></div>
     </div>

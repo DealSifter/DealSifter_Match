@@ -29,6 +29,30 @@ beforeEach(async()=>{
 });
 function canonical(v:any):any {return Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;}
 describe('report email delivery, offline',()=>{
+  it.each([['PROPERTY_RELEASE','Basic'],['MAXXIS_ANALYSIS','PRO'],['DEAL_INTELLIGENCE','Enterprise']])('uses public report names for %s', (reportType,name)=>{
+    const content=buildReportEmailContent(schema,{...input.reference,reportType});
+    expect(content.subject).toContain(`DealSifter · ${name}`);
+    expect(content.body).toContain(`DealSifter · ${name}`);
+    expect(content.subject+'\n'+content.body).not.toMatch(/\bL[123]\b/);
+  });
+  it('sends the reviewed Unicode text and uses its normalized content for deduplication',async()=>{
+    input.message={subject:'Revisão do imóvel',body:'Texto editado\nSomente para este email.'};
+    const first=await deliverReportEmail(user,input,ports,now);
+    const mime=Buffer.from(JSON.parse(String(vi.mocked(ports.transport).mock.calls[0][1]?.body)).raw,'base64url').toString('utf8');
+    expect(mime).toContain(Buffer.from('Texto editado\r\nSomente para este email.').toString('base64'));
+    input.message.body='Texto editado\r\nSomente para este email.';
+    const duplicate=await deliverReportEmail(user,input,ports,now);
+    expect(duplicate.duplicate).toBe(true);expect(duplicate.deliveryId).toBe(first.deliveryId);
+    expect(ports.transport).toHaveBeenCalledTimes(1);
+    input.message.body='Different reviewed message';
+    const changed=await deliverReportEmail(user,input,ports,now);
+    expect(changed.deliveryId).not.toBe(first.deliveryId);expect(ports.transport).toHaveBeenCalledTimes(2);
+  });
+  it.each([{subject:'Injected\r\nBcc: other@example.invalid',body:'Text'},{subject:'',body:'Text'},{subject:'Valid',body:''},{subject:'Valid',body:'Bad\0text'},{subject:'x'.repeat(241),body:'Text'},{subject:'Valid',body:'x'.repeat(60001)}])('rejects invalid email edits before reserving or sending',async message=>{
+    input.message=message;
+    await expect(deliverReportEmail(user,input,ports,now)).rejects.toThrow('INVALID_EMAIL_MESSAGE');
+    expect(ports.reserve).not.toHaveBeenCalled();expect(ports.transport).not.toHaveBeenCalled();
+  });
   it('uses profile Gmail as From even when authentication uses Hotmail',async()=>{
     const actor={...user,email:'login-only@hotmail.com'};
     const result=await deliverReportEmail(actor,input,ports,now);
