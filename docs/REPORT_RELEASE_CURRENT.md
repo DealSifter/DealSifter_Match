@@ -1,6 +1,18 @@
-# Maxxis — entrega de relatórios R-3.2
+# DealSifter — publicação de relatórios e modais
 
 ## Publicação vigente — Production
+
+Publicado em 21 de novembro de 2026: deployment `dpl_aQU5cyEmcnKDMx79iK8yvmrGgdgo`, READY, código `1862ad2b8db5e48d5a7e1abb217ccd9a471dc262`, em https://dealsiftermatch.vercel.app.
+
+- O conjunto de ajustes dos modais está publicado: melhor aproveitamento da largura, redução de espaçamentos, distribuição em colunas, paginação dos destaques e abas do perfil de investimento em telas menores/baixas. Inclui o quadro compacto de custo e saldo do desbloqueio, além de contatos, compra de nuggets, acesso, edição de imóvel e entrega de relatórios.
+- Mobile preserva a rolagem quando necessária; em conteúdo excepcional, zoom ou telas muito baixas, a rolagem de segurança evita esconder informações. Os cenários desktop/tablet conferidos ficaram sem rolagem ou botões cortados. Não foram alterados custos, saldos, critérios de desbloqueio ou confirmação de compra/envio.
+- Validação local: 24/24 testes funcionais PASS, 63 conferências de layout e dez verificações adicionais do desbloqueio compacto PASS. Lint, contratos TypeScript e build isolado do commit exato PASS. Os três timeouts na execução concorrente foram resolvidos pela reexecução sequencial das quatro suítes, sem alteração funcional para mascará-los.
+- Production: quatro assets críticos e 12 arquivos dos novos modais conferidos por hash, com paridade das dez amostras de relatórios. Modal público de acesso/cadastro aberto na aplicação real em 1366×768, 1024×768, 768×1024 e 390×844: HTTP 200, sem rolagem, transbordamento horizontal, erros de JavaScript ou falhas de assets; duas colunas nas telas maiores e uma no celular.
+- Somente frontend publicado. Sem migrations, redeploy de funções, alteração de segredos/flags, Auth, pricing, nuggets ou Stripe. Nenhum login real, compra, desbloqueio ou envio de email executado pelo agente nesta publicação. Os demais modais foram conferidos com fixtures locais. Stash preservado; sem push.
+
+Recibos privados da publicação: `.tmp-codex/modal-layout-production/`; conferências locais: `.tmp-codex/modal-layout-20261121/`. Rollback do frontend: `dpl_E1HCT53SB3mZjX1jUsgqSJ7Ky82g`. As funcionalidades de relatório/email das publicações abaixo permanecem incluídas.
+
+## Histórico — edição do email e nomes dos relatórios
 
 Atualização de 21 de novembro de 2026: deployment `dpl_E1HCT53SB3mZjX1jUsgqSJ7Ky82g`, READY, código `5c4679b97df3c0ae7bf319a54ed2183b8311850b`, em https://dealsiftermatch.vercel.app.
 
