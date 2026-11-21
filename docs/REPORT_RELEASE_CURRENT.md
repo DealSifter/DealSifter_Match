@@ -2,6 +2,18 @@
 
 ## Publicação vigente — Production
 
+Atualização de 21 de novembro de 2026: deployment `dpl_E1HCT53SB3mZjX1jUsgqSJ7Ky82g`, READY, código `5c4679b97df3c0ae7bf319a54ed2183b8311850b`, em https://dealsiftermatch.vercel.app.
+
+- O painel de conteúdo da mensagem permite editar assunto e corpo antes de preparar o envio. O usuário pode voltar por “Editar destinatários e mensagem”; a confirmação final envia o texto revisado com os anexos originais. As edições não alteram o relatório salvo nem o PDF.
+- Referências visíveis aos níveis internos foram substituídas por Basic, PRO e Enterprise no modal, assunto e corpo gerados do email, incluindo o helper legado de rascunho. Identificadores internos e permissões permanecem iguais.
+- O servidor valida o texto editado e considera seu conteúdo normalizado na proteção contra duplicidade. Assunto vazio, quebras de linha no assunto, caracteres de controle e textos acima dos limites são rejeitados antes de reservar ou enviar. A confirmação explícita continua obrigatória.
+- Validação: 57/57 testes PASS; lint, TypeScript de contratos, Deno da função e build offline PASS. Staging autenticado: três verificações de confirmação e isolamento PASS, sem alteração das fixtures ou registros de email. Production: oito verificações negativas e quatro verificações CORS PASS; assets críticos e dez amostras conferidos por hash. Smoke público desktop/mobile PASS, sem erros de JavaScript, falhas de assets ou chamadas de provedores. O agente não executou envio autenticado real em Production.
+- Somente a função `report-mail-delivery` foi atualizada (versão 3 em Production, versão 8 em staging). Sem migrations, alteração de Auth/OAuth, segredos, aquisição, preços, nuggets ou Stripe. Nenhum email real enviado pelo agente. Stash preservado; sem push.
+
+Recibos privados: `.tmp-codex/r32-message-edit/`. Rollback do frontend: `dpl_2M3qj13ygtzbvvWXrqiXh8QVr3FP`; backup da função anterior no mesmo diretório. A regra vigente de remetente continua sendo o email salvo no perfil ativo, conforme a etapa abaixo.
+
+## Histórico — remetente do perfil ativo
+
 Atualização publicada em 17 de novembro de 2026: deployment `dpl_2M3qj13ygtzbvvWXrqiXh8QVr3FP`, READY, código `c5976acc21f6edc4236d6fd8033d9520c2b2223a`, no domínio https://dealsiftermatch.vercel.app.
 
 - O remetente de relatórios é o email salvo no perfil ativo (pessoal, profissional ou FSBO), sem fallback para o email de login ou para outro perfil. O servidor consulta somente o cadastro do usuário autenticado. A autenticação permanece independente e inalterada.
