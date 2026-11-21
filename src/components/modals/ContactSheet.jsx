@@ -6,6 +6,7 @@ import { resolveScopedProfile, normalizeProfileScope } from '../../lib/profileSc
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import './TransactionModals.css';
 
 export function ContactSheet({ match, onClose, onOpenChat }) {
   const t = useT('matches').modals;
@@ -54,12 +55,12 @@ export function ContactSheet({ match, onClose, onOpenChat }) {
     return `${priority}`;
   };
   return (
-    <Modal onClose={onClose} maxWidth={400}>
+    <Modal onClose={onClose} maxWidth={800} contentClassName="ds-contact-sheet">
       <div style={{ textAlign:"center" }}>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:12 }}><Icon name="unlock" size={48} color={C.success} strokeWidth={1.5} /></div>
         <h3 style={{ color:C.t1, fontWeight:800, fontSize:22, marginBottom:20 }}>{match.name}</h3>
         
-        <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
+        <div className="ds-contact-list" style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
           {contacts.map(({ key, icon, label, val, priority })=>(
             <div key={key} style={{ display:"flex", alignItems:"center", gap:12, background:priority===1 ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.03), border:`1px solid ${priority===1 ? C.alpha(C.danger, 0.45) : C.border}`, boxShadow: priority===1 ? `0 0 0 1px ${C.alpha(C.danger, 0.12)}` : 'none', borderRadius:16, padding:"14px 16px" }}>
               <div style={{ minWidth:42, height:32, borderRadius:999, background:priority===1 ? C.alpha(C.danger, 0.16) : C.alpha(C.t1, 0.05), color:priority===1 ? C.danger : C.t2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, letterSpacing:"0.2px" }}>
@@ -77,7 +78,7 @@ export function ContactSheet({ match, onClose, onOpenChat }) {
                     </span>
                   ) : null}
                 </div>
-                <div style={{ fontWeight:700, color:C.t1, fontSize:20 }}>{val}</div>
+                <div className="ds-contact-value" style={{ fontWeight:700, color:C.t1, fontSize:20 }}>{val}</div>
                 {priority===1 ? (
                   <div style={{ marginTop:4, fontSize:11, fontWeight:700, color:C.accentL }}>
                     {t.contactPriorityFirstHint}
@@ -96,7 +97,7 @@ export function ContactSheet({ match, onClose, onOpenChat }) {
           ))}
         </div>
         
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <div className="ds-contact-actions" style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <button onClick={() => { onClose(); onOpenChat(match); }} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.accent, 0.25)}` }}>
             <Icon name="chat" size={18} color="#fff" /> {t.openChat}
           </button>

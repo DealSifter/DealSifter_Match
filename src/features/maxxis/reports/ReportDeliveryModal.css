@@ -16,6 +16,17 @@
 .report-delivery .report-delivery-body { width:100%; min-height:180px; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; overflow:auto; padding:12px; border:1px solid var(--border, #d8e3e9); background:var(--card, #fff); color:inherit; border-radius:10px; font:inherit; font-size:12px; line-height:1.5; margin:0; }
 .report-delivery details { display:grid; gap:8px; }
 .report-delivery details label { margin:8px 0; }
+.report-delivery-columns, .report-delivery-addressing { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.report-delivery-message { min-width: 0; }
+.report-delivery-heading { padding-right: 28px; }
+@media (min-width: 768px) {
+  .report-delivery { gap: 12px; }
+  .report-delivery-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+  .report-delivery .report-delivery-summary { padding: 10px 12px; }
+  .report-delivery .report-delivery-body { height: clamp(160px, 27dvh, 280px); min-height: 120px; }
+  .report-delivery .report-delivery-recipients { gap: 8px; }
+  .report-delivery .report-delivery-alert { padding: 8px 10px; }
+}
 .report-delivery [data-testid=gmail-connection] { padding:12px; border:1px solid var(--border, #d8e3e9); border-radius:12px; }
 .report-delivery [data-testid=gmail-connection] label { display:block; font-weight:400; }
 .report-delivery .report-delivery-choice { display:flex; align-items:center; gap:8px; font-size:12px; }

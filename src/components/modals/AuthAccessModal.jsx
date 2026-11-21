@@ -78,7 +78,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
   };
 
   return (
-    <Modal onClose={onClose} maxWidth={460}>
+    <Modal onClose={onClose} maxWidth={620} contentClassName="ds-auth-dialog">
       <div data-testid="auth-modal" style={{ display: 'grid', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <DealSifterLogo size={38} />

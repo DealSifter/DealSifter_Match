@@ -3,6 +3,7 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import './TransactionModals.css';
 
 export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, exclusivityStatus = null, contactExclusivityOption = null, onUnlock, onBuyMore, onClose }) {
   const t = useT().modals;
@@ -39,12 +40,12 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
   return (
     <Modal
       onClose={onClose}
-      maxWidth={canBuyLinkedExclusive ? 440 : 400}
+      maxWidth={canBuyLinkedExclusive || canBuyExclusive ? 800 : 560}
       overlayStyle={{ zIndex: 13000 }}
-      contentClassName="ds-unlock-modal"
+      contentClassName={`ds-unlock-modal ${canBuyLinkedExclusive || canBuyExclusive ? 'has-exclusive-option' : ''}`}
     >
       <style>{`
-        @media (max-width: 767px), (hover: none) and (pointer: coarse) {
+        @media (max-width: 767px) {
           .ds-unlock-modal.ds-modal-content {
             padding: 18px 16px 16px !important;
           }
@@ -57,12 +58,12 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
           .ds-unlock-linked { gap: 6px !important; padding: 8px !important; margin-bottom: 10px !important; }
           .ds-unlock-linked-card { grid-template-columns: 56px 1fr !important; padding: 6px !important; }
           .ds-unlock-linked-card > div:first-child { width: 56px !important; height: 42px !important; }
-          .ds-unlock-cost { padding: 11px !important; margin-bottom: 12px !important; border-radius: 13px !important; }
           .ds-unlock-actions { gap: 7px !important; }
           .ds-unlock-actions button { padding: 11px 12px !important; min-height: 42px !important; font-size: 13px !important; border-radius: 12px !important; }
         }
       `}</style>
       <div className="ds-unlock-body" style={{ textAlign:"center" }}>
+        <header className="ds-unlock-heading">
         <div className="unlock-lock-icon" style={{ display:"flex", justifyContent:"center", marginBottom:16 }}><Icon name="lock" size={48} color={C.success} strokeWidth={1.5} secondaryColor={C.gold} /></div>
         <h3 style={{ color:C.t1, fontWeight:800, fontSize:22, marginBottom:8 }}>{t.unlockTitle} {match.name}</h3>
         <p style={{ color:C.t2, fontSize:14, lineHeight:1.6, marginBottom: canBuyExclusive || isBlockedByExclusive ? 12 : 24, padding: "0 10px" }}>
@@ -70,6 +71,7 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
             ? (t.exclusivityBlockedDesc || 'This property is under temporary exclusivity. You can favorite it, but contact unlock is blocked until the exclusivity window ends.')
             : unlockDesc}
         </p>
+        </header>
 
         {canBuyExclusive ? (
           <div className="ds-unlock-info" style={{
@@ -141,6 +143,7 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
           </div>
         ) : null}
         
+        <div className="ds-unlock-summary">
         <div className="ds-unlock-cost" style={{ background:C.alpha(C.gold, 0.08), border:`1px solid ${C.alpha(C.gold, 0.25)}`, borderRadius:16, padding:18, marginBottom:24 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
             <span style={{ color:C.t2, fontSize:14 }}>{t.cost}</span>
@@ -159,8 +162,8 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
               {t.exclusivityCheckLater || 'Favorite and check later'}
             </button>
           ) : (
-            <button data-testid="unlock-normal-action" type="button" disabled={!can} onClick={(event) => handleButtonAction(event, () => onUnlock(match))} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:C.bg, fontWeight:800, fontSize:16, cursor:can?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
-              <Icon name="unlock" size={18} color={C.bg} /> {unlockForLabel}
+            <button data-testid="unlock-normal-action" type="button" disabled={!can} onClick={(event) => handleButtonAction(event, () => onUnlock(match))} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:'#172018', fontWeight:800, fontSize:16, cursor:can?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
+              <Icon name="unlock" size={18} color="#172018" /> {unlockForLabel}
             </button>
           )
           }
@@ -198,6 +201,7 @@ export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, e
               <Icon name="cart" size={17} color={C.accent} /> {t.openPricing || 'Go to Pricing'}
             </button>
           ) : null}
+        </div>
         </div>
       </div>
     </Modal>

@@ -99,11 +99,12 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       if (alive.current) setError(messages[failure.message] || text('The action could not be confirmed. Check the report and connection before retrying. No new analysis was started.', 'Não foi possível confirmar a ação. Confira o relatório e a conexão antes de repetir. Nenhuma nova análise foi iniciada.'));
     } finally { lock.current = false; if (alive.current) setBusy(false); }
   };
-  return <Modal onClose={onClose} maxWidth={680} overlayStyle={{ pointerEvents: 'auto' }} ariaLabel={text('Deliver prepared report', 'Entregar relatório preparado')} contentStyle={{ padding: 22 }}>
+  return <Modal onClose={onClose} maxWidth={1040} contentClassName="ds-report-delivery-modal" overlayStyle={{ pointerEvents: 'auto' }} ariaLabel={text('Deliver prepared report', 'Entregar relatório preparado')} contentStyle={{ padding: 22 }}>
     <div className="report-delivery" data-testid="maxxis-report-delivery">
       <h2 className="report-delivery-heading">{text('Deliver prepared report', 'Entregar relatório preparado')} · {level}</h2>
       <div className="report-delivery-summary"><span className="report-delivery-property">{property?.address || property?.title || reference.propertyId}</span>
         <span className="report-delivery-caption" role="status">{prepared ? propertyRelease ? text('Property Release · current authorized property', 'Relatório básico · imóvel autorizado atual') : text('Saved report · same level and confirmed scenario', 'Relatório salvo · mesmo nível e cenário confirmado') : text('Checking report…', 'Conferindo relatório…')}</span></div>
+      <div className="report-delivery-columns"><div className="report-delivery-addressing">
       {recipientLoading ? <span role="status" className="report-delivery-caption">{text('Recovering saved recipients…', 'Recuperando destinatários salvos…')}</span> : null}
       {gmailAccount ? <GmailConnectionPanel key={`${userId}:${profileScope}`} userId={userId} profileScope={profileScope} language={reference.language} onConnectionChange={setMailbox} />
         : account ? <div className="report-delivery-alert">{qaAccount
@@ -120,13 +121,15 @@ export function ReportDeliveryModal({ reference, userId, onClose, propertyReleas
       {!envelope && photoCount > 0 ? <label className="report-delivery-choice"><input type="checkbox" checked={includePhotos} disabled={busy} onChange={event => setIncludePhotos(event.target.checked)} />{text(`Attach property photos (up to ${photoCount})`, `Anexar fotos do imóvel (até ${photoCount})`)}</label> : null}
       {prepared && !photoCount ? <p className="report-delivery-caption">{text('This report version contains no property photos to attach.', 'Esta versão do relatório não contém fotos do imóvel para anexar.')}</p> : null}
       <p className="report-delivery-caption">{text('The PDF is attached automatically. The message includes property details, notes and photo links for your CRM. Review before confirming.', 'O PDF será anexado automaticamente. A mensagem inclui dados do imóvel, notas e links das fotos para seu CRM. Revise antes de confirmar.')}</p>
-      {content ? <details open={Boolean(envelope)}><summary>{text('Message content', 'Conteúdo da mensagem', 'Contenido del mensaje')}</summary>
+      </div><div className="report-delivery-message">
+      {content ? <details open><summary>{text('Message content', 'Conteúdo da mensagem', 'Contenido del mensaje')}</summary>
         <label>{text('Subject', 'Assunto', 'Asunto')}<input type="text" value={content.subject} maxLength={240} disabled={busy || Boolean(envelope) || Boolean(outcome)}
           onChange={event => setMessage({ ...content, subject: event.target.value })} /></label>
         <label>{text('Message', 'Mensagem', 'Mensaje')}<textarea className="report-delivery-body" value={content.body} maxLength={60000} rows={9} disabled={busy || Boolean(envelope) || Boolean(outcome)}
           onChange={event => setMessage({ ...content, body: event.target.value })} /></label>
         <p className="report-delivery-caption">{text('Edits apply only to this email. The attached PDF stays unchanged.', 'As edições valem somente para este email. O PDF anexado permanece inalterado.', 'Los cambios se aplican solo a este correo. El PDF adjunto no cambia.')}</p>
       </details> : null}
+      </div></div>
       {envelope ? <div className="report-delivery-caption" role="status">{text('Attachments ready', 'Anexos preparados')}: PDF{envelope.photos.length ? ` + ${envelope.photos.length} ${text('photos', 'fotos')}` : ''}</div> : null}
       {outcome ? <div role="status" className="report-delivery-alert">{outcome.state === 'ACCEPTED'
         ? text('Gmail accepted the message with attachments. Recipient delivery is not confirmed.', 'O Gmail aceitou a mensagem com os anexos. A entrega ao destinatário não está confirmada.')

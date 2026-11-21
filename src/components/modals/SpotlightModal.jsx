@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
 import spotlightIcon from '../../assets/spotlight-icon.png';
-import { useT } from '../../i18n/translations';
+import { useLang, useT } from '../../i18n/translations';
+import { Modal } from '../ui/Modal';
 
 const SPOTLIGHT_COST = 10;
 
@@ -16,9 +17,12 @@ export function SpotlightModal({
   isLoading = false,
   isProcessing = false,
 }) {
-  const t = useT('spotlight');
+  const t = useT('spotlight').spotlight || {};
+  const language = useLang().split('-')[0];
+  const pageCopy = language === 'pt' ? {previous:'Página anterior',next:'Próxima página',selected:'selecionados'} : language === 'es' ? {previous:'Página anterior',next:'Página siguiente',selected:'seleccionados'} : {previous:'Previous page',next:'Next page',selected:'selected'};
   const eligibleItems = useMemo(() => (items || []).filter((item) => item?.cardId && item?.cardKind), [items]);
   const [selected, setSelected] = useState(() => new Set());
+  const [page, setPage] = useState(0);
 
   if (!open) return null;
 
@@ -28,6 +32,10 @@ export function SpotlightModal({
   const hasAdminAccess = Boolean(isAdmin);
   const hasEnoughBalance = hasAdminAccess || nuggets >= totalCost;
   const canSubmit = hasSelection && !isLoading && !isProcessing;
+  const pageSize = 6;
+  const pages = Math.max(1, Math.ceil(eligibleItems.length / pageSize));
+  const currentPage = Math.min(page, pages - 1);
+  const visibleItems = eligibleItems.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const toggle = (key) => {
     setSelected((prev) => {
@@ -39,17 +47,12 @@ export function SpotlightModal({
   };
 
   return (
-    <div className="ds-spotlight-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 2600, display: 'grid', placeItems: 'center', padding: '82px 18px 22px', background: 'rgba(0,0,0,.62)', boxSizing: 'border-box' }}>
+    <Modal onClose={onClose} maxWidth={980} contentClassName="ds-spotlight-modal" ariaLabel={t.title || 'Boost your cards for 30 days'} showCloseButton={false}>
       <style>{`
         .ds-spotlight-modal-card {
-          width: min(94vw, 980px);
-          max-height: calc(100vh - 112px);
-          overflow: auto;
-          border-radius: 24px;
-          background: ${C.card};
-          border: 1px solid ${C.border};
-          box-shadow: 0 24px 70px ${C.alpha('#000', 0.42)};
-          padding: 22px;
+          width: 100%;
+          max-width: 100%;
+          padding: 0;
           box-sizing: border-box;
         }
         .ds-spotlight-items-grid {
@@ -69,15 +72,15 @@ export function SpotlightModal({
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
+        @media (min-width: 1100px) {
+          .ds-spotlight-items-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
         @media (max-width: 767px) {
-          .ds-spotlight-modal-overlay {
-            padding: calc(70px + env(safe-area-inset-top, 0px)) 14px calc(20px + env(safe-area-inset-bottom, 0px)) !important;
-          }
           .ds-spotlight-modal-card {
             width: 100%;
-            max-height: calc(100vh - 100px);
+            max-height: none;
             border-radius: 20px;
-            padding: 18px;
+            padding: 0;
           }
         }
       `}</style>
@@ -93,7 +96,7 @@ export function SpotlightModal({
               {t.description || 'Selected cards appear in the paid mini-card banner and in the Map View Spotlight Cards list. Sponsored feed cards receive a neon halo.'}
             </p>
           </div>
-          <button type="button" onClick={onClose} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, width: 34, height: 34, borderRadius: 12, cursor: 'pointer' }}>
+          <button type="button" aria-label={t.close || 'Close'} onClick={onClose} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, width: 34, height: 34, flexShrink: 0, borderRadius: 12, cursor: 'pointer' }}>
             <Icon name="close" size={15} color={C.t2} />
           </button>
         </div>
@@ -117,12 +120,13 @@ export function SpotlightModal({
           </div>
         ) : (
           <div className="ds-spotlight-items-grid">
-            {eligibleItems.map((item) => {
+            {visibleItems.map((item) => {
               const active = selected.has(item.key);
               return (
                 <button
                   key={item.key}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => toggle(item.key)}
                   style={{
                     display: 'grid',
@@ -151,6 +155,12 @@ export function SpotlightModal({
           </div>
         )}
 
+        {pages > 1 ? <nav className="ds-modal-pagination" aria-label={t.kicker || 'Spotlight Cards'}>
+          <button type="button" aria-label={pageCopy.previous} disabled={currentPage === 0 || isProcessing} onClick={() => setPage(currentPage - 1)}>‹</button>
+          <span aria-live="polite">{currentPage + 1} / {pages} · {selectedItems.length} {pageCopy.selected}</span>
+          <button type="button" aria-label={pageCopy.next} disabled={currentPage === pages - 1 || isProcessing} onClick={() => setPage(currentPage + 1)}>›</button>
+        </nav> : null}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 14, flexWrap: 'wrap' }}>
           <div style={{ color: hasEnoughBalance ? C.t2 : C.danger, fontSize: 13, fontWeight: 800 }}>
             {t.total || 'Total'}: {totalCost} {t.nuggets || 'nuggets'}
@@ -178,6 +188,6 @@ export function SpotlightModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

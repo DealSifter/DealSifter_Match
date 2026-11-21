@@ -6,3 +6,9 @@
 .auth-password-input::-ms-clear {
   display: none;
 }
+@media (min-width: 768px) {
+  .ds-auth-dialog [data-testid=auth-modal] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
+  .ds-auth-dialog [data-testid=auth-modal] > div:not(:has(.auth-password-input)),
+  .ds-auth-dialog [data-testid=auth-modal] > label:has([data-testid=auth-full-name]) { grid-column: 1 / -1; }
+  .ds-auth-dialog [data-testid=auth-modal] > div:first-child { padding-right: 24px; }
+}

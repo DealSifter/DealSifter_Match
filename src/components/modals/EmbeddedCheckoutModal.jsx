@@ -61,16 +61,16 @@ export function EmbeddedCheckoutModal({
     <Modal
       onClose={onClose}
       maxWidth={860}
+      contentClassName="ds-checkout-dialog"
       ariaLabel={t.checkoutTitle || 'Secure checkout'}
-      contentStyle={{ padding: 0, overflow: 'hidden', maxHeight: 'calc(100dvh - 34px)' }}
+      contentStyle={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100dvh - 34px)' }}
     >
       <style>{`
         .ds-checkout-modal-shell {
           display: grid;
           grid-template-columns: minmax(220px, 292px) minmax(0, 1fr);
           min-height: 0;
-          max-height: calc(100dvh - 34px);
-          overflow: hidden;
+          overflow: visible;
         }
         .ds-checkout-modal-side {
           padding: 22px;
@@ -83,7 +83,7 @@ export function EmbeddedCheckoutModal({
           align-content: start;
           gap: 12px;
           min-width: 0;
-          overflow: hidden;
+          overflow: visible;
         }
         .ds-checkout-terms-box {
           animation: dsCheckoutTermsPulse 1.18s ease-in-out infinite;

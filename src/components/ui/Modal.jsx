@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { C } from '../../theme/colors';
+import './Modal.css';
 
 export function Modal({
   children,
@@ -78,15 +79,15 @@ export function Modal({
           from { opacity: 0; transform: scale(0.95) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @media (max-width: 1180px), (hover: none) and (pointer: coarse) {
+        @media (max-width: 767px) {
           .ds-modal-overlay {
-            --ds-modal-top-offset: calc(var(--ds-mobile-header-offset, 58px) + max(14px, env(safe-area-inset-top)));
-            --ds-modal-bottom-offset: calc(var(--ds-mobile-bottom-nav-visible-height, 0px) + max(18px, env(safe-area-inset-bottom)));
+            --ds-modal-top-offset: max(12px, env(safe-area-inset-top));
+            --ds-modal-bottom-offset: max(12px, env(safe-area-inset-bottom));
             align-items: flex-start !important;
             height: calc(var(--app-vh, 1vh) * 100) !important;
             max-height: calc(var(--app-vh, 1vh) * 100) !important;
             overflow-x: hidden !important;
-            overflow-y: auto !important;
+            overflow-y: hidden !important;
             overscroll-behavior: contain;
             touch-action: pan-y;
             -webkit-overflow-scrolling: touch;
@@ -107,7 +108,7 @@ export function Modal({
             padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
           }
           .modal-close-btn {
-            top: 20px !important;
+            top: 10px !important;
             right: 11px !important;
           }
         }
@@ -127,10 +128,10 @@ export function Modal({
           background: C.card, 
           border: `1px solid ${C.border}`, 
           borderRadius: 24, 
-          padding: "32px 24px", 
+          padding: "24px",
           width: "100%", 
-          maxWidth: maxWidth, 
-          maxHeight: "min(92dvh, 920px)", 
+          maxWidth: typeof maxWidth === 'number' && maxWidth <= 520 ? 560 : maxWidth,
+          maxHeight: "calc(100dvh - 32px)",
           overflowY: scrollable ? "auto" : "hidden",
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: 'touch',

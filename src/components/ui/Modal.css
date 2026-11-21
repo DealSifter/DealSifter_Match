@@ -1,0 +1,26 @@
+.ds-modal-overlay {
+  --ds-modal-top-offset: 16px;
+  --ds-modal-bottom-offset: 16px;
+  box-sizing: border-box;
+}
+.ds-modal-content { box-sizing: border-box; min-width: 0; scrollbar-width: thin; }
+.ds-modal-content > * { min-width: 0; }
+.ds-modal-content h2, .ds-modal-content h3 { margin-top: 0; }
+.ds-modal-content input, .ds-modal-content select, .ds-modal-content textarea { max-width: 100%; box-sizing: border-box; }
+.ds-modal-content button { white-space: normal; }
+.ds-modal-content .modal-close-btn { z-index: 3; min-width: 32px; min-height: 32px; }
+.ds-modal-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 10px 0; font-size: 12px; color: var(--t2); }
+.ds-modal-pagination button { min-width: 36px; min-height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--t1); cursor: pointer; font-size: 20px; }
+.ds-modal-pagination button:disabled { opacity: .4; cursor: default; }
+.ds-spotlight-modal-card h2 { font-size: 22px !important; }
+.ds-modal-content.ds-checkout-dialog { padding: 0 !important; }
+@media (min-width: 768px) {
+  .ds-property-edit-dialog textarea { min-height: 48px !important; height: 56px; }
+  .ds-property-edit-dialog .ds-property-edit-images { grid-template-columns: repeat(10, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 768px) and (max-height: 760px) {
+  .ds-modal-content:not(.ds-preview-dialog) { padding: 18px 22px; }
+}
+@media (max-width: 767px) {
+  .ds-modal-content { border-radius: 18px !important; padding: 20px 16px !important; }
+}

@@ -4,6 +4,7 @@ import { useT } from '../../i18n/translations';
 import { NUGGET_PACKS } from '../../data/mockData';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
+import './TransactionModals.css';
 
 export function NuggetStore({ nuggets, onBuy, onClose }) {
   const [bought, setBought] = useState(null);
@@ -21,7 +22,7 @@ export function NuggetStore({ nuggets, onBuy, onClose }) {
     }
   };
   return (
-    <Modal onClose={onClose} maxWidth={420}>
+    <Modal onClose={onClose} maxWidth={920} contentClassName="ds-nugget-store">
       <div style={{ textAlign:"center", marginBottom:18 }}>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}><Icon name="nugget" size={42} color={C.gold} strokeWidth={1.2} /></div>
         <h2 style={{ fontSize:22, fontWeight:800, color:C.t1, marginBottom:6 }}>{t.storeTitle}</h2>
@@ -31,7 +32,7 @@ export function NuggetStore({ nuggets, onBuy, onClose }) {
           <span style={{ color:C.gold, fontWeight:700, fontSize:14 }}>{t.balance}: {nuggets} {allT.pricing.nuggetsWord}</span>
         </div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+      <div className="ds-store-packs" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
         {NUGGET_PACKS.map(p=>(
           <div key={p.id} onClick={() => handle(p)} style={{ background:p.popular?C.alpha(C.gold, 0.1):C.bg, border:`1px solid ${p.popular?C.gold:C.border}`, borderRadius:14, padding:14, cursor:"pointer", position:"relative", textAlign:"center", transition:"transform .2s" }}>
             {p.popular && <div style={{ position:"absolute", top:-10, left:"50%", transform:"translateX(-50%)", background:C.gold, color:C.bg, fontSize:10, fontWeight:800, padding:"4px 12px", borderRadius:100, whiteSpace:"nowrap" }}>{t.bestValue}</div>}

@@ -4786,7 +4786,7 @@ export function Onboarding({
       ) : null}
 
       {editingPropertyRecord ? (
-        <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080} ariaLabel={t.editProperty || 'Edit Property'}>
+        <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1240} contentClassName="ds-property-edit-dialog" ariaLabel={t.editProperty || 'Edit Property'}>
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800,display:'flex',alignItems:'center',gap:8 }}>
             {propertyEditPage==='review'?propertyFactCopy.title:t.editProperty || 'Edit Property'}
             {propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.conflicts>0?<FactReviewIndicator variant="modal" language={propertyFactLanguage} onClick={()=>setPropertyEditPage('review')}/>:propertyEditPage==='edit'&&actionableReview(propertyFacts?.records[editingPropertyRecord.id]?.snapshot).summary.complements>0?<button type="button" onClick={()=>setPropertyEditPage('review')} style={{border:0,background:'transparent',color:C.accent,fontSize:12,cursor:'pointer'}}>{propertyFactCopy.newFacts(actionableReview(propertyFacts.records[editingPropertyRecord.id].snapshot).summary.complements)}</button>:null}
@@ -4912,7 +4912,7 @@ export function Onboarding({
             <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', marginBottom: 6 }}>{t.actionReplaceImagesUpTo10}</div>
             <input type="file" accept="image/*" multiple onChange={(e) => handleEditImages(e, editingPropertyRecord.id)} style={{ display: 'block', fontSize: 11, marginBottom: 10 }} />
             {(editingPropertyRecord.images?.length || 0) > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
+              <div className="ds-property-edit-images" style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
                 {editingPropertyRecord.images.slice(0, 10).map((imgSrc, imgIdx) => (
                   <div
                     key={`${editingPropertyRecord.id}-modal-img-${imgIdx}`}

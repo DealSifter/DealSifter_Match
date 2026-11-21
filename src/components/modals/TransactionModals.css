@@ -1,0 +1,37 @@
+.ds-modal-content.ds-unlock-modal { padding: 18px 20px; }
+.ds-unlock-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; text-align: left; padding-right: 26px; margin-bottom: 12px; }
+.ds-unlock-heading .unlock-lock-icon { grid-row: span 2; align-self: center; margin: 0 !important; }
+.ds-unlock-heading .unlock-lock-icon svg { width: 36px; height: 36px; }
+.ds-unlock-heading h3 { font-size: 20px !important; margin: 0 !important; overflow-wrap: anywhere; }
+.ds-unlock-heading p { font-size: 13px !important; line-height: 1.45 !important; margin: 0 !important; padding: 0 !important; }
+.ds-unlock-summary { min-width: 0; display: grid; align-content: start; gap: 8px; }
+.ds-unlock-body .ds-unlock-cost { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 8px; padding: 8px 10px !important; margin: 0 !important; border-radius: 12px !important; }
+.ds-unlock-cost > div:nth-child(-n+2) { min-width: 0; flex-wrap: wrap; align-items: center; gap: 4px 8px !important; margin: 0 !important; }
+.ds-unlock-cost > div:nth-child(2) { border-left: 1px solid var(--border); padding-left: 10px; }
+.ds-unlock-cost > div:nth-child(-n+2) > span { font-size: 12px !important; }
+.ds-unlock-cost > div:nth-child(-n+2) > div { font-size: 14px; white-space: nowrap; }
+.ds-unlock-cost > div:nth-child(n+3) { grid-column: 1 / -1; margin-top: 2px !important; }
+.ds-unlock-actions { gap: 8px !important; }
+.ds-unlock-actions button { min-height: 44px; padding: 11px 12px !important; font-size: 14px !important; line-height: 1.35; }
+.ds-unlock-actions svg { flex-shrink: 0; }
+.ds-unlock-linked-card > div:last-child { overflow-wrap: anywhere; }
+@media (min-width: 768px) {
+  .ds-unlock-modal.has-exclusive-option .ds-unlock-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  .ds-unlock-modal.has-exclusive-option .ds-unlock-heading { grid-column: 1 / -1; margin-bottom: 0; }
+  .ds-unlock-body .ds-unlock-linked, .ds-unlock-body .ds-unlock-info { margin: 0 !important; padding: 10px !important; gap: 8px !important; }
+  .ds-unlock-linked-card { padding: 6px !important; }
+  .ds-nugget-store .ds-store-packs { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .ds-contact-sheet .ds-contact-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px !important; }
+  .ds-contact-sheet .ds-contact-list > div { min-width: 0; padding: 10px !important; gap: 8px !important; flex-wrap: wrap; }
+  .ds-contact-sheet .ds-contact-value { font-size: 15px !important; overflow-wrap: anywhere; }
+  .ds-contact-sheet .ds-contact-actions { flex-direction: row !important; }
+}
+@media (max-width: 767px) {
+  .ds-unlock-heading { gap: 4px 8px; margin-bottom: 10px; }
+  .ds-unlock-heading .unlock-lock-icon { margin: 0 !important; }
+  .ds-unlock-body .ds-unlock-heading p { margin: 0 !important; }
+  .ds-unlock-summary { gap: 8px; }
+  .ds-contact-sheet .ds-contact-list { gap: 8px !important; margin-bottom: 14px !important; }
+  .ds-contact-sheet .ds-contact-list > div { padding: 10px !important; gap: 8px !important; }
+  .ds-contact-sheet .ds-contact-value { font-size: 16px !important; overflow-wrap: anywhere; }
+}
