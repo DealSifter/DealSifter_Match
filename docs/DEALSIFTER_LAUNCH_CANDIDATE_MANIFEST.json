@@ -777,5 +777,32 @@
     "controlledDispatches": 1,
     "additionalDispatches": 0,
     "independentMailboxAccess": false
-  }
+  },
+  "subsequentReleases": [
+    {
+      "observedAt": "2026-11-24T03:14:51.291Z",
+      "status": "PASS",
+      "id": "dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn",
+      "url": "https://dealsiftermatch-4tpci66qq-deal-sifter-match-s-projects.vercel.app",
+      "readyState": "READY",
+      "sourceCommit": "4e5cc98b4211e6b412a93b50450cc0dea9aab029",
+      "baseSource": "21e6b7787f168abadc73388489c328eace387a60",
+      "sourceFingerprint": "63837bdec969653cdb86bf79f6c3aa7be5c9f9c2ecdb55aa92f2de31c60f0e03",
+      "rollbackFrontend": "dpl_Ai7NXQNG4j4KznfQJegX1ZiASMAX",
+      "canonical": "https://dealsifter.com/",
+      "push": false,
+      "backendDeploys": 0,
+      "emails": 0,
+      "paidCalls": 0,
+      "validation": {
+        "targetedTests": 142,
+        "componentVisualCases": 8,
+        "localPublicCases": 6,
+        "livePublicCases": 6,
+        "domainCases": 6,
+        "backendFunctionsPreserved": 28
+      },
+      "launchDecision": "CONDITIONAL_GO"
+    }
+  ]
 }

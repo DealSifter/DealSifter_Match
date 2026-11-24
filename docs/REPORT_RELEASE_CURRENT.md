@@ -2,7 +2,20 @@
 
 Registro vigente: [execução, resultados e ressalvas](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). A política de publicação progressiva Classe A foi aplicada; publicação técnica permanece separada do aceite comercial humano.
 
-## Publicação vigente — Production
+## Publicação vigente — Production de 24/11/2026
+
+Publicado e conferido em **https://dealsifter.com/**, www e host Vercel. Deployment **dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn**, READY; código **4e5cc98b4211e6b412a93b50450cc0dea9aab029**, fingerprint **63837bdec969653cdb86bf79f6c3aa7be5c9f9c2ecdb55aa92f2de31c60f0e03**. Rollback preservado: **dpl_Ai7NXQNG4j4KznfQJegX1ZiASMAX**.
+
+- Indicador compartilhado de alterações pendentes nos salvamentos de perfil, investimento, imóveis/serviços e revisão de dados Maxxis; corrigida a captura tardia da primeira edição. Campos de novo registro destacam o respectivo botão de portfólio. Movimento reduzido mantém destaque estático.
+- Gmail usa inicialmente o perfil principal cadastrado e respeita a seleção explícita do usuário, sem usar email do login ou de outro perfil. Não houve envios de teste.
+- Sidebar mobile: fotos redondas de 34 px dos respectivos My Cards A/B, preservando o grid, contadores, cores e ações; somente altura/padding dos badges ajustados.
+- Validação: 142 testes distintos pertinentes passaram em execuções direcionadas, lint completo seguido de lint dos últimos arquivos PASS, contratos TypeScript PASS, build/secret scan PASS, oito provas SSR/CSS de componentes e seis casos de navegação por build/Production PASS. Seis acessos HTTPS aos domínios e hashes dos assets Dashboard/Onboarding confirmados. Isso não constitui aceite humano autenticado.
+- Backend: metadados das 28 funções preservados; sem novo deploy backend, migration, secrets ou cobrança. Arquivos anteriores já publicados foram reconciliados no commit geral. Stash preservado. Sem push.
+- **Decisão comercial permanece CONDITIONAL GO:** verificação Google de acesso a dados em análise e aceite visual humano pendente. Publicação técnica não encerra esses gates.
+
+Evidências locais ignoradas: `.tmp-codex/save-reminder-release-20261123/` (source, build, validation, browser, compiled-browser, production, production-smoke, domains e backend-after).
+
+## Histórico — Production de 21/11/2026
 
 Publicado em 21/11/2026: **`dpl_sMdDKzasEJXwq959SRUpmJNcthn4`**, READY, https://dealsiftermatch.vercel.app. Base `1862ad2b8db5e48d5a7e1abb217ccd9a471dc262` com delta isolado, fingerprint `07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d`. Rollback `dpl_6nbp4AfM2rxL84wXRUL4xECtUhVD`. Sem novo commit/push nesta rodada; manifesto identifica o source exato.
 
