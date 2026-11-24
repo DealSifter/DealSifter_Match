@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { SaveButton } from '../ui/SaveButton';
+import { useSaveReminder } from '../../hooks/useSaveReminder';
 import { Modal } from '../ui/Modal';
 import './InvestmentProfileModal.css';
 import { useLang } from '../../i18n/translations';
@@ -59,6 +61,7 @@ export function InvestmentProfileModal({
   toggleInvestmentField,
 }) {
   const [section, setSection] = useState(0);
+  const dirty = useSaveReminder(investmentProfileDraft);
   const language = useLang().split('-')[0];
   const tabs = language === 'pt' ? ['Perfil','Estratégia','Experiência'] : language === 'es' ? ['Perfil','Estrategia','Experiencia'] : ['Profile','Strategy','Experience'];
   return (
@@ -270,14 +273,13 @@ export function InvestmentProfileModal({
           </div>
         </div>
             <div style={{ display: 'flex', gap: 8, paddingTop: 8 }}>
-              <button
-                className="onb-save-profiles is-dirty"
+              <SaveButton dirty={dirty}
                 type="button"
                 onClick={onSave}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 900, cursor: 'pointer', fontSize: 12 }}
               >
                 {t.saveProfile || 'Save profile'}
-              </button>
+              </SaveButton>
             </div>
       </div>
     </Modal>

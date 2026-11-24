@@ -21,6 +21,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('onboarding save reminders', () => {
+  it('highlights the portfolio save without marking unrelated profile fields as changed', async () => {
+    const {container}=mount();
+    await act(async()=>{await new Promise(resolve=>setTimeout(resolve,40));});
+    const profileSave=container.querySelector('[data-guide="onboarding-save-profile"]');
+    const add=screen.getByRole('button',{name:'+ Add to Portfolio'});
+    const address=container.querySelector('[data-mobile-step="portfolioAddress"]');
+    expect(profileSave.dataset.savePending).toBe('false');
+    fireEvent.change(address,{target:{value:'123 Draft Avenue'}});
+    expect(add.dataset.savePending).toBe('true');
+    expect(profileSave.dataset.savePending).toBe('false');
+    fireEvent.change(address,{target:{value:''}});
+    expect(add.dataset.savePending).toBe('false');
+  });
   it.each(['property', 'service'])('highlights only changed fields in the %s editor', async kind => {
     const record = { id: '22222222-2222-4222-8222-222222222222', ownerId: '11111111-1111-4111-8111-111111111111',
       primaryProfile: 'fsbo', address: '123 Saved Street', title: 'Saved Service', category: 'General Contractor',
@@ -49,6 +62,7 @@ describe('onboarding save reminders', () => {
     const initial = input.value;
     await waitFor(() => expect(save.classList.contains('is-dirty')).toBe(false));
     fireEvent.change(input, { target: { value: `${initial} edited` } });
+    expect(save.dataset.savePending).toBe('true');
     await waitFor(() => expect(save.classList.contains('is-dirty')).toBe(true));
     fireEvent.change(input, { target: { value: initial } });
     await waitFor(() => expect(save.classList.contains('is-dirty')).toBe(false));

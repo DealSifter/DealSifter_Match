@@ -22,6 +22,7 @@ afterAll(() => vi.unstubAllGlobals());
 const propertyId = '11111111-1111-4111-8111-111111111111';
 function harness({ plan = 'enterprise', entitled = true } = {}) {
   const rows = new Map<string, any>();
+  let writeError: any = null;
   const loadSnapshot = vi.fn(async (...args) => {
     if (args[7] !== true) throw Error('CACHE_ONLY_REQUIRED');
     return { state: 'available', propertyId, property: { id: propertyId, type: 'SFR', objective: 'Buy and Hold', price: 200000 },
@@ -40,6 +41,7 @@ function harness({ plan = 'enterprise', entitled = true } = {}) {
           if (name !== 'ds_save_analysis_context_cas') throw Error('UNEXPECTED_RPC');
           const current = rows.get(user);
           if ((current?.analysis_revision || 0) !== values.p_expected_revision) return { data: null, error: { code: '40001' } };
+          if (writeError) return { data: null, error: writeError };
           const saved = { ...values.p_context, analysis_revision: values.p_expected_revision + 1, updated_at: '2026-11-05T12:00:00Z' };
           rows.set(user, saved); return { data: saved, error: null };
         } };
@@ -49,10 +51,35 @@ function harness({ plan = 'enterprise', entitled = true } = {}) {
       body: JSON.stringify({ propertyId, ...body }) }), dependencies);
     return { status: response.status, body: await response.json() };
   };
-  return { call, rows, loadSnapshot };
+  return { call, rows, loadSnapshot, setWriteError: (error: any) => { writeError = error; } };
 }
 
 describe('R-3 endpoint contracts using in-memory auth/CAS adapters, not authenticated RLS acceptance', () => {
+  it('classifies the exact capacity constraint, preserves prior data and revision, and allows recovery', async () => {
+    const h = harness();
+    await h.call({ action: 'UPSERT', confirmed: true, expectedRevision: 0, completionInputs: { insurance: 1600 } });
+    const before = structuredClone(h.rows.get('account-a'));
+    h.setWriteError({ code: '23514', message: 'new row violates check constraint "property_arv_review_deal_assumptions_check"' });
+    const result = await h.call({ action: 'UPSERT', expectedRevision: 1, unknownFields: ['sellingCosts'] });
+    expect(result.status).toBe(422);
+    expect(result.body).toMatchObject({ success: false, error: 'GAP_CONTEXT_CAPACITY_EXCEEDED', requestId: expect.any(String) });
+    expect(JSON.stringify(result.body)).not.toContain('property_arv_review');
+    expect(h.rows.get('account-a')).toEqual(before);
+    expect((await h.call({ action: 'READ' })).body.data.analysis_revision).toBe(1);
+    h.setWriteError(null);
+    expect((await h.call({ action: 'UPSERT', expectedRevision: 1, unknownFields: ['sellingCosts'] })).status).toBe(200);
+    expect((await h.call({ action: 'UPSERT', expectedRevision: 1, unknownFields: ['sellingCosts'] })).body.error).toBe('ANALYSIS_REVISION_CONFLICT');
+  });
+  it.each([
+    { code: '23514', message: 'constraint "some_other_constraint"' },
+    { code: '08006', message: 'property_arv_review_deal_assumptions_check' },
+  ])('does not label unrelated persistence errors as capacity: $code $message', async error => {
+    const h = harness(); h.setWriteError(error);
+    const result = await h.call({ action: 'UPSERT', confirmed: true, expectedRevision: 0, completionInputs: { insurance: 1600 } });
+    expect(result.status).toBe(500);
+    expect(result.body.error).toBe('GAP_RESOLUTION_PERSISTENCE_ERROR');
+    expect(h.rows.size).toBe(0);
+  });
   it('R3.1 T1/T5/T7/T10: unknown persists through CAS; estimates require confirmation and server-computed current bases', async () => {
     const h = harness();
     const seeded = await h.call({ action: 'UPSERT', confirmed: true, expectedRevision: 0,

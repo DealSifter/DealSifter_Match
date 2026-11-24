@@ -119,6 +119,7 @@ function capability(value: unknown) {
 }
 
 function publicErrorCode(code: string) {
+  if (code === 'ANALYSIS_CONTEXT_CAPACITY_EXCEEDED') return 'GAP_CONTEXT_CAPACITY_EXCEEDED';
   if (/^INVALID_|BENCHMARK_NOT_AVAILABLE|STORED_REHAB_TAKES_PRIORITY/.test(code)) {
     return 'GAP_RESOLUTION_VALIDATION_ERROR';
   }
@@ -293,8 +294,13 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request, dependenci
     const { data: saved, error: writeError } = await client.rpc('ds_save_analysis_context_cas', {
       p_property_id: propertyId, p_expected_revision: expectedRevision, p_context: row,
     });
-    if (writeError) throw new Error(writeError.code === '40001' || String(writeError.message).includes('ANALYSIS_REVISION_CONFLICT')
-      ? 'ANALYSIS_REVISION_CONFLICT' : 'ANALYSIS_INPUT_WRITE_FAILED');
+    if (writeError) {
+      if (writeError.code === '23514' && /\bproperty_arv_review_deal_assumptions_check\b/.test(String(writeError.message))) {
+        throw new Error('ANALYSIS_CONTEXT_CAPACITY_EXCEEDED');
+      }
+      throw new Error(writeError.code === '40001' || String(writeError.message).includes('ANALYSIS_REVISION_CONFLICT')
+        ? 'ANALYSIS_REVISION_CONFLICT' : 'ANALYSIS_INPUT_WRITE_FAILED');
+    }
     logOperationalEvent({
       functionName: 'maxxis-analysis-inputs', operation: 'persist_gap_resolution', requestId, userId,
       durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'supabase',
@@ -319,7 +325,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request, dependenci
     } });
   } catch (error) {
     const code = String(error instanceof Error ? error.message : 'ANALYSIS_INPUTS_UNAVAILABLE');
-    const status = /^INVALID_|BENCHMARK_NOT_AVAILABLE/.test(code) ? 400
+    const status = code === 'ANALYSIS_CONTEXT_CAPACITY_EXCEEDED' ? 422 : /^INVALID_|BENCHMARK_NOT_AVAILABLE/.test(code) ? 400
       : code === 'STORED_REHAB_TAKES_PRIORITY' || code === 'ANALYSIS_REVISION_CONFLICT' || code === 'ESTIMATE_UNAVAILABLE' ? 409 : code === 'NOT_ENTITLED' ? 403 : 500;
     const stableCode = publicErrorCode(code);
     logOperationalEvent({

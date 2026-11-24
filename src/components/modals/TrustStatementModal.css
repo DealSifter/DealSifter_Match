@@ -1,0 +1,33 @@
+.ds-modal-content.ds-trust-statement {
+  padding: clamp(28px, 5vw, 44px) !important;
+  text-align: center;
+  color: var(--t1);
+}
+.ds-trust-statement h2 {
+  margin: 0 16px 24px;
+  font-size: clamp(19px, 3.5vw, 23px);
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1.35;
+}
+.ds-trust-statement blockquote { margin: 0; }
+.ds-trust-statement blockquote p {
+  margin: 0 0 12px;
+  font-size: clamp(19px, 4vw, 24px);
+  font-weight: 500;
+  line-height: 1.55;
+}
+.ds-trust-statement cite { font-style: normal; font-size: 14px; color: var(--t2); }
+.ds-trust-statement-principles { margin: 26px 0 0; font-size: 14px; line-height: 1.7; color: var(--t2); }
+.ds-modal-overlay:has(> .ds-trust-statement) { align-items: center !important; }
+.ds-modal-content.ds-trust-statement-closing { animation-name: dsTrustStatementClose !important; }
+.ds-modal-overlay:has(> .ds-trust-statement-closing) { animation: dsTrustOverlayClose 200ms ease-out both; }
+@keyframes dsTrustStatementClose {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(.98); }
+}
+@keyframes dsTrustOverlayClose { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ds-modal-content.ds-trust-statement { animation: none !important; }
+  .ds-modal-overlay:has(> .ds-trust-statement) { animation: none !important; }
+}

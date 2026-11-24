@@ -1,0 +1,781 @@
+{
+  "schemaVersion": 3,
+  "observedAt": "2026-11-21T19:07:33.953Z",
+  "productSource": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+  "documentationHead": "21e6b7787f168abadc73388489c328eace387a60",
+  "branch": "fix/production-real-defects",
+  "production": {
+    "id": "dpl_sMdDKzasEJXwq959SRUpmJNcthn4",
+    "url": "https://dealsiftermatch.vercel.app",
+    "readyState": "READY",
+    "baseSource": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+    "sourceFingerprint": "07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d",
+    "sourceFingerprintScope": "UNCHANGED_FRONTEND_AND_PREVIOUS_RELEASE_SNAPSHOT; latest backend delta separately recorded in backendCompletionFix"
+  },
+  "rollbackFrontend": "dpl_6nbp4AfM2rxL84wXRUL4xECtUhVD",
+  "stagingProject": "oqdcnjupquhybwdbeeew",
+  "preservedStash": "e6871a826f822fa3b42a2c904d901e212c52c89a",
+  "remoteBranchLastObserved": "d36ea4ad9fea8330010ee4faf56b9f73b142fa46",
+  "localUnpublishedCommitCount": 37,
+  "localUnpublishedCommits": [
+    {
+      "sha": "21e6b7787f168abadc73388489c328eace387a60",
+      "subject": "docs: record responsive modal production release"
+    },
+    {
+      "sha": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+      "subject": "fix(ui): optimize responsive modal layouts and compact unlock summary"
+    },
+    {
+      "sha": "29151be7bcffadb1bba4abb239973a24ac22272c",
+      "subject": "docs: record editable report email production release"
+    },
+    {
+      "sha": "5c4679b97df3c0ae7bf319a54ed2183b8311850b",
+      "subject": "fix(reports): edit email message and display public report names"
+    },
+    {
+      "sha": "5fc95157fbba9b9eb9b2470ba34d7bd26dc1f553",
+      "subject": "docs: record production profile sender validation"
+    },
+    {
+      "sha": "c5976acc21f6edc4236d6fd8033d9520c2b2223a",
+      "subject": "fix(mailbox): use saved active-profile sender instead of login"
+    },
+    {
+      "sha": "fb2fd35ed7345f0bf4c8828e90597bdb1164ccc5",
+      "subject": "fix(reports): link email eligibility notice to active profile"
+    },
+    {
+      "sha": "79f06fba373aec17080677fd7e7f374866563264",
+      "subject": "fix(reports): explain unsupported sender email providers"
+    },
+    {
+      "sha": "d611f2fc09eb04fa07c9e061b0b6e156c7e77cd0",
+      "subject": "fix(reports): collapse connected Gmail management panel"
+    },
+    {
+      "sha": "577d36c6bf844b8b1bc4614c3b371d22fc3eb5c9",
+      "subject": "docs(release): record verified R3.2 production deployment"
+    },
+    {
+      "sha": "af26946b296358158b5e852e821077b0020cccf4",
+      "subject": "fix(maxxis): complete report workflow and Gmail delivery"
+    },
+    {
+      "sha": "2477cd8e11fb3ca1aa4103bf25236ff8301f3103",
+      "subject": "docs(release): record verified report deployment and clean QA index"
+    },
+    {
+      "sha": "69e10b6c525dacbd33ac9e29eae8aadddbd51c23",
+      "subject": "chore(qa): archive obsolete report renders and index validated evidence"
+    },
+    {
+      "sha": "6048598b96c756c5eb7128513ea6bdf237e6633e",
+      "subject": "fix(reports): preserve evidence semantics and refresh canonical previews"
+    },
+    {
+      "sha": "26dc8ff58100af7b1ffa912bf5e7c46c7d427a93",
+      "subject": "fix(reports): prioritize photos over Basic Release footnotes"
+    },
+    {
+      "sha": "b7338f4fa09a80294c5772101e605503f2dd21a1",
+      "subject": "fix(reports): measure complete Basic Release page content"
+    },
+    {
+      "sha": "9726ff87281a7cda0095868b63ce24283544d26a",
+      "subject": "fix(reports): constrain overview facts and expand legal text"
+    },
+    {
+      "sha": "5cb083c390450b388358a655a90fd39055a1db2a",
+      "subject": "fix(maxxis): restore L1 export across browser capabilities"
+    },
+    {
+      "sha": "7ae50e73e1700491994bd0b3af0e6e6a03caad10",
+      "subject": "fix(maxxis): prevent PDF generation from blocking the browser"
+    },
+    {
+      "sha": "298f1140ca789f69e2efed6b6fa2420351b08f96",
+      "subject": "feat(maxxis): finalize approved report designs and previews"
+    },
+    {
+      "sha": "ce6b702180ff9cd47dadb3f9d09880abfec3a833",
+      "subject": "docs(release): record reconciled functions and verified Preview"
+    },
+    {
+      "sha": "b3b91c897dd262391e237ee1169c313e0b2e8db0",
+      "subject": "test(maxxis): align release evidence and cache contracts"
+    },
+    {
+      "sha": "d5bca41775080dbac581eff4fe487bb9a24bcc16",
+      "subject": "fix(gis): reconcile deployed parcel coverage with report telemetry"
+    },
+    {
+      "sha": "c970f629be1de0fb134996746aa22a3d66dca7e2",
+      "subject": "docs(release): record v6.1 gate failures and deferred smoke tests"
+    },
+    {
+      "sha": "8ef615f844842cde2121a7fd664652fd8fb54cde",
+      "subject": "fix(maxxis): retain recorded-sale sources through report normalization"
+    },
+    {
+      "sha": "63cde378968264034aa6b9056d4d132e2f28605c",
+      "subject": "docs(maxxis): adopt analysis pipeline contract v0.9"
+    },
+    {
+      "sha": "01a4d4eea4dfffa8721419be33443b3072b1b711",
+      "subject": "fix(maxxis): refine report layout and record live source limitation"
+    },
+    {
+      "sha": "3dfb14af0ce97d3c873fcd4790b4490892a36878",
+      "subject": "fix(property-data): verify schema compatibility before live validation"
+    },
+    {
+      "sha": "753a24b777d0dccc1cc705306ef0522ec92bd7ba",
+      "subject": "docs(maxxis): adopt analysis pipeline contract v0.8"
+    },
+    {
+      "sha": "80068bf4f75081d93f6bee388ecc249b459240fc",
+      "subject": "fix(maxxis): refine report evidence layout and comparable selection"
+    },
+    {
+      "sha": "3bd6f72637e65d4a78db195dd0f1ded46395a837",
+      "subject": "fix(maxxis): distinguish internal acquisition failures and retain GIS telemetry"
+    },
+    {
+      "sha": "8dbe2d62041ecd7ebfa9086363ad9033162203a7",
+      "subject": "fix(property-data): normalize composite evidence leases to deterministic UUIDs"
+    },
+    {
+      "sha": "06ba72c9be683882e91a4800fdd92d099effb9da",
+      "subject": "test(maxxis): bound validation acquisition families and provider calls"
+    },
+    {
+      "sha": "7d8bbcac343f938e75972c5a88ac5275fd40efb8",
+      "subject": "docs(maxxis): update pipeline contract v0.7 and minimum acquisition costs"
+    },
+    {
+      "sha": "5b1d761b5aafbfa47abf061001fedd8676c322a9",
+      "subject": "fix(maxxis): order report sections and deduplicate limitations"
+    },
+    {
+      "sha": "5aa9504639fcd06421249ba8fd109a9f2cb130cb",
+      "subject": "docs(maxxis): record pipeline v0.6 and tier data requirements"
+    },
+    {
+      "sha": "2cfe28a2314b2433b512bf956fdb2dd5553909f8",
+      "subject": "checkpoint: report R4.1 finishing and in-progress R4.2 reading plan"
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/index-BXxXRhN8.js",
+      "sha256": "099c8a76c18f406421fb3274117353a20c3595d2ac63b6b0dc8d2a1d691a5852"
+    },
+    {
+      "path": "assets/Landing-BG64Aktv.js",
+      "sha256": "a658b72a79e3ce83ed64ff6d79c42a9c12e142ec6b07d743ed11569391a239bd"
+    },
+    {
+      "path": "assets/Landing-D7E6ziKh.css",
+      "sha256": "87699514aec722737ec32f42ee134801ac5a6711f4b1197f79cdbb702283e99d"
+    },
+    {
+      "path": "assets/Pricing-B0YuGHE4.js",
+      "sha256": "af5a83549f0294fc3229184450c72500d2a257d56031a0e1cfeb243121972c1f"
+    },
+    {
+      "path": "assets/Pricing-SqE2p5Pt.css",
+      "sha256": "3c685bdc3196124c0f3f5c9ee4930dded970ff60cb07c17ec6b570fd39380278"
+    },
+    {
+      "path": "assets/reportPdf.worker-B6Qdecy_.js",
+      "sha256": "0c45d04ae5ed879bd59cc1b3f03327d395bd27195873390eedbda7f55112b1c6"
+    },
+    {
+      "path": "assets/reportPdfCore-CTJI3Er7.js",
+      "sha256": "927a0c0b6576c4583557caf58c258ec003a3413858f312bad558a252496b4aef"
+    },
+    {
+      "path": "index.html",
+      "sha256": "f4b884f1fb696dcaafed1a0f673aa00a74e2763b1f185787c07a51a3ff888b8f"
+    }
+  ],
+  "operations": {
+    "productionMutations": 7,
+    "remoteWrites": {
+      "target": "oqdcnjupquhybwdbeeew",
+      "authorized": [
+        "P-01",
+        "P-02",
+        "CONTINUOUS_VALIDATED_PRODUCTION_DELIVERY_CLASS_A",
+        "P-03R_STAGING_TEST_ONLY",
+        "P03R_ONE_ADDITIONAL_INVESTOR_PROPERTY",
+        "P03R_SINGLE_REPORT_UNLOCK_FUNCTION_STAGING",
+        "P03R_SINGLE_EXPIRED_RECORD",
+        "P03R_CAP_21_TOTAL_30"
+      ],
+      "categories": [
+        "CORS_ORIGIN_APPEND",
+        "LEGITIMATE_QA_LOGIN",
+        "PRIVATE_CONTEXT_CAS",
+        "SYNTHETIC_REPORT_SAVE_AND_GUARDED_RESTORE",
+        "TWO_CONFIRMED_FICTITIOUS_ACCOUNTS",
+        "THREE_QA_MARKETPLACE_RECORDS_OWNER_RLS",
+        "LEGITIMATE_SINGLE_NORMAL_UNLOCK_AND_INTERNAL_QA_NOTIFICATION",
+        "ADDITIONAL_INVESTOR_ONBOARDING_QA_PROPERTY",
+        "STRIPE_TEST_CHECKOUTS_AND_WEBHOOKS",
+        "LEGITIMATE_PREMIUM_PURCHASE_AND_EXCLUSIVITY",
+        "CANCEL_OWN_TEST_SUBSCRIPTION",
+        "RETIRE_ONLY_ADDED_TEST_CONFIG",
+        "PRESERVE_QA_FIXTURES_LEDGER"
+      ]
+    },
+    "push": false,
+    "commit": false,
+    "previewPublished": true,
+    "edgeFunctionCodeDeploys": 6,
+    "currentPolicy": "CONTINUOUS_VALIDATED_PRODUCTION_DELIVERY_CLASS_A",
+    "currentProductionComponents": [
+      "frontend",
+      "maxxis-analysis-inputs",
+      "maxxis-chat"
+    ],
+    "footerBackendMutations": 0,
+    "paidCalls": 0,
+    "emailsSent": 0,
+    "productionDataWrites": 0,
+    "controlledAlert": {
+      "authorization": "P-05R",
+      "target": "EXISTING_GITHUB_ACTIONS_MAIN",
+      "dispatches": 1,
+      "runId": 44957302667
+    }
+  },
+  "testRuns": [
+    {
+      "suites": 6,
+      "passed": 50,
+      "kind": "LOCAL_UNIT_AND_DOM_WITH_MOCKS",
+      "durationSeconds": 42.37
+    },
+    {
+      "suites": 4,
+      "passed": 24,
+      "kind": "LOCAL_ENTITLEMENT_AND_SOURCE_CONTRACTS",
+      "durationSeconds": 8.38
+    },
+    {
+      "delivery": "CAPACITY",
+      "suites": 4,
+      "passed": 29,
+      "kind": "LOCAL_ENDPOINT_SERVICE_COMPONENT_ERRORS"
+    },
+    {
+      "delivery": "INSTITUTIONAL_FOOTER",
+      "suites": 2,
+      "passed": 6,
+      "kind": "LOCAL_COMPANY_ORDER_COPY_KEYBOARD_FOCUS"
+    },
+    {
+      "delivery": "TRADITIONAL_LOCALIZED_FOOTER",
+      "passed": 10,
+      "kind": "TARGETED_LOCAL_UI",
+      "previewCases": 15,
+      "productionCases": 15
+    },
+    {
+      "delivery": "PLAN_COMPARISON_COPY",
+      "passed": 5,
+      "kind": "TARGETED_LOCAL_UI",
+      "previewCases": 6,
+      "productionCases": 6
+    }
+  ],
+  "evidenceDirectory": [
+    ".tmp-codex/context-capacity-release-20261121",
+    ".tmp-codex/trust-statement-release-20261121"
+  ],
+  "limitations": [
+    "Automated authenticated QA uses published live HTML, verified uploaded static cache and actual staging sessions/backend; no mocked API responses",
+    "Provider, payment, email and unrelated writes blocked in browser",
+    "Human visual acceptance pending",
+    "Homepage retains its existing forced light theme; modal uses shared theme tokens",
+    "Footer browser proof blocks backend/external services; no authenticated commercial acceptance is claimed",
+    "Candidate published as explicit base plus fingerprint, without new commit or indiscriminate historical push",
+    "Google project quota/restrictions and owner visual acceptance remain OWNER ACTION; Stripe proofs are TEST, not real-money payment proof",
+    "Paid checkout completion/webhook verified; authenticated success-return screen was not certified",
+    "Report QA fixture has no photos; external map tiles blocked in this run; no new visual redesign acceptance claimed"
+  ],
+  "previewCandidate": {
+    "deploymentId": "dpl_GepZ1qqmJgbyiEQMgSis4YG7yYup",
+    "url": "https://dealsiftermatch-izgrv6mm9-deal-sifter-match-s-projects.vercel.app",
+    "readyState": "READY",
+    "baseSource": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+    "sourceFingerprint": "3b1cd4ac144b690db59bbe68e6b1a42cb69e95c058aa53581337c45a36a10527",
+    "purpose": "AUTHENTICATED_REPORT_CONTEXT_CAPACITY_QA",
+    "supabaseRef": "oqdcnjupquhybwdbeeew",
+    "cors": "PASS_PRESERVED_PRIOR_ORIGINS"
+  },
+  "lastUpdatedAt": "2026-11-22T00:29:09.225Z",
+  "qaAcceptance": {
+    "storageChecks": {
+      "passed": 11,
+      "total": 11
+    },
+    "estimatedBrowserChecks": {
+      "passed": 17,
+      "total": 17
+    },
+    "partialContextualBrowserChecks": {
+      "passed": 19,
+      "total": 19
+    },
+    "corsPositive": 8,
+    "corsNegative": 4,
+    "contextAndReportsRestored": true,
+    "sideEffectsUnchanged": true,
+    "productionUnchanged": false,
+    "backendBundlesUnchanged": false,
+    "humanVisualAcceptance": "PENDING",
+    "capacityDiagnostic": "PASS_PRODUCTION_DEPLOYED_SMOKE_PASS",
+    "realGmailSend": "NOT_RUN",
+    "payments": "PASS_STRIPE_TEST_ONLY",
+    "capacityBrowserChecks": {
+      "passed": 18,
+      "total": 18
+    },
+    "otherBackendBundlesUnchanged": true,
+    "footerViewports": {
+      "staging": 7,
+      "production": 7
+    },
+    "footerAxeViolations": 0,
+    "footerConsolePageErrors": 0,
+    "deno": "31_PREEXISTING_DIAGNOSTICS_IDENTICAL_NO_NEW_ERRORS",
+    "currentProductionFunctions": [
+      {
+        "slug": "maxxis-analysis-inputs",
+        "sha256": "ae334fcf11ac21d217177cd0f3687154277846dbe39f737949217cc728d90e29",
+        "version": 17,
+        "verify_jwt": true,
+        "unchangedForFooter": true,
+        "currentChange": "FIRST_UNKNOWN_AUTHENTICATED_IDENTITY_FIX"
+      },
+      {
+        "slug": "maxxis-chat",
+        "sha256": "1325275382e60c6491fdc1d30093866c10319db294f48f95dd4280265f784340",
+        "version": 105,
+        "verify_jwt": true,
+        "unchangedForFooter": true,
+        "currentChange": "FIRST_UNKNOWN_AUTHENTICATED_IDENTITY_FIX"
+      },
+      {
+        "slug": "report-mailbox-oauth",
+        "sha256": "51666400132d4d9c53f4657be646e6ce6e8714af776e090509da7523df90b2bb",
+        "version": 2,
+        "verify_jwt": false,
+        "unchangedForFooter": true
+      },
+      {
+        "slug": "report-mail-delivery",
+        "sha256": "05d1c1c3c4f2163066b265e1d540dd3fd86eccbed804227b1ec155273471bdc6",
+        "version": 3,
+        "verify_jwt": true,
+        "unchangedForFooter": true
+      }
+    ],
+    "historicalStagingFunctionsAtP01": [
+      {
+        "name": "report-mailbox-oauth",
+        "version": 7,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "maxxis-chat",
+        "version": 82,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "report-mail-delivery",
+        "version": 9,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "maxxis-analysis-inputs",
+        "version": 21,
+        "status": "ACTIVE"
+      }
+    ],
+    "externalAlertReceipt": "PASS_OWNER_CONFIRMED",
+    "currentBackendDeno": [
+      {
+        "slug": "maxxis-analysis-inputs",
+        "status": "BASELINE_UNCHANGED",
+        "baselineErrors": 171,
+        "beforeCode": 1,
+        "afterCode": 1
+      },
+      {
+        "slug": "maxxis-chat",
+        "status": "BASELINE_UNCHANGED",
+        "baselineErrors": 180,
+        "beforeCode": 1,
+        "afterCode": 1
+      }
+    ]
+  },
+  "baseSource": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+  "sourceFingerprint": "07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d",
+  "sourceStatus": "BASE_PLUS_ISOLATED_VALIDATED_DELTA_NO_NEW_COMMIT",
+  "sourceFiles": [
+    {
+      "path": "src/components/maxxis/MaxxisAssistant.jsx",
+      "sha256": "94864baa1078f9baac7f2874e6dd910e9cc4f81c2627aa3aae6b10a86475179e"
+    },
+    {
+      "path": "src/services/maxxisAnalysisInputsService.js",
+      "sha256": "51d4130a2f029952db4c1e607ac1db49bed6702f25f49ffceb8a4854ac4fa75e"
+    },
+    {
+      "path": "src/features/maxxis/intelligence/analysisInputErrors.js",
+      "sha256": "6604bd191f4cce0d6b31dec9270cf5587d30aca0803c4c6b567bdea0611e72dc"
+    },
+    {
+      "path": "src/services/maxxisAnalysisInputsService.test.js",
+      "sha256": "c2345d3ff3db5435ec40d22e507747b52fcb34c3dc20be113c5c9a36f63f0cdc"
+    },
+    {
+      "path": "src/features/maxxis/intelligence/analysisInputErrors.test.js",
+      "sha256": "0d50902a8447adcbc339f4c52f6bdb93b81281eaa1afcf47930fe3aa6b8484a3"
+    },
+    {
+      "path": "supabase/functions/maxxis-analysis-inputs/index.ts",
+      "sha256": "bb900dc40021cc38353f0d03799f95756ccb32bbbf1a115da1d11c1f2358653a"
+    },
+    {
+      "path": "supabase/functions/_shared/maxxis/reportCompletionEndpoint.test.ts",
+      "sha256": "7ccac4c0b41d4c5b499711bff58f966fc072af56f23dd49e98d513a6d6947fe8"
+    },
+    {
+      "path": "src/pages/Landing.jsx",
+      "sha256": "e4b6543a5f2c452d8020942ba62c0672801bbc3802767157ffd80f206f5a258d"
+    },
+    {
+      "path": "src/pages/Landing.trust.test.jsx",
+      "sha256": "72dc1c8a1d90709b621db778b74585eba97914f3cecdd02bad7409e0bae4c9ad"
+    },
+    {
+      "path": "src/components/modals/TrustStatementModal.jsx",
+      "sha256": "a159397094ac755100858a8b436f617b78e04f303eafaaf67d95a284a465af10"
+    },
+    {
+      "path": "src/components/modals/TrustStatementModal.css",
+      "sha256": "2120c36332cb1f652e2f48e969677f2c108f55912d18ae72f00ea5f2a4614dfa"
+    },
+    {
+      "path": "src/pages/Pricing.jsx",
+      "sha256": "5d70087dddb9dc0b7cf063e7fa746e5a2459ac50b4115cc5f0642e185ce7ede5"
+    },
+    {
+      "path": "src/pages/Pricing.intelligenceEconomy.test.jsx",
+      "sha256": "38fa040b02a7cb3e39d2e563d65a906ba8798bbbece995b68d4780a03db116fa"
+    }
+  ],
+  "backend": [
+    {
+      "slug": "maxxis-analysis-inputs",
+      "sha256": "ae334fcf11ac21d217177cd0f3687154277846dbe39f737949217cc728d90e29",
+      "version": 17,
+      "verify_jwt": true,
+      "unchangedForFooter": true,
+      "currentChange": "FIRST_UNKNOWN_AUTHENTICATED_IDENTITY_FIX"
+    },
+    {
+      "slug": "maxxis-chat",
+      "sha256": "1325275382e60c6491fdc1d30093866c10319db294f48f95dd4280265f784340",
+      "version": 105,
+      "verify_jwt": true,
+      "unchangedForFooter": true,
+      "currentChange": "FIRST_UNKNOWN_AUTHENTICATED_IDENTITY_FIX"
+    },
+    {
+      "slug": "report-mailbox-oauth",
+      "sha256": "51666400132d4d9c53f4657be646e6ce6e8714af776e090509da7523df90b2bb",
+      "version": 2,
+      "verify_jwt": false,
+      "unchangedForFooter": true
+    },
+    {
+      "slug": "report-mail-delivery",
+      "sha256": "05d1c1c3c4f2163066b265e1d540dd3fd86eccbed804227b1ec155273471bdc6",
+      "version": 3,
+      "verify_jwt": true,
+      "unchangedForFooter": true
+    }
+  ],
+  "previousProgressiveDelivery": {
+    "id": "dpl_FyvNYNtWUxHFDCoVf4V7i9A2uui9",
+    "sourceFingerprint": "3b1cd4ac144b690db59bbe68e6b1a42cb69e95c058aa53581337c45a36a10527",
+    "feature": "CONTEXT_CAPACITY_DIAGNOSTIC",
+    "smoke": "PASS",
+    "rollbackFrontend": "dpl_aQU5cyEmcnKDMx79iK8yvmrGgdgo"
+  },
+  "footerPreview": {
+    "status": "PASS",
+    "target": "preview",
+    "id": "dpl_3VM6pDs7pyJZfGzadmadNbU6afTG",
+    "url": "https://dealsiftermatch-2yztr78jy-deal-sifter-match-s-projects.vercel.app",
+    "readyState": "READY",
+    "baseSource": "1862ad2b8db5e48d5a7e1abb217ccd9a471dc262",
+    "sourceFingerprint": "993695953e40d2965c003e019bc18568599e6a77bc82850b2b9b68c6a476a78b",
+    "uploadPath": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\.tmp-codex\\trust-statement-release-20261121\\preview-upload",
+    "productionUnchanged": true,
+    "rollbackFrontend": "dpl_FyvNYNtWUxHFDCoVf4V7i9A2uui9",
+    "push": false,
+    "purpose": "INSTITUTIONAL_FOOTER_ONLY_NO_BACKEND_CORS_CHANGE"
+  },
+  "baseProductTree": "69b6c153980a2099d50eba5ed72a93fcc5b1dc80",
+  "launchDecision": "CONDITIONAL_GO_OWNER_VISUAL_ACCEPTANCE_AND_GMAIL_QUOTA_PENDING",
+  "productionHistory": [
+    {
+      "id": "dpl_7pEvyrstxbLJok6ZvH9JN72WBzCv",
+      "feature": "INITIAL_TRUST_FOOTER"
+    },
+    {
+      "id": "dpl_6nbp4AfM2rxL84wXRUL4xECtUhVD",
+      "sourceFingerprint": "c5e4fcf1cb30ff46ed62c9610d3dd6e83cbc55a0b0ab79d8f637615783fedb29",
+      "feature": "TRADITIONAL_LOCALIZED_TRUST_STATEMENT"
+    },
+    {
+      "id": "dpl_sMdDKzasEJXwq959SRUpmJNcthn4",
+      "sourceFingerprint": "07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d",
+      "feature": "PLAN_COMPARISON_EXISTING_LIMITS"
+    }
+  ],
+  "currentFrontendPreview": {
+    "id": "dpl_79zpKDC7LMwS8fUKp6drpDGoZvzP",
+    "url": "https://dealsiftermatch-75st3iavz-deal-sifter-match-s-projects.vercel.app",
+    "sourceFingerprint": "07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d",
+    "purpose": "CURRENT_FRONTEND_INTERFACE_NO_NEW_ANALYSIS_CORS"
+  },
+  "currentGates": {
+    "LC01": "PASS",
+    "LC02": "OWNER ACTION",
+    "LC03": "PASS",
+    "LC04": "OWNER ACTION",
+    "LC05": "PASS",
+    "LC06": "PASS"
+  },
+  "finalLaunchEvidenceDirectory": ".tmp-codex/launch-final-20261121",
+  "externalAlert": {
+    "runId": 44957302667,
+    "url": "https://github.com/DealSifter/DealSifter_Match/actions/runs/44957302667",
+    "controlledGeneration": "PASS",
+    "externalReceipt": "PASS",
+    "dispatches": 1,
+    "ownerReport": "Hotmail email received 2026-11-21 19:33 America/Sao_Paulo",
+    "additionalDispatches": 0,
+    "evidenceType": "EXPLICIT_OWNER_CONFIRMATION_IN_CHAT"
+  },
+  "googleOwnerAttestation": {
+    "audience": "PRODUCTION",
+    "verification": "VERIFIED",
+    "quota": "NOT VERIFIED"
+  },
+  "currentValidation": {
+    "trustLocalTests": 10,
+    "trustPreviewCases": 15,
+    "trustProductionCases": 15,
+    "pricingLocalTests": 5,
+    "pricingPreviewCases": 6,
+    "pricingProductionCases": 6,
+    "marketplaceAuthenticatedChecks": 28,
+    "feedFilterChecks": 6,
+    "normalUnlockChecks": 10,
+    "manualCredits": 0,
+    "paidProviders": 0,
+    "realEmails": 0,
+    "marketplaceBrowserChecks": 5,
+    "additionalInvestorProperty": "PASS",
+    "syntheticRecordsThisRound": 4,
+    "scopedProfilesBrowserChecks": 6,
+    "enterprisePaidReportBrowserChecks": 11,
+    "proPaidReportBrowserChecks": 9
+  },
+  "backendCompletionFix": {
+    "classification": "A",
+    "sourceFiles": [
+      {
+        "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.ts",
+        "sha256": "73a432bd94dd97d99c0da6aaaeaea6b9dbb0d3a120ff3c7b315c5e757bfe5571"
+      },
+      {
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sha256": "bc7054a1d6690ae47b32a35110dff286081f272dc7717a4e31a21f047f0501df"
+      },
+      {
+        "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.test.ts",
+        "sha256": "4355704ff77c0215efad0c7bbf0a9b45c85c8826cdd9e18e3f2a83d2083b2879"
+      }
+    ],
+    "sourceFingerprint": "957ccca3b401286fb1ee1a81ba1f4d7ad7f551848813a3b97525eca15e25c083",
+    "staging": [
+      {
+        "ref": "oqdcnjupquhybwdbeeew",
+        "slug": "maxxis-analysis-inputs",
+        "version": 26,
+        "verifyJwt": true,
+        "sha256": "ae334fcf11ac21d217177cd0f3687154277846dbe39f737949217cc728d90e29",
+        "previousHash": "31f75498cc51268c1b9dd17bfb376784ff8f413d4f4e07a37678ef671e050d4f",
+        "changedModules": [
+          {
+            "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.ts",
+            "beforeHash": "16c719f0ceb5bba22732f84529b9bb4fac88a0fba982bf07a4925d196e951c1a",
+            "afterHash": "73a432bd94dd97d99c0da6aaaeaea6b9dbb0d3a120ff3c7b315c5e757bfe5571"
+          },
+          {
+            "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+            "beforeHash": "c4ef368fd973592f24997ffad83000a7da148951abce928c26228f064218f0d7",
+            "afterHash": "bc7054a1d6690ae47b32a35110dff286081f272dc7717a4e31a21f047f0501df"
+          }
+        ]
+      },
+      {
+        "ref": "oqdcnjupquhybwdbeeew",
+        "slug": "maxxis-chat",
+        "version": 86,
+        "verifyJwt": true,
+        "sha256": "1325275382e60c6491fdc1d30093866c10319db294f48f95dd4280265f784340",
+        "previousHash": "240a3c1547bedb548ff87748e78b9eb2392e1a88fa5649c2df12254200b49a81",
+        "changedModules": [
+          {
+            "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.ts",
+            "beforeHash": "24d662d921b024b6077f9705ce94c03a4593db289c235653827a9a4b4b1f403c",
+            "afterHash": "73a432bd94dd97d99c0da6aaaeaea6b9dbb0d3a120ff3c7b315c5e757bfe5571"
+          },
+          {
+            "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+            "beforeHash": "c4ef368fd973592f24997ffad83000a7da148951abce928c26228f064218f0d7",
+            "afterHash": "bc7054a1d6690ae47b32a35110dff286081f272dc7717a4e31a21f047f0501df"
+          }
+        ]
+      }
+    ],
+    "production": [
+      {
+        "ref": "cyeipfskwwisbbayyaca",
+        "slug": "maxxis-analysis-inputs",
+        "version": 17,
+        "verifyJwt": true,
+        "sha256": "ae334fcf11ac21d217177cd0f3687154277846dbe39f737949217cc728d90e29",
+        "previousHash": "31f75498cc51268c1b9dd17bfb376784ff8f413d4f4e07a37678ef671e050d4f",
+        "changedModules": [
+          {
+            "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.ts",
+            "beforeHash": "16c719f0ceb5bba22732f84529b9bb4fac88a0fba982bf07a4925d196e951c1a",
+            "afterHash": "73a432bd94dd97d99c0da6aaaeaea6b9dbb0d3a120ff3c7b315c5e757bfe5571"
+          },
+          {
+            "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+            "beforeHash": "c4ef368fd973592f24997ffad83000a7da148951abce928c26228f064218f0d7",
+            "afterHash": "bc7054a1d6690ae47b32a35110dff286081f272dc7717a4e31a21f047f0501df"
+          }
+        ]
+      },
+      {
+        "ref": "cyeipfskwwisbbayyaca",
+        "slug": "maxxis-chat",
+        "version": 105,
+        "verifyJwt": true,
+        "sha256": "1325275382e60c6491fdc1d30093866c10319db294f48f95dd4280265f784340",
+        "previousHash": "240a3c1547bedb548ff87748e78b9eb2392e1a88fa5649c2df12254200b49a81",
+        "changedModules": [
+          {
+            "path": "supabase/functions/_shared/maxxis/refreshReportFinancialEvidence.ts",
+            "beforeHash": "24d662d921b024b6077f9705ce94c03a4593db289c235653827a9a4b4b1f403c",
+            "afterHash": "73a432bd94dd97d99c0da6aaaeaea6b9dbb0d3a120ff3c7b315c5e757bfe5571"
+          },
+          {
+            "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+            "beforeHash": "c4ef368fd973592f24997ffad83000a7da148951abce928c26228f064218f0d7",
+            "afterHash": "bc7054a1d6690ae47b32a35110dff286081f272dc7717a4e31a21f047f0501df"
+          }
+        ]
+      }
+    ],
+    "targetedTests": 26,
+    "browserChecks": {
+      "enterprise": 11,
+      "pro": 9
+    },
+    "smokeChecks": 13,
+    "sourceComparison": "Only two modules changed in 150/169-module graphs per function per environment",
+    "rollbackDirectory": ".tmp-codex/first-unknown-fix-20261121/rollback",
+    "productionDataWrites": 0,
+    "frontendRedeploy": false,
+    "rollbackPrepared": true
+  },
+  "commercialAcceptance": {
+    "status": "PASS",
+    "mode": "STAGING_AND_STRIPE_TEST_ONLY",
+    "cases": {
+      "B1": "PASS",
+      "B2": "PASS",
+      "B3": "PASS",
+      "B4": "PASS",
+      "B5": "PASS",
+      "B6": "PASS"
+    },
+    "legitimateCredits": 31,
+    "authorizedDebits": 30,
+    "actualDebits": 30,
+    "finalNuggets": 1,
+    "finalPlan": "free",
+    "normalUnlock": 1,
+    "analysisUnlock": 3,
+    "enterpriseUnlock": 5,
+    "exclusivity": 21,
+    "checkoutsPaid": 2,
+    "checkoutsCancelled": 1,
+    "eventReplays": 2,
+    "invalidWebhookCases": 2,
+    "subscriptionCancelled": true,
+    "temporaryStripeConfigRetired": true,
+    "manualCredits": 0,
+    "realMoney": 0,
+    "providerCalls": 0,
+    "agentEmails": 0,
+    "receipts": [
+      ".tmp-codex/launch-final-20261121/checkout-p5.json",
+      ".tmp-codex/launch-final-20261121/checkout-pro.json",
+      ".tmp-codex/launch-final-20261121/checkout-cancel.json",
+      ".tmp-codex/launch-final-20261121/premium-analysis.json",
+      ".tmp-codex/launch-final-20261121/premium-deal.json",
+      ".tmp-codex/launch-final-20261121/exclusivity-purchase.json",
+      ".tmp-codex/launch-final-20261121/replay-p5.json",
+      ".tmp-codex/launch-final-20261121/replay-pro.json",
+      ".tmp-codex/launch-final-20261121/webhook-rejections.json",
+      ".tmp-codex/launch-final-20261121/subscription-cancel.json",
+      ".tmp-codex/launch-final-20261121/paid-report-browser.json",
+      ".tmp-codex/launch-final-20261121/paid-pro-report-browser.json",
+      ".tmp-codex/launch-final-20261121/scoped-profiles-browser.json",
+      ".tmp-codex/launch-final-20261121/paid-pdf-inspection.json",
+      ".tmp-codex/launch-final-20261121/paid-pro-pdf-inspection.json",
+      ".tmp-codex/launch-final-20261121/external-alert-receipt.json",
+      ".tmp-codex/launch-final-20261121/stripe-test-retirement.json"
+    ]
+  },
+  "externalAlertReceipt": {
+    "status": "PASS",
+    "runId": 44957302667,
+    "url": "https://github.com/DealSifter/DealSifter_Match/actions/runs/44957302667",
+    "channel": "Hotmail email",
+    "receivedAtLocal": "2026-11-21 19:33 America/Sao_Paulo",
+    "evidenceType": "EXPLICIT_OWNER_CONFIRMATION_IN_CHAT",
+    "confirmedAt": "2026-11-22T00:23:25.609Z",
+    "controlledDispatches": 1,
+    "additionalDispatches": 0,
+    "independentMailboxAccess": false
+  }
+}

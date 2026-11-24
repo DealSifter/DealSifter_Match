@@ -11,9 +11,11 @@ async function invoke(body, invokeOverride = null) {
     if (!responseData && error?.context?.json) {
       responseData = await error.context.clone().json().catch(() => null);
     }
-    const failure = new Error(String(responseData?.error || 'ANALYSIS_INPUTS_UNAVAILABLE'));
+    const code = String(responseData?.error || (error?.context?.status === 401 ? 'AUTH_REQUIRED'
+      : error?.name === 'FunctionsFetchError' ? 'ANALYSIS_INPUT_NETWORK_ERROR' : 'ANALYSIS_INPUTS_UNAVAILABLE'));
+    const failure = new Error(code);
     failure.requestId = String(responseData?.requestId || error?.context?.headers?.get?.('x-request-id') || '');
-    failure.code = String(responseData?.error || 'ANALYSIS_INPUTS_UNAVAILABLE');
+    failure.code = code;
     throw failure;
   }
   return data.data;

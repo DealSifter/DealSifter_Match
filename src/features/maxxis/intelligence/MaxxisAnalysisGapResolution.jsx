@@ -1,6 +1,8 @@
 import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import { FINANCIAL_INPUT_FIELDS } from '../../../../supabase/functions/_shared/maxxis/financialInputContract.ts';
 import React, { useMemo, useState } from 'react';
+import { SaveButton } from '../../../components/ui/SaveButton';
+import { useSaveReminder } from '../../../hooks/useSaveReminder';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 import { COMPLETION_FIELDS, completionLabel } from '../../../../supabase/functions/_shared/maxxis/reportCompletion.ts';
 import { ASSISTED_PARAMETERS, assistedEstimateCopy, assistedParameterValue } from '../../../../supabase/functions/_shared/maxxis/unknownInputResolution.ts';
@@ -51,6 +53,7 @@ function CompletionQuestions({ message, language, onResolve, onDecline, busy }) 
   const [values, setValues] = useState(() => ({ ...Object.fromEntries(questions.filter(q => q.candidate).map(q => [q.id, q.candidate.value])), ...(data.completionCandidates?.values || {}),
     ...Object.fromEntries(questions.filter(q => q.id === 'opexPercent').map(q => [q.id, 30])) }));
   const isPt = language === 'pt', isEs = language === 'es';
+  const dirty = useSaveReminder(values);
   const partial = preflight?.status === 'PARTIAL_ALLOWED';
   const options = { financingMode: ['CASH', 'FINANCED'], financingScope: ['NO_FINANCING_CHARGES', 'CHARGES_APPLY'],
     holdingExpenseScope: ['ITEMIZED_EXCLUDES_REHAB_AND_FINANCING'], financingInterestMethod: ['INTEREST_ONLY'], financingCostScope: ASSISTED_PARAMETERS.financingCostScope.options };
@@ -107,7 +110,7 @@ function CompletionQuestions({ message, language, onResolve, onDecline, busy }) 
       {partial && metricSummary ? <p><strong>{isPt?'Projeções do cenário confirmado':'Confirmed scenario projections'}</strong><br/>{metricSummary}</p> : null}
       {data.error ? <p className="maxxis-gap-error" role="alert">{data.error}</p> : null}
       <div className="maxxis-gap-actions">
-        {questions.length && (!unknown || parameterMode) ? <button type="button" className="maxxis-inline-link" disabled={busy || !valid} onClick={submit}>{busy ? (isPt ? 'Salvando…' : 'Saving…') : (isPt ? 'Confirmar os valores acima' : 'Confirm the values above')}</button> : null}
+        {questions.length && (!unknown || parameterMode) ? <SaveButton dirty={dirty} className="maxxis-inline-link" disabled={busy || !valid} onClick={submit}>{busy ? (isPt ? 'Salvando…' : 'Saving…') : (isPt ? 'Confirmar os valores acima' : 'Confirm the values above')}</SaveButton> : null}
         {partial ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onResolve(message, { completionPartialAccepted: true })}>{isPt ? 'Gerar com limitações explícitas' : 'Generate with explicit limitations'}</button> : null}
         {questions.length && !unknown ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onDecline(message, questions.map(q => q.id))}>{isPt ? 'Não sei' : isEs ? 'No sé' : "I don't know"}</button> : null}
       </div>
@@ -137,6 +140,7 @@ function ExistingAnalysisGapResolution({ message, language = 'en', onResolve, on
   const [scopeOpen, setScopeOpen] = useState(Boolean(assumptions.renovationScope));
   const decisionInputField = String(data.decisionInputField || '');
   const [decisionInputValue, setDecisionInputValue] = useState('');
+  const dirty = useSaveReminder({ targetCondition, rehabBudget, rehabMode, renovationScope, decisionInputValue });
   const copy = LABELS[language] || LABELS.en;
   const residentialNotApplicable = data.analysisApplicability?.residentialArv === 'NOT_APPLICABLE';
   const needsTarget = !residentialNotApplicable && missing.includes('target_condition');
@@ -226,7 +230,7 @@ function ExistingAnalysisGapResolution({ message, language = 'en', onResolve, on
         </> : null}
         {data.error ? <p className="maxxis-gap-error" role="alert">{data.error}</p> : null}
         <div className="maxxis-gap-actions">
-          <button type="button" className="maxxis-inline-link" disabled={busy || !valid} onClick={resolve}>{busy ? copy.saving : copy.save}</button>
+          <SaveButton dirty={dirty} className="maxxis-inline-link" disabled={busy || !valid} onClick={resolve}>{busy ? copy.saving : copy.save}</SaveButton>
           {!needsDecisionInput ? <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onDecline?.(message, missing)}>{copy.decline}</button> : null}
         </div>
       </div>

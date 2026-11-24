@@ -241,7 +241,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
           marketRentAcquisition: shouldAcquireReportMarketRent((args as Record<string, unknown>)?.reportType, context.cacheOnly),
         }).catch(() => null) as Awaited<ReturnType<typeof getCanonicalPropertyEvidenceWithDependencies>> | null;
       if (evidence?.type === 'canonical_property_evidence' && evidence.state === 'available' && evidence.financialEvidence) {
-        return refreshReportFinancialEvidence(report, evidence, (args as Record<string, unknown>).reportType, context.language);
+        return refreshReportFinancialEvidence(report, evidence, (args as Record<string, unknown>).reportType, context.language, authenticated.userId);
       }
     }
     return report;

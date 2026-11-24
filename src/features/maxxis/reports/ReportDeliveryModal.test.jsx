@@ -3,6 +3,8 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ReportDeliveryModal } from './ReportDeliveryModal';
+import { resolveReportSenderScope } from '../../../services/reportSenderScope';
+import { resolveSenderProfile } from '../../../../supabase/functions/_shared/mailbox/senderProfile';
 const mocks = vi.hoisted(() => ({ resolve: vi.fn(), draft: vi.fn(), render: vi.fn(), download: vi.fn(), prepare: vi.fn(), loadRecipients: vi.fn(), saveRecipients: vi.fn(), send: vi.fn(), photos: vi.fn(), release: vi.fn() }));
 vi.mock('../../../services/propertyReleaseMailService', () => ({resolvePropertyReleaseDelivery:mocks.release}));
 vi.mock('./reportDelivery', () => ({ resolveReportDelivery: mocks.resolve, reportEmailDraft: mocks.draft }));
@@ -23,6 +25,20 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('R3.2 contextual delivery controls', () => {
+  it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('recognizes the primary business Gmail for %s without editing onboarding', async reportType => {
+    const profileScope = resolveReportSenderScope({ accountType: 'professional', professionalProfile: { cardPriorityB: 'primary' } });
+    const payload = { resolved: { personal: { email: '' }, professional: { email: 'synthetic@gmail.com' } } };
+    mocks.loadRecipients.mockImplementation(async (userId, scope) => ({ userId, senderEmail: resolveSenderProfile(payload, scope).email, recipients: null }));
+    const openRegistration = vi.fn();
+    render(<ReportDeliveryModal reference={{ ...reference, reportType }} userId="a" profileScope={profileScope} onOpenProfileRegistration={openRegistration} onClose={vi.fn()} />);
+    await screen.findByRole('button', { name: 'Connect test mailbox' });
+    expect(screen.getByText('synthetic@gmail.com')).toBeTruthy();
+    expect(mocks.loadRecipients).toHaveBeenCalledWith('a', 'professional');
+    expect(screen.queryByRole('link', { name: 'Edit email in active profile registration' })).toBeNull();
+    expect(openRegistration).not.toHaveBeenCalled();
+    expect(mocks.saveRecipients).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it('sends the edited subject and body, keeps them on review, and locks the confirmed message', async () => {
     mocks.loadRecipients.mockResolvedValue({userId:'a',senderEmail:'synthetic@gmail.com',recipients:{to:'board@example.invalid',cc:'',bcc:''}});
     render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);

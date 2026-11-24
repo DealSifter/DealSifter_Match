@@ -1,5 +1,7 @@
 # Relatórios / Maxxis — referência da entrega
 
+> **Registro histórico de 05/11/2026.** Para o estado vigente, use [REPORT_RELEASE_CURRENT.md](REPORT_RELEASE_CURRENT.md) (nome no singular). Para as condições de lançamento, use [a execução LC‑01 a LC‑06](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). Os status e deployments abaixo foram preservados como histórico e foram sucedidos por novas publicações.
+
 Atualização: 5 de novembro de 2026. **Correções de relatórios publicadas em produção**, conforme autorização do proprietário. R-3 conversacional continua sem aceite funcional.
 
 ## Escopo da publicação

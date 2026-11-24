@@ -10,6 +10,7 @@ import { prepareReportNarrativePresentation } from '../../features/maxxis/presen
 import { describeEvidenceFreshness, describeStoredMarketReference } from '../../features/maxxis/presentation/evidenceFreshnessPresentation';
 import { Icon } from '../ui/Icon';
 import { C } from '../../theme/colors';
+import { analysisInputErrorMessage } from '../../features/maxxis/intelligence/analysisInputErrors';
 import {
   MAXXIS_PANEL_POSITION_KEY,
   MAXXIS_WIDGET_POSITION_KEY,
@@ -2052,8 +2053,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId,
         errorCode: error instanceof Error ? error.message : 'GAP_RECOMPUTE_ERROR', requestId: error?.requestId || '' });
       setMessages((prev) => prev.map((item) => item.id === messageId
-        ? { ...item, data: { ...item.data, error: error?.code === 'ANALYSIS_REVISION_CONFLICT'
-          ? (language === 'pt' ? 'Outra sessão alterou o cenário. Recarregue o contexto antes de confirmar novamente.' : 'Another session changed the scenario. Reload its context before confirming again.') : t.unavailable } } : item));
+        ? { ...item, data: { ...item.data, error: analysisInputErrorMessage(error, language, t.unavailable) } } : item));
     } finally {
       if (sessionKeyRef.current === resolutionAccount) {
         activeAnalysisGapRef.current = '';
@@ -2080,7 +2080,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           reportPreflight: prepared.preflight, expectedRevision: prepared.preflight.revision, unknownChoice: true, error: null } } : item));
       } catch (error) {
         if (sessionKeyRef.current === account) setMessages(prev => prev.map(item => item.id === messageId ? { ...item, data: { ...item.data,
-          error: error?.code === 'ANALYSIS_REVISION_CONFLICT' ? (language === 'pt' ? 'O cenário mudou em outra sessão. Recarregue antes de continuar.' : 'The scenario changed in another session. Reload before continuing.') : t.unavailable } } : item));
+          error: analysisInputErrorMessage(error, language, t.unavailable) } } : item));
       } finally {
         if (sessionKeyRef.current === account) { activeAnalysisGapRef.current = ''; setActiveAnalysisGapId(''); }
       }
@@ -2110,7 +2110,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       captureAppException(error, { area: 'maxxis_analysis_gap_decline', propertyId,
         errorCode: error instanceof Error ? error.message : 'GAP_RECOMPUTE_ERROR', requestId: error?.requestId || '' });
       setMessages((prev) => prev.map((item) => item.id === messageId
-        ? { ...item, data: { ...item.data, error: t.unavailable } } : item));
+        ? { ...item, data: { ...item.data, error: analysisInputErrorMessage(error, language, t.unavailable) } } : item));
     } finally {
       activeAnalysisGapRef.current = '';
       setActiveAnalysisGapId('');

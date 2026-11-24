@@ -59,9 +59,9 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
       title: t.compareSectionAccess || 'Access & Usage',
       rows: [
         [t.compareMonthlyNuggets || 'Gold Nuggets/month', '3', '20 + 3', '60 + 20'],
-        [t.compareDailySwipes || 'Daily feed swipes', '10', t.compareUnlimited || 'Unlimited', t.compareUnlimited || 'Unlimited'],
+        [t.compareDailySwipes || 'Daily feed swipes', String(PLANS.find(plan => plan.id === 'free').limits.swipesPerDay), t.compareUnlimited || 'Unlimited', t.compareUnlimited || 'Unlimited'],
         [t.compareDailyFavorites || 'Favorited matches/day', '5', t.compareUnlimited || 'Unlimited', t.compareUnlimited || 'Unlimited'],
-        [t.compareActiveMatches || 'Active unlocked matches', '3', '10', t.compareUnlimited || 'Unlimited'],
+        [t.compareActiveMatches || 'Active unlocked matches', '3', String(PLANS.find(plan => plan.id === 'pro').limits.activeMatches), t.compareUnlimited || 'Unlimited'],
         [t.compareMonthlyUnlocks || 'Monthly unlocks', '3', '10', t.compareUnlimited || 'Unlimited'],
       ],
     },

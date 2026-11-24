@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { setLang } from '../i18n/translations';
+import { getT, setLang } from '../i18n/translations';
 import { Pricing } from './Pricing';
 
 function renderPricing(currentPlan = null) {
@@ -17,6 +17,15 @@ function renderPricing(currentPlan = null) {
 
 describe('Pricing Intelligence Economy presentation', () => {
   beforeEach(() => setLang('en'));
+
+  it.each(['en', 'pt', 'es'])('shows the existing server limits consistently in the comparison in %s', language => {
+    setLang(language);
+    const html = renderPricing(), copy = getT().pricing;
+    const row = label => html.split('<tr>').find(part => part.includes(`>${label}</td>`))?.split('</tr>')[0];
+    expect(row(copy.compareDailySwipes)).toMatch(/>20<\/td>/);
+    expect(row(copy.compareActiveMatches)).toMatch(/>15<\/td>/);
+    expect(html).toContain('$49'); expect(html).toContain('$129');
+  });
 
   it('presents value before the paywall for all plans without a fake price or quota', () => {
     const html = renderPricing();

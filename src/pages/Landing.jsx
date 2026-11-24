@@ -8,6 +8,7 @@ import { FOOTER_INFO } from '../content/footerInfoContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getLogoSrc } from '../services/themeService';
 import { buildHeroMosaicLoopItems } from '../lib/heroMosaic';
+import { TrustStatementModal } from '../components/modals/TrustStatementModal';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
@@ -414,6 +415,7 @@ function ProfItem({ item }) {
 export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
+  const [showTrustStatement, setShowTrustStatement] = React.useState(false);
   const isMobile = useMediaQuery('(max-width: 767px)');
   const t = useT('landing').landing;
   const lang = String(useLang('global') || 'en').slice(0, 2);
@@ -987,6 +989,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"15px 44px", borderRadius:14, background:C.gold, color:'#fff', fontWeight:700, fontSize:17, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 320 : 'none' }}>{t.ctaButton}</button>
       </section>
 
+      {showTrustStatement ? <TrustStatementModal onClose={() => setShowTrustStatement(false)} /> : null}
       {footerInfo ? (
         <div
           role="dialog"
@@ -1079,6 +1082,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).howItWorks.title, action: () => setFooterInfoKey('howItWorks') },
               { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).security.title,   action: () => setFooterInfoKey('security') },
               { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).support.title,    action: () => setFooterInfoKey('support') },
+              { label: 'IN GOD WE TRUST ✝', action: () => setShowTrustStatement(true) },
             ].map(item => (
               <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#14B8A6'}
@@ -1091,15 +1095,16 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>{footerLabels.legal}</div>
             {[
-              { label: footerLabels.privacy, action: () => setFooterInfoKey('privacyPolicy') },
-              { label: footerLabels.terms,   action: () => setFooterInfoKey('termsOfUse') },
+              { label: footerLabels.privacy, href: '/privacy' },
+              { label: footerLabels.terms,   href: '/terms' },
               { label: footerLabels.cookie,  action: () => setFooterInfoKey('cookiePolicy') },
-            ].map(item => (
-              <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
+            ].map(item => {
+              const Element = item.href ? 'a' : 'button';
+              return <Element key={item.label} href={item.href} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s', textDecoration: 'none' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#14B8A6'}
                 onMouseLeave={e => e.currentTarget.style.color = '#222c48'}
-              >{item.label}</button>
-            ))}
+              >{item.label}</Element>;
+            })}
           </div>
         </div>
 

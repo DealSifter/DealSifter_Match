@@ -42,6 +42,7 @@ import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
+import { resolveReportSenderScope } from './services/reportSenderScope';
 import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
 import { preserveEquivalentState } from './lib/stateStability';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, clearUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
@@ -827,6 +828,8 @@ export default function App() {
   const [isConsentProcessing, setIsConsentProcessing] = useState(false);
   const [isAccountProcessing, setIsAccountProcessing] = useState(false);
   const [page, _setPage] = useState(() => {
+    const legalPage = { '/privacy': 'privacy', '/terms': 'terms' }[window.location.pathname.replace(/\/+$/, '')];
+    if (legalPage) return legalPage;
     if (isSupabaseConfigured) return 'landing';
     try {
       const raw = localStorage.getItem('authSession');
@@ -838,6 +841,16 @@ export default function App() {
     } catch { /* ignore */ }
     return 'landing';
   });
+  useEffect(() => {
+    // Keep the URL accurate when leaving a public legal page through app navigation.
+    const legalPath = /^\/(privacy|terms)\/?$/.test(window.location.pathname);
+    if (!legalPath) return;
+    const url = new URL(window.location.href);
+    const nextPath = page === 'privacy' || page === 'terms' ? `/${page}` : '/';
+    if (url.pathname === nextPath) return;
+    url.pathname = nextPath;
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [page]);
   const [mobileBottomNavCollapsed, setMobileBottomNavCollapsed] = useState(() => {
     try {
       return localStorage.getItem('ds_mobile_bottom_nav_collapsed') === '1';
@@ -892,6 +905,7 @@ export default function App() {
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   const [settingsInitialView, setSettingsInitialView] = useState('menu');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
+  const [reportProfileSelection, setReportProfileSelection] = useState(null);
   const [authSession, setAuthSession] = useState(() => {
     if (isSupabaseConfigured) return null;
     try {
@@ -2489,6 +2503,7 @@ export default function App() {
 
     if (previousUserId === supabaseUserId) return;
     if (previousUserId === null && supabaseUserId === null) return;
+    setReportProfileSelection(null);
 
     let lastStoredUserId = null;
     try { lastStoredUserId = localStorage.getItem('ds_last_auth_user_id'); } catch { /* no-op */ }
@@ -4131,11 +4146,22 @@ export default function App() {
     }
 
     setOnboardingInitialTab(nextTab);
+    if (fsboTabs.has(normalized) || professionalTabs.has(normalized) || normalized === 'personal') {
+      setReportProfileSelection({ userId: supabaseUserId, scope: fsboTabs.has(normalized) ? 'fsbo'
+        : professionalTabs.has(normalized) ? 'professional' : accountType === 'fsbo_owner' ? 'fsbo' : 'personal' });
+    }
     setPage('onboarding');
-  }, [setPage]);
+  }, [setPage, supabaseUserId, accountType]);
 
-  const reportProfileScope = accountType === 'fsbo_owner' ? 'fsbo'
-    : ['professional', 'operation'].includes(onboardingInitialTab) ? 'professional' : 'personal';
+  const reportProfileScope = resolveReportSenderScope({ accountType, professionalProfile, personalProfile,
+    selectedScope: reportProfileSelection?.userId === supabaseUserId ? reportProfileSelection.scope : undefined });
+  const selectOnboardingProfileTab = useCallback(tab => {
+    setOnboardingInitialTab(tab);
+    if (['personal', 'professional', 'operation'].includes(tab)) {
+      setReportProfileSelection({ userId: supabaseUserId, scope: tab === 'personal'
+        ? accountType === 'fsbo_owner' ? 'fsbo' : 'personal' : 'professional' });
+    }
+  }, [supabaseUserId, accountType]);
   const openReportProfileRegistration = useCallback(() => {
     openOnboardingTab(reportProfileScope);
   }, [reportProfileScope, openOnboardingTab]);
@@ -5743,7 +5769,7 @@ export default function App() {
           <Onboarding
             setPage={setPage}
             initialProfileTab={onboardingInitialTab}
-            onProfileTabChange={setOnboardingInitialTab}
+            onProfileTabChange={selectOnboardingProfileTab}
             authSession={authSession}
             profileSyncStatus={profileSyncStatus}
             portfolioSyncStatus={portfolioSyncStatus}

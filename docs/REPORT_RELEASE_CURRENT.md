@@ -1,6 +1,20 @@
 # DealSifter — publicação de relatórios e modais
 
+Registro vigente: [execução, resultados e ressalvas](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). A política de publicação progressiva Classe A foi aplicada; publicação técnica permanece separada do aceite comercial humano.
+
 ## Publicação vigente — Production
+
+Publicado em 21/11/2026: **`dpl_sMdDKzasEJXwq959SRUpmJNcthn4`**, READY, https://dealsiftermatch.vercel.app. Base `1862ad2b8db5e48d5a7e1abb217ccd9a471dc262` com delta isolado, fingerprint `07e460378a5c3b83ce87511f72efad5d6f8ded7013ba342f7337fbb2fe3ba00d`. Rollback `dpl_6nbp4AfM2rxL84wXRUL4xECtUhVD`. Sem novo commit/push nesta rodada; manifesto identifica o source exato.
+
+- **IN GOD WE TRUST ✝** permanece no final de Empresa/Company. Modal localizado em EN/PT/ES, com KJV, Almeida Revista e Corrigida e Reina-Valera 1909; foco, X/Escape, reduced-motion e layout conferidos. Dez testes e quinze cenários de navegador por ambiente PASS; evidência preservada no delta seguinte.
+- **Pricing:** comparação corrigida para Basic 20 swipes/dia e PRO 15 Matches ativos, como já aplicados no servidor. Cinco testes, lint, TypeScript, builds e seis cenários por ambiente PASS. Preços e regras inalterados.
+- **LC‑05:** diagnóstico HTTP 422 específico e integridade/CAS/reload/PDF preservados; evidência recente reaproveitada. Evidência de fronteira reutilizada. Inputs versão 17 e Chat 105 receberam depois somente a correção isolada do primeiro “Não sei”; JWT e funções Gmail preservados, sem migration geral.
+- **Decisão comercial atual: CONDITIONAL GO.** LC‑03 comercial e LC‑06 alerta externo encerrados; assinatura TEST cancelada e configuração temporária retirada. Faltam aceite visual humano e quotas/restrições Gmail. Ver matriz vigente no relatório de execução; sem novo commit/push.
+
+
+- **Primeiro “Não sei”:** correção backend publicada em Production (Inputs 17/Chat 105), 26 testes, Enterprise 11 e PRO 9 checks UI/PDF/reload, 13 checks de smoke. Grafos publicados confirmam somente dois módulos alterados. Snapshot frontend acima permanece vigente; o manifesto registra separadamente o delta backend.
+
+## Histórico — modais responsivos de 21/11/2026
 
 Publicado em 21 de novembro de 2026: deployment `dpl_aQU5cyEmcnKDMx79iK8yvmrGgdgo`, READY, código `1862ad2b8db5e48d5a7e1abb217ccd9a471dc262`, em https://dealsiftermatch.vercel.app.
 

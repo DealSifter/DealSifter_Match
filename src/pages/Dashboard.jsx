@@ -4,6 +4,7 @@ import { useT } from '../i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { SmartImage } from '../components/ui/SmartImage';
+import { ProfileAvatar } from '../components/ui/ProfileAvatar';
 import { CategoryBar } from '../components/layout/CategoryBar';
 import { Modal } from '../components/ui/Modal';
 import { PlanGateModal } from '../components/modals/PlanGateModal';
@@ -3359,15 +3360,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     aria-pressed={myCardModal.open && myCardModal.scope === visiblePrimaryModalKey}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                      minHeight: 36,
-                      padding: '7px 9px', borderRadius: 999,
+                      minHeight: 44,
+                      padding: '4px 9px', borderRadius: 999,
                       border: `1px solid ${(myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.border}`,
                       background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
                       color: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t2,
                       fontSize: 11, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t3 }} />
+                    <ProfileAvatar photo={visiblePrimaryCardData?.photo} />
                     My Card
                     {displayPrimaryLinkedCardsCount > 0 ? (
                       <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>
@@ -3382,15 +3383,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       aria-pressed={myCardModal.open && myCardModal.scope === secondaryModalKey}
                       style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                        minHeight: 36,
-                        padding: '7px 9px', borderRadius: 999,
+                        minHeight: 44,
+                        padding: '4px 9px', borderRadius: 999,
                         border: `1px solid ${(myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.border}`,
                         background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
                         color: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t2,
                         fontSize: 11, fontWeight: 700, cursor: 'pointer',
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t3 }} />
+                      <ProfileAvatar photo={secondaryCardData?.photo} />
                       My Card B
                       {secondaryLinkedCardsCount > 0 ? (
                         <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>

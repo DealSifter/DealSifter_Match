@@ -1,5 +1,6 @@
-﻿import { CATEGORIES, CARDS, SERVICE_PORTFOLIO, PROPERTIES } from '../data/mockData';
-import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import { SaveButton } from '../components/ui/SaveButton';
+import { CATEGORIES, CARDS, SERVICE_PORTFOLIO, PROPERTIES } from '../data/mockData';
+import React, { useCallback, useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { C } from '../theme/colors';
 import { Modal } from '../components/ui/Modal';
 import { FeedPreviewModal } from '../components/cards/FeedPreviewModal';
@@ -291,7 +292,6 @@ export function Onboarding({
   const [publishToast, setPublishToast] = useState('');
   const [verificationModal, setVerificationModal] = useState({ open: false, scope: 'personal', error: '', info: '' });
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
-  const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
   const [pendingProfileClearScope, setPendingProfileClearScope] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
@@ -647,29 +647,6 @@ export function Onboarding({
     personalSecondaryPhoneB,
     personalTertiaryPhoneB,
     personalEmailB,
-    portfolioAddress,
-    portfolioCity,
-    portfolioZip,
-    portfolioType,
-    portfolioPrice,
-    portfolioBeds,
-    portfolioBaths,
-    portfolioSqft,
-    portfolioLot,
-    portfolioRehab,
-    portfolioCapRate,
-    portfolioObjective,
-    portfolioMarkets,
-    primaryProfileScope,
-    portfolioDescription,
-    portfolioImages,
-    serviceTitle,
-    serviceCategory,
-    serviceDescription,
-    servicePrice,
-    serviceMarkets,
-    serviceImages,
-    servicePrimaryProfileScope,
     investmentProfileDraft,
     investmentTriggerCategories,
   }), [
@@ -709,48 +686,22 @@ export function Onboarding({
     personalSecondaryPhoneB,
     personalTertiaryPhoneB,
     personalEmailB,
-    portfolioAddress,
-    portfolioCity,
-    portfolioZip,
-    portfolioType,
-    portfolioPrice,
-    portfolioBeds,
-    portfolioBaths,
-    portfolioSqft,
-    portfolioLot,
-    portfolioRehab,
-    portfolioCapRate,
-    portfolioObjective,
-    portfolioMarkets,
-    primaryProfileScope,
-    portfolioDescription,
-    portfolioImages,
-    serviceTitle,
-    serviceCategory,
-    serviceDescription,
-    servicePrice,
-    serviceMarkets,
-    serviceImages,
-    servicePrimaryProfileScope,
     investmentProfileDraft,
     investmentTriggerCategories,
   ]);
 
-  useEffect(() => {
-    if (pendingProfileClearScope) {
-      const timer = window.setTimeout(() => setIsSaveProfilesDirty(true), 0);
-      return () => window.clearTimeout(timer);
-    }
-    if (!saveProfilesBaseline) {
-      const timer = window.setTimeout(() => {
-        setSaveProfilesBaseline(saveProfilesFingerprint);
-        setIsSaveProfilesDirty(false);
-      }, 0);
-      return () => window.clearTimeout(timer);
-    }
-    const timer = window.setTimeout(() => setIsSaveProfilesDirty(saveProfilesFingerprint !== saveProfilesBaseline), 0);
-    return () => window.clearTimeout(timer);
-  }, [saveProfilesFingerprint, saveProfilesBaseline, pendingProfileClearScope]);
+  const isSaveProfilesDirty = Boolean(pendingProfileClearScope || profileSyncStatus === 'error'
+    || (saveProfilesBaseline && saveProfilesFingerprint !== saveProfilesBaseline));
+  useLayoutEffect(() => {
+    // Establish the hydrated baseline before the browser accepts the first edit.
+    // A deferred timer could capture that edit and incorrectly mark it as saved.
+    if (!saveProfilesBaseline) setSaveProfilesBaseline(saveProfilesFingerprint);
+  }, [saveProfilesFingerprint, saveProfilesBaseline]);
+  const isNewRecordDirty = portfolioEntryType === 'property'
+    ? [portfolioAddress, portfolioCity, portfolioZip, portfolioPrice, portfolioBeds, portfolioBaths, portfolioSqft, portfolioLot, portfolioRehab, portfolioCapRate, portfolioDescription, portfolioVideo].some(value => String(value || '').trim()) || portfolioImages.length > 0 || portfolioMarkets.length > 0 || portfolioHideStreetAddressOnCard
+      || Boolean(portfolioType && portfolioType !== 'SFR') || Boolean(portfolioObjective && portfolioObjective !== 'Sell')
+      || Boolean(primaryProfileScope && primaryProfileScope !== (accountType === 'fsbo_owner' ? 'fsbo' : cardPriorityB === 'primary' ? 'professional' : cardPriorityA === 'primary' ? 'personal' : ''))
+    : [serviceTitle, serviceCategory, serviceDescription, servicePrice, servicePrimaryProfileScope].some(value => String(value || '').trim()) || serviceImages.length > 0 || serviceMarkets.length > 0;
   const effectiveProfileServices = useMemo(() => {
     const raw = [...selectedServices, ...registeredServiceSkills];
     return Array.from(new Set(raw.map((x) => String(x || '').trim()).filter(Boolean)));
@@ -1168,7 +1119,6 @@ export function Onboarding({
     setPitch('');
     if (profileKey === 'C') setCardPriorityC('');
     else setCardPriorityA('');
-    setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
     setPendingProfileClearScope(profileKey);
   };
@@ -1191,7 +1141,6 @@ export function Onboarding({
     setSelectedServicesB([]);
     _setPitchB('');
     setCardPriorityB('');
-    setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
     setPendingProfileClearScope('B');
   };
@@ -2629,7 +2578,6 @@ export function Onboarding({
       setPublishToast(t.savedProfilesToast || 'Profiles saved');
       setTimeout(() => setPublishToast(''), 2200);
       setSaveProfilesBaseline(saveProfilesFingerprint);
-      setIsSaveProfilesDirty(false);
       setPendingProfileClearScope('');
       setProfileThumbClearRequested(false);
       setProfileThumbBClearRequested(false);
@@ -2868,7 +2816,6 @@ export function Onboarding({
       setPublishToast(toastMsg);
       setTimeout(() => setPublishToast(''), 2800);
       setSaveProfilesBaseline(saveProfilesFingerprint);
-      setIsSaveProfilesDirty(false);
       setProfileThumbClearRequested(false);
       setProfileThumbBClearRequested(false);
     } catch (e) {
@@ -3227,65 +3174,6 @@ export function Onboarding({
           box-shadow: 0 0 0 1px rgba(61, 211, 255, 0.55), 0 0 18px rgba(61, 211, 255, 0.36), inset 0 0 12px rgba(61, 211, 255, 0.18);
           text-shadow: 0 0 10px rgba(61, 211, 255, 0.45);
           transform: translateY(-1px);
-        }
-        @keyframes onbSaveProfilesBlink {
-          0% {
-            filter: brightness(1) saturate(1);
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(53, 202, 201, 0);
-          }
-          28% {
-            filter: brightness(1.38) saturate(1.35);
-            transform: scale(1.015);
-            box-shadow:
-              0 0 0 2px rgba(53, 202, 201, 0.62),
-              0 0 20px rgba(53, 202, 201, 0.72),
-              0 0 34px rgba(53, 202, 201, 0.36);
-          }
-          52% {
-            filter: brightness(0.82) saturate(0.94);
-            transform: scale(0.995);
-            box-shadow:
-              0 0 0 1px rgba(8, 18, 24, 0.35),
-              0 0 10px rgba(8, 18, 24, 0.28);
-          }
-          76% {
-            filter: brightness(1.42) saturate(1.42);
-            transform: scale(1.02);
-            box-shadow:
-              0 0 0 3px rgba(53, 202, 201, 0.68),
-              0 0 28px rgba(53, 202, 201, 0.78),
-              0 0 44px rgba(53, 202, 201, 0.42);
-          }
-          100% {
-            filter: brightness(1) saturate(1);
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(53, 202, 201, 0);
-          }
-        }
-        .onb-save-profiles,
-        .onb-preview-feed {
-          transition: box-shadow .2s ease, transform .2s ease, filter .2s ease;
-        }
-        .onb-save-profiles.is-dirty,
-        .onb-preview-feed.is-dirty {
-          animation: onbSaveProfilesBlink 0.72s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-          will-change: filter, box-shadow, transform;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .onb-save-profiles.is-dirty,
-          .onb-preview-feed.is-dirty {
-            /* Keep the save reminder visible despite the global motion reset,
-               using a slower glow without movement or rapid flashes. */
-            animation: onbSaveReminderReduced 2.4s ease-in-out infinite;
-            animation-duration: 2.4s !important;
-            animation-iteration-count: infinite !important;
-            will-change: box-shadow;
-          }
-        }
-        @keyframes onbSaveReminderReduced {
-          0%, 100% { box-shadow: 0 0 0 2px rgba(53, 202, 201, 0.25); }
-          50% { box-shadow: 0 0 0 3px rgba(53, 202, 201, 0.85), 0 0 14px rgba(53, 202, 201, 0.5); }
         }
         .onb-preview-showcase-scroll {
           scrollbar-width: none;
@@ -3785,9 +3673,9 @@ export function Onboarding({
               ) : null}
 
               <div style={{ marginTop: 8 }}>
-                <button data-guide="onboarding-save-profile" className={`onb-save-profiles ${isSaveProfilesDirty ? 'is-dirty' : ''}`} onClick={handleSaveProfiles} style={{ width: '100%', padding: '8px 0', background: 'rgb(53,202,201)', border: 'none', borderRadius: 9, color: '#081218', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                <SaveButton data-guide="onboarding-save-profile" className="onb-save-profiles" dirty={isSaveProfilesDirty} onClick={handleSaveProfiles} style={{ width: '100%', padding: '8px 0', background: 'rgb(53,202,201)', border: 'none', borderRadius: 9, color: '#081218', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
                   {t.buttonSaveProfiles || 'Save profiles'}
-                </button>
+                </SaveButton>
               </div>
             </SectionCard>
           </div>
@@ -3937,13 +3825,13 @@ export function Onboarding({
                 )}
 
                 <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch', marginTop: 8, marginBottom: 12 }}>
-                  <button disabled={isGeocodeSaving} onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
+                  <SaveButton dirty={isNewRecordDirty} disabled={isGeocodeSaving} onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
-                  </button>
-                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  </SaveButton>
+                  <SaveButton data-guide="onboarding-publish" className="onb-preview-feed" dirty={isPreviewToFeedDirty} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Icon name="eye" size={13} color="#ffffff" />
                     <span>{t.saveAndPreview}</span>
-                  </button>
+                  </SaveButton>
                 </div>
 
                 </div>{/* end scrollable form area */}
@@ -4275,7 +4163,7 @@ export function Onboarding({
                                         </div>
                                       </div>
                                 <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                                  <button className={`onb-save-profiles ${isPropertyEditDirty ? 'is-dirty' : ''}`} disabled={isGeocodeSaving} onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
+                                  <SaveButton className="onb-save-profiles" dirty={isPropertyEditDirty} disabled={isGeocodeSaving} onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</SaveButton>
                                   <button onClick={() => setEditingPropertyId(null)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionCancel}</button>
                                 </div>
                               </div>
@@ -4544,7 +4432,7 @@ export function Onboarding({
                               </div>
                               <textarea value={serviceEditDraft.description} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, description: e.target.value }))} placeholder={t.placeholderDescription} style={{ ...portfolioFieldTextareaStyle({ minHeight: 58, borderRadius: 8 }), gridColumn: '1 / -1' }} />
                               <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 6 }}>
-                                <button className={`onb-save-profiles ${isServiceEditDirty ? 'is-dirty' : ''}`} onClick={() => saveEditService(svc.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
+                                <SaveButton className="onb-save-profiles" dirty={isServiceEditDirty} onClick={() => saveEditService(svc.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</SaveButton>
                                 <button onClick={() => setEditingServiceId(null)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionCancel}</button>
                               </div>
                             </div>
@@ -4947,7 +4835,7 @@ export function Onboarding({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingPropertyId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
-            <button className={`onb-save-profiles ${isPropertyEditDirty ? 'is-dirty' : ''}`} disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</button>
+            <SaveButton className="onb-save-profiles" dirty={isPropertyEditDirty} disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</SaveButton>
           </div>
           </div>
         </Modal>
@@ -5038,7 +4926,7 @@ export function Onboarding({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingServiceId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
-            <button className={`onb-save-profiles ${isServiceEditDirty ? 'is-dirty' : ''}`} onClick={() => saveEditService(editingServiceRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</button>
+            <SaveButton className="onb-save-profiles" dirty={isServiceEditDirty} onClick={() => saveEditService(editingServiceRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</SaveButton>
           </div>
         </Modal>
       ) : null}

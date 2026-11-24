@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { SaveButton } from '../../../components/ui/SaveButton';
+import { useSaveReminder } from '../../../hooks/useSaveReminder';
 import { ARV_CONDITION_COMPATIBILITIES, ARV_TARGET_CONDITIONS, formatCompAddress, resolveExternalCompReviewLink } from './arvVisualCompReview';
 import { MaxxisArvResultExperience } from './MaxxisArvResultExperience';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
@@ -21,6 +23,7 @@ function ReviewCard({ candidate, targetCondition, targetConfirmed, onSave, savin
   const [observedCondition, setObservedCondition] = useState(candidate.review?.observedCondition || 'UNKNOWN');
   const [conditionCompatibility, setConditionCompatibility] = useState(candidate.review?.conditionCompatibility || 'UNKNOWN');
   const [notes, setNotes] = useState(candidate.review?.notes || '');
+  const dirty = useSaveReminder({ observedCondition, conditionCompatibility, notes });
   const address = formatCompAddress(candidate.address);
   const links = useMemo(() => ['ZILLOW', 'REDFIN'].map((provider) => resolveExternalCompReviewLink({ provider, address, directUrl: candidate.externalUrls?.[provider.toLowerCase()] || '' })).filter(Boolean), [address, candidate.externalUrls]);
   const unavailable = language === 'pt' ? 'Indisponível' : language === 'es' ? 'No disponible' : 'Unavailable';
@@ -42,7 +45,7 @@ function ReviewCard({ candidate, targetCondition, targetConfirmed, onSave, savin
           <label>{copy.observed}<select value={observedCondition} onChange={(event) => setObservedCondition(event.target.value)}>{ARV_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
           <label>{copy.compatibility}<select value={conditionCompatibility} onChange={(event) => setConditionCompatibility(event.target.value)}>{ARV_CONDITION_COMPATIBILITIES.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
           <label>{copy.notes}<textarea value={notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} /></label>
-          <button type="button" disabled={saving} onClick={() => onSave?.(candidate, { targetCondition, observedCondition, conditionCompatibility, notes })}>{saving ? copy.saving : copy.save}</button>
+          <SaveButton dirty={dirty} disabled={saving} onClick={() => onSave?.(candidate, { targetCondition, observedCondition, conditionCompatibility, notes })}>{saving ? copy.saving : copy.save}</SaveButton>
         </div> : null}
       </div>
     </details>
@@ -75,7 +78,7 @@ export function MaxxisArvVisualCompReview({ messageId, data, onSetTarget, onSave
         <button type="button" className="maxxis-inline-link" onClick={() => setContinued(true)}>{copy.continue}</button>
       </div>
       {showSupporting ? <div className="maxxis-arv-supporting-list">
-        <div className="maxxis-arv-target"><strong>{copy.condition}</strong><select value={targetDraft} onChange={(event) => setTargetDraft(event.target.value)}>{ARV_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select><button type="button" disabled={activeReviewKey === 'target'} onClick={() => onSetTarget?.(messageId, targetDraft)}>{activeReviewKey === 'target' ? copy.saving : targetConfirmed ? copy.change : copy.confirm}</button><span className="maxxis-provenance-badge">{targetConfirmed ? copy.provenance : copy.prompt}</span></div>
+        <div className="maxxis-arv-target"><strong>{copy.condition}</strong><select value={targetDraft} onChange={(event) => setTargetDraft(event.target.value)}>{ARV_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select><SaveButton dirty={targetDraft !== (data.targetCondition || 'UNKNOWN')} disabled={activeReviewKey === 'target'} onClick={() => onSetTarget?.(messageId, targetDraft)}>{activeReviewKey === 'target' ? copy.saving : targetConfirmed ? copy.change : copy.confirm}</SaveButton><span className="maxxis-provenance-badge">{targetConfirmed ? copy.provenance : copy.prompt}</span></div>
         {supportingCandidates.map((candidate) => <ReviewCard key={`${candidate.stableCompIdentifier}:${candidate.review?.reviewedAt || 'unreviewed'}`} candidate={candidate} targetCondition={data.targetCondition} targetConfirmed={targetConfirmed} saving={activeReviewKey === candidate.stableCompIdentifier} onSave={(item, review) => onSaveReview?.(messageId, item, review)} language={language} copy={copy} />)}
       </div> : null}
       {data.reviewError ? <div className="maxxis-arv-review-error" role="alert">{data.reviewError}</div> : null}

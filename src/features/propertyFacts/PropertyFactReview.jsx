@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {SaveButton} from '../../components/ui/SaveButton';
 import {factCopy,factSource,factValue} from './copy';
 import {actionableReview,candidateCanBeAccepted,reviewCandidateIdentity} from '../../../supabase/functions/_shared/property-fact-reconciliation/reviewProjection.js';
 import './propertyFacts.css';
@@ -47,6 +48,6 @@ export function PropertyFactReview({request,record,property,onReturn,onClose,onS
    </article>)}
   </div>
   {!view.items.length?<p>{copy.quiet}</p>:<details><summary>{copy.sources}</summary><p>{copy.qualified}</p></details>}
-  <footer><button type="button" disabled={refreshing} onClick={()=>void refresh()}>{copy.check}</button><button type="button" disabled={busy||!view.items.length} onClick={()=>void submit('DEFER')}>{copy.later}</button><button type="button" disabled={busy||outdated||!selected.length} onClick={()=>void submit('DECIDE',{decisions:selected})}>{copy.apply}</button></footer>
+  <footer><button type="button" disabled={refreshing} onClick={()=>void refresh()}>{copy.check}</button><button type="button" disabled={busy||!view.items.length} onClick={()=>void submit('DEFER')}>{copy.later}</button><SaveButton dirty={selected.length>0} disabled={busy||outdated||!selected.length} onClick={()=>void submit('DECIDE',{decisions:selected})}>{copy.apply}</SaveButton></footer>
  </div>;
 }

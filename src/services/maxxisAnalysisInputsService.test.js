@@ -4,6 +4,22 @@ import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from './maxxisA
 const propertyId = 'f38e9347-49ec-413e-a554-230c4059bb2b';
 
 describe('maxxisAnalysisInputsService', () => {
+  it.each([
+    [422, 'GAP_CONTEXT_CAPACITY_EXCEEDED'], [409, 'ANALYSIS_REVISION_CONFLICT'],
+    [400, 'GAP_RESOLUTION_VALIDATION_ERROR'], [401, 'AUTH_REQUIRED'],
+  ])('preserves HTTP %s diagnostics without retrying', async (status, code) => {
+    const invoke = vi.fn(async () => ({ data: null, error: { context: new Response(JSON.stringify({ error: code, requestId: 'capacity-test' }), { status }) } }));
+    await expect(saveMaxxisAnalysisInputs(propertyId, { targetCondition: 'AS_IS' }, invoke))
+      .rejects.toMatchObject({ code, requestId: 'capacity-test' });
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+  it('distinguishes a network failure from an unauthenticated gateway response', async () => {
+    const network = vi.fn(async () => ({ data: null, error: { name: 'FunctionsFetchError' } }));
+    await expect(saveMaxxisAnalysisInputs(propertyId, {}, network)).rejects.toMatchObject({ code: 'ANALYSIS_INPUT_NETWORK_ERROR' });
+    const gateway = vi.fn(async () => ({ data: null, error: { context: new Response('{}', { status: 401 }) } }));
+    await expect(saveMaxxisAnalysisInputs(propertyId, {}, gateway)).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
+    expect(network).toHaveBeenCalledTimes(1); expect(gateway).toHaveBeenCalledTimes(1);
+  });
   it('persists explicit user inputs', async () => {
     const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
     const result = await saveMaxxisAnalysisInputs(propertyId, { rehabBudget: 50000, targetCondition: 'STANDARD_RENOVATION' }, invoke);

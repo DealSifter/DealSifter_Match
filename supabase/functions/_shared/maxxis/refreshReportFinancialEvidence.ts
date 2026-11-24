@@ -5,7 +5,7 @@ import { buildEvidenceCompletenessGate } from './analysisGapResolver.ts';
 import { buildReportPreflight } from './reportCompletion.ts';
 
 /** Reproject the report after late financial acquisition. Pure: never acquires data. */
-export function refreshReportFinancialEvidence<T extends Record<string, any>>(report: T, evidence: Record<string, any>, reportType: unknown, language = 'en') {
+export function refreshReportFinancialEvidence<T extends Record<string, any>>(report: T, evidence: Record<string, any>, reportType: unknown, language = 'en', userId: string) {
   const previous = report.intelligenceSnapshot;
   const rentAvailable = evidence.marketRent?.state === 'AVAILABLE' && evidence.marketRent?.evidence?.status === 'AVAILABLE';
   const snapshot = { ...previous,
@@ -26,7 +26,7 @@ export function refreshReportFinancialEvidence<T extends Record<string, any>>(re
   if (completion) {
     const preflight = buildReportPreflight({ reportType: String(reportType || 'DEAL_INTELLIGENCE'),
       property: snapshot.propertyFacts, dealAssumptions: previous.dealAssumptions,
-      propertyId: snapshot.propertyId, userId: completion.userId, revision: previous.analysisRevision || 0,
+      propertyId: snapshot.propertyId, userId, revision: previous.analysisRevision || 0,
       targetCondition: gate.assumptions.targetCondition, evidence: snapshot, language });
     snapshot.dealAssumptions = { ...previous.dealAssumptions, activeScenario: preflight.scenario };
   }
