@@ -18,4 +18,16 @@ Investment criteria and markets are scoped to the active profile. Do not borrow 
 
 ## Validation and release
 
-Publication pending targeted tests, lint, TypeScript contracts, isolated build, browser/staging verification and production smoke. No SQL, backend deploy, provider activation, billing, purchase, unlock or email operations are included. Pending contact verification work and the existing stash remain excluded.
+PASS: 45 tests on the exact isolated commit, affected source/test lint, TypeScript contracts, offline build and secret scan, 23 staging browser checks, production/domain smoke and critical asset hashes.
+
+Source: 7fb11cf66e2485cf54a9b4259ac69490d6722e1e
+
+Fingerprint: 77ce6173905092528d7afc9f3a6400028a6eb5cc682c90e7cf36d170729a9b65
+
+Production: dpl_DkSm1HDCtJmxcbnPMTm9QzzU8diL — https://dealsifter.com/
+
+Rollback: dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj
+
+The exact compiled artifact used a private read-only staging adapter with a legitimate authorized QA login. The definition of ds_get_global_feed_inventory was checked as read-only before allowing that RPC. Browser checks inspect the actual deck sequence for match + ascending/descending price, mobile changes, navigation/reload, logout and next-login defaults. No Production backend request or staging data write.
+
+An attempted jsdom Dashboard fixture did not complete and was replaced by real browser integration checks. Initial browser harness attempts required syntax/selector fixes; final checks passed without modifying the application or QA fixture to bypass gates. No SQL, backend deploy, provider activation, billing, purchase, unlock or email operations are included. Pending contact verification work and the existing stash remain excluded.

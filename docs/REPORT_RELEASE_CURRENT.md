@@ -2,7 +2,11 @@
 
 Registro vigente: [execução, resultados e ressalvas](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). A política de publicação progressiva Classe A foi aplicada; publicação técnica permanece separada do aceite comercial humano.
 
-## Publicação vigente — Maps — 24/11/2026
+## Publicação vigente — Feed match + preset — 24/11/2026
+
+Frontend Production **https://dealsifter.com/** (também www e host Vercel), deployment **dpl_DkSm1HDCtJmxcbnPMTm9QzzU8diL**, READY; código **7fb11cf66e2485cf54a9b4259ac69490d6722e1e**, fingerprint **77ce6173905092528d7afc9f3a6400028a6eb5cc682c90e7cf36d170729a9b65**. Ordenação do feed por match de perfil + preset publicada em 24/11/2026. Seletor de sessão na sidebar mobile; desktop/tablet mantêm Preferences. Prioridade de destaques pagos preservada por confirmação do proprietário. 45 testes, lint dos arquivos afetados, contratos TypeScript, build isolado, 23 verificações de staging e smokes públicos PASS. 28 funções backend preservadas. Sem migrations, push, envios, compras, desbloqueios ou chamadas pagas. Preparação de verificação de contatos e stash preservados. Rollback frontend **dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj**. Evidências: `.tmp-codex/feed-ordering-release-20261124/`. Gates comerciais e aceite humano permanecem inalterados.
+
+## Histórico — Maps — 24/11/2026
 
 Frontend Production **https://dealsifter.com/** (também www e host Vercel), deployment **dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj**, READY; código **20b993f851dab9b9707c22c5e1bf22789727cc95**, fingerprint **a575c5385d67fc480963d3bf26c0d013e5814ae894c8995f76a93b68edbcb707**. Correção Classe A das preferências/sessão Maps publicada em 24/11/2026: zoom, estilo, agrupamento e filtros gerais prevalecem na abertura; ajustes da sidebar valem durante a sessão e são descartados no logout. 20 testes direcionados, lint completo, TypeScript, build isolado, 38 verificações de staging por adaptador privado somente leitura e smokes públicos PASS. 28 funções backend preservadas. Preparação de verificação de contatos e stash preservados. Sem migrations, push, envios, compras ou chamadas pagas. Rollback frontend **dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk**. Evidências: `.tmp-codex/map-release-20261124/`. Gates comerciais e aceite humano inalterados.
 

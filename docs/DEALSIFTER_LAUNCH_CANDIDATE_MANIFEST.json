@@ -850,6 +850,25 @@
       "date": "2026-11-24",
       "scope": "Maps master preferences and temporary sidebar session",
       "evidence": ".tmp-codex/map-release-20261124"
+    },
+    {
+      "status": "PASS",
+      "id": "dpl_DkSm1HDCtJmxcbnPMTm9QzzU8diL",
+      "url": "https://dealsiftermatch-9xe5zvmwn-deal-sifter-match-s-projects.vercel.app",
+      "readyState": "READY",
+      "sourceCommit": "7fb11cf66e2485cf54a9b4259ac69490d6722e1e",
+      "sourceFingerprint": "77ce6173905092528d7afc9f3a6400028a6eb5cc682c90e7cf36d170729a9b65",
+      "rollbackFrontend": "dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj",
+      "canonical": "https://dealsifter.com/",
+      "contactFeatureIncluded": false,
+      "backendDeploys": 0,
+      "migrations": 0,
+      "push": false,
+      "emails": 0,
+      "paidCalls": 0,
+      "date": "2026-11-24",
+      "scope": "Feed profile match + preset, mobile session ordering, paid priority preserved",
+      "evidence": ".tmp-codex/feed-ordering-release-20261124"
     }
   ]
 }
