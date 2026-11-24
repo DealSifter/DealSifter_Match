@@ -8,6 +8,7 @@ import {
 } from '../_shared/httpSecurity.ts';
 import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
 import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
+import { requireOwnedStripeCustomer, StripeCustomerOwnershipError } from '../_shared/stripeCustomerOwnership.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -84,7 +85,10 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null },
   if (readError) {
     logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_read', requestId, userId: user.id, success: false, errorCode: readError.code || 'CUSTOMER_CACHE_READ_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
   }
-  if (existingSub?.stripe_customer_id) return existingSub.stripe_customer_id;
+  if (readError) throw new Error('Stripe customer lookup unavailable');
+  if (existingSub?.stripe_customer_id) {
+    return requireOwnedStripeCustomer(existingSub.stripe_customer_id, user.id, id => stripe.customers.retrieve(id));
+  }
 
   const customer = await stripe.customers.create({
     email: user.email ?? undefined,
@@ -208,6 +212,9 @@ Deno.serve(async (req) => {
       ? { id: session.id, client_secret: session.client_secret }
       : { id: session.id, url: session.url }, 200);
   } catch (err) {
+    if (err instanceof StripeCustomerOwnershipError) {
+      return respond({ error: 'STRIPE_CUSTOMER_OWNERSHIP_UNVERIFIED', requestId }, 403);
+    }
     logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_CHECKOUT_FAILED', status: 500, provider: 'stripe' });
     return respond({ error: 'Internal error', requestId }, 500);
   }
