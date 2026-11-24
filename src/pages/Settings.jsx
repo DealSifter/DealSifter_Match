@@ -1,3 +1,4 @@
+import { FeedOrderingControl } from '../components/feed/FeedOrderingControl';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
 import { useLang, useT } from '../i18n/translations';
@@ -1478,28 +1479,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefFeedMatchesTitle || '2) Feed & Matches'}</div>
-                  <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefDefaultOrdering || 'Default ordering'}</span>
-                    <select
-                      value={String(prefs?.feedMatches?.sortOrder || 'random')}
-                      onChange={(e) => {
-                        const nextSortOrder = e.target.value;
-                        if (nextSortOrder === 'my_cards_first' && !hasPaidPlan) {
-                          addToast?.({ type: 'warning', message: t.prefMyCardsPaidOnly || 'My cards first is available for paid plans.' });
-                          return;
-                        }
-                        updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder: nextSortOrder } }));
-                      }}
-                      style={controlStyle}
-                    >
-                      <option value="random">{t.prefSortRandom || 'Random on first login'}</option>
-                      <option value="recent">{t.prefSortRecent || 'Most recent'}</option>
-                      <option value="name_asc">{t.prefSortNameAsc || 'Name (A-Z)'}</option>
-                      <option value="price_asc">{t.prefSortPriceAsc || 'Price (low to high)'}</option>
-                      <option value="price_desc">{t.prefSortPriceDesc || 'Price (high to low)'}</option>
-                      <option value="my_cards_first" disabled={!hasPaidPlan}>{t.prefSortMyCardsFirst || 'My cards first (paid plans)'}</option>
-                    </select>
-                  </label>
+                  <FeedOrderingControl value={String(prefs?.feedMatches?.sortOrder || 'random')}
+                    hasPaidPlan={hasPaidPlan} style={controlStyle}
+                    onChange={sortOrder => updatePreferences(prev => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder } }))} />
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
                     <span>{t.prefAutoplayMedia || 'Autoplay media'}</span>
                     <input type="checkbox" checked={Boolean(prefs?.feedMatches?.autoplayMedia)} onChange={() => updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), autoplayMedia: !prev?.feedMatches?.autoplayMedia } }))} />

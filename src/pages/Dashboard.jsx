@@ -27,6 +27,9 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import { orderDeck } from '../lib/orderFeedDeck';
+import { buildFeedMatchProfile, getFeedProfileMatch } from '../lib/feedProfileMatch';
+import { normalizeFeedSortOrder, readFeedOrderingOverride, resolveFeedOrderingOverride, writeFeedOrderingOverride } from '../lib/feedOrderingSession';
+import { FeedOrderingControl } from '../components/feed/FeedOrderingControl';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { formatCompactUsd } from '../lib/formatMoney';
@@ -215,6 +218,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const navT = useT('dashboard').nav;
   const cardsT = useT('dashboard').cards;
   const matchesT = useT('dashboard').matches;
+  const settingsT = useT('settings').settings;
+  const masterFeedOrder = normalizeFeedSortOrder(userPreferences?.feedMatches?.sortOrder);
+  const [feedOrderingOverride, setFeedOrderingOverride] = useState(readFeedOrderingOverride);
+  const selectedFeedOrder = isMobileViewport ? resolveFeedOrderingOverride(feedOrderingOverride, currentUserId, masterFeedOrder) : masterFeedOrder;
+  const hasPaidFeedOrdering = Boolean(planActionAccess?.spotlight?.allowed || planActionAccess?.chat?.allowed || planActionAccess?.exportPdf?.allowed || planActionAccess?.export_pdf?.allowed);
 
   const [activeCat, setActiveCat] = useState(() => {
     try { return localStorage.getItem('ds_activeCat') || 'all'; } catch (e) { void e; return 'all'; }
@@ -618,6 +626,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
     return undefined;
   }, [accountType, publishingProfileKey]);
+
+  const feedMatchProfile = useMemo(() => buildFeedMatchProfile(publishingProfileKey, {
+    accountType, userProfile, personalProfile, professionalProfile,
+  }), [publishingProfileKey, accountType, userProfile, personalProfile, professionalProfile]);
 
   const getOwnerIdForKey = useCallback((key) => {
     const liveUserId = String(currentUserId || '').trim();
@@ -1277,30 +1289,35 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         String(getOwnerIdForKey('secondary')),
         String(getOwnerIdForKey('fsbo')),
       ].filter(Boolean));
-      const rawSortOrder = String(userPreferences?.feedMatches?.sortOrder || 'random').trim();
-      const hasPaidFeedOrdering = Boolean(
-        planActionAccess?.spotlight?.allowed
-        || planActionAccess?.chat?.allowed
-        || planActionAccess?.exportPdf?.allowed
-        || planActionAccess?.export_pdf?.allowed
-      );
+      const rawSortOrder = selectedFeedOrder;
       const sortPreferenceByLegacyOrder = {
         random: 'default',
         recent: 'newest',
         newest: 'newest',
         hot: 'hot',
         trending: 'trending',
+        name_asc: 'name_asc',
+        price_asc: 'price_asc',
+        price_desc: 'price_desc',
         my_cards_first: 'my_cards_first',
       };
       const effectiveSortOrder = rawSortOrder === 'my_cards_first'
         ? (hasPaidFeedOrdering ? 'my_cards_first' : 'default')
         : (sortPreferenceByLegacyOrder[rawSortOrder] || 'default');
       const feedSortSeed = `${String(currentUserId || 'anon')}:${String(activeCat || 'all')}:${(selectedStates || []).join(',') || 'all'}`;
+      const matchScores = new Map();
+      const getMatchScore = record => {
+        const key = `${record.cardKind || record.kind || 'person'}:${record.id}`;
+        if (!matchScores.has(key)) matchScores.set(key, getFeedProfileMatch(record, feedMatchProfile));
+        return matchScores.get(key);
+      };
       const deckContext = {
         currentUserId,
         activeFilters: {},
         sessionSeed: feedSortSeed,
         sortPreference: effectiveSortOrder,
+        getMatchScore,
+        locale: activityLanguage,
       };
       const isAllowedByState = (record) => {
         if (!stateFilterActive) return true;
@@ -1546,7 +1563,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, planActionAccess, getFocusCandidates, matchesFocusTarget, isContactUnlocked]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, selectedFeedOrder, hasPaidFeedOrdering, feedMatchProfile, activityLanguage, getFocusCandidates, matchesFocusTarget, isContactUnlocked]);
 
   const [planGate, setPlanGate] = useState(null);
 
@@ -3401,25 +3418,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </div>
 
               <div className="ds-mobile-feed-section">
-                <div className="ds-mobile-feed-section-title">Feed</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, border: `1px solid ${view === 'connections' ? C.accent : C.border}`, color: view === 'connections' ? C.accent : C.t2, fontSize: 10, fontWeight: 700 }}>
-                    {view === 'connections' ? 'Connections' : 'Showcase'}
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, color: hasActiveStates ? C.accent : C.t2, fontSize: 10, fontWeight: 700 }}>
-                    {stateSummaryLabel}
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <button onClick={() => { setView('connections'); setMobileFeedSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, padding: '8px 10px', borderRadius: 10, background: 'transparent', border: `1px solid ${view==='connections' ? C.accent : C.border}`, color: view==='connections' ? C.accent : C.t2, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                    <Icon name="search" size={12} color={view==='connections' ? C.accent : C.t2} strokeWidth={view==='connections' ? 2 : 1.5} />
-                    Connections
-                  </button>
-                  <button onClick={() => { setView('properties'); setMobileFeedSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, padding: '8px 10px', borderRadius: 10, background: 'transparent', border: `1px solid ${view==='properties' ? '#4381bc' : C.border}`, color: view==='properties' ? '#4381bc' : C.t2, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                    <Icon name="briefcase" size={12} color={view==='properties' ? '#4381bc' : C.t2} strokeWidth={view==='properties' ? 2 : 1.5} />
-                    Showcase
-                  </button>
-                </div>
+                <FeedOrderingControl value={selectedFeedOrder} hasPaidPlan={hasPaidFeedOrdering}
+                  label={settingsT.prefDefaultOrdering}
+                  onChange={value => setFeedOrderingOverride(writeFeedOrderingOverride(currentUserId, masterFeedOrder, value))}
+                  style={{ width: '100%', minWidth: 0, minHeight: 38, padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.card, color: C.t1, fontSize: 12 }} />
               </div>
 
               <div className="ds-mobile-feed-section">

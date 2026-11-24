@@ -90,10 +90,29 @@ const seededShuffle = (cards, seed) => {
   return next;
 };
 
-const sortByPreference = (cards, preference, seed) => {
+const sortByPreference = (cards, preference, seed, getMatchScore, locale) => {
   const sortPreference = normalizeString(preference || 'default');
-  if (sortPreference === 'default' || sortPreference === 'random') return seededShuffle(cards, seed);
-  return [...cards].sort((a, b) => {
+  const initial = sortPreference === 'default' || sortPreference === 'random' ? seededShuffle(cards, seed) : [...cards];
+  const scores = new Map(initial.map(card => {
+    const raw = getMatchScore?.(card);
+    return [card, typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : -1];
+  }));
+  return initial.sort((a, b) => {
+    const byMatch = scores.get(b) - scores.get(a);
+    if (byMatch !== 0) return byMatch;
+    if (sortPreference === 'default' || sortPreference === 'random') return 0;
+    if (sortPreference === 'name_asc') {
+      const name = card => String(card.name || card.title || card.address || '');
+      const byName = name(a).localeCompare(name(b), locale);
+      if (byName !== 0) return byName;
+    }
+    if (sortPreference === 'price_asc' || sortPreference === 'price_desc') {
+      const price = card => card.price === null || card.price === undefined || card.price === '' ? null : Number(card.price);
+      const ap = price(a), bp = price(b);
+      const aKnown = ap !== null && Number.isFinite(ap), bKnown = bp !== null && Number.isFinite(bp);
+      if (aKnown !== bKnown) return aKnown ? -1 : 1;
+      if (aKnown && ap !== bp) return sortPreference === 'price_asc' ? ap - bp : bp - ap;
+    }
     if (sortPreference === 'hot') {
       const byHot = getNumericScore(b, ['hotScore', 'hot_score', 'hotPressure', 'unlockCount', 'unlock_count'])
         - getNumericScore(a, ['hotScore', 'hot_score', 'hotPressure', 'unlockCount', 'unlock_count']);
@@ -104,7 +123,7 @@ const sortByPreference = (cards, preference, seed) => {
         - getNumericScore(a, ['trendingScore', 'trending_score', 'favoriteCount', 'favorite_count']);
       if (byTrending !== 0) return byTrending;
     }
-    if (sortPreference === 'newest') {
+    if (sortPreference === 'newest' || sortPreference === 'recent') {
       const byNewest = getCardTime(b) - getCardTime(a);
       if (byNewest !== 0) return byNewest;
     }
@@ -159,6 +178,8 @@ export function orderDeck(normalizedCards, context = {}) {
     activeFilters = {},
     sessionSeed = 1,
     sortPreference = 'default',
+    getMatchScore = null,
+    locale,
   } = context || {};
 
   const validCards = toArray(normalizedCards)
@@ -167,14 +188,15 @@ export function orderDeck(normalizedCards, context = {}) {
     .filter((card) => applyFilters(card, activeFilters))
     .map((card) => ({
       ...card,
-      isOwnCard: card.isOwnCard === true || String(card.ownerId || '') === String(currentUserId || ''),
+      isOwnCard: card.isOwnCard === true || (Boolean(currentUserId) && String(card.ownerId || '') === String(currentUserId)),
     }));
 
   const others = validCards.filter((card) => !card.isOwnCard);
   const own = validCards.filter((card) => card.isOwnCard);
-  const sortedOthers = placeSpotlightsWithinOthers(sortByPreference(others, sortPreference, `${sessionSeed}:others`));
-  const sortedOwn = sortByPreference(own, sortPreference, `${sessionSeed}:own`);
-  return [...sortedOthers, ...sortedOwn];
+  // Sponsored placement stays intact; match and preset order each placement group.
+  const sortedOthers = placeSpotlightsWithinOthers(sortByPreference(others, sortPreference, `${sessionSeed}:others`, getMatchScore, locale));
+  const sortedOwn = sortByPreference(own, sortPreference, `${sessionSeed}:own`, getMatchScore, locale);
+  return sortPreference === 'my_cards_first' ? [...sortedOwn, ...sortedOthers] : [...sortedOthers, ...sortedOwn];
 }
 
 export default orderDeck;
