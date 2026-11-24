@@ -1,4 +1,4 @@
-# Interface localization and profile activities — release candidate
+# Interface localization and profile activities — published
 
 Date: 2026-11-24 (America/Sao_Paulo).
 
@@ -10,4 +10,4 @@ Validation of the previous combined candidate: interface tests, visual fixtures 
 
 Baseline and rollback: `dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn`. Production project: `prj_QPyhaESQ9dpLfgSfwzm4wxirLbs5`, Supabase `cyeipfskwwisbbayyaca`. Preserve the public configuration of the previously approved prebuilt release; Vercel API masks sensitive/encrypted values. Do not alter environment variables or feature flags.
 
-Release evidence: `.tmp-codex/ui-localization-release-20261124/`. Publication status: **pending validation and deployment**. No backend deploy, SQL, push, real email, unlock, purchase or paid provider call is included. Existing launch-closure decisions remain unchanged.
+Release evidence: `.tmp-codex/ui-localization-release-20261124/`. Publication status: **published and verified**. Source commit `7b7048358b467c8a30bca2145bab479764c74cc6`; deployment `dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk`, READY. Final validation: 124 tests, lint, TypeScript contracts, offline build/secret scan, 6 local public cases, 14 read-only staging checks, 6 Production public cases, 6 domain checks, and 28 unchanged backend functions. No backend deploy, SQL, push, real email, unlock, purchase or paid provider call is included. Existing launch-closure decisions remain unchanged.

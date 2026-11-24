@@ -2,7 +2,20 @@
 
 Registro vigente: [execução, resultados e ressalvas](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). A política de publicação progressiva Classe A foi aplicada; publicação técnica permanece separada do aceite comercial humano.
 
-## Publicação vigente — Production de 24/11/2026
+## Publicação vigente — interface e atividades — 24/11/2026
+
+Publicado e conferido em **https://dealsifter.com/**, www e host Vercel. Deployment **dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk**, READY; código **7b7048358b467c8a30bca2145bab479764c74cc6**, fingerprint **572fa1da282d3f7556c613084ec5f8808c2851d015b6ad615092afacaf54f972**. Rollback preservado: **dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn**.
+
+- Interface em inglês, português e espanhol: configurações, confirmações, notificações, controles de envio Gmail e rótulos dos cards. O idioma da interface de envio não altera o relatório/PDF nem descarta destinatários ou mensagem editados.
+- Atividades e serviços apresentados por nomes legíveis, com localidade separada por /; especialidades de serviços publicados têm prioridade nos espaços compactos. Minicards não exibem um zero solto; preços positivos continuam sendo informados corretamente. Não se anuncia serviço de outro proprietário/perfil como especialidade deste card.
+- Validação do commit isolado: 124 testes, lint completo, contratos TypeScript, build offline e varredura de segredos PASS. 18 cenários visuais de componentes/layouts compactos com dados sintéticos; 6 cenários públicos no build e 6 em Production. 14 verificações com login QA legítimo e leituras reais de staging por adaptador privado, sem escritas nem acesso ao backend Production. O primeiro roteiro de teste foi corrigido quanto a CORS/navegação; as verificações finais passaram integralmente. 6 acessos aos domínios e hashes de assets conferidos.
+- Backend: 28/28 funções com versões, hashes e JWT preservados. Sem migrations, alteração de configuração, push, emails, compras, desbloqueios ou chamadas pagas.
+- A nova verificação de contatos (API/SQL, rota de confirmação e fluxo de onboarding) **não foi publicada**. A preparação local e o stash permanecem preservados. Ela requer homologação e ativação coordenadas. Este frontend mantém App/onboarding/backend da versão anterior e não ativa um novo critério de escudo.
+- Gates comerciais e aceite humano permanecem inalterados; esta publicação técnica não declara GO comercial.
+
+Evidências locais ignoradas: .tmp-codex/ui-localization-release-20261124/.
+
+## Histórico — publicação anterior de 24/11/2026
 
 Publicado e conferido em **https://dealsifter.com/**, www e host Vercel. Deployment **dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn**, READY; código **4e5cc98b4211e6b412a93b50450cc0dea9aab029**, fingerprint **63837bdec969653cdb86bf79f6c3aa7be5c9f9c2ecdb55aa92f2de31c60f0e03**. Rollback preservado: **dpl_Ai7NXQNG4j4KznfQJegX1ZiASMAX**.
 

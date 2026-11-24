@@ -803,6 +803,34 @@
         "backendFunctionsPreserved": 28
       },
       "launchDecision": "CONDITIONAL_GO"
+    },
+    {
+      "status": "PASS",
+      "id": "dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk",
+      "url": "https://dealsiftermatch-37goz8i8m-deal-sifter-match-s-projects.vercel.app",
+      "readyState": "READY",
+      "sourceCommit": "7b7048358b467c8a30bca2145bab479764c74cc6",
+      "sourceFingerprint": "572fa1da282d3f7556c613084ec5f8808c2851d015b6ad615092afacaf54f972",
+      "rollbackFrontend": "dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn",
+      "canonical": "https://dealsifter.com/",
+      "contactFeatureIncluded": false,
+      "backendDeploys": 0,
+      "migrations": 0,
+      "push": false,
+      "emails": 0,
+      "paidCalls": 0,
+      "date": "2026-11-24",
+      "tests": 124,
+      "componentVisualCases": 18,
+      "localPublicCases": 6,
+      "stagingChecks": 14,
+      "stagingMode": "EXACT_PRODUCTION_ARTIFACT_WITH_READ_ONLY_STAGING_ADAPTER",
+      "productionPublicCases": 6,
+      "domainCases": 6,
+      "backendFunctionsPreserved": 28,
+      "contactPreparationPreserved": true,
+      "stashPreserved": true,
+      "launchDecision": "CONDITIONAL_GO_UNCHANGED"
     }
   ]
 }
