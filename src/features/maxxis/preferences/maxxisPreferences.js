@@ -152,5 +152,5 @@ export const MAXXIS_PREFERENCES_COPY = Object.freeze({
 });
 
 export function getMaxxisPreferencesCopy(language = 'en') {
-  return MAXXIS_PREFERENCES_COPY[language] || MAXXIS_PREFERENCES_COPY.en;
+  return MAXXIS_PREFERENCES_COPY[String(language).toLowerCase().split('-')[0]] || MAXXIS_PREFERENCES_COPY.en;
 }

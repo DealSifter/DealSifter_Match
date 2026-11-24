@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { C } from '../../theme/colors';
-import { useT } from '../../i18n/translations';
+import { useLang, useT } from '../../i18n/translations';
+import { localizeSystemText } from '../../i18n/systemMessages';
 import { NUGGET_PACKS, PLANS } from '../../data/mockData';
 import appLogo from '../../assets/logo.png';
 import { Modal } from '../ui/Modal';
@@ -21,8 +22,8 @@ function resolveCheckoutSummary(intent, t) {
         : (t.checkoutSubscription || 'Subscription plan'),
       price: plan
         ? billingCycle === 'annual'
-          ? `$${Number(annualTotal || 0).toLocaleString('en-US')}/yr`
-          : `$${Number(plan.price || 0).toLocaleString('en-US')}/mo`
+          ? `$${Number(annualTotal || 0).toLocaleString('en-US')}${t.perYearShort}`
+          : `$${Number(plan.price || 0).toLocaleString('en-US')}${t.perMonthShort}`
         : '',
       accent: C.accent,
     };
@@ -48,6 +49,7 @@ export function EmbeddedCheckoutModal({
   onOpenPrivacy,
 }) {
   const allT = useT();
+  const language = useLang();
   const t = allT.modals || {};
   const pricingT = allT.pricing || {};
   const [accepted, setAccepted] = useState(false);
@@ -189,7 +191,7 @@ export function EmbeddedCheckoutModal({
 
           {checkoutError ? (
             <div role="alert" style={{ border: `1px solid ${C.danger}`, background: C.alpha(C.danger, 0.08), color: C.danger, borderRadius: 12, padding: '10px 12px', fontSize: 12, fontWeight: 800, lineHeight: 1.35 }}>
-              {checkoutError}
+              {localizeSystemText(checkoutError, language)}
             </div>
           ) : null}
 

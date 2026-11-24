@@ -1,3 +1,5 @@
+import { activityLabels, profileLinkedServices } from '../../lib/activityLabels';
+import { cardDisplayLabel } from '../../i18n/interfaceCompletion';
 const CONTACT_KEYS = new Set([
   'email', 'phone', 'whatsapp', 'telegram', 'contact', 'contacts',
   'primaryphone', 'secondaryphone', 'tertiaryphone', 'emailfsbo',
@@ -8,7 +10,7 @@ const cleanText = (value) => String(value ?? '').trim();
 
 const addBadge = (list, seen, value) => {
   const text = cleanText(value);
-  if (!text || text.length > 28) return;
+  if (!text || text.length > 72) return;
   const key = text.toLowerCase();
   if (CONTACT_KEYS.has(key.replace(/[\s_-]/g, '')) || seen.has(key)) return;
   seen.add(key);
@@ -39,7 +41,8 @@ export function getPersonMapBadges(payload, labels = {}) {
     payload?.cat,
     payload?.category,
     payload?.badge,
-    payload?.loc,
+    labels.separateLocation ? '' : payload?.loc,
+    profileLinkedServices(payload).map(service => service.category),
     scope === 'fsbo' ? (labels.fsbo || 'FSBO') : '',
     scope === 'professional' ? (labels.business || 'Business') : '',
     payload?.investorRoles,
@@ -48,9 +51,9 @@ export function getPersonMapBadges(payload, labels = {}) {
     payload?.strategies,
     payload?.interests,
     payload?.segmentations,
-    payload?.markets,
-    payload?.selectedMarkets,
-    payload?.investmentProfile?.markets,
+    labels.separateLocation ? '' : payload?.markets,
+    labels.separateLocation ? '' : payload?.selectedMarkets,
+    labels.separateLocation ? '' : payload?.investmentProfile?.markets,
     payload?.investmentProfile?.strategies,
   ]);
 
@@ -64,11 +67,11 @@ export function getPersonMapBadges(payload, labels = {}) {
   if (payload?.isSpotlight) addBadge(badges, seen, labels.spotlight || 'Spotlight');
 
   (Array.isArray(payload?.linkedProperties) ? payload.linkedProperties : []).forEach((property) => {
-    addValues(badges, seen, [property?.type, property?.objective, property?.strategy, property?.dealTag, property?.state]);
+    addValues(badges, seen, [property?.type, property?.objective, property?.strategy, property?.dealTag, labels.separateLocation ? '' : property?.state]);
   });
-  (Array.isArray(payload?.linkedServices) ? payload.linkedServices : []).forEach((service) => {
+  profileLinkedServices(payload).forEach((service) => {
     addValues(badges, seen, [service?.category, service?.title]);
   });
 
-  return badges.slice(0, 8);
+  return activityLabels(badges.map(value => cardDisplayLabel(value, labels.language || 'en')), labels.language || 'en', true).slice(0, 8);
 }

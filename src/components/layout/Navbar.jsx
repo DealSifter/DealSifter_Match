@@ -12,6 +12,7 @@ import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 import { useGuideTips } from '../guidetips/useGuideTips';
+import { localizeSystemText } from '../../i18n/systemMessages';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },
@@ -191,6 +192,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const isLanding = page === 'landing';
   const allT = useT('global');
   const t = allT.nav;
+  const language = useLang('global');
   const guideT = allT.guideTips || {};
   const { enabled: guideTipsEnabled, toggle: toggleGuideTips } = useGuideTips();
   const { theme, effectiveTheme, toggleTheme } = useTheme();
@@ -252,12 +254,12 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   );
   const consolidatedCount = chatUnreadCount + systemUnreadCount;
   const visibleChatNotifications = useMemo(
-    () => (chatNotifications || []).filter((n) => !deferredChatIds.includes(String(n.id))),
-    [chatNotifications, deferredChatIds],
+    () => (chatNotifications || []).filter((n) => !deferredChatIds.includes(String(n.id))).map(n => n.source === 'unlock_notification' ? { ...n, title: localizeSystemText(n.title, language), message: localizeSystemText(n.message, language) } : n),
+    [chatNotifications, deferredChatIds, language],
   );
   const visibleSystemNotifications = useMemo(
-    () => (systemNotifications || []).filter((n) => !deferredSystemIds.includes(String(n.id))),
-    [systemNotifications, deferredSystemIds],
+    () => (systemNotifications || []).filter((n) => !deferredSystemIds.includes(String(n.id))).map(n => ({ ...n, title: localizeSystemText(n.title, language), message: n.source === 'support_notification' && n.message !== 'DealSifter Admin/Support replied to your ticket.' ? n.message : localizeSystemText(n.message, language) })),
+    [systemNotifications, deferredSystemIds, language],
   );
 
   useEffect(() => {
@@ -926,7 +928,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       style={{ position: 'fixed', top: 58, right: 0, bottom: 0, width: 'min(84vw, 320px)', background: C.card, borderLeft: `1px solid ${C.border}`, boxShadow: '-10px 0 24px rgba(15,23,42,0.12)', zIndex: 10006, padding: '16px 14px 22px', display: 'grid', alignContent: 'start', gap: 10 }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3, marginBottom: 6 }}>
-                        Navigation
+              {t.navigation}
                       </div>
                       <button onClick={openLandingPricing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                         <Icon name="creditCard" size={15} color={C.t2} />

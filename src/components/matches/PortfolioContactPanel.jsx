@@ -1,3 +1,4 @@
+import { ActivityLine } from '../ui/ActivityLine';
 import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
@@ -138,7 +139,7 @@ export function PortfolioContactPanel({
             {contact.name || t.unlockedLabel || 'Unlocked'}
           </div>
           <div style={{ color: C.t3, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {[contact.category, contact.location].filter(Boolean).join(' · ')}
+            <ActivityLine values={[contact.category]} location={contact.location} language={allT.locale} />
           </div>
         </div>
         {identityBadge}

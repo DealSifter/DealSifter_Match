@@ -1,4 +1,7 @@
-﻿import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { activityLabel, profileActivities } from '../lib/activityLabels';
+import { ActivityLine } from '../components/ui/ActivityLine';
+import { ServiceMiniCard } from '../components/cards/ServiceMiniCard';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { CATEGORIES } from '../data/mockData';
@@ -865,9 +868,9 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       });
     });
     return Array.from(unique.entries())
-      .map(([id, label]) => ({ id, label }))
+      .map(([id, label]) => ({ id, label: activityLabel(label, allT.locale) }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [allMatched, categoryLookup, getPeopleCategoryKeys]);
+  }, [allMatched, categoryLookup, getPeopleCategoryKeys, allT.locale]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
@@ -1802,20 +1805,21 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         <SmartImage src={m.photo} alt={m.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%" }}><Icon name={catIcon(m.cat)} size={14} color={C.accent} /></div>} />
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:700, fontSize:12, color:isLinkedContact?CONTACT_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{m.name}</div>
+                        <div style={{ display:"flex", alignItems:"center", gap:5, minWidth:0 }}><div style={{ flex:1, minWidth:0, fontWeight:700, fontSize:12, color:isLinkedContact?CONTACT_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{m.name}</div>                          {m.primaryProfile === 'professional' ? (
+                            <span style={{ padding:"1px 6px", borderRadius:999, background:C.alpha(C.accent, 0.12), border:`1px solid ${C.alpha(C.accent, 0.25)}`, color:C.accent, fontSize:9, fontWeight:800 }}>
+                              {t.professionalBadge || 'Business'}
+                            </span>
+                          ) : null}
+                        </div>
                         <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4 }}>
-                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
-                          <span>{m.type}</span>
+                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700, flexShrink:0 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
+                          <ActivityLine values={profileActivities(m, allT.locale, true).slice(0, 1)} location={m.loc || ''} language={allT.locale} style={{ flex: 1, fontSize: 10 }} />
                           {rowContactUnlocked && contactUnreadCount > 0 ? (
                             <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:C.alpha(C.danger, 0.2), border:`1px solid ${C.alpha(C.danger, 0.55)}`, color:C.danger, fontSize:9, fontWeight:800 }}>
                               {contactUnreadCount > 99 ? '99+' : contactUnreadCount}
                             </span>
                           ) : null}
-                          {m.primaryProfile === 'professional' ? (
-                            <span style={{ padding:"1px 6px", borderRadius:999, background:C.alpha(C.accent, 0.12), border:`1px solid ${C.alpha(C.accent, 0.25)}`, color:C.accent, fontSize:9, fontWeight:800 }}>
-                              {t.professionalBadge || 'Business'}
-                            </span>
-                          ) : null}
+
                           {showOwnedOwnerExclusiveStatus?.expiresAt ? (
                             <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                           ) : null}
@@ -2496,6 +2500,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                             {t.backToList}
                           </button>
                         </div>
+                        <ActivityLine values={[selectedPortfolioItem.category]} location={selectedPortfolioItem.location || selectedPortfolioItem.loc || selectedPortfolioItem.state || ''} language={allT.locale} style={{ fontSize:12, color:C.accent, fontWeight:700, marginBottom:8 }} />
                         <ServiceImageCarousel images={selectedPortfolioItem.media?.images || []} title={selectedPortfolioItem.name || selectedPortfolioItem.title || ''} />
                         {selectedPortfolioItem.description && <div style={{ marginBottom:8, color:C.t2 }}><LocalizedNarrative text={selectedPortfolioItem.description} protectedNames={[selectedPortfolioItem.address, selectedPortfolioItem.title, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
                         {(selectedPortfolioItem.publishToShowcase === false || selectedPortfolioItem.publishToConnections === false) ? (
@@ -2562,14 +2567,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         <>
                         <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
                           {(portfolioShowAll ? serviceItems : serviceItems.slice(0, 4)).map(s => (
-                            <div key={s.id || s.serviceId} onClick={() => isMobile ? setMobileCardSheet(s) : setSelectedPortfolioItem(s)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:10, overflow:"hidden", cursor:"pointer", padding:8 }}>
-                              <div style={{ height:80, position:"relative", overflow:"hidden" }}>
-                                <SmartImage src={s.media?.images?.[0]} alt={s.name || s.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
-                              </div>
-                              <div style={{ paddingTop:8, fontSize:11, fontWeight:700, color:C.t1 }}>{s.name || s.title || onboardingT.serviceFallbackName}</div>
-                              {s.publishToConnections === false ? <div style={{ fontSize:9, fontWeight:800, color:C.danger, textTransform:'uppercase', marginTop:2 }}>Stand By</div> : null}
-                              {s.price && <div style={{ fontSize:10, color:C.gold, fontWeight:700 }}>${(s.price/1000).toFixed(0)}K</div>}
-                            </div>
+                            <ServiceMiniCard key={s.id || s.serviceId} service={s} onOpen={isMobile ? setMobileCardSheet : setSelectedPortfolioItem} />
                           ))}
                         </div>
                           {serviceItems.length > 4 && (
@@ -2673,6 +2671,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                     {t.backToList}
                   </button>
                 </div>
+                <ActivityLine values={[mobileCardSheet.category]} location={mobileCardSheet.location || mobileCardSheet.loc || mobileCardSheet.state || ''} language={allT.locale} style={{ fontSize:12, color:C.accent, fontWeight:700, marginBottom:8 }} />
                 <ServiceImageCarousel images={mobileCardSheet.media?.images || []} title={mobileCardSheet.name || mobileCardSheet.title || ''} compact />
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}><LocalizedNarrative text={mobileCardSheet.description} protectedNames={[mobileCardSheet.address, mobileCardSheet.title, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
                 <PortfolioContactPanel

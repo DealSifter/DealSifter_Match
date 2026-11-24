@@ -99,7 +99,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       zipLocation: ownerPreview.zipLocation || null,
       cat: scope === 'fsbo' ? 'seller' : pickString(ownerPreview.cat, ownerPreview.categoryId),
       desc: scope === 'fsbo' ? '' : pickString(ownerPreview.desc, ownerPreview.pitch),
-      verified: ownerPreview.verified === true,
+      verified: typeof payloadScope.verified === 'boolean' ? payloadScope.verified : ownerPreview.verified === true,
     };
   }
 
@@ -247,8 +247,8 @@ export function normalizeCard(rawCard, currentUserId = '') {
     isTrending: rawCard.isTrending === true || favoriteCount >= 10,
     isExclusive: rawCard.isExclusive === true || rawCard.exclusive === true,
     isSpotlight: spotlightActive,
-    isVerified: rawCard.isVerified === true || rawCard.verified === true || identity.verified === true,
-    verified: rawCard.verified === true || identity.verified === true,
+    isVerified: hasScopedSource ? identity.verified === true : rawCard.isVerified === true || rawCard.verified === true,
+    verified: hasScopedSource ? identity.verified === true : rawCard.verified === true,
   };
 
   if (kind === 'service') {

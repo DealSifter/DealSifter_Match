@@ -1,6 +1,7 @@
 import React from 'react';
 import { C } from '../../theme/colors';
 import { formatExclusiveCountdown } from './exclusivityTime';
+import { useT } from '../../i18n/translations';
 
 export function ExclusiveLockIcon({ size = 18, color = '#ffffff', boltColor = '#facc15' }) {
   return (
@@ -15,9 +16,12 @@ export function ExclusiveLockIcon({ size = 18, color = '#ffffff', boltColor = '#
 export function ExclusivityBadge({
   expiresAt,
   compact = false,
-  label = 'Exclusivity',
-  title = 'Exclusive access active',
+  label,
+  title,
 }) {
+  const t = useT('dashboard').cards;
+  label = label || t.exclusivityActiveBadge;
+  title = title || t.exclusiveAccessTitle;
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {

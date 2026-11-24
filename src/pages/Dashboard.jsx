@@ -1,6 +1,8 @@
+import { profileActivities } from '../lib/activityLabels';
+import { ActivityLine } from '../components/ui/ActivityLine';
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { C } from '../theme/colors';
-import { useT } from '../i18n/translations';
+import { useT, useLang } from '../i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { SmartImage } from '../components/ui/SmartImage';
@@ -209,6 +211,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     : 20;
   const PROPERTY_BLUE = '#4381bc';
   const t = useT('dashboard').dashboard;
+  const activityLanguage = useLang('dashboard');
   const navT = useT('dashboard').nav;
   const cardsT = useT('dashboard').cards;
   const matchesT = useT('dashboard').matches;
@@ -2700,19 +2703,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const _propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
   void _connDeckSet;
   void _propDeckSet;
-  const verifiedOwnerIds = useMemo(
-    () => {
-      const ids = new Set();
-      (CARDS || []).forEach((c) => {
-        if (isTruthyVerified(c?.verified)) ids.add(String(c.id));
-      });
-      (connectionCards || []).forEach((c) => {
-        if (isTruthyVerified(c?.verified)) ids.add(String(c.id));
-      });
-      return ids;
-    },
-    [connectionCards]
-  );
+  const verifiedProfileKeys = useMemo(() => new Set(
+    (connectionCards || []).filter(card => isTruthyVerified(card?.verified)).map(card =>
+      String(card.ownerId || card.id) + ':' + normalizeProfileScope(card.primaryProfile || card.scopeKey)
+    )
+  ), [connectionCards]);
 
   // Banner: incluir todos os cards/p imóveis ativos (não só o deck corrente).
   const hasSpotlightKey = useCallback((key) => {
@@ -2768,18 +2763,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           source: 'connections',
           id: c.id,
           title: c.name,
-          subtitle: `${c.type} · ${c.loc}`,
-          meta: `${c.deals} deals · ${c.rating}★`,
+          subtitle: profileActivities(c, activityLanguage, true)[0] || '',
+          activityDetail: profileActivities(c, activityLanguage, true).slice(1, 2),
+          activityLocation: c.loc || '',
+          meta: '',
           tone: C.accent,
           icon: catIcon(c.cat),
           thumb: safeThumb,
           thumbRound: true,
           isHot: hotPressure > 0,
           hotPressure,
-          isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
+          isVerified: isTruthyVerified(c?.verified),
         };
       })
-  ), [connectionCards, showcaseProperties, verifiedOwnerIds, hiddenSet, propertyHotMetrics, isConnectionSpotlight]);
+  ), [connectionCards, showcaseProperties, hiddenSet, propertyHotMetrics, isConnectionSpotlight, activityLanguage]);
 
   const bannerPropItems = useMemo(() => (
   (showcaseProperties || [])
@@ -2787,7 +2784,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     .map(p => {
       const hotPressure = p?.dealClosed ? 0 : Number(propertyHotMetrics[String(p.id)]?.hotScore || 0);
       const exclusivityStatus = getEffectivePropertyExclusivityStatus(p);
-      const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
+      const ownerVerified = verifiedProfileKeys.has(String(p.ownerId) + ':' + inferRecordProfileScope(p, ''));
       let safeThumb = p.images?.[0] || p.image;
       if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
         safeThumb = undefined;
@@ -2812,7 +2809,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         exclusiveExpiresAt: exclusivityStatus?.expiresAt || null,
       };
     })
-), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight, getEffectivePropertyExclusivityStatus]);
+), [showcaseProperties, verifiedProfileKeys, propertyHotMetrics, isPropertySpotlight, getEffectivePropertyExclusivityStatus]);
 
   const hashStringToSeed = (value) => {
     const input = String(value || '');
@@ -4159,7 +4156,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             <SwipeCard card={{
                               ...getFeedDisplayCard(c, isContactUnlocked(c)),
                               portfolioCount: getPortfolioCount(c),
-                              isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
+                              isVerified: isTruthyVerified(c?.verified),
                             }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />
                           </div>
                         </div>
@@ -4704,10 +4701,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           <Icon name={item.thumbRound ? 'user' : 'home'} size={item.thumbRound ? 17 : 16} color={C.t3} />
                         )}
                       </div>
-                      <div style={{ minWidth:0 }}>
+                      <div style={{ minWidth:0, flex:1 }}>
                         <div style={{ fontSize:11, fontWeight:800, color:C.t1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.title}</div>
-                        <div style={{ fontSize:10, color:C.t2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.subtitle}</div>
-                        <div style={{ fontSize:10, color:item.tone, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.meta}</div>
+                        <div style={{ fontSize:10, color:C.t2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }} title={item.subtitle}>{item.subtitle}</div>
+                        <div style={{ fontSize:10, color:item.tone, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.source === 'connections' ? <ActivityLine values={item.activityDetail} location={item.activityLocation} language={activityLanguage} /> : item.meta}</div>
                       </div>
                     </div>
                   </button>

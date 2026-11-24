@@ -1,3 +1,5 @@
+import { activityLabel } from '../lib/activityLabels';
+import { ActivityLine } from '../components/ui/ActivityLine';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { genId } from '../lib/id';
 import { MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
@@ -2672,7 +2674,7 @@ export function MapView({
                         </div>
                         <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
                               <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {isPerson ? `${item.type} · ${item.loc}` : `${item.type} · ${item.city}`}
+                                {isPerson ? <ActivityLine values={[item.type || item.cat]} location={item.loc || ''} language={getLang()} /> : `${item.type} · ${item.city}`}
                               </div>
                             </div>
                       </div>
@@ -2930,6 +2932,7 @@ export function MapView({
               const isPerson = feature.properties.itemType === 'person';
               const payload = feature.payload;
               const personBadges = isPerson ? getPersonMapBadges(payload, {
+                language: getLang(), separateLocation: true,
                 deals: tMap.deals || 'deals',
                 verified: tCards.verified || 'Verified',
                 fsbo: 'FSBO',
@@ -3011,13 +3014,14 @@ export function MapView({
                         {personBadges.length > 0 && (
                           <div className="ds-map-person-badges">
                             {personBadges.map((badge) => (
-                              <span key={badge} className="ds-map-person-badge">{badge}</span>
+                              <span key={badge} className="ds-map-person-badge" title={badge}>{badge}</span>
                             ))}
+                            {payload.loc ? <span className="ds-map-person-location">/ {payload.loc}</span> : null}
                           </div>
                         )}
                       </div>
                       <PortfolioPinCarousel key={`${payload.ownerId}:${payload.primaryProfile}`} owner={payload} language={getLang()}
-                        labelForItem={item => item.kind === 'property' ? getSafePropertyLabel(item) : String(item.title || item.category || payload.name)}
+                        labelForItem={item => item.kind === 'property' ? getSafePropertyLabel(item) : String(item.title || activityLabel(item.category, getLang()) || payload.name)}
                         onOpen={(item, kind) => navigateToFeed(kind === 'property' ? item : payload, kind === 'property' ? 'property' : 'person')} />
                       </div>
                     ) : (

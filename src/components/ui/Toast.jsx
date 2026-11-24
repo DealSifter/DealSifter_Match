@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from './Icon';
+import { useLang } from '../../i18n/translations';
+import { localizeSystemText } from '../../i18n/systemMessages';
 
 const TOAST_ICONS = { success: 'check', error: 'alertTriangle', info: 'info', warning: 'alertTriangle' };
 const TOAST_COLORS = { success: '#22c55e', error: '#ef4444', info: '#3b82f6', warning: '#f59e0b' };
 
 function ToastItem({ toast, onDismiss }) {
+  const language = useLang();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -43,8 +46,8 @@ function ToastItem({ toast, onDismiss }) {
     >
       <Icon name={icon} size={16} color={color} />
       <div style={{ flex: 1, fontSize: 13, color: C.t1, lineHeight: '1.4' }}>
-        {toast.title ? <div style={{ fontWeight: 700, marginBottom: 2 }}>{toast.title}</div> : null}
-        <div style={{ color: C.t2 }}>{toast.message}</div>
+        {toast.title ? <div style={{ fontWeight: 700, marginBottom: 2 }}>{localizeSystemText(toast.title, language)}</div> : null}
+        <div style={{ color: C.t2 }}>{localizeSystemText(toast.message, language)}</div>
       </div>
     </div>
   );

@@ -1,18 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import { C } from '../../theme/colors';
 import './Modal.css';
+import { useT } from '../../i18n/translations';
 
 export function Modal({
   children,
   onClose,
   maxWidth = 420,
-  ariaLabel = 'Modal dialog',
+  ariaLabel,
   overlayStyle = {},
   contentStyle = {},
   contentClassName = '',
   scrollable = true,
   showCloseButton = true,
 }) {
+  const modalCopy = useT('global').nav;
   const dialogRef = useRef(null);
 
   // Prevent scrolling on body when modal is open; restore previous overflow on unmount
@@ -122,7 +124,7 @@ export function Modal({
         className={`ds-modal-content ${scrollable ? '' : 'ds-modal-no-scroll'} ${contentClassName}`.trim()}
         role="dialog"
         aria-modal="true"
-        aria-label={ariaLabel}
+        aria-label={ariaLabel || modalCopy.dialogLabel}
         onClick={e => e.stopPropagation()} 
         style={{
           background: C.card, 
@@ -147,7 +149,7 @@ export function Modal({
           <button
             onClick={onClose}
             type="button"
-            aria-label="Close dialog"
+            aria-label={modalCopy.closeDialog}
             className="modal-close-btn"
             style={{
               position: "absolute",

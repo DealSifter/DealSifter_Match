@@ -2,9 +2,13 @@ import React from 'react';
 import { C } from '../../theme/colors';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../ui/Icon';
+import { useLang } from '../../i18n/translations';
+import { getPlanGateCopy } from '../../services/planUsageService';
 
 export function PlanGateModal({ gate, onClose, onUpgrade }) {
+  useLang('global');
   if (!gate) return null;
+  gate = gate.feature ? { ...gate, ...getPlanGateCopy(gate.feature) } : gate;
 
   return (
     <Modal onClose={onClose} maxWidth={440} ariaLabel={gate.title || 'Plan upgrade required'}>

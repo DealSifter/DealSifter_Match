@@ -1,3 +1,5 @@
+import { useLang } from '../../i18n/translations';
+import { ActivityLine } from '../ui/ActivityLine';
 import React, { useRef, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { FittedPreviewCard } from '../ui/FittedPreviewCard';
@@ -8,6 +10,7 @@ import { PropertyCard } from './PropertyCard';
 import { LocalizedNarrative } from '../ui/LocalizedNarrative';
 
 function ServicePreview({ item, copy }) {
+  const language = useLang();
   const images = (item.media?.images || []).filter(Boolean);
   const [index, setIndex] = useState(0);
   const current = Math.min(index, Math.max(0, images.length - 1));
@@ -18,7 +21,7 @@ function ServicePreview({ item, copy }) {
       <div>
         <h4>{item.title || 'Service'}</h4>
         {item.description ? <div className="mycards-preview-service-description"><LocalizedNarrative text={item.description} protectedNames={[item.title].filter(Boolean)} /></div> : null}
-        {item.category ? <span className="mycards-preview-service-category">{item.category}</span> : null}
+        {item.category ? <ActivityLine values={[item.category]} location={item.location || item.loc || item.state || ''} language={language} /> : null}
       </div>
       <div className="preview-service-media" aria-roledescription="carousel"
         onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }}

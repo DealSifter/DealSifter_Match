@@ -457,6 +457,7 @@ export function getPlanGateCopy(feature) {
   const key = normalizeAction(feature);
   return {
     ...(pack[key] || pack.chat),
+    feature: key,
     cta: pack.cta,
     dismiss: pack.dismiss,
   };

@@ -1,8 +1,11 @@
+import { activityLabel, activityLabels, profileActivities, profileLinkedServices } from '../../lib/activityLabels';
 import { inferRecordProfileScope } from '../../lib/profileScopeResolver';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { C } from '../../theme/colors';
-import { useT } from '../../i18n/translations';
+import { useLang, useT } from '../../i18n/translations';
+import { cardDisplayLabel } from '../../i18n/interfaceCompletion';
+import { FitText } from '../ui/FitText';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -37,7 +40,7 @@ const getCardSubtitle = (card) => {
     card?.type,
     card?.cat,
     card?.category,
-    card?.badge,
+    /^(business|professional|personal|profile|contact)$/i.test(cleanText(card?.badge)) ? '' : card?.badge,
   ];
   const picked = candidates
     .map(cleanText)
@@ -45,15 +48,15 @@ const getCardSubtitle = (card) => {
   return picked || description;
 };
 
-const buildTagGroup = (labelKey, values, limit = 3) => {
+const buildTagGroup = (labelKey, values, limit = 3, language = 'en') => {
   const tags = [];
   const seen = new Set();
   values.forEach((value) => addTagValues(tags, seen, value));
-  return { labelKey, tags: tags.slice(0, limit) };
+  return { labelKey, tags: activityLabels(tags, language, true).slice(0, limit) };
 };
 
-const getFeedCardTagGroups = (card) => {
-  const linkedServices = Array.isArray(card?.linkedServices) ? card.linkedServices : [];
+const getFeedCardTagGroups = (card, language) => {
+  const linkedServices = profileLinkedServices(card);
   const linkedProperties = Array.isArray(card?.linkedProperties) ? card.linkedProperties : [];
   const marketGroup = buildTagGroup('feedBadgeGroupMarket', [
     card?.loc,
@@ -62,18 +65,21 @@ const getFeedCardTagGroups = (card) => {
     card?.investmentProfile?.markets,
     linkedServices.map((service) => service?.markets),
     linkedProperties.map((property) => property?.markets || property?.state),
-  ], 3);
+  ], 3, language);
 
   const profileGroup = buildTagGroup('feedBadgeGroupProfile', [
     card?.cat,
     card?.category,
     card?.type,
-    card?.badge,
+    /^(business|professional|personal|profile|contact)$/i.test(cleanText(card?.badge)) ? '' : card?.badge,
     card?.investorRoles,
     card?.investmentProfile?.investorRoles,
-  ], 3);
+  ], 3, language);
 
   const dealGroup = buildTagGroup('feedBadgeGroupDeal', [
+    linkedServices.map((service) => service?.category),
+    card?.specialties,
+    card?.skills,
     card?.tags,
     card?.strategies,
     card?.interests,
@@ -86,7 +92,7 @@ const getFeedCardTagGroups = (card) => {
       property?.strategy,
       property?.dealTag,
     ]),
-  ], 4);
+  ], 4, language);
 
   const signalValues = [];
   if (card?.isHot) signalValues.push('Hot');
@@ -95,7 +101,7 @@ const getFeedCardTagGroups = (card) => {
   if (card?.isExclusive) signalValues.push('Exclusive');
   if (card?.isSpotlight) signalValues.push('Spotlight');
   if (card?.isVerified || card?.verified) signalValues.push('Verified');
-  const signalGroup = buildTagGroup('feedBadgeGroupSignals', signalValues, 3);
+  const signalGroup = buildTagGroup('feedBadgeGroupSignals', signalValues, 3, language);
 
   return [marketGroup, profileGroup, dealGroup, signalGroup].filter((group) => group.tags.length > 0).slice(0, 4);
 };
@@ -103,10 +109,9 @@ const getFeedCardTagGroups = (card) => {
 const getCompactFallbackTags = (card) => {
   const tags = [];
   const seen = new Set();
-  (Array.isArray(card?.linkedServices) ? card.linkedServices : []).forEach((service) => {
+  profileLinkedServices(card).forEach((service) => {
     addTagValues(tags, seen, service?.category);
     addTagValues(tags, seen, service?.title);
-    addTagValues(tags, seen, service?.markets);
     addTagValues(tags, seen, service?.tags);
   });
   (Array.isArray(card?.linkedProperties) ? card.linkedProperties : []).forEach((property) => {
@@ -114,8 +119,6 @@ const getCompactFallbackTags = (card) => {
     addTagValues(tags, seen, property?.objective);
     addTagValues(tags, seen, property?.strategy);
     addTagValues(tags, seen, property?.dealTag);
-    addTagValues(tags, seen, property?.markets);
-    addTagValues(tags, seen, property?.state);
   });
   if (card?.isHot) addUniqueTag(tags, seen, 'Hot');
   if (card?.isTrending) addUniqueTag(tags, seen, 'Trending');
@@ -137,6 +140,7 @@ const getProfileCategoryBadge = (card) => {
 
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
   const t = useT('dashboard').cards;
+  const language = useLang('dashboard');
   const mt = useT('dashboard').matches;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
@@ -183,14 +187,14 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const emailValue = String(card?.email || '').trim();
   const revealPhone = Boolean(isUnlocked && phoneValue);
   const revealEmail = Boolean(isUnlocked && emailValue);
-  const subtitleValue = React.useMemo(() => getCardSubtitle(card), [card]);
+  const subtitleValue = React.useMemo(() => profileActivities(card, language, true)[0] || getCardSubtitle(card), [card, language]);
   const bodyDescription = React.useMemo(() => {
     const desc = cleanText(card?.desc || card?.description);
     if (!desc) return '';
     return desc.toLowerCase() === cleanText(subtitleValue).toLowerCase() ? '' : desc;
   }, [card, subtitleValue]);
-  const feedTagGroups = React.useMemo(() => getFeedCardTagGroups(card), [card]);
-  const fallbackTags = React.useMemo(() => getCompactFallbackTags(card), [card]);
+  const feedTagGroups = React.useMemo(() => getFeedCardTagGroups(card, language), [card, language]);
+  const fallbackTags = React.useMemo(() => activityLabels(getCompactFallbackTags(card), language, true), [card, language]);
   const visibleFeedTagGroups = React.useMemo(() => {
     const groups = isMobileLayout ? feedTagGroups.slice(0, 4) : feedTagGroups;
     return groups
@@ -466,7 +470,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               transition: isDragging ? 'none' : 'opacity .16s ease-out',
             }}
           >
-            PASS
+            <FitText maxSize={11} style={{width:32}}>{t.skip.toUpperCase()}</FitText>
           </span>
         ) : null}
         {showMatchBadge ? (
@@ -491,11 +495,11 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               transition: isDragging ? 'none' : 'opacity .16s ease-out',
             }}
           >
-            MATCH
+            <FitText maxSize={11} style={{width:40}}>{t.match.toUpperCase()}</FitText>
           </span>
         ) : null}
         {card?.isVerified ? (
-          <span style={{
+          <span role="img" aria-label={t.verified} title={t.verified} style={{
             position: 'absolute',
             top: 10,
             right: showMatchBadge ? 44 : 10,
@@ -538,20 +542,20 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginTop: 1 }}>
               {subtitleValue && subtitleValue === cleanText(card?.desc || card?.description)
                 ? <LocalizedNarrative text={subtitleValue} sourceLocale={card?.sourceLocale || 'auto'} protectedNames={[card?.name, card?.address].filter(Boolean)} maxLength={56} />
-                : subtitleValue && subtitleValue.length > 56 ? `${subtitleValue.slice(0, 56)}...` : subtitleValue}
+                : subtitleValue && subtitleValue.length > 56 ? `${cardDisplayLabel(subtitleValue, language).slice(0, 56)}...` : cardDisplayLabel(subtitleValue, language)}
             </div>
           </div>
           {profileCategoryBadge && (
             <div style={{
               flexShrink: 0,
-              maxWidth: isMobileLayout ? '100%' : undefined,
+              maxWidth: isMobileLayout ? '100%' : '48%',
               padding: '3px 8px', borderRadius: 20,
               background: C.alpha(C.gold, 0.12), border: `1px solid ${C.alpha(C.gold, 0.3)}`,
               color: C.gold, fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap',
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
               <Icon name="nugget" size={10} color={C.gold} strokeWidth={1.8} />
-              {profileCategoryBadge}
+              <FitText maxSize={10}>{cardDisplayLabel(profileCategoryBadge, language)}</FitText>
             </div>
           )}
         </div>
@@ -754,11 +758,11 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 >
                   {t[group.labelKey] || group.labelKey.replace('feedBadgeGroup', '')}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 3, minWidth: 0 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, minWidth: 0, maxHeight: isMobileLayout ? 34 : 36, overflow: 'hidden' }}>
                   {group.tags.map((tag) => (
                     <span
                       key={`${group.labelKey}:${tag}`}
-                      title={tag}
+                      title={cardDisplayLabel(tag, language)}
                       style={{
                         padding: isMobileLayout ? '2px 5px' : '2px 6px',
                         borderRadius: 20,
@@ -768,13 +772,15 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                         lineHeight: 1.15,
                         color: C.t2,
                         fontWeight: 800,
-                        maxWidth: '50%',
+                        maxWidth: '100%',
+                        flexShrink: 0,
+                        minWidth: 0,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {tag}
+                      {activityLabel(cardDisplayLabel(tag, language), language, true)}
                     </span>
                   ))}
                 </div>
@@ -797,7 +803,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}>
-                {tag}
+                  {activityLabel(cardDisplayLabel(tag, language), language, true)}
               </span>
             ))}
           </div>
@@ -852,7 +858,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 <span style={{ display: 'block', fontSize: isMobileLayout ? 9 : 10, fontWeight: 700, color: C.t3, lineHeight: 1.2, marginTop: 2 }}>
                   {card?.isOwnCard
                     ? (mt.ownCardHint || 'Visible for review only')
-                    : `${t.previewUnlockWith || 'Unlock with'} ${unlockCost} ${t.previewNuggets || 'nuggets'}`}
+                    : `${t.previewUnlockWith || 'Unlock with'} ${unlockCost} ${unlockCost === 1 ? t.nuggetOne : t.previewNuggets}`}
                 </span>
               </span>
             </span>

@@ -3,6 +3,13 @@ import { C } from '../../theme/colors';
 import { Icon } from './Icon';
 import { ExclusiveLockIcon } from './ExclusivityBadge';
 import { CARD_STATUS } from './cardStatusTokens';
+import { useT } from '../../i18n/translations';
+import { FitText } from './FitText';
+
+function useStatusLabel(type) {
+  const t = useT('dashboard').cards;
+  return { exclusive: t.exclusiveBadge, partialExclusive: t.partialExclusive, verified: t.verified, pending: t.pendingDealBadge, hot: t.hotBadge, trending: t.trendingBadge }[type];
+}
 
 const STATUS_STYLE = {
   [CARD_STATUS.exclusive]: {
@@ -48,6 +55,7 @@ function getCardStatusStyle(type) {
 }
 
 export function CardStatusIcon({ type, title, size = 20, iconSize = 12, style = null }) {
+  const label = useStatusLabel(type);
   const cfg = getCardStatusStyle(type);
   const renderIcon = () => {
     if (type === CARD_STATUS.exclusive || type === CARD_STATUS.partialExclusive) {
@@ -67,7 +75,9 @@ export function CardStatusIcon({ type, title, size = 20, iconSize = 12, style = 
 
   return (
     <span
-      title={title || cfg.label}
+      title={title || label || cfg.label}
+      role="img"
+      aria-label={title || label || cfg.label}
       style={{
         width: size,
         height: size,
@@ -90,10 +100,11 @@ export function CardStatusIcon({ type, title, size = 20, iconSize = 12, style = 
 }
 
 export function CardStatusBadge({ type, children, title, compact = false, pulse = false, style = null }) {
+  const label = useStatusLabel(type);
   const cfg = getCardStatusStyle(type);
   return (
     <span
-      title={title || cfg.label}
+      title={title || label || cfg.label}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -109,12 +120,15 @@ export function CardStatusBadge({ type, children, title, compact = false, pulse 
         lineHeight: 1.2,
         textTransform: 'uppercase',
         whiteSpace: 'nowrap',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        minWidth: 0,
         pointerEvents: 'none',
         animation: pulse ? 'dsPropertyExclusivePulse 1.2s ease-in-out infinite' : undefined,
         ...style,
       }}
     >
-      {children || cfg.label}
+      {typeof (children || label || cfg.label) === 'string' ? <FitText maxSize={compact ? 8 : 9}>{children || label || cfg.label}</FitText> : children}
     </span>
   );
 }

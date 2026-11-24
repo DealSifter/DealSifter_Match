@@ -14,6 +14,8 @@ import { formatCompactUsd } from '../../lib/formatMoney';
 import { getBlurredStreetAddressLine, getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import { LocalizedNarrative } from '../ui/LocalizedNarrative';
+import { FitText } from '../ui/FitText';
+import { cardDisplayLabel } from '../../i18n/interfaceCompletion';
 import {usePropertyFactReview} from '../../features/propertyFacts/PropertyFactReviewContext';
 import {buildPropertyCardFacts} from '../../features/propertyFacts/cardFacts';
 import {useLang} from '../../i18n/translations';
@@ -21,6 +23,7 @@ import {actionableReview} from '../../../supabase/functions/_shared/property-fac
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
+  const language = useLang('dashboard');
   const factReview=usePropertyFactReview();
   const cardFacts=buildPropertyCardFacts(property,factReview?.facts?.[property.id]||property.effectiveFacts||{},useLang());
   const canReviewFacts=Boolean(factReview?.ownedProperties.has(String(property.id)));
@@ -97,7 +100,10 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const isPartialExclusivity = exclusivityStatus?.kind === 'partial';
   const activeExclusivityLabel = t.exclusivityActiveBadge || 'Exclusivity';
   const activeExclusivityStripText = t.exclusivityActiveStrip || 'Exclusive lock active. This card is blocked until the timer ends.';
-  const exclusivityBadge = isPartialExclusivity ? String(exclusivityStatus?.badge || 'Only 2 unlocks') : 'New';
+  const exclusivityCount = Number(exclusivityStatus?.unlockCount || 0);
+  const exclusivityBadge = isPartialExclusivity
+    ? (exclusivityCount > 0 ? (exclusivityCount === 1 ? t.onlyUnlockOne : t.onlyUnlockOther).replace('{count}', String(exclusivityCount)) : t.partialExclusive)
+    : t.newBadge;
   const exclusivityStripText = isPartialExclusivity
     ? (t.exclusivityPartialStrip || 'Be the first to unlock with partial exclusivity! Be quick and enjoy...')
     : (t.exclusivityNewStrip || 'Be the first to unlock with exclusivity! Be quick and enjoy...');
@@ -330,7 +336,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               transform: 'rotate(-10deg)',
             }}
           >
-            PASS
+            <FitText maxSize={11} style={{width:32}}>{t.skip.toUpperCase()}</FitText>
           </span>
         ) : null}
         {swipeBadgeKind === 'match' ? (
@@ -353,7 +359,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               transform: 'rotate(10deg)',
             }}
           >
-            MATCH
+            <FitText maxSize={11} style={{width:40}}>{t.match.toUpperCase()}</FitText>
           </span>
         ) : null}
 
@@ -448,9 +454,9 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             animation: 'dsPropertyExclusivePulse 1.35s ease-in-out infinite',
           }}>
             <ExclusivityBadge expiresAt={exclusivityStatus.expiresAt} compact />
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <FitText style={{ flex: 1, lineHeight: '14px' }}>
               {activeExclusivityStripText}
-            </span>
+            </FitText>
           </div>
         ) : null}
 
@@ -474,9 +480,9 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
           }}>
             <span style={{ fontSize: 13, color: exclusivityIconColor, lineHeight: 1 }}>⚡</span>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <FitText style={{ flex: 1, lineHeight: '14px' }}>
               {exclusivityStripText}
-            </span>
+            </FitText>
           </div>
         ) : null}
 
@@ -570,7 +576,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           {owner?.photo ? (
             <SmartImage
               src={owner.photo}
-              alt={owner?.name || 'Owner'}
+              alt={owner?.name || t.ownerLabel}
               style={{
                 width: 22,
                 height: 22,
@@ -595,7 +601,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               {(owner?.name || 'U').charAt(0).toUpperCase()}
             </div>
           )}
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{owner?.name || 'Owner'}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{owner?.name || t.ownerLabel}</span>
         </div>
       </div>
 
@@ -623,7 +629,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 10, color: '#4381bc', fontWeight: 700, textTransform: 'uppercase' }}>
-                {property.type}
+              {cardDisplayLabel(property.type, language)}
               </div>
             </div>
           </div>
@@ -638,7 +644,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               <div style={{ fontSize: 15, fontWeight: 900, color: C.success, lineHeight: 1 }}>
                 {displayCapRate}%
               </div>
-              <div style={{ fontSize: 9, color: C.success, fontWeight: 600, marginTop: 1 }}>Cap Rate</div>
+              <div style={{ fontSize: 9, color: C.success, fontWeight: 600, marginTop: 1 }}>{t.capRate}</div>
             </div>
           )}
         </div>
@@ -678,7 +684,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               }}>
                 <Icon name="zap" size={isMobileLayout ? 10 : 11} color="#4381bc" strokeWidth={2} />
                 <span style={{ fontSize: isMobileLayout ? 10 : 11, fontWeight: 700, color: '#4381bc', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                  {property.objective}
+                  {cardDisplayLabel(property.objective, language)}
                 </span>
               </div>
             ) : null}
@@ -722,7 +728,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                   : conflict&&canReviewFacts&&reviewConflicts.has(field)?<button type="button" onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();factReview.open(property.id,field);}} aria-label={`${sub}: ${label}`} style={{border:0,background:'transparent',color:'inherit',font:'inherit',cursor:'pointer',minHeight:44}}>{label} ⚠</button>:label
                 }
               </div>
-              <div style={{ fontSize: 9, color: C.t3, fontWeight: 600, textTransform: 'uppercase', marginTop: 1 }}>{sub}</div>
+              <FitText maxSize={9} minSize={6} style={{ color: C.t3, fontWeight: 600, textTransform: 'uppercase', marginTop: 1, lineHeight: '11px' }}>{sub}</FitText>
             </div>
           ))}
         </div>
@@ -858,7 +864,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           {owner?.photo ? (
             <SmartImage
               src={owner.photo}
-              alt={owner?.name || 'Owner'}
+              alt={owner?.name || t.ownerLabel}
               style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: onAvatarClick ? 'pointer' : undefined }}
               onClick={onAvatarClick ? (e) => { e.stopPropagation(); onAvatarClick(owner?.type || 'personal'); } : undefined}
             />
@@ -872,13 +878,13 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           )}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{owner?.name || 'Owner'}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{owner?.name || t.ownerLabel}</div>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0, fontSize: 10, fontWeight: 800, color: C.t2 }}>
                 <Icon name="star" size={9} color={C.t2} />
                 {owner?.rating || '5.0'}
               </span>
             </div>
-            <div style={{ fontSize: 10, color: C.t2 }}>{owner?.type || owner?.badge || 'Profile'}{owner?.deals ? ` · ${owner.deals} deals` : ''}</div>
+            <FitText maxSize={10}>{cardDisplayLabel(owner?.type || owner?.badge, language) || t.profileLabel}{owner?.deals ? ` · ${owner.deals} ${Number(owner.deals) === 1 ? t.dealOne : t.dealOther}` : ''}</FitText>
           </div>
           <div style={{
             marginLeft: 'auto',
@@ -900,7 +906,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: C.gold, lineHeight: 1.1 }}>
               <Icon name="star" size={10} color={C.gold} />
-              <span>{displayUnlockCost} {t.previewNuggets || 'nuggets'}</span>
+              <span>{displayUnlockCost} {displayUnlockCost === 1 ? t.nuggetOne : t.previewNuggets}</span>
             </div>
           </div>
         </div>

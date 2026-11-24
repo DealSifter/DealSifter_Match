@@ -39,6 +39,7 @@ export function MaxxisPreferencesControls({
   surface = 'settings',
   compact = false,
 }) {
+  language = String(language).toLowerCase().split('-')[0];
   const copy = getMaxxisPreferencesCopy(language);
   const normalized = normalizeMaxxisPreferences(preferences);
   const updatePreference = (preferenceKey, value) => {

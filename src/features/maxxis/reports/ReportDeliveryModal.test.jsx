@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ReportDeliveryModal } from './ReportDeliveryModal';
+import { setLang } from '../../../i18n/translations';
 import { resolveReportSenderScope } from '../../../services/reportSenderScope';
 import { resolveSenderProfile } from '../../../../supabase/functions/_shared/mailbox/senderProfile';
 const mocks = vi.hoisted(() => ({ resolve: vi.fn(), draft: vi.fn(), render: vi.fn(), download: vi.fn(), prepare: vi.fn(), loadRecipients: vi.fn(), saveRecipients: vi.fn(), send: vi.fn(), photos: vi.fn(), release: vi.fn() }));
@@ -17,6 +18,7 @@ vi.mock('../export/reportMapAssets', () => ({ prepareReportMaps: vi.fn(async () 
 vi.mock('./GmailConnectionPanel', () => ({ GmailConnectionPanel: ({ onConnectionChange }) => <button onClick={() => onConnectionChange({ status: 'CONNECTED', mailbox_email: 'synthetic@gmail.com' })}>Connect test mailbox</button> }));
 const reference = { userId: 'a', propertyId: 'property-a', reportId: 'report-a', reportType: 'DEAL_INTELLIGENCE', language: 'en' };
 beforeEach(() => {
+  setLang('en-US');
   vi.resetAllMocks();
   mocks.resolve.mockResolvedValue({ schema: { reportType: 'DEAL_INTELLIGENCE', sections: { propertySummary: { data: { address: '1200 Fictional QA Avenue' } } } }, report: { createdAt: '2026-11-16' }, entitlements: { PDF: { allowed: true } } });
   mocks.draft.mockReturnValue('#draft-requested'); mocks.render.mockResolvedValue({ state: 'RENDERED', document: { pageCount: 4, binary: new TextEncoder().encode('%PDF-1.7\nfixture content\n%%EOF') } }); mocks.download.mockReturnValue(true);
@@ -25,6 +27,35 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('R3.2 contextual delivery controls', () => {
+  it('switches the open interface to Spanish without reloading or replacing edited recipients and message', async () => {
+    mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@gmail.com', recipients: null });
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect test mailbox' }));
+    fireEvent.change(screen.getByTestId('report-delivery-to'), { target: { value: 'recipient@example.invalid' } });
+    fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'My subject' } });
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'My edited message' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Download this PDF' }));
+    await screen.findByText('PDF download requested.');
+    act(() => setLang('es-ES'));
+    await screen.findByRole('heading', { name: 'Entregar informe preparado · Enterprise' });
+    expect(screen.getByLabelText('Asunto').value).toBe('My subject');
+    expect(screen.getByLabelText('Mensaje').value).toBe('My edited message');
+    expect(screen.getByTestId('report-delivery-to').value).toBe('recipient@example.invalid');
+    expect(screen.getByText('Descarga del PDF solicitada.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Preparar correo Gmail' })).toBeTruthy();
+    expect(mocks.loadRecipients).toHaveBeenCalledTimes(1);
+    expect(mocks.resolve).toHaveBeenCalledTimes(3);
+    expect(mocks.render.mock.calls[0][0].language).toBe('en');
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it('translates an already-open failure when the selected language changes', async () => {
+    mocks.resolve.mockRejectedValue(new Error('UNAVAILABLE'));
+    render(<ReportDeliveryModal reference={reference} userId="a" onClose={vi.fn()} />);
+    await screen.findByRole('alert');
+    act(() => setLang('es-ES'));
+    await screen.findByText('El informe guardado no está disponible o ha cambiado. Ábralo de nuevo en Mis informes.');
+    expect(mocks.resolve).toHaveBeenCalledTimes(1);
+  });
   it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('recognizes the primary business Gmail for %s without editing onboarding', async reportType => {
     const profileScope = resolveReportSenderScope({ accountType: 'professional', professionalProfile: { cardPriorityB: 'primary' } });
     const payload = { resolved: { personal: { email: '' }, professional: { email: 'synthetic@gmail.com' } } };
@@ -131,6 +162,7 @@ describe('R3.2 contextual delivery controls', () => {
     expect(mocks.send).not.toHaveBeenCalled();
   });
   it('opens active-profile registration explicitly without changing email or sending a message', async () => {
+    setLang('pt-BR');
     mocks.loadRecipients.mockResolvedValue({ userId: 'a', senderEmail: 'synthetic@hotmail.com', recipients: null });
     const onClose = vi.fn(), openRegistration = vi.fn();
     render(<ReportDeliveryModal reference={{ ...reference, language: 'pt' }} userId="a" onClose={onClose} onOpenProfileRegistration={openRegistration} />);

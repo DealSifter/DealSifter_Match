@@ -19,6 +19,15 @@ const baseCard = (overrides = {}) => ({
 });
 
 describe('normalizeCard public security invariant', () => {
+  it('honors the exact scoped server status over stale card and preview shields', () => {
+    const card = normalizeCard(baseCard({
+      isVerified: true, verified: true,
+      ownerPreview: { ...baseCard().ownerPreview, verified: true },
+      profilePayload: { resolved: { personal: { verified: false }, professional: { verified: true } } },
+    }), 'viewer-1');
+    expect(card.verified).toBe(false);
+    expect(card.isVerified).toBe(false);
+  });
   it('removes email returned by the feed RPC raw data', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const card = normalizeCard(baseCard({ email: 'owner@example.com' }), 'viewer-1');
@@ -51,6 +60,7 @@ describe('normalizeCard public security invariant', () => {
       isExclusive: true,
       isSpotlight: true,
       isVerified: true,
+      ownerPreview: { ...baseCard().ownerPreview, verified: true },
     }), 'viewer-1');
 
     expect(card).toMatchObject({

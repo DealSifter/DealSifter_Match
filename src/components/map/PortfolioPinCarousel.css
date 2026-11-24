@@ -38,6 +38,7 @@
   text-overflow: ellipsis;
 }
 .ds-map-person-badges { display: flex; flex-wrap: wrap; gap: 3px; }
+.ds-map-person-location { align-self: center; flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--t2); }
 .ds-map-person-badge {
   display: inline-flex;
   align-items: center;

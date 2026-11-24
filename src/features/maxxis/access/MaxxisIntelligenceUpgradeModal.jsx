@@ -1,8 +1,11 @@
 import React from 'react';
 import { buildMaxxisIntelligenceUpgradeExperience } from './maxxisIntelligenceUpgrade';
 import './MaxxisIntelligenceUpgradeModal.css';
+import { localizeSystemText } from '../../../i18n/systemMessages';
 
 export function MaxxisIntelligenceUpgradeModal({ experience: suppliedExperience = null, plan = 'free', entitlements = [], requestedReportType = null, language = 'en', onRequestUnlock = null }) {
+  language = String(language).toLowerCase().split('-')[0];
+  const present = text => localizeSystemText(text, language);
   const experience = suppliedExperience || buildMaxxisIntelligenceUpgradeExperience({ plan, entitlements, requestedReportType });
   if (!experience?.showModal) return null;
   const isPro = experience.accessLevel === 'PRO';
@@ -26,9 +29,9 @@ export function MaxxisIntelligenceUpgradeModal({ experience: suppliedExperience 
     <div className="maxxis-intelligence-options">{experience.options.map((item) => <article key={item.reportType} data-report-type={item.reportType}>
       <span className="maxxis-intelligence-badge">{copy.available}</span><h4>{item.title}</h4>
       {Number(item.price) > 0 ? <strong>{item.price} {copy.nuggets}</strong> : null}
-      <ul>{item.benefits.map((benefit) => <li key={benefit}>✓ {benefit}</li>)}</ul>
-      {item.premiumPreview.length ? <div className="maxxis-intelligence-preview"><small>{copy.preview}</small>{item.premiumPreview.map((label) => <span key={label}>◇ {label}</span>)}</div> : null}
-      <button type="button" onClick={() => onRequestUnlock?.(item.accessDecision)}>{item.actionLabel}</button>
+      <ul>{item.benefits.map((benefit) => <li key={benefit}>✓ {present(benefit)}</li>)}</ul>
+      {item.premiumPreview.length ? <div className="maxxis-intelligence-preview"><small>{copy.preview}</small>{item.premiumPreview.map((label) => <span key={label}>◇ {present(label)}</span>)}</div> : null}
+      <button type="button" onClick={() => onRequestUnlock?.(item.accessDecision)}>{present(item.actionLabel)}</button>
     </article>)}</div>
     <strong className="maxxis-intelligence-ongoing">{copy.ongoing}</strong>
     <small className="maxxis-intelligence-no-charge">{copy.noCharge}</small>

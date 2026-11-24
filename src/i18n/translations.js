@@ -1,9 +1,12 @@
-﻿import { startTransition, useSyncExternalStore } from 'react';
+import { interfaceCompletion } from './interfaceCompletion';
+import { settingsCompletion } from './settingsCompletion';
+import { startTransition, useSyncExternalStore } from 'react';
 
 export const translations = {
   en: {
     // Navbar
     nav: {
+      ...interfaceCompletion.en.nav,
       pricing: "Pricing",
       signIn: "Sign In",
       getStarted: "Get Started",
@@ -62,6 +65,7 @@ export const translations = {
       ],
     },
     spotlight: {
+      ...interfaceCompletion.en.spotlight,
       kicker: "Spotlight Cards",
       title: "Boost your cards for 30 days",
       description: "Selected cards appear in the paid mini-card banner and in the Map View Spotlight Cards list. Sponsored feed cards receive a neon halo.",
@@ -699,6 +703,7 @@ export const translations = {
     },
     // Pricing
     pricing: {
+      ...interfaceCompletion.en.pricing,
       trialBadge: "7-day free trial on all paid plans",
       title: "Simple, Transparent Pricing",
       subtitle: "Maxxis reasoning is included. Nuggets support explicit premium unlocks, not every question or reread.",
@@ -836,6 +841,7 @@ export const translations = {
     },
     // Modals
     modals: {
+      ...interfaceCompletion.en.modals,
       storeTitle: "Gold Nugget Store",
       storeSub: "Unlock cost varies by contact portfolio size.",
       balance: "Balance",
@@ -909,6 +915,7 @@ export const translations = {
     },
     // Cards
     cards: {
+      ...interfaceCompletion.en.cards,
       deals: "deals",
       locked: "Locked",
       unlocked: "Unlocked",
@@ -933,8 +940,8 @@ export const translations = {
       estimatedRehab: "Estimated Rehab",
       verified: "Verified",
       feedBadgeGroupMarket: "Market",
-      feedBadgeGroupProfile: "Profile",
-      feedBadgeGroupDeal: "Deal fit",
+      feedBadgeGroupProfile: "Activity",
+      feedBadgeGroupDeal: "Focus & services",
       feedBadgeGroupSignals: "Signals",
       hotBadge: "HOT",
       exclusiveBadge: "EXCLUSIVE",
@@ -953,6 +960,7 @@ export const translations = {
       editCategoryOrder: "Edit category order"
     },
     auth: {
+      ...interfaceCompletion.en.auth,
       title: "Access DealSifter",
       subtitle: "Sign up or sign in to continue.",
       tabSignUp: "Sign Up",
@@ -974,6 +982,7 @@ export const translations = {
       adminAccess: "Admin access"
     },
     settings: {
+      ...settingsCompletion.en,
       profileSaveFailed: 'Could not confirm saving.',
       profileSaveRetry: 'Try again',
       title: "System Settings",
@@ -1107,6 +1116,7 @@ export const translations = {
       prefResetPreferences: "Reset preferences"
     },
     admin: {
+      ...interfaceCompletion.en.admin,
       title: "Adm.System Dashboard",
       subtitle: "Control center for system management and communication.",
       backToApp: "Back to app",
@@ -1426,6 +1436,7 @@ export const translations = {
 
   pt: {
     nav: {
+      ...interfaceCompletion.pt.nav,
       pricing: "Planos",
       signIn: "Entrar",
       getStarted: "Começar",
@@ -1484,6 +1495,7 @@ export const translations = {
       ],
     },
     spotlight: {
+      ...interfaceCompletion.pt.spotlight,
       kicker: "Spotlight Cards",
       title: "Impulsione seus cards por 30 dias",
       description: "Os cards selecionados aparecem na barra paga de minicards e na lista Spotlight Cards do Map View. Cards patrocinados recebem um halo neon no feed.",
@@ -2116,6 +2128,7 @@ export const translations = {
       generated: "Gerado",
     },
     pricing: {
+      ...interfaceCompletion.pt.pricing,
       trialBadge: "7 dias de teste gratis em todos os planos pagos",
       title: "Planos Simples e Transparentes",
       subtitle: "O raciocinio do Maxxis esta incluido. Nuggets apoiam desbloqueios premium explicitos, nao cada pergunta ou releitura.",
@@ -2252,6 +2265,7 @@ export const translations = {
       faqSpotlightA: "O Spotlight promove cards ativos selecionados na barra de minicards do feed, na lista de destaque do MapView e no estilo visual do card por um mes."
     },
     modals: {
+      ...interfaceCompletion.pt.modals,
       storeTitle: "Loja de Gold Nuggets",
       storeSub: "O custo de desbloqueio varia conforme o portfolio do contato.",
       balance: "Saldo",
@@ -2324,16 +2338,17 @@ export const translations = {
       purchaseError: "Nao foi possivel processar a compra. Tente novamente.",
     },
     cards: {
+      ...interfaceCompletion.pt.cards,
       deals: "negócios",
       locked: "Bloqueado",
       unlocked: "Desbloqueado",
       unlock: "Desbloquear",
       purchasePrice: "Preço de Compra",
       afterRepair: "Após Reforma (ARV)",
-      capRate: "Cap Rate",
+      capRate: "Taxa de cap.",
       cashOnCash: "Retorno sobre Caixa",
       propertyType: "Tipo do Imóvel",
-      sqft: "m² / Tamanho",
+      sqft: "Área (ft²)",
       condition: "Condição",
       close: "Prazo de Fechamento",
       days: "dias",
@@ -2342,17 +2357,17 @@ export const translations = {
       interested: "Interessado",
       selected: "SELECIONADO",
       fsbo: "FSBO",
-      bdba: "QTS / BAN",
+      bdba: "Quartos / Banheiros",
       improvement: "área construída",
       lot: "terreno",
       estimatedRehab: "Reforma Estimada",
       verified: "Verificado",
       feedBadgeGroupMarket: "Mercado",
-      feedBadgeGroupProfile: "Perfil",
-      feedBadgeGroupDeal: "Fit do deal",
+      feedBadgeGroupProfile: "Atuação",
+      feedBadgeGroupDeal: "Foco e serviços",
       feedBadgeGroupSignals: "Sinais",
-      hotBadge: "HOT",
-      exclusiveBadge: "EXCLUSIVE",
+      hotBadge: "EM ALTA",
+      exclusiveBadge: "EXCLUSIVO",
       hotStrip: "{unlockCount} desbloqueios · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
       trendingBadge: "Em Alta",
       trendingStrip: "Varios interessados em saber mais... vale a pena conferir!",
@@ -2368,6 +2383,7 @@ export const translations = {
       editCategoryOrder: "Editar ordem das categorias"
     },
     auth: {
+      ...interfaceCompletion.pt.auth,
       title: "Acessar DealSifter",
       subtitle: "Crie conta ou faca login para continuar.",
       tabSignUp: "Cadastrar",
@@ -2389,6 +2405,7 @@ export const translations = {
       adminAccess: "Acesso admin"
     },
     settings: {
+      ...settingsCompletion.pt,
       profileSaveFailed: 'Não foi possível confirmar o salvamento.',
       profileSaveRetry: 'Tentar novamente',
       title: "Configuracoes do Sistema",
@@ -2424,7 +2441,7 @@ export const translations = {
       confirm: "Confirmar",
       accountType: "Tipo de conta",
       individual: "Individual",
-      business: "Business",
+      business: "Empresarial",
       hybrid: "Hibrido",
       supportHeader: "DealSifter Adm/Suporte",
       supportWelcome: "Ola! Aqui e o DealSifter Adm/Suporte. Como podemos ajudar?",
@@ -2522,6 +2539,7 @@ export const translations = {
       prefResetPreferences: "Restaurar preferencias"
     },
     admin: {
+      ...interfaceCompletion.pt.admin,
       title: "Painel Adm.System",
       subtitle: "Central de controle para sistema e comunicacao.",
       backToApp: "Voltar ao app",
@@ -2841,6 +2859,7 @@ export const translations = {
 
   es: {
     nav: {
+      ...interfaceCompletion.es.nav,
       pricing: "Precios",
       signIn: "Ingresar",
       getStarted: "Comenzar",
@@ -2899,6 +2918,7 @@ export const translations = {
       ],
     },
     spotlight: {
+      ...interfaceCompletion.es.spotlight,
       kicker: "Spotlight Cards",
       title: "Impulsa tus cards por 30 dias",
       description: "Los cards seleccionados aparecen en la barra paga de minicards y en la lista Spotlight Cards del Map View. Los cards patrocinados reciben un halo neon en el feed.",
@@ -3531,6 +3551,7 @@ export const translations = {
       generated: "Generado",
     },
     pricing: {
+      ...interfaceCompletion.es.pricing,
       trialBadge: "7 dias de prueba gratis en todos los planes pagos",
       title: "Planes Simples y Transparentes",
       subtitle: "El razonamiento de Maxxis esta incluido. Los Nuggets respaldan desbloqueos premium explicitos, no cada pregunta o relectura.",
@@ -3667,6 +3688,7 @@ export const translations = {
       faqSpotlightA: "Spotlight promueve cards activos seleccionados en la barra de minicards del feed, en la lista destacada de MapView y en el estilo visual del card durante un mes."
     },
     modals: {
+      ...interfaceCompletion.es.modals,
       storeTitle: "Tienda de Gold Nuggets",
       storeSub: "El costo de desbloqueo varía según el portafolio del contacto.",
       balance: "Saldo",
@@ -3739,16 +3761,17 @@ export const translations = {
       purchaseError: "No fue posible procesar la compra. Intentalo nuevamente.",
     },
     cards: {
+      ...interfaceCompletion.es.cards,
       deals: "negocios",
       locked: "Bloqueado",
       unlocked: "Desbloqueado",
       unlock: "Desbloquear",
       purchasePrice: "Precio de Compra",
       afterRepair: "Tras Reforma (ARV)",
-      capRate: "Cap Rate",
+      capRate: "Tasa de cap.",
       cashOnCash: "Retorno sobre Efectivo",
       propertyType: "Tipo de Propiedad",
-      sqft: "m² / Tamaño",
+      sqft: "Área (ft²)",
       condition: "Condición",
       close: "Plazo de Cierre",
       days: "días",
@@ -3757,17 +3780,17 @@ export const translations = {
       interested: "Interesado",
       selected: "SELECCIONADO",
       fsbo: "FSBO",
-      bdba: "HAB / BAN",
+      bdba: "Habitaciones / Baños",
       improvement: "área construida",
       lot: "lote",
       estimatedRehab: "Reforma Estimada",
       verified: "Verificado",
       feedBadgeGroupMarket: "Mercado",
-      feedBadgeGroupProfile: "Perfil",
-      feedBadgeGroupDeal: "Fit del deal",
+      feedBadgeGroupProfile: "Actividad",
+      feedBadgeGroupDeal: "Enfoque y servicios",
       feedBadgeGroupSignals: "Señales",
-      hotBadge: "HOT",
-      exclusiveBadge: "EXCLUSIVE",
+      hotBadge: "EN AUGE",
+      exclusiveBadge: "EXCLUSIVO",
       hotStrip: "{unlockCount} desbloqueos · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
       trendingBadge: "En Tendencia",
       trendingStrip: "Varios interesados quieren saber mas... vale la pena revisar!",
@@ -3783,6 +3806,7 @@ export const translations = {
       editCategoryOrder: "Editar orden de categorías"
     },
     auth: {
+      ...interfaceCompletion.es.auth,
       title: "Acceder a DealSifter",
       subtitle: "Regístrate o inicia sesión para continuar.",
       tabSignUp: "Registro",
@@ -3804,6 +3828,7 @@ export const translations = {
       adminAccess: "Acceso admin"
     },
     settings: {
+      ...settingsCompletion.es,
       profileSaveFailed: 'No se pudo confirmar el guardado.',
       profileSaveRetry: 'Reintentar',
       title: "Configuracion del Sistema",
@@ -3839,7 +3864,7 @@ export const translations = {
       confirm: "Confirmar",
       accountType: "Tipo de cuenta",
       individual: "Individual",
-      business: "Business",
+      business: "Empresarial",
       hybrid: "Hibrido",
       supportHeader: "DealSifter Adm/Soporte",
       supportWelcome: "Hola! Aqui es DealSifter Adm/Soporte. Como podemos ayudar?",
@@ -3937,6 +3962,7 @@ export const translations = {
       prefResetPreferences: "Restaurar preferencias"
     },
     admin: {
+      ...interfaceCompletion.es.admin,
       title: "Panel Adm.System",
       subtitle: "Centro de control para sistema y comunicacion.",
       backToApp: "Volver a la app",

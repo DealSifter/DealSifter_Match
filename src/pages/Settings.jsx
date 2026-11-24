@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
-import { getLang, useT } from '../i18n/translations';
+import { useLang, useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
 import { getSupabaseFunctionUrl, supabase, isSupabaseConfigured, supabaseAnonKey } from '../lib/supabaseClient';
 import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
@@ -90,6 +90,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
   };
   const allT = useT('settings');
   const t = allT.settings || {};
+  const language = useLang('settings').split('-')[0];
+  const locale = t.locale || 'en-US';
   const [tab, setTab] = useState(initialTab);
   const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
   const [profileSaveState, setProfileSaveState] = useState('saved');
@@ -347,10 +349,10 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           planName: String(row.pack_id || 'nuggets').toUpperCase(),
           source: 'nugget_purchases',
         })));
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setBillingHistory([]);
-          addToast?.({ type: 'error', message: String(err?.message || 'Could not load billing history.') });
+          addToast?.({ type: 'error', message: t.billingLoadError });
         }
       } finally {
         if (!cancelled) setBillingHistoryLoading(false);
@@ -358,7 +360,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     };
     loadBillingHistory();
     return () => { cancelled = true; };
-  }, [addToast, supabaseUserId]);
+  }, [addToast, supabaseUserId, t.billingLoadError]);
   useEffect(() => {
     if (tab === 'communication') return undefined;
     const timer = window.setTimeout(() => setCommView('menu'), 0);
@@ -389,7 +391,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     setSystemAccount?.((prev) => ({ ...(prev || {}), [field]: value }));
   };
   const nextBillingLabel = activeSubscription?.nextBillingAt
-    ? new Date(activeSubscription.nextBillingAt).toLocaleDateString('en-US')
+    ? new Date(activeSubscription.nextBillingAt).toLocaleDateString(locale)
     : (t.notApplicable || 'N/A');
   const monthlyValue = Number(activeSubscription?.price || 0);
   const hasPaidPlan = String(activeSubscription?.planId || 'free').toLowerCase() !== 'free';
@@ -599,15 +601,15 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           createdAt: message.createdAt,
           channel: message.deliveryChannel || 'chat',
         })));
-      } catch (err) {
-        if (!cancelled) addToast?.({ type: 'error', message: String(err?.message || 'Could not load support chat.') });
+      } catch {
+        if (!cancelled) addToast?.({ type: 'error', message: t.supportLoadError });
       } finally {
         if (!cancelled) setSupportLoading(false);
       }
     };
     loadSupportThread();
     return () => { cancelled = true; };
-  }, [addToast, commView, supabaseUserId, supportRealtimeTick, t.supportWelcome, tab]);
+  }, [addToast, commView, supabaseUserId, supportRealtimeTick, t.supportWelcome, t.supportLoadError, tab]);
 
   useEffect(() => {
     if (tab !== 'communication' || commView !== 'support') return undefined;
@@ -755,9 +757,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
         }
       }
       addToast?.({ type: 'success', message: t.supportSent || 'Support message sent.' });
-    } catch (err) {
+    } catch {
       setSupportMessages((prev) => (prev || []).filter((message) => String(message.id) !== tempId));
-      addToast?.({ type: 'error', message: String(err?.message || t.supportSendError || 'Could not send support message.') });
+      addToast?.({ type: 'error', message: (t.supportSendError || 'Could not send support message.') });
     } finally {
       setSupportSending(false);
     }
@@ -790,8 +792,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
         }, { onConflict: 'user_id' });
       if (error) throw error;
       addToast?.({ type: 'success', message: t.privacyVisibilitySaved || 'Profile visibility updated.' });
-    } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || t.privacyVisibilityError || 'Failed to update profile visibility.') });
+    } catch {
+      addToast?.({ type: 'error', message: (t.privacyVisibilityError || 'Failed to update profile visibility.') });
     } finally {
       setProfileVisibilitySaving(false);
     }
@@ -812,8 +814,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;
       addToast?.({ type: 'success', message: t.securityResetSent || 'Password reset email sent. Check your inbox.' });
-    } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || t.securityResetError || 'Failed to send password reset email.') });
+    } catch {
+      addToast?.({ type: 'error', message: (t.securityResetError || 'Failed to send password reset email.') });
     }
   };
 
@@ -824,8 +826,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     }
     try {
       await supabase.auth.signOut({ scope: 'global' });
-    } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || t.securityGlobalLogoutError || 'Failed to sign out from all devices.') });
+    } catch {
+      addToast?.({ type: 'error', message: (t.securityGlobalLogoutError || 'Failed to sign out from all devices.') });
       return;
     }
     setAuthSession?.(null);
@@ -864,8 +866,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
       setSecurityOtpPendingAction(action);
       setSecurityOtpCode('');
       addToast?.({ type: 'success', message: t.securityOtpSent || 'Verification code sent to your email.' });
-    } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || t.securityOtpSendError || 'Failed to send verification code.') });
+    } catch {
+      addToast?.({ type: 'error', message: (t.securityOtpSendError || 'Failed to send verification code.') });
     } finally {
       setSecurityOtpSending(false);
     }
@@ -899,7 +901,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
         localStorage.removeItem('ds_security_otp_fail_count');
         localStorage.removeItem('ds_security_otp_lock_until');
       } catch { /* no-op */ }
-    } catch (err) {
+    } catch {
       try {
         const now = Date.now();
         const fails = Number(localStorage.getItem('ds_security_otp_fail_count') || '0') + 1;
@@ -908,7 +910,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           localStorage.setItem('ds_security_otp_lock_until', String(now + 10 * 60 * 1000));
         }
       } catch { /* no-op */ }
-      addToast?.({ type: 'error', message: String(err?.message || t.securityOtpInvalid || 'Invalid or expired code.') });
+      addToast?.({ type: 'error', message: (t.securityOtpInvalid || 'Invalid or expired code.') });
     } finally {
       setSecurityOtpVerifying(false);
     }
@@ -980,7 +982,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           onClick={() => setConfirmPayload(null)}>
           <div style={{ background: C.card, border: `1px solid ${confirmPayload.variant === 'danger' ? C.danger : (C.warning || '#f59e0b')}`, borderRadius: 14, padding: '28px 28px 22px', maxWidth: 420, width: '90%', boxShadow: '0 12px 48px rgba(0,0,0,0.4)' }}
             onClick={(e) => e.stopPropagation()}>
-            <p style={{ margin: '0 0 20px', fontSize: 14, color: C.t1, lineHeight: '1.5' }}>{confirmPayload.message}</p>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: C.t1, lineHeight: '1.5' }}>{t[confirmPayload.messageKey] || confirmPayload.message}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setConfirmPayload(null)} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 {t.cancel || 'Cancel'}
@@ -1008,10 +1010,10 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 10, marginBottom: 12, background: C.alpha(C.accent, 0.04) }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <strong style={{ fontSize: 12, color: C.t1 }}>
-              Settings completion: {sectionProgress.percent}%
+              {t.settingsCompletion}: {sectionProgress.percent}%
             </strong>
             <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>
-              {sectionProgress.completed}/{sectionProgress.total} sections
+              {sectionProgress.completed}/{sectionProgress.total} {t.sections}
             </span>
           </div>
           <div style={{ width: '100%', height: 7, borderRadius: 999, background: C.alpha(C.t1, 0.1), overflow: 'hidden', marginTop: 8 }}>
@@ -1128,7 +1130,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       {t.currentPlan || 'Current plan'}: <strong style={{ color: C.t1 }}>{activeSubscription?.planName || 'Free'}</strong>
                     </div>
                     <div style={{ fontSize: 12, color: C.t2 }}>
-                      {t.planStatus || 'Status'}: <strong style={{ color: C.t1 }}>{activeSubscription?.status || 'active'}</strong>
+                      {t.planStatus || 'Status'}: <strong style={{ color: C.t1 }}>{t.subscriptionStates?.[activeSubscription?.status || 'active'] || t.pending}</strong>
                     </div>
                     <div style={{ fontSize: 12, color: C.t2 }}>
                       {t.nextBilling || 'Next billing'}:{' '}
@@ -1192,8 +1194,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       onClick={async () => {
                         try {
                           await redirectToPortal();
-                        } catch (err) {
-                          addToast?.({ type: 'error', message: String(err?.message || t.billingPortalUnavailable || 'Billing portal is unavailable right now.') });
+                        } catch {
+                          addToast?.({ type: 'error', message: (t.billingPortalUnavailable || 'Billing portal is unavailable right now.') });
                         }
                       }}
                       style={{ width: '100%', boxSizing: 'border-box', border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
@@ -1234,8 +1236,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                         </div>
                         {row.id !== 'empty' && row.id !== 'loading' ? (
                           <>
-                            <div style={{ fontSize: 11, color: C.t2 }}>{new Date(row.createdAt).toLocaleDateString('en-US')} • {row.planName}</div>
-                            <div style={{ fontSize: 11, color: C.t2 }}>${Number(row.amount || 0).toFixed(2)} • <strong style={{ color: row.status === 'paid' ? C.accent : C.warning || '#f59e0b' }}>{row.status}</strong></div>
+                            <div style={{ fontSize: 11, color: C.t2 }}>{new Date(row.createdAt).toLocaleDateString(locale)} • {row.planName}</div>
+                            <div style={{ fontSize: 11, color: C.t2 }}>${Number(row.amount || 0).toFixed(2)} • <strong style={{ color: row.status === 'paid' ? C.accent : C.warning || '#f59e0b' }}>{({ paid: t.invoiceStatusPaid, open: t.invoiceStatusOpen, draft: t.invoiceStatusDraft, void: t.invoiceStatusVoid, uncollectible: t.invoiceStatusUncollectible })[row.status] || t.pending}</strong></div>
                           </>
                         ) : null}
                       </div>
@@ -1278,11 +1280,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       <input type="checkbox" checked={Boolean(commPrefs?.email)} onChange={() => toggleComm('email')} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                      <span>Chat notifications</span>
+                      <span>{t.commChatNotifications}</span>
                       <input type="checkbox" checked={Boolean(commPrefs?.chat)} onChange={() => toggleComm('chat')} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                      <span>Marketing updates</span>
+                      <span>{t.commMarketingUpdates}</span>
                       <input type="checkbox" checked={Boolean(commPrefs?.marketing)} onChange={() => toggleComm('marketing')} />
                     </label>
                   </div>
@@ -1388,7 +1390,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       <div key={row.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8 }}>
                         <div style={{ fontSize: 11, color: C.t1 }}>{row.device}</div>
                         <div style={{ fontSize: 10, color: C.t3 }}>
-                          {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString('en-US') : (t.notApplicable || 'N/A')}
+                          {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString(locale) : (t.notApplicable || 'N/A')}
                           {row.current ? ` • ${t.currentSession || 'Current session'}` : ''}
                         </div>
                         {!row.current && row.id !== 'none' ? (
@@ -1417,9 +1419,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
                     {(securityAudit.length ? securityAudit : [{ id: 'none', type: 'none', status: 'none', message: t.notApplicable || 'N/A', at: null }]).map((evt) => (
                       <div key={evt.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8 }}>
-                        <div style={{ fontSize: 11, color: C.t1, textTransform: 'capitalize' }}>{String(evt.type || 'event')} • {String(evt.status || '').toUpperCase()}</div>
-                        <div style={{ fontSize: 10, color: C.t2 }}>{evt.message}</div>
-                        <div style={{ fontSize: 10, color: C.t3 }}>{evt.at ? new Date(evt.at).toLocaleString('en-US') : ''}</div>
+                        <div style={{ fontSize: 11, color: C.t1, textTransform: 'capitalize' }}>{t.securityEventTypes?.[evt.type || 'event'] || t.securityEventTypes.event} • {t.securityEventStatuses?.[evt.status] || t.pending}</div>
+                        <div style={{ fontSize: 10, color: C.t2 }}>{evt.type === 'session' && evt.status === 'terminated' ? t.securitySessionTerminatedMessage.replace('{id}', evt.sessionId || String(evt.message || '').match(/^Session (.+) terminated from Security Center\.$/)?.[1] || '—') : evt.message}</div>
+                        <div style={{ fontSize: 10, color: C.t3 }}>{evt.at ? new Date(evt.at).toLocaleString(locale) : ''}</div>
                       </div>
                     ))}
                   </div>
@@ -1435,17 +1437,13 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>MAXXIS DEAL AI</div>
                     <div style={{ marginTop: 3, fontSize: 10.5, lineHeight: 1.4, color: C.t3 }}>
-                      {getLang() === 'pt'
-                        ? 'Escolha como o Maxxis Deal AI avisa você e apresenta os movimentos do avatar.'
-                        : getLang() === 'es'
-                          ? 'Elige cómo Maxxis Deal AI te avisa y presenta los movimientos del avatar.'
-                          : 'Choose how Maxxis Deal AI notifies you and presents avatar motion.'}
+                      {t.maxxisMotionIntro}
                     </div>
                   </div>
                   <MaxxisPreferencesControls
                     preferences={prefs?.maxxis}
                     onChange={updateMaxxisPreference}
-                    language={getLang()}
+                    language={language}
                     proactiveFeatureEnabled={Boolean(maxxisProactiveFeatureEnabled || MAXXIS_PROACTIVE_REVIEW_ENABLED)}
                     persistenceStatus={userPreferencesPersistenceStatus}
                     surface="settings"
@@ -1453,7 +1451,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                 </div>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>1) Map View</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefMapTitle}</div>
                   <label style={{ display: 'grid', gap: 5 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefInitialZoom || 'Initial zoom'}</span>
                     <input type="range" min={3} max={13} step={1} value={initialZoomValue} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), initialZoom: Number(e.target.value) } }))} />
@@ -1462,18 +1460,18 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                     </div>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default style</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefMapStyle}</span>
                     <select value={selectedDefaultMapStyle} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), defaultStyle: e.target.value } }))} style={controlStyle}>
-                      <option value="simple">Simple</option>
-                      <option value="satellite_streets">Satellite + Streets</option>
-                      <option value="topo">Terrain</option>
+                      <option value="simple">{t.prefMapSimple}</option>
+                      <option value="satellite_streets">{t.prefMapSatellite}</option>
+                      <option value="topo">{t.prefMapTerrain}</option>
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Cluster behavior</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefMapClusters}</span>
                     <select value={String(prefs?.map?.clusterBehavior || 'pins_city')} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), clusterBehavior: e.target.value } }))} style={controlStyle}>
-                      <option value="pins_city">City level = only pins</option>
-                      <option value="mixed">Keep mixed clusters/pins</option>
+                      <option value="pins_city">{t.prefMapCityPins}</option>
+                      <option value="mixed">{t.prefMapMixed}</option>
                     </select>
                   </label>
                 </div>
@@ -1612,8 +1610,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                         a.remove();
                         URL.revokeObjectURL(url);
                         addToast?.({ type: 'success', title: t.privacyExportSuccessTitle || 'Data exported', message: t.privacyExportSuccessMessage || 'Download started successfully.' });
-                      } catch (err) {
-                        addToast?.({ type: 'error', message: String(err?.message || t.privacyExportError || 'Failed to export data.') });
+                      } catch {
+                        addToast?.({ type: 'error', message: (t.privacyExportError || 'Failed to export data.') });
                       }
                     }}
                     style={{
@@ -1702,6 +1700,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                     <button
                       onClick={() => {
                         setConfirmPayload({
+                          messageKey: 'privacyRevokeConfirm',
                           message: t.privacyRevokeConfirm || 'Do you want to revoke data-processing consent? You will be redirected to home and must consent again to use the platform.',
                           variant: 'warning',
                           onConfirm: onRevokeConsent,
@@ -1778,6 +1777,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <button
                     onClick={() => {
                       setConfirmPayload({
+                        messageKey: 'privacyDeleteConfirm',
                         message: t.privacyDeleteConfirm || 'Are you sure you want to delete your account and all your data? This action is irreversible.',
                         variant: 'danger',
                         onConfirm: onDeleteAccount,
@@ -1903,7 +1903,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   </div>
                   <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{item.displayText || item.text}</div>
                   <div style={{ marginTop: 3, fontSize: 9, color: C.t3 }}>
-                    {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                    {item.createdAt ? new Date(item.createdAt).toLocaleString(locale) : ''}
                   </div>
                 </div>
               ))}

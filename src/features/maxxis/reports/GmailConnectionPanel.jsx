@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { authorizeReportMailbox, disconnectReportMailbox, readReportMailbox } from '../../../services/reportMailboxService';
 
 export function GmailConnectionPanel({ userId, profileScope = 'personal', language = 'en', onConnectionChange }) {
-  const text = useCallback((en, pt, es = en) => language === 'pt' ? pt : language === 'es' ? es : en, [language]);
+  const baseLanguage = language.split('-')[0];
+  const text = useCallback((en, pt, es) => baseLanguage === 'pt' ? pt : baseLanguage === 'es' ? es : en, [baseLanguage]);
   const [connection, setConnection] = useState(null), [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -17,10 +18,10 @@ export function GmailConnectionPanel({ userId, profileScope = 'personal', langua
     } catch {
       if (alive.current) {
         setConnection(null); onConnectionChange?.(null);
-        setError(text('Gmail connection is unavailable. Try checking again.', 'A conexão Gmail está indisponível. Tente conferir novamente.', 'La conexión Gmail no está disponible. Vuelva a comprobar.'));
+        setError(['Gmail connection is unavailable. Try checking again.', 'A conexão Gmail está indisponível. Tente conferir novamente.', 'La conexión Gmail no está disponible. Vuelva a comprobar.']);
       }
     } finally { lock.current = false; if (alive.current) setBusy(false); }
-  }, [userId, profileScope, text, onConnectionChange]);
+  }, [userId, profileScope, onConnectionChange]);
   useEffect(() => {
     alive.current = true;
     void refresh();
@@ -32,7 +33,7 @@ export function GmailConnectionPanel({ userId, profileScope = 'personal', langua
     if (action === 'connect') {
       popup.current = window.open('about:blank', '_blank');
       if (!popup.current) {
-        setError(text('Allow the authorization window, then try again.', 'Permita a janela de autorização e tente novamente.', 'Permita la ventana de autorización e inténtelo otra vez.'));
+        setError(['Allow the authorization window, then try again.', 'Permita a janela de autorização e tente novamente.', 'Permita la ventana de autorización e inténtelo otra vez.']);
         return;
       }
       popup.current.opener = null;
@@ -50,7 +51,7 @@ export function GmailConnectionPanel({ userId, profileScope = 'personal', langua
       }
     } catch {
       if (action === 'connect') popup.current?.close();
-      if (alive.current) setError(text('The mailbox action could not be completed. Check again before retrying.', 'Não foi possível concluir a ação da caixa. Confira novamente antes de repetir.', 'No se pudo completar la acción. Compruebe de nuevo antes de repetir.'));
+      if (alive.current) setError(['The mailbox action could not be completed. Check again before retrying.', 'Não foi possível concluir a ação da caixa. Confira novamente antes de repetir.', 'No se pudo completar la acción. Compruebe de nuevo antes de repetir.']);
     } finally { lock.current = false; if (alive.current) setBusy(false); }
   };
   const connected = connection?.status === 'CONNECTED';
@@ -73,7 +74,7 @@ export function GmailConnectionPanel({ userId, profileScope = 'personal', langua
       {connection && connection.status !== 'DISCONNECTED' ? <button type="button" disabled={busy} onClick={() => act('disconnect')}>{text('Disconnect', 'Desconectar', 'Desconectar')}</button> : null}
     </div>
     {connected ? <span>{text('Disconnect removes DealSifter access. You can also remove the grant in your Google Account permissions.', 'Desconectar remove o acesso pelo DealSifter. Você também pode revogar a autorização nas permissões da sua Conta Google.', 'Desconectar elimina el acceso de DealSifter. También puede revocar el permiso en su Cuenta Google.')}</span> : null}
-    {error ? <span role="alert">{error}</span> : null}
+    {error ? <span role="alert">{text(...error)}</span> : null}
     </div> : null}
   </div>;
 }
