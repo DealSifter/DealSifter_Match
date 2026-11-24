@@ -5708,6 +5708,7 @@ export default function App() {
           />
         );
       case 'mapview':
+        if (!profileHydrationReady) return <AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter" />;
         return (
           <MapView
             interested={interested}

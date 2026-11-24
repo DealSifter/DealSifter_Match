@@ -1,3 +1,5 @@
+import { clearMapSession } from './mapSession';
+
 export const LOCAL_STORAGE_CATEGORY = {
   UI_ONLY: 'ui-only',
   REMOTE_CACHE: 'remote-cache',
@@ -204,6 +206,7 @@ export function clearSensitiveCache(userId) {
 }
 
 export function clearUserScopedCache(userId = null) {
+  clearMapSession();
   if (typeof window === 'undefined' || !window.localStorage) return;
   USER_SCOPED_LOCAL_STORAGE_KEYS.forEach(removeLocalStorageKey);
   clearSensitiveCache(userId);

@@ -44,6 +44,7 @@ import { guardMapLifetime } from '../features/parcel/mapLifetime';
 import { queryPublicParcels } from '../services/publicParcelService';
 import { MapZoomLevel } from '../components/map/MapZoomLevel';
 import { lazyWithRetry } from '../lib/lazyWithRetry';
+import { openMapSession } from '../lib/mapSession';
 
 const PublicParcelLayer = lazyWithRetry(() => import('../components/map/PublicParcelLayer'), 'parcel-boundaries', { overlay:true });
 const ParcelLensLayer = lazyWithRetry(() => import('../components/map/ParcelLensLayer'), 'parcel-lens', { overlay:true });
@@ -663,40 +664,6 @@ function _savePinOverrides(overrides, userProfile) {
   }
 }
 
-function _loadMapUiState() {
-  try {
-    const raw = sessionStorage.getItem(MAP_UI_STATE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function _saveMapUiState(state) {
-  try { sessionStorage.setItem(MAP_UI_STATE_KEY, JSON.stringify(state || {})); } catch { /* noop */ }
-}
-
-function _loadSessionViewport(fallbackZoom = DEFAULT_ZOOM) {
-  try {
-    return sanitizeViewport(JSON.parse(sessionStorage.getItem(MAP_VIEWPORT_SESSION_KEY) || 'null'), fallbackZoom);
-  } catch {
-    return null;
-  }
-}
-
-function _saveSessionViewport(viewport) {
-  try {
-    if (viewport) sessionStorage.setItem(MAP_VIEWPORT_SESSION_KEY, JSON.stringify(viewport));
-  } catch {
-    // noop
-  }
-}
-
-// Module-level signal: set by the viewport useState initializer when a nav-return viewport is
-// consumed, then read by hasAutoFitRealPinsRef to prevent the auto-fit from overriding it.
-let _navReturnViewportConsumed = false;
 
 function _normalizePropertyLocation(property) {
   const address = String(property?.address || '').trim();
@@ -840,7 +807,13 @@ export function MapView({
   const preferredDefaultFilters = prefMap.defaultFilters && typeof prefMap.defaultFilters === 'object'
     ? prefMap.defaultFilters
     : {};
-  const initialMapUiState = useMemo(() => _loadMapUiState(), []);
+  // App waits for saved preferences before mounting this map. Reopenings retain
+  // sidebar choices until logout or a change to the master map preferences.
+  const [mapSession] = useState(() => openMapSession(currentUserId, prefMap));
+  const loadMapUiState = useCallback(() => mapSession.read(MAP_UI_STATE_KEY) || {}, [mapSession]);
+  const saveMapUiState = useCallback(state => mapSession.write(MAP_UI_STATE_KEY, state || {}), [mapSession]);
+  const loadSessionViewport = useCallback(() => sanitizeViewport(mapSession.read(MAP_VIEWPORT_SESSION_KEY), preferredInitialZoom), [mapSession, preferredInitialZoom]);
+  const initialMapUiState = useMemo(() => loadMapUiState(), [loadMapUiState]);
   const [parcelPreference, setParcelPreference] = useState(() => restoreParcelPreference(initialMapUiState, currentUserId));
   const parcelLayerEnabled = parcelPreferenceEnabled(parcelPreference, currentUserId, parcelFeatureEnabled === true && parcelQaGridEnabled === true);
   const [parcelLensState, setParcelLensState] = useState({ context: null, parcel: null, lens: null, page: 'property' });
@@ -949,18 +922,17 @@ export function MapView({
     // Check for a back-navigation return viewport FIRST. This is written by navigateToFeed()
     // and takes priority over all other sources so the exact PIN-zoom position is preserved.
     try {
-      const returnVp = JSON.parse(sessionStorage.getItem('ds_map_return_viewport') || 'null');
+      const returnVp = mapSession.read('ds_map_return_viewport');
       const sanitizedReturnVp = sanitizeViewport(returnVp, preferredInitialZoom);
       if (returnVp?.fromNav && sanitizedReturnVp) {
-        sessionStorage.removeItem('ds_map_return_viewport');
-        _navReturnViewportConsumed = true; // signal hasAutoFitRealPinsRef to skip auto-fit
+        mapSession.remove('ds_map_return_viewport');
         return sanitizedReturnVp;
       }
     } catch (e) { void e; }
     const savedUiViewport = sanitizeViewport(initialMapUiState.viewport, preferredInitialZoom);
     if (savedUiViewport) return savedUiViewport;
     try {
-      const saved = _loadSessionViewport(preferredInitialZoom);
+      const saved = loadSessionViewport();
       if (saved) return saved;
     } catch (e) {
       void e;
@@ -975,20 +947,7 @@ export function MapView({
   const [selectedClusterFeatures, setSelectedClusterFeatures] = useState([]);
   const [_flyTo, _setFlyTo] = useState(null); // kept for legacy compatibility (unused)
   const mapRef = React.useRef(null);
-  const [fitToBounds, setFitToBounds] = useState(() => {
-    try {
-      const saved = _loadSessionViewport(preferredInitialZoom);
-      if (saved) {
-        // If a saved viewport exists, don't force-fit to the USA bounds on mount
-        return null;
-      }
-    } catch (e) { void e; }
-    return {
-      bounds: DEFAULT_USA_BOUNDS,
-      maxZoom: preferredInitialZoom,
-      key: 'initial-usa',
-    };
-  });
+  const [fitToBounds, setFitToBounds] = useState(null);
   const [filterBounds, setFilterBounds] = useState(() => {
     return sanitizeLeafletBounds(initialMapUiState.filterBounds);
   });
@@ -1023,7 +982,6 @@ export function MapView({
   const [femaOverlayUnavailable, setFemaOverlayUnavailable] = useState(false);
   const [mapActivationKey, setMapActivationKey] = useState(0);
   const wasActiveRef = React.useRef(isActive);
-  const hasNormalizedMobileMapFiltersRef = React.useRef(false);
   const lastBaseFallbackSwitchAtRef = React.useRef(0);
   const femaTileErrorStreakRef = React.useRef(0);
 
@@ -1070,16 +1028,6 @@ export function MapView({
   ));
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
-  // Start as true when returning from feed navigation so auto-fit doesn't override the restored viewport.
-  const hasSavedViewportRef = React.useRef(Boolean(
-    _navReturnViewportConsumed
-    || sanitizeViewport(initialMapUiState.viewport, preferredInitialZoom)
-    || _loadSessionViewport(preferredInitialZoom)
-  ));
-  const hasAutoFitRealPinsRef = React.useRef(_navReturnViewportConsumed || hasSavedViewportRef.current);
-  React.useEffect(() => {
-    _navReturnViewportConsumed = false;
-  }, []);
 
   const persistMapUiState = React.useCallback((overrides = {}) => {
     const snapshot = {
@@ -1104,7 +1052,7 @@ export function MapView({
       ...overrides,
     };
     mapUiStateRef.current = snapshot;
-    _saveMapUiState(snapshot);
+    saveMapUiState(snapshot);
   }, [
     showPeople,
     showProperties,
@@ -1123,11 +1071,12 @@ export function MapView({
     viewport,
     selectedCardId,
     parcelPreference,
+    saveMapUiState,
   ]);
 
   // Active restore pass on mount to avoid losing context after redirection/unmount cycles.
   React.useEffect(() => {
-    const saved = _loadMapUiState();
+    const saved = loadMapUiState();
     const timer = window.setTimeout(() => {
       if (!saved || typeof saved !== 'object') {
         setMapUiHydrated(true);
@@ -1166,29 +1115,8 @@ export function MapView({
       setMapUiHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [preferredInitialZoom]);
+  }, [loadMapUiState, preferredInitialZoom]);
 
-  React.useEffect(() => {
-    if (!mapUiHydrated) return;
-    if (!showPeople && !showProperties) {
-      const timer = window.setTimeout(() => setShowProperties(true), 0);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [mapUiHydrated, showPeople, showProperties]);
-
-  React.useEffect(() => {
-    if (!mapUiHydrated || !isMobileViewport || hasNormalizedMobileMapFiltersRef.current) return;
-    hasNormalizedMobileMapFiltersRef.current = true;
-    if (showOnlyUnlocked || showOnlyMyPins) return;
-    if (showPeople && showProperties) return;
-    const timer = window.setTimeout(() => {
-      setShowPeople(true);
-      setShowProperties(true);
-      persistMapUiState({ showPeople: true, showProperties: true });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [isMobileViewport, mapUiHydrated, persistMapUiState, showOnlyMyPins, showOnlyUnlocked, showPeople, showProperties]);
 
   React.useEffect(() => {
     try { localStorage.setItem('ds_map_panel_toggle_offset_y', String(panelToggleOffsetY)); } catch (e) { void e; }
@@ -1279,10 +1207,10 @@ export function MapView({
     if (!mapUiHydrated) return;
     try {
       if (!viewport) return;
-      _saveSessionViewport(viewport);
+      mapSession.write(MAP_VIEWPORT_SESSION_KEY, viewport);
     } catch (e) { void e; }
     persistMapUiState({ viewport });
-  }, [mapUiHydrated, viewport, persistMapUiState]);
+  }, [mapSession, mapUiHydrated, viewport, persistMapUiState]);
 
   // Persist panel collapsed/open state only in the active browser session.
   React.useEffect(() => {
@@ -1315,9 +1243,9 @@ export function MapView({
 
   React.useEffect(() => {
     return () => {
-      _saveMapUiState(mapUiStateRef.current || {});
+      saveMapUiState(mapUiStateRef.current || {});
     };
-  }, []);
+  }, [saveMapUiState]);
 
   // Keep pin overrides scoped by the active login/user profile.
   React.useEffect(() => {
@@ -1432,9 +1360,6 @@ export function MapView({
     if(!current||current.point.lat!==context.point.lat||current.point.lng!==context.point.lng)parcelLensController.clear();
   },[parcelPropertyPinIndex,parcelFeatureEnabled,parcelLensController]);
 
-  const myPinPoints = useMemo(() => {
-    return mapInventoryPoints.filter((point) => point?.properties?.isOwn === true);
-  }, [mapInventoryPoints]);
 
   const getLocationMeta = (item, isPerson) => {
     const rawLocation = isPerson ? item?.loc : item?.city;
@@ -1461,22 +1386,6 @@ export function MapView({
     });
   }, [mapInventoryPoints, locationMode, appliedLocationQuery]);
 
-  React.useEffect(() => {
-    if (hasAutoFitRealPinsRef.current) return;
-    if (myPinPoints.length === 0) return;
-    const ownBounds = buildBoundsFromPoints(myPinPoints, 'city');
-    if (!ownBounds) return;
-    hasAutoFitRealPinsRef.current = true;
-    const timer = window.setTimeout(() => {
-      setFitToBounds({
-        bounds: ownBounds,
-        maxZoom: 14,
-        key: `my-pins-${myPinPoints.length}`,
-      });
-      setShowProperties(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [myPinPoints]);
 
   const manualPinTarget = useMemo(() => {
     if (!manualPinTargetId) return null;
@@ -1837,7 +1746,7 @@ export function MapView({
     // Save a dedicated return-viewport key so the map restores the exact position on back-navigation,
     // independent of any geographic filters that may trigger fitToBounds on remount.
     try {
-      sessionStorage.setItem('ds_map_return_viewport', JSON.stringify({ ...viewport, fromNav: true }));
+      mapSession.write('ds_map_return_viewport', { ...viewport, fromNav: true });
     } catch (e) { void e; }
     try {
       localStorage.setItem('focusCard', JSON.stringify(focusPayload));
