@@ -831,6 +831,25 @@
       "contactPreparationPreserved": true,
       "stashPreserved": true,
       "launchDecision": "CONDITIONAL_GO_UNCHANGED"
+    },
+    {
+      "status": "PASS",
+      "id": "dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj",
+      "url": "https://dealsiftermatch-nn1n0f9g9-deal-sifter-match-s-projects.vercel.app",
+      "readyState": "READY",
+      "sourceCommit": "20b993f851dab9b9707c22c5e1bf22789727cc95",
+      "sourceFingerprint": "a575c5385d67fc480963d3bf26c0d013e5814ae894c8995f76a93b68edbcb707",
+      "rollbackFrontend": "dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk",
+      "canonical": "https://dealsifter.com/",
+      "contactFeatureIncluded": false,
+      "backendDeploys": 0,
+      "migrations": 0,
+      "push": false,
+      "emails": 0,
+      "paidCalls": 0,
+      "date": "2026-11-24",
+      "scope": "Maps master preferences and temporary sidebar session",
+      "evidence": ".tmp-codex/map-release-20261124"
     }
   ]
 }

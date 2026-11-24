@@ -2,7 +2,11 @@
 
 Registro vigente: [execução, resultados e ressalvas](DEALSIFTER_LAUNCH_CLOSURE_EXECUTION.md). A política de publicação progressiva Classe A foi aplicada; publicação técnica permanece separada do aceite comercial humano.
 
-## Publicação vigente — interface e atividades — 24/11/2026
+## Publicação vigente — Maps — 24/11/2026
+
+Frontend Production **https://dealsifter.com/** (também www e host Vercel), deployment **dpl_Aee7JTjm5tRYDMPkFqBgNvKWVqgj**, READY; código **20b993f851dab9b9707c22c5e1bf22789727cc95**, fingerprint **a575c5385d67fc480963d3bf26c0d013e5814ae894c8995f76a93b68edbcb707**. Correção Classe A das preferências/sessão Maps publicada em 24/11/2026: zoom, estilo, agrupamento e filtros gerais prevalecem na abertura; ajustes da sidebar valem durante a sessão e são descartados no logout. 20 testes direcionados, lint completo, TypeScript, build isolado, 38 verificações de staging por adaptador privado somente leitura e smokes públicos PASS. 28 funções backend preservadas. Preparação de verificação de contatos e stash preservados. Sem migrations, push, envios, compras ou chamadas pagas. Rollback frontend **dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk**. Evidências: `.tmp-codex/map-release-20261124/`. Gates comerciais e aceite humano inalterados.
+
+## Histórico — interface e atividades — 24/11/2026
 
 Publicado e conferido em **https://dealsifter.com/**, www e host Vercel. Deployment **dpl_6PTzjfCSBJ4Cq3FdZCS7gmgbNubk**, READY; código **7b7048358b467c8a30bca2145bab479764c74cc6**, fingerprint **572fa1da282d3f7556c613084ec5f8808c2851d015b6ad615092afacaf54f972**. Rollback preservado: **dpl_AFHx1AFTwsTuGnXWyV5khESJ23bn**.
 
