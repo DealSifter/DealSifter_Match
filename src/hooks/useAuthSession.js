@@ -86,7 +86,9 @@ export function useAuthSession({
     if (!isSupabaseConfigured || !supabase) return undefined;
 
     let active = true;
+    let sessionRevision = 0;
     const clearSession = () => {
+      sessionRevision += 1;
       setAuthSession(null);
       setIsAdmin?.(false);
       lastKnownAuthSessionRef.current = null;
@@ -110,11 +112,13 @@ export function useAuthSession({
 
     const applySession = async (session, { restoreNavigation = false } = {}) => {
       if (!active) return;
+      const revision = ++sessionRevision;
       const user = session?.user;
       if (!user) {
         return;
       }
       if (await forceLoginAfterEmailConfirmation(session)) return;
+      if (!active || revision !== sessionRevision) return;
 
       const provider = getSupabaseSessionProvider(user);
       const previous = lastKnownAuthSessionRef.current;
@@ -155,18 +159,22 @@ export function useAuthSession({
             .select('is_admin')
             .eq('id', user.id)
             .single();
+          if (!active || revision !== sessionRevision) return;
           setIsAdmin?.(!!userRow?.is_admin);
         } catch {
+          if (!active || revision !== sessionRevision) return;
           setIsAdmin?.(false);
         }
       }
 
-      if (!sameUser || restoreNavigation) {
+      if (active && revision === sessionRevision && (!sameUser || restoreNavigation)) {
         onSessionRestored?.(next);
       }
     };
 
+    const bootstrapRevision = sessionRevision;
     supabase.auth.getSession().then(async ({ data }) => {
+      if (!active || bootstrapRevision !== sessionRevision) return;
       if (data?.session) await applySession(data.session, { restoreNavigation: true });
       else clearSession();
     }).catch((error) => {

@@ -37,6 +37,67 @@ export const supabaseAnonKey = readFirstEnv('VITE_SUPABASE_ANON_KEY', 'SUPABASE_
 const hasValidSupabaseUrl = isValidHttpUrl(supabaseUrl);
 const nativeFetch = (...args) => fetch(...args);
 const pendingReadRequests = new Map();
+const requestSignals = new WeakMap();
+let nextSignalId = 0;
+let authGeneration = 0;
+let sessionAccessToken;
+
+const abortObsoleteRequest = () => new DOMException('Request belongs to an inactive authentication context.', 'AbortError');
+const assertRequestContext = (generation, authorization, signal) => {
+  if (signal?.aborted) throw signal.reason || new DOMException('Request aborted.', 'AbortError');
+  const bearer = /^Bearer\s+(.+)$/i.exec(authorization || '')?.[1];
+  if (generation !== authGeneration || (
+    sessionAccessToken !== undefined && bearer && bearer !== supabaseAnonKey && bearer !== sessionAccessToken
+  )) throw abortObsoleteRequest();
+};
+
+// Check both sides of body consumption: fetch may finish before logout while
+// response.text()/json() (or a streamed chunk) is still pending in an SDK consumer.
+const guardResponse = (response, assertCurrent) => {
+  for (const method of ['json', 'text', 'blob', 'arrayBuffer', 'formData', 'bytes']) {
+    if (typeof response[method] !== 'function') continue;
+    const consume = response[method].bind(response);
+    Object.defineProperty(response, method, { value: async (...args) => {
+      assertCurrent();
+      const result = await consume(...args);
+      assertCurrent();
+      return result;
+    } });
+  }
+  const clone = response.clone.bind(response);
+  Object.defineProperty(response, 'clone', { value: () => {
+    assertCurrent();
+    return guardResponse(clone(), assertCurrent);
+  } });
+  const body = response.body;
+  if (body) {
+    let stream;
+    Object.defineProperty(response, 'body', { get: () => {
+      assertCurrent();
+      if (!stream) {
+        let reader;
+        stream = new ReadableStream({
+          async pull(controller) {
+            try {
+              assertCurrent();
+              reader ||= body.getReader();
+              const chunk = await reader.read();
+              assertCurrent();
+              if (chunk.done) controller.close();
+              else controller.enqueue(chunk.value);
+            } catch (error) {
+              controller.error(error);
+              await reader?.cancel().catch(() => {});
+            }
+          },
+          cancel: (reason) => reader ? reader.cancel(reason) : body.cancel(reason),
+        }, { highWaterMark: 0 });
+      }
+      return stream;
+    } });
+  }
+  return response;
+};
 
 const getRequestMethod = (input, init = {}) => {
   const method = init?.method || (typeof input === 'object' && input?.method) || 'GET';
@@ -49,31 +110,63 @@ const getRequestUrl = (input) => {
   return input?.url || '';
 };
 
-const shouldDedupeSupabaseRead = (input, init) => {
-  const method = getRequestMethod(input, init);
-  if (method !== 'GET' && method !== 'HEAD') return false;
-  const url = getRequestUrl(input);
-  if (!url || !supabaseUrl || !url.startsWith(supabaseUrl)) return false;
-  return !url.includes('/auth/v1/');
+const isSupabaseDataRequest = (input) => {
+  try {
+    const url = new URL(getRequestUrl(input));
+    return url.origin === new URL(supabaseUrl).origin && !url.pathname.startsWith('/auth/v1/');
+  } catch {
+    return false;
+  }
+};
+
+const readRequestKey = async (input, init, headers, signal, generation) => {
+  if (!['GET', 'HEAD'].includes(getRequestMethod(input, init)) || !globalThis.crypto?.subtle) return null;
+  if (signal && !requestSignals.has(signal)) requestSignals.set(signal, ++nextSignalId);
+  // Only a digest enters the transient pending map; no raw token is logged,
+  // persisted, or used in a cache key. Include representation and cancellation.
+  const options = ['credentials', 'mode', 'cache', 'redirect', 'referrer', 'referrerPolicy', 'integrity', 'keepalive']
+    .map(name => init[name] ?? input?.[name]);
+  const bytes = new TextEncoder().encode(JSON.stringify([
+    getRequestMethod(input, init), getRequestUrl(input), [...headers.entries()].sort(), options,
+  ]));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return `${generation}:${signal ? requestSignals.get(signal) : 0}:${Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('')}`;
 };
 
 const quotaFriendlyFetch = async (input, init = {}) => {
-  if (!shouldDedupeSupabaseRead(input, init)) {
+  if (!isSupabaseDataRequest(input)) {
     return nativeFetch(input, init);
   }
 
-  const key = `${getRequestMethod(input, init)} ${getRequestUrl(input)}`;
-  if (!pendingReadRequests.has(key)) {
-    pendingReadRequests.set(
-      key,
-      nativeFetch(input, init).finally(() => {
-        pendingReadRequests.delete(key);
-      }),
-    );
+  const generation = authGeneration;
+  const headers = new Headers(init.headers ?? input?.headers);
+  const authorization = headers.get('authorization');
+  const signal = init.signal ?? input?.signal;
+  const assertCurrent = () => assertRequestContext(generation, authorization, signal);
+  assertCurrent();
+  const key = await readRequestKey(input, init, headers, signal, generation);
+  assertCurrent();
+  let pending = key && pendingReadRequests.get(key);
+  if (!pending) {
+    pending = nativeFetch(input, init);
+    if (key) {
+      pending = pending.finally(() => {
+        if (pendingReadRequests.get(key) === pending) pendingReadRequests.delete(key);
+      });
+      pendingReadRequests.set(key, pending);
+    }
   }
-
-  const response = await pendingReadRequests.get(key);
-  return response.clone();
+  let response;
+  try {
+    response = await pending;
+  } catch (error) {
+    // Preserve current-session errors/retries, but never let an SDK retry an
+    // obsolete operation with credentials captured before the session changed.
+    assertCurrent();
+    throw error;
+  }
+  assertCurrent();
+  return guardResponse(key ? response.clone() : response, assertCurrent);
 };
 
 export const isSupabaseConfigured = Boolean(hasValidSupabaseUrl && supabaseAnonKey);
@@ -99,6 +192,16 @@ if (isSupabaseConfigured) {
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
+    });
+    // Registered before UI consumers; synchronous callback avoids Auth lock work.
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (!session && !['INITIAL_SESSION', 'SIGNED_OUT', 'USER_DELETED'].includes(event)) return;
+      const token = session?.access_token || null;
+      if (token !== sessionAccessToken || ['SIGNED_OUT', 'USER_DELETED', 'USER_UPDATED', 'MFA_CHALLENGE_VERIFIED'].includes(event)) {
+        sessionAccessToken = token;
+        authGeneration += 1;
+        pendingReadRequests.clear();
+      }
     });
   } catch {
     supabase = null;
