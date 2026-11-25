@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders, geminiApiKey, geminiModels, supabaseAnonKey, supabaseUrl } from '../_shared/maxxis/config.ts';
+import { corsHeaders, geminiApiKey, geminiModels, supabaseAnonKey, supabaseUrl, supabaseServiceRoleKey } from '../_shared/maxxis/config.ts';
 import { callGemini } from '../_shared/maxxis/geminiClient.ts';
+import { createGeminiUsageSession, GeminiQuotaError, geminiQuotaMessage, type GeminiUsageSession } from '../_shared/maxxis/geminiUsageGuard.ts';
 import {
   classifyGeminiCandidateFailure,
   classifyGeminiHttpFailure,
@@ -766,6 +767,7 @@ Deno.serve(async (req) => {
   let snapshotCreated = false;
   let structuredResponseCreated = false;
   const budget = new MaxxisExecutionBudget();
+  let geminiUsage: GeminiUsageSession | undefined;
   try {
     const session = await authenticatedSession(req.headers.get('Authorization') || '');
     if (!session) {
@@ -820,6 +822,8 @@ Deno.serve(async (req) => {
       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
     }
     const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
+    geminiUsage = createGeminiUsageSession(userId, 'maxxis_chat', () => createClient(supabaseUrl, supabaseServiceRoleKey,
+      { auth: { persistSession: false, autoRefreshToken: false } }), requestId);
     const completionMetric = propertyContextId && !body.requestedCapability && !body.requestedReportLevel && !bodyContext.propertyAnalysis
       ? confirmedScenarioMetric(message) : null;
     if (completionMetric) {
@@ -1000,7 +1004,7 @@ Deno.serve(async (req) => {
           tools: MAXXIS_TOOLS,
           generationConfig: buildGeminiGenerationConfig(model, MAXXIS_EXECUTION_LIMITS.maxOutputTokens),
           safetySettings: GEMINI_SAFETY_SETTINGS,
-        }, budget.remainingMs());
+        }, budget.remainingMs(), geminiUsage);
         providerDurationMs += Date.now() - providerStartedAt;
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
@@ -1220,7 +1224,7 @@ Deno.serve(async (req) => {
           try {
             budget.consumeGeminiCall();
             const providerStartedAt = Date.now();
-            const interpretation = await callGemini(usedModel, interpretationRequest, budget.remainingMs());
+            const interpretation = await callGemini(usedModel, interpretationRequest, budget.remainingMs(), geminiUsage);
             providerDurationMs += Date.now() - providerStartedAt;
             if (!interpretation.response.ok) {
               secondPassFailure = classifyGeminiHttpFailure(interpretation.response.status, interpretation.payload);
@@ -1241,7 +1245,7 @@ Deno.serve(async (req) => {
               else secondPassFailure = classifyGeminiCandidateFailure(interpretationCandidate);
             }
           } catch (error) {
-            secondPassFailure = classifyGeminiThrownFailure(error);
+            secondPassFailure = error instanceof GeminiQuotaError ? 'GEMINI_QUOTA_EXCEEDED' : classifyGeminiThrownFailure(error);
           }
           if (secondPass || !isRetryableGeminiFailure(secondPassFailure)) break;
         }
@@ -1519,6 +1523,11 @@ Deno.serve(async (req) => {
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic) } }, 200, origin, requestId);
   } catch (error) {
+    if (error instanceof GeminiQuotaError) {
+      const text = geminiQuotaMessage(error.reason, resolvedLanguage);
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language: resolvedLanguage,
+        degraded: true, degradedReason: error.reason, error: error.reason }, 200, origin, requestId);
+    }
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
     const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';
     const budgetExhausted = errorCode === 'MAXXIS_BUDGET_EXHAUSTED';
@@ -1559,5 +1568,7 @@ Deno.serve(async (req) => {
       snapshotCreated, structuredResponseCreated,
     } : undefined;
     return response({ ...degradedPayload, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason, ...(diagnostic ? { diagnostic } : {}) }, 200, origin, requestId);
+  } finally {
+    await geminiUsage?.close();
   }
 });

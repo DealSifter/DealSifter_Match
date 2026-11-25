@@ -42,7 +42,8 @@ it('U-01: captures synthetic PII in free text/history using mocked Gemini transp
     captured.push(JSON.parse(options.body));
     return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
   }));
-  await callGemini('synthetic-model',{contents:[...history.contents,{role:'user',parts:[{text:message}]}]});
+  await callGemini('synthetic-model',{contents:[...history.contents,{role:'user',parts:[{text:message}]}]},1000,
+    { begin: async () => null, finish: async () => {} } as never);
   const payload=JSON.stringify(captured);
   expect(payload).toContain('synthetic-person@qa.invalid');
   expect(payload).toContain('previous@qa.invalid');
