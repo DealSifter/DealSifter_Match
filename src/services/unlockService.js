@@ -151,11 +151,22 @@ export async function createUnlockIntent({
     p_property_id: cleanPropertyId,
     p_profile_scope: normalizeProfileScope(profileScope),
     p_mode: mode || 'normal',
-    p_metadata: metadata || {},
+    p_metadata: { ...(metadata || {}), buyerProfileScope: getActiveBuyerProfileScope() },
   });
   const intent = normalizeUnlockIntent(pickRow(data));
   if (!intent?.token) throw new InvalidToken('Unlock intent was not created');
   return intent;
+}
+
+// This selects which of the caller's own profiles is shared reciprocally.
+// The server binds it to this authenticated buyer and freezes it in the intent.
+export function getActiveBuyerProfileScope() {
+  try {
+    const selected = localStorage.getItem('publishingProfileKey');
+    return normalizeProfileScope(selected || (localStorage.getItem('accountType') === 'fsbo_owner' ? 'fsbo' : 'personal'));
+  } catch {
+    return 'personal';
+  }
 }
 
 export async function getUnlockCost(contactId, profileScope = 'personal') {
