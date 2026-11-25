@@ -2,6 +2,8 @@
 
 Data de referência: 24/11/2026, America/Sao_Paulo. Alguns recibos técnicos usam UTC de 25/11. Escopo: SEC-01 a SEC-05 e verificações complementares expressamente solicitadas. Este é o único relatório consolidado SEC-1; o relatório SEC-0 foi preservado integralmente.
 
+**Atualização SEC-2:** as seções A–F preservam o registro histórico SEC-1. A seção G registra a intervenção posterior, o estado vigente de SEC-06 e a classificação atual de U-01, sem reabrir SEC-01 a SEC-05.
+
 ## A. Executive Summary
 
 **Decisão final de segurança: NO-GO para lançamento comercial irrestrito.** As cinco vulnerabilidades originais receberam correções específicas, testes positivos/negativos e publicação em Production. Permanecem dois bloqueadores independentes: possibilidade comprovada de envio de PII/confidências no texto e histórico ao Gemini, sob modalidade sem billing informada pelo proprietário, e compartilhamento de resposta entre identidades na deduplicação de requisições do cliente, reproduzido com transporte mockado. Corrigir esses pontos não estava autorizado nesta rodada.
@@ -140,3 +142,74 @@ Bloqueadores desta decisão: **U-01** e **SEC-06/N-03**. Não remediados por aus
 Limitações SEC-0 mantidas: **N-01**, secrets em histórico completo/logs/backups; **N-02**, matriz dinâmica de todas as RPCs/RLS (somente superfícies desta remediação foram testadas); **N-04**, Broadcast/Presence e assinatura Realtime alheia ponta a ponta; **N-05**, Gmail OAuth/quotas/reconexão e LC-04; **N-06**, replay/concorrência e ciclo completo financeiro TEST/LIVE (testes sintéticos atuais não certificam toda a cadeia); **N-07**, aplicabilidade de advisories de dependências; **N-08**, proteção administrativa e demais integrações, SSRF e retenção/remoção integral. N-03 deixou de ser apenas indício na camada de transporte, mas o alcance completo na UI segue não certificado.
 
 Backup automatizado e externo, binários Storage e recuperação operacional completa continuam sem certificação. Nenhum desses NOT VERIFIED foi convertido em PASS por inferência. Não foi iniciada nova auditoria geral nem outra fase de hardening.
+
+## G. SEC-2 — Isolamento de requisições e respostas entre sessões
+
+### Baseline e escopo
+
+Baseline efetivamente conferida: branch `fix/production-real-defects`, HEAD `7fe53dd57d4c77f67f6793121630cbce21c0071c`, workspace limpo e os mesmos 35 stashes. Production estava no deployment `dpl_A4XkH2J5MdKoCQ3UVVpeJQBAAQwB`, frontend `72be60f`. Referências de Portal v18, Checkout v53 e das três migrations reaproveitadas da SEC-1; não houve nova remediação desses objetos.
+
+Única intervenção de desenvolvimento: SEC-06/N-03. Commit de implementação **`ab89795b26d3a4e28f31096156476ee93cce7d58`**. Dois arquivos de runtime alterados: `src/lib/supabaseClient.js` e `src/hooks/useAuthSession.js`. O teste de descoberta `src/lib/supabaseClient.securityDiscovery.test.js` foi convertido em regressão permanente; adicionado `src/hooks/useAuthSession.security.test.jsx` para o consumidor diretamente afetado. Nenhuma biblioteca, migration, Edge Function, configuração de autenticação ou componente visual foi alterado.
+
+### Correção localizada
+
+A deduplicação continua restrita a GET/HEAD pendentes no domínio exato do Supabase, fora dos endpoints Auth. Sua chave transitória agora usa geração de autenticação, identidade do sinal de cancelamento e digest SHA-256 de método, URL, headers efetivos e opções de requisição relevantes. Isso separa Authorization, apikey, representação, Range/Prefer e demais headers; sinais independentes não passam a compartilhar cancelamento. A chave não contém tokens brutos. Não foi criado armazenamento persistente, log ou telemetria de credenciais. O token atual permanece apenas em memória para comparação com a autorização efetiva da chamada, como já ocorre no SDK.
+
+O listener síncrono de Auth, registrado antes dos consumidores da UI, avança a geração ao trocar token/sessão, sair da conta ou alterar autorização/MFA. SIGNED_IN repetido com o mesmo token e eventos nulos transitórios de refresh não interrompem uma sessão válida. Tokens distintos do mesmo usuário não são considerados equivalentes. Endpoints Auth permanecem sob o lifecycle nativo do SDK.
+
+Além de limpar o mapa, cada resposta de dados é conferida antes da entrega e antes/depois da leitura do corpo, incluindo clones e chunks de stream. Respostas obsoletas falham com `AbortError` genérico, sem retornar dados da identidade anterior. A proteção também cobre POST/RPC e Functions, que continuam sem deduplicação; descartar uma resposta não desfaz uma operação já executada no servidor. Erros da sessão atual continuam sendo propagados ao SDK para seus retries existentes; erro tardio da sessão antiga vira AbortError e não provoca retry com credencial obsoleta.
+
+O hook Auth tinha uma continuação diretamente relacionada: a consulta pendente de `users.is_admin` podia restaurar status/navegação da conta anterior. Uma revisão local impede tanto sua aplicação tardia quanto a restauração de bootstrap anterior a uma transição de sessão. Guardas de cancelamento/identidade já existentes nos consumidores de hidratação foram preservadas. Não houve varredura ou reestruturação geral do gerenciamento de estado.
+
+Em contexto sem Web Crypto, o transporte conserva a proteção de sessão e executa a leitura sem deduplicá-la, em vez de construir uma chave insegura. Em Production HTTPS com Web Crypto, a deduplicação permanece ativa e foi testada. Não se desabilitou globalmente a otimização.
+
+### Validação dirigida
+
+**22 testes aprovados**, com identidades sintéticas e fetch mockado. Incluem: deduplicação GET/HEAD legítima com corpos independentes; A/B; anônimo/autenticado; login durante leitura anônima; logout/login durante GET e POST; sessões diferentes do mesmo usuário; corpo e stream tardios; clones obsoletos; refresh; mudança de autorização sem troca de token; eventos repetidos/nulos; Request/Headers e opções de representação; cancelamentos independentes; limpeza após erro; bypass correto de deduplicação em writes/Auth/outro domínio; SDK PostgREST real sobre transporte mockado, mantendo retry legítimo e recusando dados/retry antigos; hook de bootstrap e consulta administrativa tardia.
+
+A reprodução original agora exige duas chamadas distintas e dados de A somente para A e de B somente para B. Não foram removidas assertions para forçar PASS. Na primeira execução, um mock artificial definiu `response.text` como não reconfigurável; esse caso foi substituído por uma Response com ReadableStream real para testar leitura tardia sem alterar assertions de segurança. O resultado final é 22/22.
+
+ESLint dos quatro arquivos: PASS sem warnings; typecheck de contratos do projeto: PASS. Os dois erros Edge preexistentes não foram corrigidos nem seus testes repetidos. Não foram reexecutados os 38 checks SQL, regressões integrais de Stripe/Storage/Maxxis ou investigação de payload U-01.
+
+Build isolado/offline do commit `ab89795`: **PASS**, 146 assets, scan de secrets aprovado e zero sourcemaps. Configuração pública e feature flags de Production preservadas. Smoke público local: **PASS**, seis casos em desktop/tablet/mobile (1440/768/390 px), sem overflow horizontal ou erros de página. Smoke autenticado do mesmo artefato com adapter somente leitura ao staging: **PASS** em desktop e mobile, conferindo sessão QA, dashboard, configurações, recarga e restauração da identidade. Foram realizadas 74 leituras no staging; zero requisições ao backend Production, escritas ou chamadas pagas. O adapter bloqueou tentativas de escrita/Functions antes de chegarem ao backend. Esses testes não constituem regressão integral dos módulos preservados.
+
+O smoke autenticado inicialmente parou por um seletor do harness com acento diferente do rótulo existente; a primeira substituição também não atravessou a codificação do stdin PowerShell. O seletor foi corrigido com expressão ASCII verificada, mantendo a exigência de abrir a seção real de configurações. O produto não foi alterado para contornar o teste; a execução final passou.
+
+**SEC-06: PASS — corrigido, validado e publicado em Production.** Deployment **`dpl_hKHkeugDqF3MAG9FADbtyvxUP5vt`**, READY e alvo Production confirmado, fonte `ab89795b26d3a4e28f31096156476ee93cce7d58`, fingerprint `e9fdf3cfc774fd95e1d3e2609e38a692572d19f7448cc622eab294c7cdd15d3f`. [Domínio canônico](https://dealsifter.com/) e [deployment publicado](https://dealsiftermatch-mfapapkfc-deal-sifter-match-s-projects.vercel.app).
+
+Pós-deploy: seis casos de navegador público aprovados em desktop/tablet/mobile, zero erros de página, 18 assets críticos do domínio canônico conferidos por SHA-256 contra o artefato validado, rotas `/`, `/privacy`, `/terms` com HTTP 200 em canônico e www. Conferência somente leitura confirmou as 28 Edge Functions e as três migrations SEC-1 preservadas. SEC-2 não executou migration nem deploy de Edge. Nenhuma regressão identificada no alcance verificado; isso não certifica todos os consumidores ou fluxos do produto fora desse alcance.
+
+Recibos privados da execução: `.tmp-codex/sec2-20261124/`, com baseline, testes e manifests de build/publicação. Não contêm backup novo de banco. O deployment anterior foi preservado como referência operacional; rollback não deve reabrir SEC-06 silenciosamente. Em regressão relevante, priorizar correção localizada ou contenção e decisão explícita sobre eventual reexposição.
+
+### U-01 — OPEN — PROVIDER PRIVACY / OWNER DECISION REQUIRED
+
+Classificação vigente: **EXTERNAL DATA PROCESSING / PROVIDER PRIVACY / CONTRACTUAL COMPLIANCE**. Reaproveitada a prova sintética da SEC-1 de que texto livre/histórico podem incluir informações pessoais/confidenciais no payload externo; modalidade sem billing foi informada pelo proprietário. Não é um finding de bypass comprovado de unlock pelas tools do Maxxis, vazamento comprovado entre usuários, exposição pública das conversas ou incidente comprovado no Gemini. Nenhuma dessas conclusões decorre de U-01; tampouco há certificação integral de todas as tools.
+
+O proprietário avaliará separadamente uma modalidade de processamento compatível. U-01 permanece aberto até solução aprovada e validada; ausência de vazamento interno não o converte em PASS. A postergação não autoriza exposição irrestrita de dados pessoais/confidenciais à modalidade incompatível.
+
+Maxxis foi integralmente preservado: tools, system prompts, orquestração, memória, contexto, histórico, texto livre, modelos, matching, Property Intelligence, entitlements, desbloqueios, Nuggets, Usage Guards e limites. Não foram implementados filtros/redaction, alterado provedor, ativado billing, desligado Maxxis ou feitas chamadas Gemini nesta rodada.
+
+### MFA — procedimento manual do proprietário
+
+Estado herdado, sem nova investigação: dois administradores do app, nenhum fator Supabase verificado; MFA Google e exigência de AAL2 nas operações internas não certificados. MFA das contas de infraestrutura é diferente de MFA exigido pelo backend nas operações administrativas do DealSifter.
+
+Conferir cada conta administrativa relevante, uma por vez, sem compartilhar códigos, QR, tokens ou recovery codes. Antes de eventual regularização, manter acesso ao método atual e guardar recuperação em local privado. O Codex não ativou métodos, invalidou sessões ou alterou exigências nesta rodada.
+
+| Conta | Caminho para conferir e regularizar manualmente | Evidência mínima a registrar, sem segredos |
+| --- | --- | --- |
+| Google | [Conta Google → Segurança e login](https://myaccount.google.com/security) → Como você faz login → Verificação em duas etapas; conferir conta correta e métodos existentes. [Instruções oficiais](https://support.google.com/accounts/answer/185839?hl=pt-BR). | Ativa/inativa, método e disponibilidade de recuperação. |
+| Supabase Dashboard | [Account → Security](https://supabase.com/dashboard/account/security) → Multi-factor authentication, conforme [documentação oficial](https://supabase.com/docs/guides/platform/multi-factor-authentication). | MFA da conta do painel e recuperação disponíveis. A ativação encerra outras sessões do painel; planejar essa regularização fora desta execução, sem revogação automática pelo Codex. |
+| GitHub | [Settings → Password and authentication](https://github.com/settings/security) → Two-factor authentication; se ausente, seguir [configuração oficial](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication). | 2FA ativa e recuperação guardada; conferir todos os administradores relevantes, sem mudar exigência da organização nesta rodada. |
+| Vercel | [Account Settings → Authentication](https://vercel.com/account/settings/authentication) → Two-factor authentication; conferir Active/Enabled e método cadastrado, conforme [documentação oficial](https://vercel.com/docs/two-factor-authentication). | Proteção pessoal ativa e recuperação disponível. Exigência para toda a equipe é configuração separada e não foi alterada. |
+| Stripe | [Settings → Personal details](https://dashboard.stripe.com/settings/user) → Two-step authentication; conferir métodos e recuperação segundo [instruções oficiais](https://support.stripe.com/questions/enable-two-step-authentication). | Proteção da própria conta ativa; exigência da equipe é separada e não foi alterada. |
+| Administração interna DealSifter | Para cada conta administrativa, conferir seus fatores em [Production → Authentication → Users](https://supabase.com/dashboard/project/cyeipfskwwisbbayyaca/auth/users). Registrar também se a aplicação exige desafio/AAL2 antes de operações administrativas. | Cadastro de fator não prova enforcement. Se o app não oferecer inscrição/desafio ou o backend não exigir AAL2, registrar essa necessidade de implementação futura; não marcar como protegido apenas por MFA no Google ou no painel Supabase. |
+
+### Recuperação e histórico preservados
+
+U-02 continua **PASS limitado**: 56 tabelas, 8.536 registros e 280 constraints recuperados na SEC-1; AES-256-GCM/DPAPI, cobertura e limitações locais já documentadas. Não foi criado novo backup, repetida restauração, habilitado PITR ou enviado artefato a terceiros. O unlock legado não reconciliado e os registros Stripe históricos permanecem intactos, sem presunção de fraude; as limitações financeiras da SEC-1 continuam válidas.
+
+### Encerramento vigente SEC-2
+
+**GO técnico para a correção SEC-06, já publicada. NO-GO para declarar lançamento comercial irrestrito enquanto U-01 não tiver solução de processamento compatível aprovada e validada.** U-01 é pendência de privacidade externa/decisão do proprietário, não evidência de bypass interno do Maxxis. MFA administrativo permanece NOT VERIFIED; U-02 permanece PASS limitado; a origem do unlock legado segue não reconciliada. Nenhuma dessas pendências foi convertida em PASS ou usada para adiar a publicação SEC-06.
+
+Preservados design, layout, UX/UI, funcionalidades, configuração pública, feature flags e todos os 35 stashes. Relatório SEC-0 e snapshot cifrado SEC-1 mantêm seus hashes. Zero alterações de dados reais de negócio, cobranças, consumo de Nuggets, envios ou chamadas generativas. Sem novas dependências, infraestrutura, backup integral, correção de erros Edge preexistentes ou nova frente de hardening. Commit de implementação `ab89795`; registro de encerramento em commit documental separado, sem necessidade de novo deploy. Nenhum push realizado nesta rodada.
