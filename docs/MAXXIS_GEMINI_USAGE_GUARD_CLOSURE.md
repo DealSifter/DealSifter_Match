@@ -7,14 +7,16 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | Estado | Resultado |
 | --- | --- |
 | IMPLEMENTATION STATUS | PASS no escopo validado |
-| PRODUCTION DEPLOYMENT | BLOCKED — aguardando autorização específica após rejeição da revisão automática |
-| COMMERCIAL ENFORCEMENT | CONFIGURATION REQUIRED; staging em DISABLED |
+| PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
+| COMMERCIAL ENFORCEMENT | CONFIGURATION REQUIRED; Production e staging em DISABLED |
 
-A autorização geral da seção 19 do roteiro foi considerada insuficiente pela revisão automática para a migration específica de Production. Nenhuma alteração deste trabalho foi executada em Production. O proprietário recebeu a solicitação exata para a migration e os dois consumidores abaixo. Publicação técnica não autoriza ativação comercial.
+A revisão automática inicialmente exigiu autorização específica para a migration de Production. O proprietário autorizou expressamente a migration e os dois consumidores do commit `4a84ec3`; a publicação abaixo foi executada após essa autorização. Publicação técnica não autoriza ativação comercial.
 
 Staging `oqdcnjupquhybwdbeeew`: migration `20261125120000_gemini_provider_usage_guard`, `maxxis-chat` v88 e `presentation-translate` v1, ACTIVE e JWT preservado. A tradução ainda não existia nesse staging; foi publicada para validar o segundo consumidor. Os outros 26 componentes permaneceram iguais. Configuração em DISABLED, sem quotas reais inventadas.
 
-Production `cyeipfskwwisbbayyaca`, conferência somente por leitura: novos objetos ausentes; `maxxis-chat` v106 e `presentation-translate` v8 preservados. Frontend preservado no deployment `dpl_hKHkeugDqF3MAG9FADbtyvxUP5vt`, release `ab89795b26d3a4e28f31096156476ee93cce7d58`. Nenhum build/deploy frontend necessário.
+Production `cyeipfskwwisbbayyaca`: migration aplicada em 25/11/2026 às 22:57:08 UTC (19:57:08 Brasília); funções publicadas às 22:57:54 UTC. `maxxis-chat` v107 e `presentation-translate` v9 ACTIVE, com JWT preservado. Os outros 26 componentes e as 143 migrations anteriores permaneceram intactos. Conferência final PASS: configuração revisão 1, DISABLED, flags `commercial_approved` e `provider_verified` em `false`, tetos reais vazios, zero execuções/tentativas no ledger; RLS e negação de acesso aos objetos/RPCs por usuários comuns confirmadas.
+
+Bundles publicados SHA-256: Maxxis `bd89b92830278bc9bcd3a8833a7551502a235bff8ba576bee5ca42e9c974cc13`; tradução `6bf072c8dd8427eea784f787d564965670e1e50f7b4e6dc2c7fc8c7f1a89a4fd`. Frontend preservado no deployment `dpl_hKHkeugDqF3MAG9FADbtyvxUP5vt`, release `ab89795b26d3a4e28f31096156476ee93cce7d58`. Nenhum build/deploy frontend realizado.
 
 ## Implementação e preservação
 
@@ -85,11 +87,12 @@ Não há painel novo, OBSERVATION, Elastic Quota ou cobrança financeira. `futur
 | Novos módulos centrais | Deno check e lint PASS. |
 | Typecheck dos endpoints afetados | 37 diagnósticos preexistentes no baseline e 37 atuais; zero novos por código/expressão/arquivo. Os dois erros SDK Stripe anteriores não foram alterados. |
 | Smokes staging | Ambos OPTIONS 200 / POST sem sessão de usuário 401; health Maxxis 200; RPC DISABLED por REST sem criação de ledger. |
+| Smokes Production | Ambos OPTIONS 200 / POST sem sessão de usuário 401; health Maxxis 200; RPC DISABLED por REST sem criação de ledger. Zero chamadas generativas. |
 | Preservação | Hashes dos helpers RentCast, budgets, runtime entitlements, economia e arquivos SEC-06 preservados; 143 migrations anteriores de Production intactas, incluindo SEC-01 a SEC-05. 35 stashes com a mesma lista de hashes. |
 
 Houve uma ambiguidade de alias SQL durante desenvolvimento, corrigida antes da migration em staging; todos os casos foram reexecutados. A comparação inicial do typecheck confundia ordenação textual de unions com erros novos; a comparação final preserva os diagnósticos por código, expressão e arquivo, sem supressões. Nenhuma regressão relevante identificada no escopo testado. Não foi executada auditoria geral ou bateria ampla.
 
-Recibos locais privados em `.tmp-codex/gemini-guard-20261125/`: `baseline.json`, `sql-tests.json`, `unit-tests.json`, `concurrency.json`, `typecheck.json`, `staging-applied.json`, `staging-functions.json` e stdout do handler. Migration validada SHA-256 `7a483e067c733ba606b5c3cd6af4ae105435ce076821dfba8ba91af9a00c9caa`. Nenhum backup/credencial foi versionado.
+Recibos locais privados em `.tmp-codex/gemini-guard-20261125/`: `baseline.json`, `sql-tests.json`, `unit-tests.json`, `concurrency.json`, `typecheck.json`, `staging-applied.json`, `staging-functions.json`, `production-migration.json`, `production-functions.json`, `final-integrity.json` e stdout do handler. Migration validada SHA-256 `7a483e067c733ba606b5c3cd6af4ae105435ce076821dfba8ba91af9a00c9caa`. Nenhum backup/credencial foi versionado.
 
 ## Recuperação e limites residuais
 
