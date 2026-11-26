@@ -2,6 +2,27 @@
 
 Data: 21/11/2026. Base: [auditoria concluída](DEALSIFTER_LAUNCH_CLOSURE_AUDIT.md). Este documento registra execução direcionada, não uma nova auditoria.
 
+## Domínio canônico — 26/11/2026, etapa 1
+
+**Correção operacional aplicada, sem deploy:** `https://dealsifter.com/` serve Production diretamente (200); `www.dealsifter.com` e `dealsiftermatch.vercel.app` foram configurados por domínio exato na Vercel, primeiro em 307 validado e depois em 308 para `dealsifter.com`. Paths e query strings preservados; nenhuma regra wildcard afeta Previews/deployments isolados. DNS permaneceu intacto: A da Vercel, NS GoDaddy e CNAME www para o apex.
+
+**Causa comprovada no retorno Auth:** Site URL Supabase era `https://dealsiftermatch.vercel.app/` e allowlist continha apenas localhost e alias antigo. Um fluxo Google iniciado com retorno solicitado no canônico e cancelado sinteticamente pelo callback voltou por HTTP 302 ao host Vercel. Após autorização específica do proprietário, foram alterados somente `site_url` para `https://dealsifter.com/` e acrescentadas as duas formas do canônico à allowlist, preservando as entradas anteriores. O mesmo teste de cancelamento passou a retornar a `dealsifter.com`. Não houve login Google, emails ou armazenamento de state/tokens. Callbacks Google/Supabase e Gmail, credenciais e provedores foram preservados. CORS canônico confirmado em Maxxis OPTIONS 200 e mailbox OAuth OPTIONS 204.
+
+**Limite da conclusão causal:** antes da alteração, os três roots respondiam 200 sem Location e contextos Chromium novos não reproduziram troca de hostname ao simplesmente abrir o apex. Não foi encontrado redirect JavaScript de inicialização, meta refresh ou Service Worker registrado. Portanto o desvio inicial isolado relatado no navegador do proprietário não foi atribuído como fato a cache local; o defeito de retorno Auth foi efetivamente reproduzido. O encaminhamento GoDaddy histórico pode sobreviver no cache de um navegador antigo, hipótese que exige limpeza local, não novo DNS.
+
+| Aceite | Evidência desta etapa |
+| --- | --- |
+| A — abrir apex | PASS automatizado, contexto novo mantém `dealsifter.com` |
+| B — abrir www | PASS automatizado: 307 temporário validado; consolidado em 308 ao apex |
+| C — abrir alias Vercel | PASS automatizado: mesmo destino canônico, sem loop |
+| D — login/navegação/reload/compartilhar | Retorno OAuth cancelado e configuração verificados; login completo e compartilhamento autenticado ainda não certificados nesta etapa |
+| E — nova PWA | Manifest resolve `/` no canônico e CDP não aponta erro de instalabilidade; instalação via hamburger será tratada no complemento autorizado, sem confundir inspeção com instalação física |
+| F — Preview | Duas URLs READY continuam independentes, com HTTP 302 para proteção SSO da Vercel, sem redirect ao canônico; acesso ao app protegido não certificado sem sessão SSO |
+
+PWA atual: nome/ícones/cores preservados, start_url `/`, id e scope implícitos na raiz. Não há SW registrado/implementado no bundle atual; não se executou unregister nem limpeza de caches ou sessões. Dados locais e sessões de uma origem antiga não migram automaticamente para outra; o usuário pode precisar entrar novamente no canônico e reinstalar o atalho, preservando os dados remotos.
+
+Backup privado em `.tmp-codex/canonical-domain-20261126/`: `vercel-before.json`, `auth-before.json`, `http-before.json`, `browser-before.json`, testes temporários e `permanent-applied.json`. Rollback de configuração: restaurar apenas os dois campos Auth salvos, após comparar estado atual, e remover os redirects dos dois aliases segundo o backup; nunca alterar callbacks/credenciais ou registros de usuários. Deployment anterior mantido `dpl_hKHkeugDqF3MAG9FADbtyvxUP5vt`; nenhuma função Supabase foi publicada, nenhuma regra Stripe/Nuggets/Maxxis/relatórios foi alterada. A próxima seção deste fechamento registrará separadamente o complemento PWA solicitado pelo proprietário.
+
 
 
 <!-- CURRENT_LAUNCH_CLOSEOUT_BEGIN -->

@@ -1,7 +1,9 @@
 {
   "name": "DealSifter",
   "short_name": "DealSifter",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f6fbfb",
   "theme_color": "#f6fbfb",
