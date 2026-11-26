@@ -10,7 +10,7 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
 | CONFIGURATION STATUS — 26/11/2026 | BLOCKED — incompatibilidade comprovada dos pools instantâneos |
 | PRODUCTION ENFORCEMENT — 26/11/2026 | DISABLED; ativação BLOCKED, configuração revisão 1 preservada |
-| BILLING — 26/11/2026 | NOT VERIFIED; nenhuma ativação ou alteração realizada |
+| BILLING — 26/11/2026 | DISABLED segundo confirmação expressa do proprietário: projeto sem conta de faturamento vinculada; nenhuma alteração realizada |
 
 ## Tentativa de ativação — 26/11/2026
 
@@ -20,7 +20,7 @@ Escopo exclusivamente administrativo, sem mudanças no código, migrations, mode
 
 | Parâmetro | Autorizado/informado nesta rodada | Efetivo em Production |
 | --- | --- | --- |
-| Quotas Google principal | Proprietário informou 15 RPM / 250.000 TPM / 500 RPD | Vínculo dessas quotas com a chave/projeto de Production ainda não comprovado |
+| Quotas Google principal | Proprietário informou 15 RPM / 250.000 TPM / 500 RPD e confirmou o projeto `gen-lang-client-0466397101` | Confirmação do proprietário registrada; vínculo técnico da chave de Production com o projeto não consultado independentemente |
 | Principal | `gemini-3.5-flash-lite` | Confirmado por comparação interna do modelo conhecido com o valor/digest administrativo, sem exposição de secrets |
 | Fallback | `gemini-3.5-flash`, sem quota comprovada | Modelo preservado; sem restrição nova enquanto DISABLED |
 | Global | 12 RPM / 200.000 TPM / 400 dia / 12.000 mês | `global` e `provider_limits` continuam vazios |
@@ -35,7 +35,7 @@ Escopo exclusivamente administrativo, sem mudanças no código, migrations, mode
 1. **Pool pagante por minuto:** `floor(12 × 15%) = 1` chamada e `floor(200.000 × 15%) = 30.000` tokens. A transação isolada autorizou a primeira chamada do PRO e negou a segunda da mesma execução com `GEMINI_PAID_POOL_LIMIT`, mesmo com reserva diária/mensal disponível. O guard verifica RPM a cada tentativa e não espera a renovação da janela. Os percentuais são únicos para todos os períodos; não há configuração separada do pool instantâneo. Para três chamadas pagantes na mesma janela, seria necessário pelo menos 25% de 12 RPM. A menor alternativa somente administrativa seria uma decisão explícita de redistribuição, por exemplo 60/25/15; manter exatamente 70/15/15 exigiria alteração pontual da política do guard, proibida nesta rodada. Nenhuma alternativa foi aplicada ou presumida aprovada.
 2. **Fallback:** retirar a chave do modelo ou usar quota zero é rejeitado. Foi comprovada uma restrição somente por configuração: teto operacional interno `models["gemini-3.5-flash"].calls_minute=1` produz capacidade zero nos pools FREE/pagantes por arredondamento, com os percentuais propostos; o principal passa e a tentativa fallback é negada antes do transporte. Isso não é quota Google comprovada nem uma opção explícita de desligamento. Depende dos percentuais e do arredondamento e precisa ser revalidado se os pools mudarem. Não foi gravado em Production. Mesmo essa restrição não resolve o impedimento 1.
 3. **Campos adicionais obrigatórios sem valores aprovados:** `global.tokens_day`, `global.tokens_month` e `global.concurrency`. A reserva atual do chat é 514.936 tokens por chamada e 1.544.808 por execução; para caber uma execução no pool de 15%, os tetos globais de tokens dia/mês precisariam ser pelo menos 10.298.720 cada, antes de outros consumos. Para comportar três execuções concorrentes Enterprise nesse pool, a concorrência global precisaria ser pelo menos 20. São mínimos matemáticos, não quotas reais do Google nem configuração final aprovada. A reserva conservadora não mede custo faturável exato.
-4. **Comprovação externa e janela segura:** projeto Google e billing atuais não estão acessíveis nesta sessão. Foi solicitada somente a confirmação do ID de projeto que mostra as quotas e da ausência de faturamento; a referência histórica é `gen-lang-client-0466397101`. O ledger vazio não prova ausência de consumo Google enquanto DISABLED. Antes de ativar, é indispensável conhecer o consumo do período ou estabelecer uma janela segura sem consumo concorrente não contabilizado. Esperar um reset sem controlar esse intervalo não basta.
+4. **Comprovação externa e janela segura:** em 26/11/2026, o proprietário confirmou expressamente o projeto `gen-lang-client-0466397101` junto às quotas e respondeu "Sem conta de faturamento vinculada". Projeto e ausência de billing ficam registrados com essa origem de evidência; não houve acesso autenticado independente ao Console Google nem consulta ao vínculo técnico da chave de Production. Essa confirmação não libera a ativação bloqueada pelo impedimento 1. O ledger vazio não prova ausência de consumo Google enquanto DISABLED. Antes de ativar, é indispensável conhecer o consumo do período ou estabelecer uma janela segura sem consumo concorrente não contabilizado. Esperar um reset sem controlar esse intervalo não basta.
 
 ### Validação dirigida e períodos
 
