@@ -2,6 +2,11 @@ export const CANONICAL_APP_ORIGIN = 'https://dealsifter.com';
 const PUBLIC_ALIASES = new Set(['www.dealsifter.com', 'dealsiftermatch.vercel.app']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** @typedef {{location: Pick<Location, 'href'|'assign'>, navigator: Partial<Navigator> & {standalone?: boolean}, matchMedia?: (query: string) => Pick<MediaQueryList, 'matches'>}} InstallationWindow */
+/** @typedef {{title: string, message: string, unavailable?: string}} InstallationNotice */
+/** @typedef {{prompt: () => Promise<unknown>, userChoice: Promise<{outcome?: string}>}} DeferredInstallPrompt */
+
+/** @param {string} href @returns {{kind: 'canonical'}|{kind: 'unavailable'}|{kind: 'redirect', url: string}} */
 export function installationTarget(href) {
   let url;
   try { url = new URL(href); } catch { return { kind: 'unavailable' }; }
@@ -15,21 +20,24 @@ export function installationTarget(href) {
     if (value && UUID.test(value)) target.searchParams.set(key, value);
   }
   const lang = url.searchParams.get('lang');
-  if (['en', 'pt', 'es'].includes(lang)) target.searchParams.set('lang', lang);
+  if (lang && ['en', 'pt', 'es'].includes(lang)) target.searchParams.set('lang', lang);
   return { kind: 'redirect', url: target.href };
 }
 
+/** @param {InstallationWindow} windowObject */
 export function isStandalone(windowObject) {
   return Boolean(windowObject.navigator?.standalone || windowObject.matchMedia?.('(display-mode: standalone)')?.matches);
 }
 
+/** @param {InstallationWindow} windowObject */
 export function canOfferInstallation(windowObject) {
   return !isStandalone(windowObject) && installationTarget(windowObject.location.href).kind !== 'unavailable';
 }
 
+/** @param {Partial<Navigator>} navigatorObject @param {string} language */
 export function installationInstructions(navigatorObject, language = 'en') {
   const ua = String(navigatorObject?.userAgent || '');
-  const ios = /iPad|iPhone|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigatorObject?.maxTouchPoints > 1);
+  const ios = /iPad|iPhone|iPod/i.test(ua) || (/Macintosh/i.test(ua) && (navigatorObject?.maxTouchPoints ?? 0) > 1);
   const kind = ios ? (/CriOS|FxiOS|EdgiOS|OPiOS|GSA/i.test(ua) ? 'iosOther' : 'ios')
     : /Android/i.test(ua) ? 'android'
       : /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua) ? 'safari' : 'desktop';
@@ -42,6 +50,7 @@ export function installationInstructions(navigatorObject, language = 'en') {
   return { title: copy.title, message: copy[kind], unavailable: copy.unavailable };
 }
 
+/** @param {InstallationWindow} windowObject @param {DeferredInstallPrompt|null} deferredPrompt @param {(notice: InstallationNotice) => void} notify @param {string} language */
 export async function requestAppInstallation(windowObject, deferredPrompt, notify, language) {
   const target = installationTarget(windowObject.location.href);
   if (target.kind === 'redirect') {
