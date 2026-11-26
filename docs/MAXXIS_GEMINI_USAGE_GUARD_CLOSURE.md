@@ -8,9 +8,23 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | --- | --- |
 | IMPLEMENTATION STATUS | PASS no escopo validado |
 | PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
-| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — distribuição revisada 60/30/10 validada; parâmetros complementares e janela segura pendentes |
+| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — 60/30/10 validado; proprietário decidiu manter DISABLED e revisar os valores complementares |
 | PRODUCTION ENFORCEMENT — 26/11/2026 | DISABLED; ativação BLOCKED, configuração revisão 1 preservada |
 | BILLING — 26/11/2026 | DISABLED segundo confirmação expressa do proprietário: projeto sem conta de faturamento vinculada; nenhuma alteração realizada |
+
+### Decisão posterior do proprietário e revisão dos valores — 26/11/2026
+
+O proprietário respondeu **"não houve"** à consulta sobre consumo Gemini hoje e escolheu **"Manter DISABLED e revisar os valores"** para os parâmetros complementares. Ausência de consumo diário registrada como declaração do proprietário, sem consulta independente ao Google; a resposta não especificou utilização do projeto por outros aplicativos. Nenhuma ativação foi executada. O candidato anterior de 205.974.400 tokens/dia e 6.179.232.000/mês não foi aprovado e seu JSON privado foi marcado como não autorizado.
+
+Revisão exclusivamente aritmética, sem repetir testes de integração ou acessar provedores: o candidato anterior multiplicava todas as chamadas autorizadas pela reserva máxima conservadora de cada chamada. Isso não é necessário apenas para acomodar as reservas simultâneas iniciais. Com concorrência global 10 e pools 60/30/10, cabem seis reservas FREE e três pagantes; uma execução reserva 1.544.808 unidades de tokens.
+
+| Campo | Revisão para avaliação, NÃO aprovada/aplicada |
+| --- | --- |
+| Concorrência global | 10: mínimo para permitir três reservas pagantes no pool de 30% |
+| Tokens/dia | 15.448.080: mínimo para acomodar essas reservas simultâneas com ledger inicialmente sem consumo; 60% = 9.268.848 (seis execuções), 30% = 4.634.424 (três execuções) |
+| Tokens/mês | 463.442.400 é uma opção mantendo a razão 30:1 entre os tetos mensais/diários de chamadas (12.000/400); não é um mínimo obrigatório nem quota Google |
+
+O mínimo diário calculado protege a capacidade inicialmente reservável, não garante disponibilidade depois de consumo acumulado. Tetos menores de tokens podem se esgotar antes dos tetos de chamadas/interações; essa consequência deve ser aceita como política comercial antes de aplicação. Tokens/mês não possui valor comercial único dedutível do código. Nenhum dos números representa tokens faturados ou autorização de gastos. Concorrência 10 não garante três chamadas por minuto para cada usuário simultaneamente: o pool pagante inteiro compartilha 3 RPM/60.000 TPM. A restrição operacional de fallback também permanece sem aplicação, junto da configuração pendente. Evidência local: `.tmp-codex/gemini-unblock-20261126/revised-values.json`.
 
 ## Distribuição revisada 60/30/10 — 26/11/2026
 
