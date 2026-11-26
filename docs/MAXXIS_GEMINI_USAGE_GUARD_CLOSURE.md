@@ -1,6 +1,6 @@
 # Maxxis — Gemini Provider Usage Guard
 
-Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03a080bc`.
+Implementação: 25/11/2026. Fechamento administrativo e ativação: 26/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03a080bc`.
 
 ## Estado de entrega
 
@@ -8,9 +8,54 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | --- | --- |
 | IMPLEMENTATION STATUS | PASS no escopo validado |
 | PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
-| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — 60/30/10 validado; proprietário decidiu manter DISABLED e revisar os valores complementares |
-| PRODUCTION ENFORCEMENT — 26/11/2026 | DISABLED; ativação BLOCKED, configuração revisão 1 preservada |
+| CONFIGURATION STATUS — 26/11/2026 | PASS — configuração final validada e aplicada pela RPC administrativa |
+| PRODUCTION ENFORCEMENT — 26/11/2026 | ACTIVE — mode ENFORCEMENT, revisão 2, confirmado por leitura |
 | BILLING — 26/11/2026 | DISABLED segundo confirmação expressa do proprietário: projeto sem conta de faturamento vinculada; nenhuma alteração realizada |
+
+## Fechamento definitivo — configuração efetiva em Production
+
+O roteiro posterior "FINAL CONFIGURATION CLOSURE" autorizou selecionar administrativamente os valores obrigatórios tecnicamente justificados e ativar após os gates. Essa autorização substituiu a decisão anterior de manter DISABLED. A única escrita em Production foi `ds_gemini_set_config` via REST com service role e CAS da revisão 1. Ativação efetiva em **26/11/2026 às 21:39:56 UTC / 18:39:56 Brasília**, revisão **2**. Conferência posterior PASS_ACTIVE, sem mudança em funções ou dados de usuários.
+
+| Controle | Configuração efetiva |
+| --- | --- |
+| Projeto e billing | `gen-lang-client-0466397101`; sem faturamento vinculado, conforme confirmação do proprietário |
+| Principal | `gemini-3.5-flash-lite`, preservado |
+| Quotas Google informadas | 15 RPM / 250.000 TPM / 500 RPD; não há quota mensal Google presumida |
+| Global interno | 12 RPM / 200.000 TPM / 400 RPD / 12.000 chamadas/mês |
+| Tokens/dia e tokens/mês | 15.448.080 / 463.442.400 |
+| Concorrência global | 10 |
+| FREE | 60%; 7 RPM; 120.000 TPM; 240 RPD; 7.200 chamadas/mês |
+| PRO + Enterprise | 30%; 3 RPM; 60.000 TPM; 120 RPD; 3.600 chamadas/mês |
+| Operacional | 10%; 1 RPM proporcional; 20.000 TPM; 40 RPD; 1.200 chamadas/mês, inacessível aos consumidores comuns |
+| Resíduo de RPM | 1 RPM adicional sem alocação; sem cessão automática ao FREE |
+| Individuais | FREE 3/dia, 30/mês, concorrência 1; PRO 20/300/2; Enterprise 50/1000/3 |
+| Fallback | Modelo `gemini-3.5-flash` preservado, com teto operacional interno `calls_minute=1`; capacidade efetiva de seus pools é zero por arredondamento |
+| Períodos | Janela móvel de 60 segundos; dia de provedor `America/Los_Angeles` com DST; mês interno e interações individuais em UTC |
+| Flags | `mode=ENFORCEMENT`, `provider_verified=true`, `commercial_approved=true`, revisão 2 |
+
+O fallback não recebe quota Google inventada: seu teto interno deliberadamente restritivo resulta em `floor(1×60%)=0` e `floor(1×30%)=0`. Assim, nenhuma tentativa externa desse modelo é autorizada nos pools alcançáveis. A chamada principal permanece possível; quando exigido fallback, o chat retorna o tratamento de quota existente, sem executá-lo. Isso reduz a disponibilidade em falha do principal; não garante fallback generativo. É uma restrição administrativa explicitamente apresentada e validada, não mudança de modelo ou código. Reavaliar antes de qualquer alteração dos percentuais.
+
+### Fórmulas, semântica e justificativa dos campos obrigatórios
+
+1. **Concorrência global:** `ceil(3 / 0,30) = 10`, menor inteiro para comportar três reservas Enterprise no pool compartilhado. A distribuição permite seis reservas FREE e três pagantes, não dez usuários comuns garantidos. RPM e TPM continuam independentes e podem impedir tentativas simultâneas.
+2. **Maxxis:** reserva por chamada `65.536 + (48.000×4) + (64.000×4) + 1.400 = 514.936`; reserva inicial por execução de até três chamadas `3×514.936 = 1.544.808`. São os budgets publicados de request/contexto/tool/saída. Há superestimação conservadora possível entre esses tetos de componentes; isso não é soma de tokens reais nem contagem duplicada no ledger. Nenhum budget foi alterado para chegar ao resultado.
+3. **Tradução:** uma chamada, com reserva `bytes UTF-8 do JSON completo da requisição Gemini + maxOutputTokens(8.192)`. Não há constante única de tokens por tradução: depende do conteúdo. O teste com transporte mockado mediu JSON sintético de 277 bytes, reserva 8.469, uma tentativa e total reportado de 150 tokens. Cache hit/idioma igual/operação local não reservam quota Gemini.
+4. **Tokens/dia:** `max(ceil(6×1.544.808 / 0,60), ceil(3×1.544.808 / 0,30)) = 15.448.080`. É o mínimo para suportar todas as reservas dos pools inicialmente sem consumo: FREE reserva 9.268.848 e pagantes 4.634.424. Não é consumo real previsto, autorização de gasto ou garantia de manter esse paralelismo depois de consumo acumulado.
+5. **Tokens/mês:** o campo é obrigatório para ENFORCEMENT, assim como tokens/dia e concorrência global. Foi demonstrado que omiti-lo é rejeitado. Adotado `15.448.080 × (12.000/400) = 463.442.400`: mantém a mesma relação 30:1 dos tetos mensais/diários de chamadas autorizados. É política operacional limitada e justificada, não necessidade física única nem quota oficial. Não se usou valor ilimitado nem se removeu qualquer teto de chamadas/frequência.
+6. **Sem dupla contabilização:** no dia/mês, total global é consumo das tentativas já iniciadas mais `remaining_calls×token_reservation` das execuções pendentes. Ao iniciar uma tentativa, a parcela pendente é decrementada e entra apenas a estimativa daquela tentativa; metadata confirmada a substitui. Encerramento remove somente chamadas ainda não iniciadas. Finalização/encerramento repetidos não duplicam nem devolvem consumo incerto. Cache é subconjunto do prompt e não é somado novamente. Reservas contingentes dos modelos candidatos se sobrepõem nos controles por modelo, mas o global é contado uma vez, não uma vez por candidato.
+7. **Disponibilidade:** os tetos de tokens podem esgotar antes de 400/12.000 chamadas ou dos máximos comerciais, conforme tamanhos e consumo acumulado. Reservas conservadoras podem antecipar a negativa; isso foi explicitado e não se apresentou disponibilidade garantida. O modo ativo preserva operação local e respostas controladas. Antes de cada tentativa, 12 RPM/200.000 TPM e os respectivos pools continuam sendo verificados; o guard mede tokens totais conservadores, mais estrito que o TPM Google de entrada.
+
+### Gates e provas finais
+
+Projeto, quotas e ausência de faturamento foram confirmados pelo proprietário; não houve consulta autenticada independente ao Console Google. O proprietário informou ausência de consumo Gemini no dia. Como verificação adicional, leitura dirigida dos logs dos dois consumidores desde 08:00 UTC (meia-noite do Pacífico) até 21:37 UTC retornou 44 registros, sem truncamento e sem evento com `llm_call_count>0`. Essa consulta não é contador Google independente nem ledger completo da tradução. A decisão de janela segura usa a declaração do proprietário e essa evidência complementar; nenhuma capacidade anterior foi artificialmente zerada ou descartada. Antes da escrita, ledger e reservas pendentes estavam vazios e a revisão ainda era 1.
+
+Validação nova estritamente dirigida: **sete casos SQL PASS**, em staging com rollback integral: nove reservas completas cabem nos pools; quarta reserva Enterprise e sétima FREE são negadas; metadata substitui estimativa sem somar cache novamente; fechamento libera só a parcela não usada e é idempotente; omissão de tokens/dia ou tokens/mês é rejeitada. **Um contrato do cliente de tradução PASS**, transporte e RPCs mockados, com fórmula dinâmica e metadata. Reutilizados os dez cenários 60/30/10 já aprovados e a prova anterior com conexões independentes; não houve nova bateria ampla.
+
+Conferência final somente por leitura: settings integralmente iguais ao candidato aplicado; modo ENFORCEMENT/revisão 2; RLS e privilégios restritos; definições das RPCs intactas; as **28 Edge Functions** preservam versões/hashes/JWT, incluindo Maxxis v107 e tradução v9. Zero execuções/tentativas no instante da conferência, sem fixtures de Production. Os 35 stashes continuam idênticos. Nenhuma regressão nova identificada no escopo; não houve teste generativo real, conforme proibição.
+
+Evidências privadas em `.tmp-codex/gemini-final-20261126/`: `preflight.json`, `activity-readonly.json`, `parameter-validation.json`, `translation-reservation.json`, `configuration-before.json`, `settings-approved.json`, `production-activation.json`, `final-integrity.json`. Configuração anterior completa e revisão foram preservadas antes da escrita. Alterações futuras continuam pela RPC administrativa com CAS e revisão vigente, sem redeploy. Em necessidade de recuperação, ler o estado e o consumo atuais e usar a mesma RPC para desativar ou restaurar configuração compatível; nunca apagar ledger, zerar contadores ou sobrescrever revisão concorrente. Não foi executada recuperação porque a ativação passou.
+
+Somente este relatório foi alterado no repositório. Sem código-fonte, migrations, novos deploys, dependências, alterações de secrets, frontend/UX/UI, RentCast, SEC-01 a SEC-06, entitlements, preços, Nuggets, dados reais ou operações financeiras. Billing não foi ativado nem alterado e não houve custos adicionais gerados deliberadamente. **U-01 permanece OPEN**; a ativação dos limites não resolve privacidade nem autoriza lançamento comercial irrestrito. Não há bloqueador pendente para esta configuração administrativa e nenhuma nova fase foi iniciada. Os registros abaixo são histórico das decisões anteriores, substituídas pelo fechamento atual.
 
 ### Decisão posterior do proprietário e revisão dos valores — 26/11/2026
 
