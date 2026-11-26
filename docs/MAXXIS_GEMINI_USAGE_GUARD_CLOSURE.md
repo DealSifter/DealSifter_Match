@@ -8,7 +8,44 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | --- | --- |
 | IMPLEMENTATION STATUS | PASS no escopo validado |
 | PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
-| COMMERCIAL ENFORCEMENT | CONFIGURATION REQUIRED; Production e staging em DISABLED |
+| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — incompatibilidade comprovada dos pools instantâneos |
+| PRODUCTION ENFORCEMENT — 26/11/2026 | DISABLED; ativação BLOCKED, configuração revisão 1 preservada |
+| BILLING — 26/11/2026 | NOT VERIFIED; nenhuma ativação ou alteração realizada |
+
+## Tentativa de ativação — 26/11/2026
+
+Escopo exclusivamente administrativo, sem mudanças no código, migrations, modelos, secrets, frontend ou deployments. HEAD inicial `3cdd79d`; branch `fix/production-real-defects`; workspace inicialmente limpo; 35 stashes com os mesmos hashes. Production continua com Maxxis v107 e tradução v9, bundles idênticos aos publicados. Permissões das tabelas/RPCs verificadas por leitura: nenhum acesso indevido de anon/authenticated.
+
+**Decisão: não ativar.** O roteiro exige preservar fluxos legítimos de múltiplas chamadas e interromper quando a configuração não puder fazê-lo. A distribuição 70/15/15 combinada com RPM 12 impede esse gate no guard existente. Não houve gravação de configuração em Production.
+
+| Parâmetro | Autorizado/informado nesta rodada | Efetivo em Production |
+| --- | --- | --- |
+| Quotas Google principal | Proprietário informou 15 RPM / 250.000 TPM / 500 RPD | Vínculo dessas quotas com a chave/projeto de Production ainda não comprovado |
+| Principal | `gemini-3.5-flash-lite` | Confirmado por comparação interna do modelo conhecido com o valor/digest administrativo, sem exposição de secrets |
+| Fallback | `gemini-3.5-flash`, sem quota comprovada | Modelo preservado; sem restrição nova enquanto DISABLED |
+| Global | 12 RPM / 200.000 TPM / 400 dia / 12.000 mês | `global` e `provider_limits` continuam vazios |
+| Pools | FREE 70%, pagantes 15%, operacional 15% | FREE 25%, pagantes 60%, operacional 15%, todos inativos |
+| Individuais | FREE 3/30/1; PRO 20/300/2; Enterprise 50/1000/3: dia/mês/concorrência | Mesmos valores armazenados, inativos |
+| Fuso do provedor | Necessário `America/Los_Angeles` | Nulo, sem aplicação |
+| Flags | Ativação condicionada aos gates | `mode=DISABLED`, `provider_verified=false`, `commercial_approved=false`, revisão 1 |
+| Contabilização | Consumo anterior deve ser considerado | Zero execuções/tentativas/reservas pendentes no ledger; uso Google ocorrido durante DISABLED desconhecido |
+
+### Impedimentos e menor decisão necessária
+
+1. **Pool pagante por minuto:** `floor(12 × 15%) = 1` chamada e `floor(200.000 × 15%) = 30.000` tokens. A transação isolada autorizou a primeira chamada do PRO e negou a segunda da mesma execução com `GEMINI_PAID_POOL_LIMIT`, mesmo com reserva diária/mensal disponível. O guard verifica RPM a cada tentativa e não espera a renovação da janela. Os percentuais são únicos para todos os períodos; não há configuração separada do pool instantâneo. Para três chamadas pagantes na mesma janela, seria necessário pelo menos 25% de 12 RPM. A menor alternativa somente administrativa seria uma decisão explícita de redistribuição, por exemplo 60/25/15; manter exatamente 70/15/15 exigiria alteração pontual da política do guard, proibida nesta rodada. Nenhuma alternativa foi aplicada ou presumida aprovada.
+2. **Fallback:** retirar a chave do modelo ou usar quota zero é rejeitado. Foi comprovada uma restrição somente por configuração: teto operacional interno `models["gemini-3.5-flash"].calls_minute=1` produz capacidade zero nos pools FREE/pagantes por arredondamento, com os percentuais propostos; o principal passa e a tentativa fallback é negada antes do transporte. Isso não é quota Google comprovada nem uma opção explícita de desligamento. Depende dos percentuais e do arredondamento e precisa ser revalidado se os pools mudarem. Não foi gravado em Production. Mesmo essa restrição não resolve o impedimento 1.
+3. **Campos adicionais obrigatórios sem valores aprovados:** `global.tokens_day`, `global.tokens_month` e `global.concurrency`. A reserva atual do chat é 514.936 tokens por chamada e 1.544.808 por execução; para caber uma execução no pool de 15%, os tetos globais de tokens dia/mês precisariam ser pelo menos 10.298.720 cada, antes de outros consumos. Para comportar três execuções concorrentes Enterprise nesse pool, a concorrência global precisaria ser pelo menos 20. São mínimos matemáticos, não quotas reais do Google nem configuração final aprovada. A reserva conservadora não mede custo faturável exato.
+4. **Comprovação externa e janela segura:** projeto Google e billing atuais não estão acessíveis nesta sessão. Foi solicitada somente a confirmação do ID de projeto que mostra as quotas e da ausência de faturamento; a referência histórica é `gen-lang-client-0466397101`. O ledger vazio não prova ausência de consumo Google enquanto DISABLED. Antes de ativar, é indispensável conhecer o consumo do período ou estabelecer uma janela segura sem consumo concorrente não contabilizado. Esperar um reset sem controlar esse intervalo não basta.
+
+### Validação dirigida e períodos
+
+Uma transação isolada em staging, integralmente revertida, comprovou seis achados: segunda chamada pagante negada; fallback sem caps permitido; remoção de modelo rejeitada; zero rejeitado; principal permitido com restrição interna de fallback; fallback negado por essa restrição. Nenhuma chamada HTTP ao Gemini foi executada. A primeira versão do ensaio tentou reduzir o teto diário do fallback depois de simular seu consumo e foi corretamente rejeitada; o ensaio final usou savepoint/rollback para isolar a autorização não verificada e validou a restrição por minuto. Não foram repetidas as suítes anteriores.
+
+Os parâmetros adicionais usados no ensaio (tokens/dia 20 milhões, tokens/mês 600 milhões, concorrência 20) eram exclusivamente sintéticos para isolar o problema de RPM; não são proposta de Production. Evidências privadas: `.tmp-codex/gemini-activation-20261126/preflight.json`, `targeted-validation.json` e `final-integrity.json`. Conferência final PASS_UNCHANGED: configuração/revisão/RPCs e versões publicadas intactas, rollback do staging confirmado, 35 stashes idênticos e zero escritas em Production.
+
+O guard usa janela móvel de 60 segundos para chamadas/tokens, dia do provedor no timezone configurado e mês interno UTC; interações comerciais individuais usam UTC. `America/Los_Angeles` respeita horário sazonal: meia-noite corresponde a 08:00 UTC no inverno e 07:00 UTC no verão, ambos conferidos por SQL. Reservas pendentes contam na janela vigente; tentativas iniciadas pertencem ao período real de início. A documentação Google confirma quotas por projeto, TPM de entrada e reset RPD à meia-noite do Pacífico; o guard usa tokens totais conservadores, não apenas entrada. [Documentação oficial consultada](https://aistudio.google.com/docs/rate-limits).
+
+Recuperação administrativa: nenhuma mudança foi feita, portanto não há configuração a reverter. O JSON anterior completo e a revisão foram preservados no recibo privado; qualquer alteração futura usa `ds_gemini_set_config` com a revisão então vigente, sem zerar ledger nem descartar reservas. Não restaurar cegamente a revisão antiga após uso concorrente. Não houve novos custos deliberados, ativação de billing, chamadas de IA, operações financeiras ou alteração de dados reais. UX/UI, RentCast, SEC-01 a SEC-06 e Maxxis permanecem preservados. U-01 continua OPEN; não foi declarado GO comercial irrestrito.
 
 A revisão automática inicialmente exigiu autorização específica para a migration de Production. O proprietário autorizou expressamente a migration e os dois consumidores do commit `4a84ec3`; a publicação abaixo foi executada após essa autorização. Publicação técnica não autoriza ativação comercial.
 
