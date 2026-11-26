@@ -8,9 +8,40 @@ Data: 25/11/2026. Commit de implementação: `4a84ec3306688726ba1a70338a5c616b03
 | --- | --- |
 | IMPLEMENTATION STATUS | PASS no escopo validado |
 | PRODUCTION DEPLOYMENT | DEPLOYED — migration e dois consumidores publicados e conferidos |
-| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — incompatibilidade comprovada dos pools instantâneos |
+| CONFIGURATION STATUS — 26/11/2026 | BLOCKED — distribuição revisada 60/30/10 validada; parâmetros complementares e janela segura pendentes |
 | PRODUCTION ENFORCEMENT — 26/11/2026 | DISABLED; ativação BLOCKED, configuração revisão 1 preservada |
 | BILLING — 26/11/2026 | DISABLED segundo confirmação expressa do proprietário: projeto sem conta de faturamento vinculada; nenhuma alteração realizada |
+
+## Distribuição revisada 60/30/10 — 26/11/2026
+
+Roteiro "FINAL CONFIGURATION UNBLOCK", recebido após o commit `aaa90f7`. A nova distribuição **resolve o impedimento de RPM anterior**. Validação dirigida PASS em staging, com rollback integral e sem chamadas Gemini. A ativação ainda depende dos demais gates preservados pelo roteiro; não houve gravação em Production.
+
+| Controle | Candidato autorizado 60/30/10 | Efetivo em Production |
+| --- | --- | --- |
+| Global | 12 RPM; 200.000 TPM; 400 RPD; 12.000/mês | Tetos vazios, revisão 1, DISABLED |
+| FREE | 60%; 7 RPM; 120.000 TPM; 240 RPD; 7.200/mês | 25%, inativo |
+| PRO + Enterprise | 30%; 3 RPM; 60.000 TPM; 120 RPD; 3.600/mês | 60%, inativo |
+| Operacional | 10%; 1 RPM proporcional; 20.000 TPM; 40 RPD; 1.200/mês | 15%, inativo |
+| Resíduo de RPM | 12 − 7 − 3 − 1 = 1 RPM sem alocação | Sem redistribuição automática |
+| Individuais | FREE 3/30/1; PRO 20/300/2; Enterprise 50/1000/3 (dia/mês/concorrência) | Mesmos valores preservados, inativos |
+
+A reserva operacional é headroom protegido, sem consumidor comum que possa selecionar esse pool. Não é fila nem capacidade executável adicional de um operador. Com os pools normais limitados a 7+3 RPM, existem dois RPM fora do alcance deles: um corresponde à parcela operacional arredondada e outro ao resíduo. Nenhum é cedido automaticamente ao FREE. Dia/mês/tokens não têm esse resíduo com os valores acima.
+
+### Gates restantes — não presumidos aprovados
+
+- **Campos adicionais obrigatórios:** `global.tokens_day`, `tokens_month` e `concurrency` continuam sem valores expressamente definidos pelo roteiro. Foi apresentado para aprovação o candidato testado: tokens/dia **205.974.400** (=400 × reserva conservadora de 514.936 por chamada), tokens/mês **6.179.232.000** (=12.000 × 514.936), concorrência global **10** (=mínimo inteiro para o pool de 30% comportar três reservas Enterprise). Esses valores são limites internos derivados do budget publicado, não quotas Google, preço ou promessa de utilização. Permanecem somente no ensaio/JSON local até decisão do proprietário.
+- **Fallback:** a restrição operacional por `models["gemini-3.5-flash"].calls_minute=1` foi novamente validada com os pools novos: `floor(1×60%)=0` e `floor(1×30%)=0`. O principal continua autorizado; tentativa fallback é negada antes do transporte. Não se atribuiu quota Google ao fallback nem se alterou o modelo. Essa solução depende do arredondamento e dos percentuais; exige revalidação se eles mudarem. Foi incluída na solicitação dos parâmetros complementares, sem gravação em Production.
+- **Consumo anterior/janela segura:** foi solicitado ao proprietário o consumo diário atual no AI Studio e se o projeto é usado por outro aplicativo. O guard DISABLED não produziu histórico para reconciliar o período anterior. Zero linhas no ledger não significa zero uso Google; o roteiro anterior exige preservar esse consumo. Não se criou baseline artificial, não se zerou contador e não se reduziu silenciosamente o teto autorizado. A ativação não pode assumir uma quota diária integral disponível.
+
+Projeto e billing continuam registrados conforme confirmação do proprietário: `gen-lang-client-0466397101`, sem conta de faturamento vinculada. Quotas principais informadas: 15 RPM, 250.000 TPM, 500 RPD; margem externa proposta de 20% preservada. Modelo efetivo e bundles v107/v9 reconferidos sem alteração. Períodos e evidências anteriores permanecem válidos: janela móvel de 60 segundos, dia do provedor com `America/Los_Angeles` e DST, mês interno UTC. O timezone candidato ainda não foi aplicado.
+
+### Testes dirigidos à nova distribuição
+
+Dez cenários SQL PASS, sem repetir as suítes anteriores: FREE, PRO e Enterprise completam três tentativas de 20.000 tokens cada, contabilizando uma interação; esgotamento FREE não toma capacidade pagante; pool operacional não é atribuível ao FREE; teto global de tokens bloqueia antes do HTTP; tradução usa o mesmo orçamento sem interação comercial de chat; três reservas Enterprise cabem no pool e a quarta é negada; fallback não verificado é bloqueado preservando o principal; quarta chamada pagante na mesma janela é negada. Os cenários de cada plano são isolados: não demonstram três chamadas simultaneamente garantidas para cada usuário pagante.
+
+As três chamadas pagantes totalizam 60.000 tokens, exatamente o limite proporcional do cenário, com reconciliação de metadata sintética. Requisições maiores ou outros consumos na mesma janela continuam sujeitos aos tetos; não foi prometida disponibilidade para todo payload permitido pelos budgets antigos. A prova anterior de atomicidade com conexões independentes é reutilizada; nenhuma RPC foi alterada. Cache hits/operações locais continuam cobertos pelas evidências anteriores dos handlers e da inicialização lazy do guard; não foram repetidos nem invocaram transporte externo.
+
+Recibos privados: `.tmp-codex/gemini-unblock-20261126/{preflight,targeted-validation,final-integrity}.json`; JSON completo revisável em `candidate-settings.json`, explicitamente pendente. Conferência final PASS_UNCHANGED: Production em DISABLED/revisão 1, zero reservas/tentativas, RPCs e versões intactas; fixtures do staging integralmente revertidas; 35 stashes com os mesmos hashes. Somente este relatório foi alterado. Sem código, migration, deploy, billing, dados reais, Nuggets, custos deliberados ou ampliação de público. Nenhuma regressão introduzida; U-01 continua OPEN.
 
 ## Tentativa de ativação — 26/11/2026
 
