@@ -41,7 +41,7 @@ O clique confere a origem antes de chamar o prompt. Nos dois aliases públicos, 
 | --- | --- | --- |
 | A/B/C e PWA-01/02/03 | PASS de HTTP e navegador: apex direto; www e alias Vercel chegam ao apex antes do menu; clique chama o handler de instalação | Prompt nativo foi simulado; instalação física pendente |
 | PWA-04/05 e E | PASS do manifest servido: identidade, início e escopo na raiz canônica | Abrir, fechar e reabrir uma instalação física ainda pendente |
-| D e PWA-06 | PASS de reload no canônico; bundle compilado usa retorno canônico em OAuth e recuperação com transportes interceptados; callback de cancelamento real Supabase volta ao apex | Login/logout completos, convite e compartilhamento por conta legítima não executados; nenhum email real enviado |
+| D e PWA-06 | PASS automatizado de reload e retornos; proprietário respondeu “aprovado” em 26/11/2026 ao roteiro em aba privada de login, navegação, reload, compartilhamento e logout mantendo o canônico | Aceite humano registrado para esse roteiro; convites não testados nesta rodada e nenhum email real enviado pelo agente |
 | PWA-07 | PASS de instruções Android e iOS em emulação Chromium e de tablet com prompt simulado | Android Chrome/iOS Safari físicos pendentes; WebKit não disponível neste ambiente; emulação não equivale a Safari real |
 | PWA-08 | Sem SW implementado/registrado: atualização de SW não aplicável. Bundle publicado e menu após reload verificados | Nenhum SW foi criado, removido ou atualizado; nenhum cache/sessão foi apagado |
 | PWA-09 | PASS da continuidade do ID resolvido na mesma origem; modo standalone e evento appinstalled cobertos por testes | Deduplicação no sistema operacional não certificada sem instalação física |
@@ -55,7 +55,7 @@ O clique confere a origem antes de chamar o prompt. Nos dois aliases públicos, 
 
 Referências oficiais: [domínios Vercel](https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting), [retornos Supabase Auth](https://supabase.com/docs/guides/auth/redirect-urls), [prompt de instalação](https://web.dev/learn/pwa/installation-prompt), [identidade do manifest](https://developer.chrome.com/docs/capabilities/pwa-manifest-id) e [limites da migração de origem](https://developer.chrome.com/blog/seamless-pwa-origin-migration?hl=en).
 
-**Status de aceite:** correções publicadas e verificações automatizadas PASS; aceite de login/compartilhamento e instalação/reabertura em dispositivo físico PENDENTE. Foi solicitado ao proprietário registrar o resultado pela URL canônica; nenhum aceite humano foi atribuído pelo agente. Estas pendências não reabrem outros gates já encerrados nem equivalem a aprovação comercial geral do lançamento.
+**Status de aceite — retorno do proprietário em 26/11/2026:** login/navegação/reload/compartilhamento/logout no domínio canônico APROVADO pelo proprietário. Instalação/reabertura física da PWA continua PENDENTE: o proprietário informou que a aba privada não permitiu instalar. O Chromium bloqueia instalação em modo Incognito; esse relato isolado não comprova defeito do aplicativo. Repetir a instalação em aba normal no canônico e registrar aparelho/navegador e abertura/reabertura do atalho. Referência: [mensagens oficiais do Chromium para instalação indisponível no Incognito](https://chromium.googlesource.com/chromium/src/+/lkgr/chrome/app/generated_resources.grd). Nenhum aceite físico foi atribuído pelo agente. Estas pendências não reabrem outros gates já encerrados nem equivalem a aprovação comercial geral do lançamento.
 
 <!-- CURRENT_LAUNCH_CLOSEOUT_BEGIN -->
 
