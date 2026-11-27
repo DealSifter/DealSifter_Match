@@ -6,6 +6,7 @@ export function usePwaInstallation(addToast, language) {
   const [prompt, setPrompt] = useState(/** @type {import('../lib/pwaInstallation').DeferredInstallPrompt|null} */ (null));
   const [showInstallAppButton, setVisible] = useState(false);
   const installed = useRef(false);
+  const installing = useRef(false);
   useEffect(() => {
     const update = () => setVisible(!installed.current && canOfferInstallation(window));
     /** @param {Event} event */
@@ -27,10 +28,15 @@ export function usePwaInstallation(addToast, language) {
     };
   }, []);
   const handleInstallApp = useCallback(async () => {
-    const result = await requestAppInstallation(window, prompt,
-      ({ title, message }) => addToast({ type: 'info', title, message, duration: 6500 }), language);
+    if (installing.current) return;
+    installing.current = true;
+    // A legacy prompt is single-use, including while its result is pending.
     setPrompt(null);
-    if (result === 'accepted' || result === 'installed') { installed.current = true; setVisible(false); }
+    try {
+      const result = await requestAppInstallation(window, prompt,
+        ({ title, message }) => addToast({ type: 'info', title, message, duration: 6500 }), language);
+      if (result === 'accepted' || result === 'installed') { installed.current = true; setVisible(false); }
+    } finally { installing.current = false; }
   }, [prompt, addToast, language]);
   return { showInstallAppButton, handleInstallApp };
 }

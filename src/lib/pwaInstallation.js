@@ -2,7 +2,7 @@ export const CANONICAL_APP_ORIGIN = 'https://dealsifter.com';
 const PUBLIC_ALIASES = new Set(['www.dealsifter.com', 'dealsiftermatch.vercel.app']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** @typedef {{location: Pick<Location, 'href'|'assign'>, navigator: Partial<Navigator> & {standalone?: boolean}, matchMedia?: (query: string) => Pick<MediaQueryList, 'matches'>}} InstallationWindow */
+/** @typedef {{location: Pick<Location, 'href'|'assign'>, navigator: Partial<Navigator> & {standalone?: boolean, install?: () => Promise<unknown>}, matchMedia?: (query: string) => Pick<MediaQueryList, 'matches'>}} InstallationWindow */
 /** @typedef {{title: string, message: string, unavailable?: string}} InstallationNotice */
 /** @typedef {{prompt: () => Promise<unknown>, userChoice: Promise<{outcome?: string}>}} DeferredInstallPrompt */
 
@@ -62,6 +62,19 @@ export async function requestAppInstallation(windowObject, deferredPrompt, notif
   if (target.kind === 'unavailable') {
     notify({ ...instructions, message: instructions.unavailable });
     return 'unavailable';
+  }
+  // This API can open installation without waiting for beforeinstallprompt.
+  // Invoke it synchronously during the click, with its Navigator receiver intact.
+  if (typeof windowObject.navigator.install === 'function') {
+    try {
+      await windowObject.navigator.install();
+      return 'accepted';
+    } catch (error) {
+      // Cancellation must not turn into another prompt or generic instructions.
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') return 'dismissed';
+      // Older engines may expose an API which is unavailable in this context.
+      // The captured legacy prompt is still useful when provided.
+    }
   }
   if (deferredPrompt) {
     try {

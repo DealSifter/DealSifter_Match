@@ -13,6 +13,27 @@ let root, host;
 afterEach(() => { if (root) act(() => root.unmount()); root = null; host?.remove(); vi.restoreAllMocks(); });
 
 describe('canonical PWA installation', () => {
+  it('opens the modern native installer immediately without a deferred event', async () => {
+    const win = fakeWindow('https://dealsifter.com/'), notify = vi.fn();
+    win.navigator.install = vi.fn(function () { expect(this).toBe(win.navigator); return Promise.resolve(); });
+    const pending = requestAppInstallation(win, null, notify, 'pt');
+    expect(win.navigator.install).toHaveBeenCalledOnce();
+    expect(await pending).toBe('accepted');
+    expect(notify).not.toHaveBeenCalled();
+  });
+  it('does not open native installation from Preview or an alias', async () => {
+    for (const href of ['https://dealsiftermatch-preview.vercel.app/', 'https://www.dealsifter.com/']) {
+      const win = fakeWindow(href); win.navigator.install = vi.fn();
+      await requestAppInstallation(win, null, vi.fn(), 'en');
+      expect(win.navigator.install).not.toHaveBeenCalled();
+    }
+  });
+  it('respects native cancellation without another prompt or manual message', async () => {
+    const win = fakeWindow('https://dealsifter.com/'), notify = vi.fn(), legacy = { prompt: vi.fn() };
+    win.navigator.install = vi.fn().mockRejectedValue(new DOMException('Canceled', 'AbortError'));
+    expect(await requestAppInstallation(win, legacy, notify, 'en')).toBe('dismissed');
+    expect(notify).not.toHaveBeenCalled(); expect(legacy.prompt).not.toHaveBeenCalled();
+  });
   it('redirects only the two public aliases and drops authentication material', () => {
     for (const alias of ['www.dealsifter.com', 'dealsiftermatch.vercel.app']) {
       const result = installationTarget(`https://${alias}/?propertyId=${uuid}&code=secret&token=secret&redirect_to=https://evil.invalid#access_token=secret`);
@@ -72,6 +93,22 @@ describe('canonical PWA installation', () => {
 });
 
 describe('hamburger installation hook', () => {
+  it('opens only one modern native request while the browser is awaiting consent', async () => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+    let finish;
+    const install = vi.fn(() => new Promise(resolve => { finish = resolve; }));
+    Object.defineProperty(window.navigator, 'install', { configurable: true, value: install });
+    const toast = vi.fn();
+    function Harness() { const pwa = usePwaInstallation(toast, 'en'); return pwa.showInstallAppButton ? <button onClick={pwa.handleInstallApp}>Install</button> : <span>Hidden</span>; }
+    try {
+      host = document.createElement('div'); document.body.append(host); root = createRoot(host);
+      await act(async () => root.render(<Harness />));
+      await act(async () => { host.querySelector('button').click(); host.querySelector('button').click(); });
+      expect(install).toHaveBeenCalledOnce(); expect(toast).not.toHaveBeenCalled();
+      await act(async () => finish());
+      expect(host.querySelector('button')).toBeNull();
+    } finally { delete window.navigator.install; }
+  });
   it('offers manual fallback before a native prompt and handles appinstalled', async () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true;
     const toast = vi.fn();
