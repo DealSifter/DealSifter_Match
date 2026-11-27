@@ -5936,6 +5936,7 @@ export default function App() {
               onOpenAdmin={() => setPage('admin')}
               onLogoutUser={handleUserLogout}
               isAdmin={isAdmin}
+              isAuthenticated={Boolean(authSession)}
               userProfile={userProfile}
               editMode={editMode}
               setEditMode={setEditMode}

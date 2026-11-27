@@ -186,7 +186,7 @@ export function SwipeableNotificationItem({
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null, navigationLocked = false, onNavigationBlocked = () => {}, onNavigateIntent = () => {} }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, isAuthenticated = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null, navigationLocked = false, onNavigationBlocked = () => {}, onNavigateIntent = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -500,6 +500,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
         {/* Right: actions */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'end' }}>
+          {isAuthenticated && isApp && !isMobile && showInstallAppButton ? (
+            <button
+              type="button"
+              data-testid="nav-install-app"
+              onClick={onInstallApp}
+              title={t.installToHome || 'Add to Home Screen'}
+              aria-label={t.installToHome || 'Add to Home Screen'}
+              style={{ ...headerIconButtonStyle, flexShrink: 0, background: C.accent, color: '#0f172a' }}
+            >
+              <Icon name="installDevice" size={17} color="#0f172a" strokeWidth={1.7} />
+            </button>
+          ) : null}
           {isApp ? (
             isAppCompact ? (
               <>
