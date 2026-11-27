@@ -6,10 +6,12 @@ import { useGuideTips } from './useGuideTips';
 import { useLang } from '../../i18n/translations';
 import { getGuideTourCopy } from './guideTourContent';
 import appLogo from '../../assets/logo.png';
+import { viewportBounds, visibleTargetBounds, focusBounds, clampPosition } from './guideGeometry';
 
 const getTarget = (selector) => {
   if (!selector || typeof document === 'undefined') return null;
   const candidates = Array.from(document.querySelectorAll(selector));
+  let fallback = null;
   for (const el of candidates) {
     const rect = el.getBoundingClientRect();
     const style = window.getComputedStyle(el);
@@ -20,13 +22,15 @@ const getTarget = (selector) => {
       && style.display !== 'none'
       && Number(style.opacity || 1) > 0
     ) {
-      return { element: el, rect };
+      const visible = visibleTargetBounds(el, viewportBounds());
+      if (visible) return { element: el, rect: visible };
+      fallback ||= { element: el, rect: null };
     }
   }
-  return null;
+  return fallback;
 };
 
-const sameRect = (a, b) => Boolean(
+const sameRect = (a, b) => a === b || Boolean(
   a
   && b
   && Math.abs(a.left - b.left) < 0.5
@@ -54,10 +58,36 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const step = steps[stepIndex] || null;
   const [targetSnapshot, setTargetSnapshot] = useState({ selector: null, rect: null });
   const [targetPending, setTargetPending] = useState(false);
-  const [mobileDragOffset, setMobileDragOffset] = useState({ x: 0, y: 0 });
-  const mobileDragRef = useRef(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef(null);
+  const cardRef = useRef(null);
+  const [viewport, setViewport] = useState(viewportBounds);
+  const [cardHeight, setCardHeight] = useState(0);
   const overviewVideoUrl = String(import.meta.env.VITE_OVERVIEW_VIDEO_URL || '').trim();
   const rect = targetSnapshot.selector === step?.target ? targetSnapshot.rect : null;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const update = () => setViewport((current) => {
+      const next = viewportBounds();
+      return sameRect(current, next) ? current : next;
+    });
+    window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
+    const frame = window.requestAnimationFrame(update);
+    const observer = new ResizeObserver(() => {
+      if (cardRef.current) setCardHeight(cardRef.current.getBoundingClientRect().height);
+    });
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+    };
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !step) return;
@@ -71,8 +101,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
   useEffect(() => {
     const resetTimer = window.setTimeout(() => {
-      setMobileDragOffset({ x: 0, y: 0 });
-      mobileDragRef.current = null;
+      setDragOffset({ x: 0, y: 0 });
+      dragRef.current = null;
     }, 0);
     return () => window.clearTimeout(resetTimer);
   }, [activeTour, stepIndex]);
@@ -89,6 +119,9 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     let retryTimer = null;
     let stopped = false;
     let observer = null;
+    let scrolledElement = null;
+    let observedElement = null;
+    const resizeObserver = new ResizeObserver(() => update());
     const update = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
@@ -100,20 +133,26 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             ? current
             : { selector: step.target, rect: next }
         ));
-        setTargetPending(!target);
-        if (target) {
-          const outside = next.top < 72 || next.bottom > window.innerHeight - 72;
-          if (outside) {
-            target.element.scrollIntoView?.({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-          }
-        } else {
-          retryTimer = window.setTimeout(update, 250);
+        setTargetPending(!next);
+        if (target && observedElement !== target.element) {
+          resizeObserver.disconnect();
+          resizeObserver.observe(target.element);
+          observedElement = target.element;
         }
+        // Scroll once per target; repeated smooth scrolling hides highlights on large panels.
+        if (target && scrolledElement !== target.element) {
+          scrolledElement = target.element;
+          if (!next) target.element.scrollIntoView?.({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
+        }
+        window.clearTimeout(retryTimer);
+        if (!next) retryTimer = window.setTimeout(update, 250);
       });
     };
     update();
     if (typeof MutationObserver !== 'undefined' && document.body) {
-      observer = new MutationObserver(update);
+      observer = new MutationObserver((records) => {
+        if (records.some((record) => !record.target.closest?.('[data-guide-overlay]'))) update();
+      });
       observer.observe(document.body, {
         childList: true,
         subtree: true,
@@ -122,12 +161,17 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
       });
     }
     window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
     window.addEventListener('scroll', update, true);
     return () => {
       stopped = true;
       window.cancelAnimationFrame(frame);
       window.clearTimeout(retryTimer);
       observer?.disconnect();
+      resizeObserver.disconnect();
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
@@ -150,9 +194,10 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
   const isModalStep = !step.target || !rect;
   const margin = 12;
-  const cardW = Math.min(380, Math.max(280, window.innerWidth - 28));
   const mobileViewport = window.innerWidth < 768;
-  const cardHGuess = step.kind === 'video' ? 390 : 230;
+  const cardW = Math.min(mobileViewport ? 320 : 380, viewport.width - 24);
+  const cardMaxHeight = mobileViewport ? Math.min(440, viewport.height * 0.65) : viewport.height - 24;
+  const cardHGuess = Math.min(cardHeight || (step.kind === 'video' ? 390 : 230), cardMaxHeight);
   const wideViewport = window.innerWidth >= 768;
   const roomOnLeft = rect ? rect.left - margin * 2 : 0;
   const roomOnRight = rect ? window.innerWidth - rect.right - margin * 2 : 0;
@@ -180,23 +225,18 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         : (below ? rect.bottom + 12 : Math.max(70, rect.top - cardHGuess - 12))
     )
     : Math.max(72, (window.innerHeight - cardHGuess) / 2);
-  const positionedLeft = Math.min(
-    Math.max(8, left + mobileDragOffset.x),
-    Math.max(8, window.innerWidth - cardW - 8),
-  );
-  const positionedTop = Math.min(
-    Math.max(56, top + mobileDragOffset.y),
-    Math.max(56, window.innerHeight - 150),
-  );
+  const positionedLeft = clampPosition(left + dragOffset.x, viewport.left + 12, viewport.right - cardW - 12);
+  const positionedTop = clampPosition(top + dragOffset.y, viewport.top + 12, viewport.bottom - cardHGuess - 12);
   const progress = `${stepIndex + 1}/${steps.length}`;
   const isDark = theme === 'dark';
   const cardText = '#101827';
   const cardTextSoft = '#475569';
   const cardTextMuted = '#64748b';
-  const focusLeft = rect ? Math.max(margin, rect.left - 7) : margin;
-  const focusTop = rect ? Math.max(margin, rect.top - 7) : margin;
-  const focusWidth = rect ? rect.width + 14 : 0;
-  const focusHeight = rect ? rect.height + 14 : 0;
+  const focus = focusBounds(rect, viewport);
+  const focusLeft = focus?.left || 0;
+  const focusTop = focus?.top || 0;
+  const focusWidth = focus?.width || 0;
+  const focusHeight = focus?.height || 0;
   const blockedByOnboarding = Boolean(
     !onboardingComplete
     && activeTour !== 'initial'
@@ -245,28 +285,31 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     event?.stopPropagation?.();
     setEnabled(false);
   };
-  const beginMobileDrag = (event) => {
-    if (event.button > 0) return;
-    mobileDragRef.current = {
+  const beginDrag = (event) => {
+    if (event.button > 0 || event.target.closest('button')) return;
+    event.preventDefault();
+    dragRef.current = {
       pointerId: event.pointerId,
       clientX: event.clientX,
       clientY: event.clientY,
-      offsetX: mobileDragOffset.x,
-      offsetY: mobileDragOffset.y,
+      left: positionedLeft,
+      top: positionedTop,
+      baseLeft: left,
+      baseTop: top,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
-  const moveMobileDrag = (event) => {
-    const drag = mobileDragRef.current;
+  const moveDrag = (event) => {
+    const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setMobileDragOffset({
-      x: drag.offsetX + event.clientX - drag.clientX,
-      y: drag.offsetY + event.clientY - drag.clientY,
+    setDragOffset({
+      x: clampPosition(drag.left + event.clientX - drag.clientX, viewport.left + 12, viewport.right - cardW - 12) - drag.baseLeft,
+      y: clampPosition(drag.top + event.clientY - drag.clientY, viewport.top + 12, viewport.bottom - cardHGuess - 12) - drag.baseTop,
     });
   };
-  const endMobileDrag = (event) => {
-    if (mobileDragRef.current?.pointerId !== event.pointerId) return;
-    mobileDragRef.current = null;
+  const endDrag = (event) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
 
@@ -278,45 +321,13 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   };
 
   return (
-    <div aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 2147482500, pointerEvents: 'none' }}>
+    <div data-guide-overlay="true" aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 2147482500, pointerEvents: 'none' }}>
       <style>{`
         @keyframes dsGuideRequiredPulse {
           0%, 100% { box-shadow: 0 0 0 rgba(220, 38, 38, 0); transform: scale(1); }
           50% { box-shadow: 0 0 18px rgba(220, 38, 38, 0.42); transform: scale(1.012); }
         }
       `}</style>
-      {mobileViewport ? (
-        <button
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={closeGuide}
-          aria-label={copy.common.skip}
-          title={copy.common.skip}
-          style={{
-            position: 'fixed',
-            top: 'max(10px, env(safe-area-inset-top))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            border: `2px solid ${C.gold}`,
-            background: 'rgba(255,255,255,0.08)',
-            color: C.gold,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: `0 0 18px ${C.alpha(C.gold, 0.46)}`,
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 4,
-            pointerEvents: 'auto',
-            cursor: 'pointer',
-          }}
-        >
-          <Icon name="x" size={20} color={C.gold} strokeWidth={2.2} />
-        </button>
-      ) : null}
       {isModalStep ? (
         <div style={{ ...overlayPiece, inset: 0 }} />
       ) : (
@@ -326,7 +337,11 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
           <div style={{ ...overlayPiece, left: 0, top: focusTop, width: focusLeft, height: focusHeight }} />
           <div style={{ ...overlayPiece, left: focusLeft + focusWidth, top: focusTop, right: 0, height: focusHeight }} />
           <div
+            data-guide-highlight="true"
+            aria-hidden="true"
             style={{
+              boxSizing: 'border-box',
+              pointerEvents: 'none',
               position: 'fixed',
               left: focusLeft,
               top: focusTop,
@@ -341,6 +356,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         </>
       )}
       <div
+        ref={cardRef}
         role="dialog"
         aria-modal={isModalStep ? 'true' : undefined}
         aria-label={copy.common.title}
@@ -349,13 +365,13 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
           left: positionedLeft,
           top: positionedTop,
           width: cardW,
-          maxHeight: 'calc(100dvh - 88px)',
+          maxHeight: cardMaxHeight,
           overflowY: 'auto',
           borderRadius: 16,
           border: `1px solid ${C.alpha(C.accent, 0.52)}`,
           background: 'rgba(255,255,255,0.96)',
           color: cardText,
-          padding: 15,
+          padding: mobileViewport ? 12 : 15,
           backdropFilter: 'blur(16px) saturate(1.2)',
           WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
           boxShadow: '0 22px 62px rgba(0,0,0,0.30)',
@@ -364,16 +380,18 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         }}
       >
         <div
-          onPointerDown={beginMobileDrag}
-          onPointerMove={moveMobileDrag}
-          onPointerUp={endMobileDrag}
-          onPointerCancel={endMobileDrag}
+          data-guide-drag-handle="true"
+          title={copy.common.drag}
+          onPointerDown={beginDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
-            marginBottom: 10,
+            marginBottom: mobileViewport ? 7 : 10,
             cursor: 'grab',
             touchAction: 'none',
             userSelect: 'none',
@@ -433,8 +451,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
           </div>
         ) : null}
 
-        <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.2, marginBottom: 7 }}>{step.title}</div>
-        <div style={{ fontSize: 13, lineHeight: 1.5, color: cardTextSoft, fontWeight: 600 }}>{step.body}</div>
+        <div style={{ fontSize: mobileViewport ? 15 : 17, fontWeight: 900, lineHeight: 1.2, marginBottom: 7 }}>{step.title}</div>
+        <div style={{ fontSize: mobileViewport ? 12 : 13, lineHeight: mobileViewport ? 1.4 : 1.5, color: cardTextSoft, fontWeight: 600 }}>{step.body}</div>
         {targetPending && step.target && !step.optionalTarget ? (
           <div style={{ marginTop: 8, color: C.gold, fontSize: 11, fontWeight: 800 }}>
             {copy.common.locating || copy.common.waiting}
@@ -445,13 +463,13 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             {copy.common.profileRequired}
           </div>
         ) : null}
-        <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: mobileViewport ? 10 : 15 }}>
           {stepIndex > 0 ? (
             <button type="button" onClick={goBack} style={{ flex: 0.8, border: '1px solid #cbd5e1', background: 'transparent', color: cardTextSoft, borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
               {copy.common.back}
             </button>
           ) : null}
-          {!mandatory ? (
+          {(!mandatory || mobileViewport) ? (
             <button type="button" onClick={closeGuide} style={{ flex: 1, border: '1px solid #cbd5e1', background: 'transparent', color: cardTextSoft, borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
               {copy.common.skip}
             </button>

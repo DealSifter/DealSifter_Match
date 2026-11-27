@@ -11,6 +11,7 @@ const COPY = {
       openOnboarding: 'Open onboarding',
       profileRegistration: 'Profile registration',
       skip: 'Close guide',
+      drag: 'Drag to move',
       videoSoon: 'The overview video is being prepared. This space is ready to receive it without changing the first-access flow.',
     },
     initial: [
@@ -73,6 +74,7 @@ const COPY = {
       openOnboarding: 'Abrir cadastro',
       profileRegistration: 'Cadastro de Perfil',
       skip: 'Fechar guia',
+      drag: 'Arraste para mover',
       videoSoon: 'O vídeo overview está em elaboração. Este espaço já está preparado para recebê-lo sem alterar o fluxo de primeiro acesso.',
     },
     initial: [
@@ -135,6 +137,7 @@ const COPY = {
       openOnboarding: 'Abrir registro',
       profileRegistration: 'Registro de Perfil',
       skip: 'Cerrar guía',
+      drag: 'Arrastra para mover',
       videoSoon: 'El video general está en preparación. Este espacio ya está listo para recibirlo sin cambiar el flujo inicial.',
     },
     initial: [
