@@ -27,6 +27,7 @@
       "headers": { "Cache-Control": "no-cache, no-store, must-revalidate" },
       "continue": true
     },
+    { "src": "/favicon.ico", "dest": "/favicon.png" },
     { "handle": "filesystem" },
     {
       "src": "/assets/(.*)",

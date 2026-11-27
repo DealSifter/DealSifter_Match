@@ -1731,7 +1731,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
             </div>
           )}
           <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-            <div data-guide="matches-people" style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
+            <div data-guide="matches-people" style={{ flex:'1 1 0', minWidth:0, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.t3, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.people} ({filteredMatched.length})</span>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
@@ -1873,7 +1873,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                 }} />
               </div>
             </div>
-            <div data-guide="matches-interests" style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
+            <div data-guide="matches-interests" style={{ flex:'1 1 0', minWidth:0, display:"flex", flexDirection:"column" }} className="matches-col-interests">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.gold, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.interests} ({filteredInterested.length})</span>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
@@ -1945,20 +1945,20 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                     || { id: linkedOwnerId, ownerId: linkedOwnerId, name: 'Locked contact' };
                   return (
                     <div key={p.id} onClick={() => setActive(effectiveProperty)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
-                      <div style={{ width:32, height:32, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
+                      <div style={{ width:32, height:32, flexShrink:0, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
                         <SmartImage src={p.images?.[0] || p.image} alt={p.address} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1, 0.05) }}><Icon name="home" size={14} color={C.t3} /></div>} />
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0 }}>
-                          <div style={{ fontWeight:700, fontSize:11, color:isLinkedProperty?PROPERTY_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{p.address}</div>
+                          <div style={{ flex:1, minWidth:0, fontWeight:700, fontSize:11, lineHeight:1.35, color:isLinkedProperty?PROPERTY_SIGNAL:C.t1, overflowWrap:'anywhere' }}>{p.address}</div>
                           {propertyExclusiveStatus?.expiresAt ? (
                             <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                           ) : null}
                         </div>
                         <div style={{ fontSize:9, color:C.gold }}>${(p.price/1000).toFixed(0)}K</div>
-                        <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                        <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4, flexWrap:'wrap' }}>
                           <span style={{ color:isPropertyEntitled ? C.success : C.gold, fontWeight:700 }}>{isPropertyEntitled ? cardsT.unlocked : `${cardsT.locked} · ${ownerUnlockCost}★`}</span>
-                          <span>{t.by} {owner?.name || "..."}</span>
+                          <span style={{ minWidth:0, overflowWrap:'anywhere' }}>{t.by} {owner?.name || "..."}</span>
                         </div>
                       </div>
                       {interestsFilter === 'archived' ? (

@@ -47,7 +47,12 @@ export function installationInstructions(navigatorObject, language = 'en') {
     pt: { title: 'Adicionar à Tela', ios: 'No Safari: Compartilhar > Adicionar à Tela de Início.', iosOther: 'Abra dealsifter.com no Safari e use Compartilhar > Adicionar à Tela de Início.', android: 'No menu do navegador, escolha Instalar aplicativo ou Adicionar à tela inicial, se disponível.', safari: 'No Safari do Mac: Arquivo > Adicionar ao Dock, se disponível.', desktop: 'Use o ícone de instalação na barra de endereço ou Instalar aplicativo no menu do navegador, se disponível.', unavailable: 'A instalação do aplicativo está disponível em dealsifter.com. As páginas de Preview permanecem independentes.' },
     es: { title: 'Añadir a la pantalla de inicio', ios: 'En Safari: Compartir > Añadir a la pantalla de inicio.', iosOther: 'Abre dealsifter.com en Safari y usa Compartir > Añadir a la pantalla de inicio.', android: 'En el menú del navegador, elige Instalar aplicación o Añadir a la pantalla de inicio, si está disponible.', safari: 'En Safari para Mac: Archivo > Añadir al Dock, si está disponible.', desktop: 'Usa el icono de instalación de la barra de direcciones o Instalar aplicación en el menú del navegador, si está disponible.', unavailable: 'La instalación está disponible en dealsifter.com. Las páginas de Preview permanecen independientes.' },
   }[lang];
-  return { title: copy.title, message: copy[kind], unavailable: copy.unavailable };
+  const desktopInstructions = {
+    en: 'Direct installation is not available in this window. Open dealsifter.com in an up-to-date Chrome, Edge or Brave, in a regular window, and use the install button in the app.',
+    pt: 'A instalação direta não está disponível nesta janela. Abra dealsifter.com no Chrome, Edge ou Brave atualizado, em uma janela normal, e use o botão de instalação do app.',
+    es: 'La instalación directa no está disponible en esta ventana. Abre dealsifter.com en Chrome, Edge o Brave actualizado, en una ventana normal, y usa el botón de instalación de la app.',
+  };
+  return { title: copy.title, message: kind === 'desktop' ? desktopInstructions[lang] : copy[kind], unavailable: copy.unavailable };
 }
 
 /** @param {InstallationWindow} windowObject @param {DeferredInstallPrompt|null} deferredPrompt @param {(notice: InstallationNotice) => void} notify @param {string} language */

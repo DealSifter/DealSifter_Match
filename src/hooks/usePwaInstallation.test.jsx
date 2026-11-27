@@ -74,7 +74,7 @@ describe('canonical PWA installation', () => {
     expect(installationInstructions({ userAgent: 'iPhone CriOS' }, 'en').message).toContain('Open dealsifter.com in Safari');
     expect(installationInstructions({ userAgent: 'Macintosh Safari', maxTouchPoints: 5 }, 'es').message).toContain('Compartir');
     expect(installationInstructions({ userAgent: 'Macintosh Safari', maxTouchPoints: 0 }, 'pt').message).toContain('Dock');
-    expect(installationInstructions({ userAgent: 'Chrome Windows' }, 'es').message).toContain('si está disponible');
+    expect(installationInstructions({ userAgent: 'Chrome Windows' }, 'es').message).toContain('Chrome, Edge o Brave');
   });
   it('does not offer another installation while running standalone', async () => {
     const win = fakeWindow('https://dealsifter.com/'); win.navigator.standalone = true;
