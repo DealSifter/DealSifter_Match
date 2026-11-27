@@ -2,6 +2,14 @@
 
 Data: 21/11/2026. Base: [auditoria concluída](DEALSIFTER_LAUNCH_CLOSURE_AUDIT.md). Este documento registra execução direcionada, não uma nova auditoria.
 
+## GuideTips: contornos visíveis e pop-ups móveis — 27/11/2026
+
+Publicado o código `27119954b1770724a4e1120baf4534361a6230cf` em `dpl_Bb6dDGvkpzngcTiLaGggDXXkhVRU`, canônico `https://dealsifter.com/`. A seleção anterior podia escolher uma cópia fora da tela; o contorno limitava apenas esquerda/topo, mantendo a largura/altura integrais de painéis maiores que o viewport. Também havia reposicionamento por scroll em atualizações sucessivas. O guia agora seleciona o alvo visível, considera o recorte dos painéis com overflow e limita todas as bordas do destaque ao viewport. Alvos fora da tela são trazidos à vista uma vez, sem scroll suave repetitivo; alterações de tamanho, rolagem e troca de passo atualizam o destaque.
+
+Pop-ups arrastáveis pelo cabeçalho com mouse ou toque, limitados à área visível pela altura real da caixa. No mobile, largura máxima de 320 CSS px, espaçamento/tipografia mais compactos e altura máxima de 65% da área visível, até 440 CSS px, com rolagem interna quando necessária. O X externo superior foi removido; o botão Fechar guia permanece dentro do pop-up inclusive no percurso obrigatório. Fechar apenas suspende o guia da sessão, preservando as regras de conclusão e cadastro existentes. As posições são reiniciadas em cada passo. Dicas de arraste em EN/PT/ES.
+
+Validação: 13 testes direcionados de geometria/ativação e 24 cenários de navegador com o componente real e dados sintéticos em larguras 320/390/768/1366 CSS px. Foram verificados mouse, toque mobile, arraste extremo, recortes de viewport e ancestral, duplicatas fora da tela, alvo tardio, scroll, resize, avanço/retorno e fechamento sem conclusão indevida. Lint e build isolado PASS; smoke da aplicação compilada e publicada e hashes dos bundles do guia conferidos no canônico. Não equivale a aceite físico de todos os aparelhos/navegadores do proprietário. Os 35 stashes foram preservados integralmente. Nenhuma alteração de backend, Auth/OAuth, DNS ou dados de usuários. Rollback: promover `dpl_FdGkamUCHbsCeZYskKgmmzCnT8vY`. Evidências privadas em `.tmp-codex/guidetips-20261127/` e `.tmp-codex/guidetips-production-20261127/`.
+
 ## Compatibilidade PWA, Matches e avatar — 27/11/2026
 
 Publicado o código `1024f22fc8241c6f1dfd90306c9a1a563a49a4ca` em `dpl_FdGkamUCHbsCeZYskKgmmzCnT8vY`, canônico `https://dealsifter.com/`. Causa reproduzível do layout: colunas Flexbox sem `min-width: 0`, sujeitas à largura mínima intrínseca dos textos e filtros; não foi comprovado um limite de coluna específico de cada navegador. A sidebar desktop continua com 520 CSS px; suas duas colunas agora mantêm divisão equivalente, sem permitir que o conteúdo de uma comprima a outra. Endereços e autoria dos imóveis podem quebrar linha, e as miniaturas mantêm seu tamanho. Mobile e tablet preservam seus layouts existentes.
