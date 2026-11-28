@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { clampPosition, focusBounds, intersectBounds } from './guideGeometry';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clampPosition, focusBounds, intersectBounds, isTargetExposed } from './guideGeometry';
 
 const viewport = { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 };
+afterEach(() => vi.unstubAllGlobals());
 
 describe('GuideTips visible geometry', () => {
   it('keeps the entire outline inside a mobile screen for oversized targets', () => {
@@ -36,5 +37,28 @@ describe('GuideTips visible geometry', () => {
     expect(clampPosition(1000, 12, 58)).toBe(58);
     expect(clampPosition(30, 12, 58)).toBe(30);
     expect(clampPosition(100, 12, -20)).toBe(12);
+  });
+
+  it('ignores the guide itself when checking which application item is exposed', () => {
+    const target = { closest: () => null, contains: (node) => node === target };
+    const dimmer = { closest: () => ({}) };
+    vi.stubGlobal('document', { elementsFromPoint: () => [dimmer, target] });
+    expect(isTargetExposed(target, viewport)).toBe(true);
+  });
+
+  it('rejects an export copy covered by the foreground property sheet', () => {
+    const backgroundExport = { closest: () => null, contains: () => false };
+    const sheet = { closest: () => null };
+    const foregroundExport = { closest: () => null, contains: () => false };
+    vi.stubGlobal('document', { elementsFromPoint: () => [foregroundExport, sheet, backgroundExport] });
+    expect(isTargetExposed(backgroundExport, viewport)).toBe(false);
+    expect(isTargetExposed(foregroundExport, viewport)).toBe(true);
+  });
+
+  it('can locate the exposed part of a large panel whose center is covered', () => {
+    const panel = { closest: () => null, contains: () => false };
+    const cover = { closest: () => null };
+    vi.stubGlobal('document', { elementsFromPoint: (x) => x < 100 ? [panel] : [cover, panel] });
+    expect(isTargetExposed(panel, viewport)).toBe(true);
   });
 });

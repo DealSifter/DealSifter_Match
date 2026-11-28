@@ -39,6 +39,17 @@ export const visibleTargetBounds = (element, viewport) => {
   return rect;
 };
 
+// A mounted copy behind a sheet is not the item the user can see or act on.
+// Ignore our own dimmer/card when hit-testing the application beneath the guide.
+export const isTargetExposed = (element, rect) => {
+  const points = [[0.5, 0.5], [0.15, 0.15], [0.85, 0.15], [0.15, 0.85], [0.85, 0.85]];
+  return points.some(([x, y]) => {
+    const top = document.elementsFromPoint(rect.left + rect.width * x, rect.top + rect.height * y)
+      .find((node) => !node.closest('[data-guide-overlay]'));
+    return top === element || (top && element.contains(top));
+  });
+};
+
 export const focusBounds = (rect, viewport) => rect && intersectBounds({
   left: rect.left - 7, top: rect.top - 7, right: rect.right + 7, bottom: rect.bottom + 7,
 }, {

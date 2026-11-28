@@ -6,7 +6,7 @@ import { useGuideTips } from './useGuideTips';
 import { useLang } from '../../i18n/translations';
 import { getGuideTourCopy } from './guideTourContent';
 import appLogo from '../../assets/logo.png';
-import { viewportBounds, visibleTargetBounds, focusBounds, clampPosition } from './guideGeometry';
+import { viewportBounds, visibleTargetBounds, isTargetExposed, focusBounds, clampPosition } from './guideGeometry';
 
 const getTarget = (selector) => {
   if (!selector || typeof document === 'undefined') return null;
@@ -23,8 +23,8 @@ const getTarget = (selector) => {
       && Number(style.opacity || 1) > 0
     ) {
       const visible = visibleTargetBounds(el, viewportBounds());
-      if (visible) return { element: el, rect: visible };
-      fallback ||= { element: el, rect: null };
+      if (visible && isTargetExposed(el, visible)) return { element: el, rect: visible };
+      fallback ||= { element: el, rect: null, occluded: Boolean(visible) };
     }
   }
   return fallback;
@@ -61,8 +61,11 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef(null);
   const cardRef = useRef(null);
+  const contentRef = useRef(null);
+  const contentMeasureRef = useRef(null);
   const [viewport, setViewport] = useState(viewportBounds);
   const [cardHeight, setCardHeight] = useState(0);
+  const [contentScrollable, setContentScrollable] = useState(false);
   const overviewVideoUrl = String(import.meta.env.VITE_OVERVIEW_VIDEO_URL || '').trim();
   const rect = targetSnapshot.selector === step?.target ? targetSnapshot.rect : null;
 
@@ -78,8 +81,10 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     const frame = window.requestAnimationFrame(update);
     const observer = new ResizeObserver(() => {
       if (cardRef.current) setCardHeight(cardRef.current.getBoundingClientRect().height);
+      if (contentRef.current) setContentScrollable(contentRef.current.scrollHeight > contentRef.current.clientHeight + 1);
     });
     if (cardRef.current) observer.observe(cardRef.current);
+    if (contentMeasureRef.current) observer.observe(contentMeasureRef.current);
     return () => {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
@@ -115,65 +120,31 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
       }, 0);
       return () => window.clearTimeout(resetTimer);
     }
-    let frame = null;
-    let retryTimer = null;
+    let frame;
     let stopped = false;
-    let observer = null;
     let scrolledElement = null;
-    let observedElement = null;
-    const resizeObserver = new ResizeObserver(() => update());
-    const update = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        if (stopped) return;
-        const target = getTarget(step.target);
-        const next = target?.rect || null;
-        setTargetSnapshot((current) => (
-          current.selector === step.target && sameRect(current.rect, next)
-            ? current
-            : { selector: step.target, rect: next }
-        ));
-        setTargetPending(!next);
-        if (target && observedElement !== target.element) {
-          resizeObserver.disconnect();
-          resizeObserver.observe(target.element);
-          observedElement = target.element;
-        }
-        // Scroll once per target; repeated smooth scrolling hides highlights on large panels.
-        if (target && scrolledElement !== target.element) {
-          scrolledElement = target.element;
-          if (!next) target.element.scrollIntoView?.({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
-        }
-        window.clearTimeout(retryTimer);
-        if (!next) retryTimer = window.setTimeout(update, 250);
-      });
+    const trackTarget = () => {
+      if (stopped) return;
+      const target = getTarget(step.target);
+      const next = target?.rect || null;
+      setTargetSnapshot((current) => (
+        current.selector === step.target && sameRect(current.rect, next)
+          ? current
+          : { selector: step.target, rect: next }
+      ));
+      setTargetPending(!next);
+      if (target && !target.occluded && scrolledElement !== target.element) {
+        scrolledElement = target.element;
+        if (!next) target.element.scrollIntoView?.({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
+      }
+      // Track position as well as size. Marquee mutations must never cancel this frame,
+      // and bottom sheets/media can move a target without resizing the target itself.
+      frame = window.requestAnimationFrame(trackTarget);
     };
-    update();
-    if (typeof MutationObserver !== 'undefined' && document.body) {
-      observer = new MutationObserver((records) => {
-        if (records.some((record) => !record.target.closest?.('[data-guide-overlay]'))) update();
-      });
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style', 'data-guide', 'hidden'],
-      });
-    }
-    window.addEventListener('resize', update);
-    window.visualViewport?.addEventListener('resize', update);
-    window.visualViewport?.addEventListener('scroll', update);
-    window.addEventListener('scroll', update, true);
+    frame = window.requestAnimationFrame(trackTarget);
     return () => {
       stopped = true;
       window.cancelAnimationFrame(frame);
-      window.clearTimeout(retryTimer);
-      observer?.disconnect();
-      resizeObserver.disconnect();
-      window.visualViewport?.removeEventListener('resize', update);
-      window.visualViewport?.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
     };
   }, [enabled, page, step]);
 
@@ -286,8 +257,10 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     setEnabled(false);
   };
   const beginDrag = (event) => {
-    if (event.button > 0 || event.target.closest('button')) return;
+    if (event.button > 0 || event.target.closest('button, a, input, select, textarea, video, [contenteditable="true"]')) return;
+    if (contentScrollable && event.target.closest('[data-guide-content]')) return;
     event.preventDefault();
+    event.stopPropagation();
     dragRef.current = {
       pointerId: event.pointerId,
       clientX: event.clientX,
@@ -302,6 +275,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const moveDrag = (event) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
     setDragOffset({
       x: clampPosition(drag.left + event.clientX - drag.clientX, viewport.left + 12, viewport.right - cardW - 12) - drag.baseLeft,
       y: clampPosition(drag.top + event.clientY - drag.clientY, viewport.top + 12, viewport.bottom - cardHGuess - 12) - drag.baseTop,
@@ -316,7 +291,6 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const overlayPiece = {
     position: 'fixed',
     background: isDark ? 'rgba(2,8,7,0.72)' : 'rgba(2,6,23,0.38)',
-    transition: 'all .16s ease',
     pointerEvents: 'auto',
   };
 
@@ -350,7 +324,6 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
               borderRadius: 14,
               border: `2px solid ${C.gold}`,
               boxShadow: `0 0 28px ${C.alpha(C.gold, 0.72)}, inset 0 0 18px ${C.alpha(C.gold, 0.14)}`,
-              transition: 'all .16s ease',
             }}
           />
         </>
@@ -360,13 +333,19 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         role="dialog"
         aria-modal={isModalStep ? 'true' : undefined}
         aria-label={copy.common.title}
+        onPointerDown={beginDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         style={{
           position: 'fixed',
           left: positionedLeft,
           top: positionedTop,
           width: cardW,
           maxHeight: cardMaxHeight,
-          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
           borderRadius: 16,
           border: `1px solid ${C.alpha(C.accent, 0.52)}`,
           background: 'rgba(255,255,255,0.96)',
@@ -382,10 +361,6 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         <div
           data-guide-drag-handle="true"
           title={copy.common.drag}
-          onPointerDown={beginDrag}
-          onPointerMove={moveDrag}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -395,6 +370,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             cursor: 'grab',
             touchAction: 'none',
             userSelect: 'none',
+            flexShrink: 0,
           }}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.gold, fontSize: 11, fontWeight: 900, textTransform: 'uppercase' }}>
@@ -427,7 +403,9 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             ) : null}
           </span>
         </div>
-
+        <div style={{ width: 30, height: 4, borderRadius: 9, background: '#cbd5e1', alignSelf: 'center', marginBottom: 7, flexShrink: 0, touchAction: 'none', cursor: 'grab' }} title={copy.common.drag} aria-hidden="true" />
+        <div ref={contentRef} data-guide-content="true" style={{ minHeight: 0, flex: '1 1 auto', overflowY: 'auto', overscrollBehavior: 'contain', touchAction: contentScrollable ? 'pan-y' : 'none', cursor: contentScrollable ? 'auto' : 'grab' }}>
+        <div ref={contentMeasureRef}>
         {step.kind === 'video' ? (
           <div style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid #d7e1e8', background: '#0d1815', aspectRatio: '16 / 9', display: 'grid', placeItems: 'center' }}>
             {overviewVideoUrl ? (
@@ -463,7 +441,9 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             {copy.common.profileRequired}
           </div>
         ) : null}
-        <div style={{ display: 'flex', gap: 8, marginTop: mobileViewport ? 10 : 15 }}>
+        </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: mobileViewport ? 10 : 15, flexShrink: 0 }}>
           {stepIndex > 0 ? (
             <button type="button" onClick={goBack} style={{ flex: 0.8, border: '1px solid #cbd5e1', background: 'transparent', color: cardTextSoft, borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
               {copy.common.back}

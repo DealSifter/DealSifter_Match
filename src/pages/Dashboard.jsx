@@ -481,7 +481,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (!isMobileViewport) return undefined;
     const onGuideStep = (event) => {
       const target = String(event?.detail?.target || '');
-      if (target === '[data-guide="feed-categories"]') {
+      if (target === '[data-guide="feed-categories"]' || target === '[data-guide="feed-profile-avatar"]') {
         setMobileFeedSidebarOpen(true);
         setDropdownOpen(false);
         return;
@@ -3370,6 +3370,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div style={{ display: 'grid', gridTemplateColumns: hasSecondaryProfile ? '1fr 1fr' : '1fr', gap: 8 }}>
                   <button
                     type="button"
+                    data-guide="feed-profile-avatar"
                     onClick={handlePrimaryMyCardClick}
                     aria-pressed={myCardModal.open && myCardModal.scope === visiblePrimaryModalKey}
                     style={{
@@ -3781,6 +3782,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 7px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 9, fontWeight: 800, maxWidth: isTabletPortraitWideViewport ? 96 : 86, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primaryProfileBadgeLabel}</span>
                   <button
                     type="button"
+                    data-guide="feed-profile-avatar"
                     onClick={handlePrimaryMyCardClick}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
                   >
